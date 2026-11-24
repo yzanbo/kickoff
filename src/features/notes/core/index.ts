@@ -12,6 +12,7 @@ import type { TrashApi } from "@/features/trash/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { createCommonNotes } from "./commonNotes";
 import { createNoteDirs } from "./noteDir";
+import { followNoteDirChanges } from "./noteDirChanges";
 import { NoteService, type NoteMoved, type NoteTrashed } from "./service";
 import { createNoteAi } from "./noteAi";
 import { createNoteChat } from "./noteChat";
@@ -63,6 +64,8 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   // 共通のノート（見えないプロジェクト）: 起動したときに用意し、フォルダの設定を変えたら付け替える
   const common = createCommonNotes({ projects: deps.projects, settings: () => k.settings.get(), defaultRoot: env.defaultDir, noteDirUsers: dirs.usersOf });
   deps.settings.onUpdate(common.settingsHook);
+  // ノートのフォルダの場所が変わったら、開いている文書が新しい場所を読み直すよう知らせる
+  const stopDirChanges = followNoteDirChanges({ subscribe: (fn) => bus.subscribe(fn), list: () => projects.list(), dirOf: dirs.dirOf, publish });
   // 動かした・ゴミ箱へ入れたノートの、ノートのチャットも付け替える・一緒に入れる（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える）
   notes.onMoved((e) => chat.noteChats.moved(e.project_id, e.from, e.to));
   notes.onTrashed((e) => chat.noteChats.trashed(e.project_id, e.path, e.trash_id));
@@ -84,6 +87,9 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
     routes: [noteRoutes({ projectParam: deps.projects.param, chatParam: chat.chatParam, dirs, notes, transfer, common, ai, chat: createNoteChat({ notes, chat }), uploads: deps.attachments.uploads })],
     aiTools: [openNoteToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
     start: () => void common.sync(),
-    stop: () => notes.close(),
+    stop: () => {
+      stopDirChanges();
+      notes.close();
+    },
   };
 }

@@ -16,10 +16,11 @@
 - ツールの `scope` は `project`（省いたとき）・`common`。共通のノートのフォルダの中の絶対パスは scope によらず共通。`move_note` は from と to の欄が違えば欄の間で動かす。
 - 欄の間で動かすときは、ノートのチャット（フォルダなら中のノートのもの。アーカイブ済みも）と子孫も workplaceMove の `move`（`project_moved`）で行き先へ移し、`note_path` を付け替える。ファイルは `folderFiles` の `moveTo`（別のディスクなら写してから消す）。
 - どれかが作業中ならファイルを動かす前に 409、チャットを移せなければファイルとチャットを元に戻す。行き先がない（ゴミ箱）は 404、アーカイブ・使えない共通のノートは 409。DB の接続の手順ノートは元のプロジェクトの接続なので付いていかない（`onMoved` を出さない）。
+- ノートのフォルダの場所が変わったら `notes`（path は null）を出す（`noteDirChanges.ts`。決めていないフォルダは数えない）。開いている文書は外で変えられたときと同じく読み直す。
 - 見えないプロジェクトにはノートのチャットとその子チャットだけ（HTTP の新しいチャットは 409、AI の `create_chat` の root は断る）。
 - 共通のノートのフォルダが、利用者のプロジェクトのノートのフォルダ（`NoteDirs.usersOf`。予約より前に `_common` になったものなど）と同じときも使えない状態。
 
 ## 落とし穴
 - プロジェクトの `note_dir` を親フォルダそのものにすると、`_common` がそのプロジェクトの木にも出る（直していない）。
 - テストは機能を始めないので、共通のノートが要るテストは `notes.syncCommon()` を呼ぶ。
-- テスト: `routes.common.test.ts`・`routes.transfer.test.ts`・`tools.test.ts`・`turnParts.test.ts`。
+- テスト: `routes.common.test.ts`・`noteDirChanges.test.ts`・`routes.transfer.test.ts`・`tools.test.ts`・`turnParts.test.ts`。

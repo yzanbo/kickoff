@@ -7,6 +7,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { chatOf } from "@/features/chat/core/testing";
+import type { BusEvent } from "@shared/foundation/contract";
 
 const FEATURES = ["notes", "settings", "trash", "database", "workplaceMove"] as const;
 
@@ -130,4 +131,34 @@ test("共通のノート: _common を予約する前からノートのフォル�
   ctx.store.projects.update(old.id, { note_folder: "前からある" });
   await ctx.notes.syncCommon();
   assert.ok((await ctx.api("GET /api/notes/defaults")).body.common_project_id);
+});
+
+test("ノートのフォルダの場所を変えたら（プロジェクトの別の場所・親フォルダ・共通のノートのフォルダ）、そのプロジェクトの notes を path なしで知らせる（開いている文書が読み直す）", async () => {
+  const ctx = await setupCommon();
+  const { api, call, bus, project } = ctx;
+  const common = ctx.common()!;
+  // ノートを書いてフォルダを決めておく
+  await api("POST /api/projects/:projectId/notes", { params: { projectId: project.id }, body: { path: "a.md", content: "a" } });
+  const events: BusEvent[] = [];
+  bus.subscribe((e) => events.push(e));
+  const notified = () => events.filter((e) => e.type === "notes" && e.path === null).map((e) => (e as Extract<BusEvent, { type: "notes" }>).project_id);
+  // 名前を変えただけでは知らせない
+  await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { name: "改名" } });
+  assert.deepEqual(notified(), []);
+  await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { note_dir: tempDir() } });
+  assert.deepEqual(notified(), [project.id]);
+  events.length = 0;
+  // 共通のノートのフォルダ: 付け替えたあとに知らせる
+  assert.equal((await call("PUT", "/api/settings", { common_notes_dir: tempDir() })).status, 200);
+  assert.deepEqual(notified(), [common.id]);
+  events.length = 0;
+  // 親フォルダ: 別の場所にしていないプロジェクトと、既定の場所の共通のノート
+  const plain = ctx.store.projects.create({ name: "親の下", repo_path: tempDir(), provider: "claude" });
+  // フォルダを決めていないプロジェクトは数えない
+  ctx.store.projects.create({ name: "まだ", repo_path: tempDir(), provider: "claude" });
+  await api("POST /api/projects/:projectId/notes", { params: { projectId: plain.id }, body: { path: "a.md", content: "a" } });
+  await call("PUT", "/api/settings", { common_notes_dir: null });
+  events.length = 0;
+  assert.equal((await call("PUT", "/api/settings", { notes_dir: tempDir() })).status, 200);
+  assert.deepEqual(notified().sort(), [plain.id, common.id].sort());
 });
