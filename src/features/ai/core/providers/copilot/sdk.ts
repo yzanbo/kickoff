@@ -25,7 +25,8 @@ export interface CopilotSessionLike {
 
 /** 使うクライアント（1 回の用事・1 回の実行ごとに 1 つのランタイムを起こして止める） */
 export interface CopilotClientLike {
-  start(): Promise<void>;
+  /** ランタイムを起こす（返り値はその pid。読めなければ null） */
+  start(): Promise<number | null>;
   stop(): Promise<unknown>;
   createSession(config: SessionConfig): Promise<CopilotSessionLike>;
   resumeSession(sessionId: string, config: ResumeSessionConfig): Promise<CopilotSessionLike>;
@@ -73,7 +74,7 @@ export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
       const c = await ready();
       await c.start();
       // ランタイムの子をメインに知らせる（コアが落ちたら作り直す前に止める）
-      noteRuntimeProcess(c);
+      return noteRuntimeProcess(c);
     },
     stop: async () => (client ? client.stop() : []),
     createSession: async (config) => wrapSession(await (await ready()).createSession(config)),

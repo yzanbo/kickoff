@@ -252,3 +252,12 @@ test("1 回だけ聞く: 一時のセッションで聞いて返答の文を返�
   assert.equal((await agent.waitFor("session/delete")).sessionId, "ses-1");
   assert.equal(agent.spawned[0].env.GEMINI_API_KEY, "AIza-2");
 });
+
+test("起動した ACP の CLI の pid を onAgentSpawned で知らせる（診断が今回の AI のプロセスを見分ける）", async () => {
+  const agent = fakeAcpAgent();
+  onPrompt(agent, async () => {});
+  const pids: number[] = [];
+  const spawn: typeof agent.spawn = (args, opts) => ({ ...agent.spawn(args, opts), pid: 321 });
+  await cursorProvider({ spawn }).run(params({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
+  assert.deepEqual(pids, [321]);
+});

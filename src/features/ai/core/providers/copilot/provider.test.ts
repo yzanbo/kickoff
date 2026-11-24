@@ -149,7 +149,7 @@ test("起動の途中（ランタイムの起動を待つ間）に止めると�
       ...client,
       start: async () => {
         ac.abort();
-        await client.start();
+        return client.start();
       },
     };
   };
@@ -242,4 +242,12 @@ test("状態: ログインの様子", async () => {
 test("開発用の環境変数で copilot を選んだときだけ本物の実装を使う", () => {
   assert.ok(experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "codex, copilot" }).has("copilot"));
   assert.ok(!experimentalProviders({}).has("copilot"));
+});
+
+test("起こした Copilot のランタイムの pid を onAgentSpawned で知らせる（診断が今回の AI のプロセスを見分ける）", async () => {
+  const fake = fakeCopilotClient();
+  fake.runtimePid = 654;
+  const pids: number[] = [];
+  await new CopilotProvider({ clientFactory: fake.factory }).run(turnParams({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
+  assert.deepEqual(pids, [654]);
 });

@@ -42,9 +42,11 @@ const CLIENT_CAPABILITIES = { fs: { readTextFile: false, writeTextFile: false },
 /** エージェントを起動して initialize（と、要れば authenticate）まで済ませる */
 export async function openAgent(
   deps: Pick<AcpTurnDeps, "spawn" | "spec">,
-  opts: { env: Record<string, string | undefined>; cwd: string; params: Pick<ProviderTurnParams, "auth">; onNotification?: (method: string, params: unknown) => void; onServerRequest?: (method: string, params: unknown) => Promise<unknown>; onClosed?: (reason: string) => void },
+  opts: { env: Record<string, string | undefined>; cwd: string; params: Pick<ProviderTurnParams, "auth" | "onAgentSpawned">; onNotification?: (method: string, params: unknown) => void; onServerRequest?: (method: string, params: unknown) => Promise<unknown>; onClosed?: (reason: string) => void },
 ): Promise<{ rpc: StdioRpc; init: InitializeResponse }> {
   const proc = deps.spawn(deps.spec.args(opts.params), { env: opts.env, cwd: opts.cwd });
+  // 診断が今回の AI のプロセスを見分けるよう pid を知らせる（メインへの知らせは spawnStdio が済ませる）
+  if (proc.pid !== undefined) opts.params.onAgentSpawned?.(proc.pid);
   const refuse = async (method: string) => {
     throw new Error(`Kickoff は ${method} に答えません`);
   };

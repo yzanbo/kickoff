@@ -74,7 +74,8 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
   let stopper: Stopper | null = null;
   try {
     client = deps.clientFactory({ env: runtimeEnv(deps.baseEnv, params.env), cwd: params.cwd });
-    await client.start();
+    const pid = await client.start();
+    if (pid !== null) params.onAgentSpawned?.(pid);
     const config = sessionConfig(params, cb, signal);
     session = sessionId ? await client.resumeSession(sessionId, config) : await client.createSession(config);
     sessionId = session.sessionId;

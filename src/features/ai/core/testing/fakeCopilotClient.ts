@@ -29,6 +29,8 @@ export interface FakeCopilot {
   forks: { sessionId: string; toEventId: string | undefined }[];
   /** 前の会話の記録（resume したセッションの getEvents が最初に返すもの） */
   history: Map<string, { id: string; type: string }[]>;
+  /** start が返すランタイムの pid（省けば null = 読めなかった） */
+  runtimePid: number | null;
 }
 
 export function fakeCopilotClient(): FakeCopilot {
@@ -47,6 +49,7 @@ export function fakeCopilotClient(): FakeCopilot {
     auth: { isAuthenticated: true, login: "octo" },
     forks: [],
     history: new Map(),
+    runtimePid: null,
     factory: ({ env, cwd }) => {
       const record = { env, cwd, started: false, stopped: false };
       fake.clients.push(record);
@@ -99,6 +102,7 @@ export function fakeCopilotClient(): FakeCopilot {
       const client: CopilotClientLike = {
         start: async () => {
           record.started = true;
+          return fake.runtimePid;
         },
         stop: async () => {
           record.stopped = true;
