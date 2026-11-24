@@ -7,18 +7,13 @@ import type { NewTrashItem, StoredTrashItem, TrashChats, TrashStore } from "@/fe
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import { createPoller, type Poller } from "@/foundation/core/watch/poller";
-import { isTrashId, restoreName } from "./names";
+import { restoreName } from "./names";
 import type { TrashKindDef, TrashKindHandler } from "./kinds";
-import { exists, measure, move, readText } from "./trashFiles";
+import { exists, measure, move } from "./trashFiles";
+import { readInbox, storedPathOf, TRASH_ITEM_DIR } from "./inbox";
 
 /** 片付け（期限の来たものを本当に消す・AI が kickoff-trash で入れたものを覚える）を流す間隔 */
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
-/** AI の kickoff-trash が途中で止まった（中身のない）置き場のフォルダを消すまで */
-const STALE_INBOX_MS = 60 * 60 * 1000;
-
-/** 置き場のフォルダの中で、中身を置くフォルダの名前 */
-const TRASH_ITEM_DIR = "item";
-
 /** 一緒に入れたもの（会話記録と同じ名前のフォルダ = サブエージェントの記録など）を置くフォルダの名前。戻すときは元の場所へ戻す（覚え書きの details.companions） */
 const TRASH_COMPANION_DIR = "with";
 
@@ -155,52 +150,28 @@ export class TrashService {
     });
   }
 
-  /** 置き場の中身（item/ の中のただ 1 つのもの。なければ null） */
-  private async storedPath(id: string): Promise<string | null> {
-    const holder = path.join(this.deps.dir, id, TRASH_ITEM_DIR);
-    const names = await fs.readdir(holder).catch(() => [] as string[]);
-    return names.length === 1 ? path.join(holder, names[0]) : null;
-  }
-
   /**
    * AI の kickoff-trash が置いたものを覚え書きに取り込む（覚え書きのない置き場のフォルダのうち origin のあるもの）。
    * 中身のないまま古くなったもの（途中で止まった）は消す。取り込んだ数を返す
    */
   async importInbox(): Promise<number> {
-    const names = await fs.readdir(this.deps.dir).catch(() => [] as string[]);
-    let imported = 0;
-    for (const id of names) {
-      if (!isTrashId(id) || this.deps.items.get(id)) continue;
-      const folder = path.join(this.deps.dir, id);
-      const origin = await readText(path.join(folder, "origin"));
-      const stored = await this.storedPath(id);
-      if (!origin || !stored) {
-        const st = await fs.stat(folder).catch(() => null);
-        if (st && this.now() - st.mtimeMs > STALE_INBOX_MS) await fs.rm(folder, { recursive: true, force: true });
-        continue;
-      }
-      const chatText = await readText(path.join(folder, "chat"));
-      const chatId = chatText && /^\d+$/.test(chatText) ? Number(chatText) : null;
-      const chatProject = chatId !== null ? (this.chats?.projectOf(chatId) ?? null) : null;
-      const byChatId = chatProject !== null ? chatId : null;
-      const at = await readText(path.join(folder, "at"));
-      const st = await fs.lstat(stored).catch(() => null);
-      const trashedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date(this.now()).toISOString();
+    const found = await readInbox(this.deps.dir, (id) => Boolean(this.deps.items.get(id)), () => this.now());
+    for (const entry of found) {
+      const chatProject = entry.chatId !== null ? (this.chats?.projectOf(entry.chatId) ?? null) : null;
       const added = this.deps.items.add({
-        id,
-        project_id: chatProject ?? this.projectOf(origin),
+        id: entry.id,
+        project_id: chatProject ?? this.projectOf(entry.origin),
         kind: "file",
-        label: path.basename(origin),
-        origin,
-        is_dir: st?.isDirectory() ?? false,
-        by_chat_id: byChatId,
-        trashed_at: trashedAt,
+        label: path.basename(entry.origin),
+        origin: entry.origin,
+        is_dir: entry.isDir,
+        by_chat_id: chatProject !== null ? entry.chatId : null,
+        trashed_at: entry.trashedAt,
       });
-      this.measureLater(id);
+      this.measureLater(entry.id);
       for (const hook of this.importHooks) hook(added);
-      imported++;
     }
-    return imported;
+    return found.length;
   }
 
   /** プロジェクトのゴミ箱（AI が入れたばかりのものも取り込んでから） */
@@ -224,7 +195,7 @@ export class TrashService {
       this.deps.items.remove(id);
       return { path: null };
     }
-    const stored = await this.storedPath(id);
+    const stored = await storedPathOf(this.deps.dir, id);
     if (!stored) throw new NotFound("ゴミ箱の中身が見つかりません");
     let target = item.origin;
     if (await exists(target)) {

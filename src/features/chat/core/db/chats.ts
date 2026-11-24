@@ -1,44 +1,13 @@
 import { systemClock } from "@/foundation/core/clock";
 import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
-import type { Chat, ChatStatus, GitHubLink } from "@shared/chat/types";
+import type { Chat, GitHubLink } from "@shared/chat/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import { chatsTable } from "@/features/chat/core/schema";
-import type { NewChat } from "./types";
+import { CHAT_COLUMNS, type ChatFilter, type ChatPatch, type NewChat } from "./types";
+import { createChatArchive } from "./chatArchive";
 import { rememberChatSession } from "./agentSessions";
 import type { LogRevisions } from "./logRevisions";
-
-/** チャットの一覧の絞り込み（並びは最後に動いた順） */
-export interface ChatFilter {
-  projectId?: number;
-  statuses?: ChatStatus[];
-  limit?: number;
-  includeArchived?: boolean;
-  onlyArchived?: boolean;
-}
-
-/** update で変えられる列（型と UPDATE の対象をここ 1 つで決める。固定・グループ・プロジェクト・アーカイブは専用の操作で変える） */
-const CHAT_COLUMNS = [
-  "title",
-  "status",
-  "error",
-  "session_id",
-  "turn_started_at",
-  "model",
-  "effort",
-  "permission_mode",
-  "fast_mode",
-  "cost_usd",
-  "num_turns",
-  "context_tokens",
-  "context_window",
-  "branch",
-  "finished_worktree_branch",
-  "unread",
-] as const satisfies readonly (keyof Chat)[];
-
-/** チャットの変えられる項目 */
-export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
 /**
  * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
@@ -77,39 +46,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
       .all(id)
       .map(toChat);
 
-  /** アーカイブの列を書いて、変更を知らせる（最後に動いた時刻は進めない） */
-  const setArchived = (id: number, archivedAt: string | null, withParent: boolean) => {
-    // しまったら、起動したときの再開の確かめでもう聞かない（戻しても聞かない）
-    db.prepare(`UPDATE chats SET archived_at = ?, archived_with_parent = ?${archivedAt !== null ? ", resume_pending = 0" : ""} WHERE id = ?`).run(archivedAt, bit(withParent), id);
-    onChange({ type: "chat", chat: get(id)! });
-  };
-  /** 子の行（親と一緒にアーカイブした印 archived_with_parent は店の中だけの列なので、Chat に直さずに読む） */
-  const childRows = (id: number) => db.prepare("SELECT id, archived_at, archived_with_parent FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL ORDER BY id").all(id) as { id: number; archived_at: string | null; archived_with_parent: number }[];
-
-  /**
-   * アーカイブする・戻す（子孫も）。しまうときは、まだしまっていない子孫に「親と一緒にしまった」印を付けて一緒にしまう
-   * （子チャットだけで先にしまっていたものは、そのまま）。戻すときは、印のある子孫だけを戻し、子チャットだけでしまっていたもの（とその下）はしまったまま。
-   * 子チャットだけをしまう・戻すときは、親には触らない。しまったままもう一度しまっても、しまった日時は変えない
-   */
-  const archive = (id: number, archived: boolean, now = new Date(systemClock.now())): Chat => {
-    const chat = get(id)!;
-    if (archived) {
-      const at = chat.archived_at ?? now.toISOString();
-      setArchived(id, at, false);
-      for (const c of descendants(id)) if (c.archived_at === null) setArchived(c.id, at, true);
-    } else {
-      setArchived(id, null, false);
-      const restore = (parentId: number, depth: number) => {
-        for (const c of childRows(parentId)) {
-          if (c.archived_at !== null && c.archived_with_parent !== 1) continue;
-          if (c.archived_at !== null) setArchived(c.id, null, false);
-          if (depth < 50) restore(c.id, depth + 1);
-        }
-      };
-      restore(id, 1);
-    }
-    return get(id)!;
-  };
+  const archive = createChatArchive(db, onChange, get, descendants);
 
   const noteChats = (projectId: number, notePath: string): Chat[] =>
     db.prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC").all(projectId, notePath, notePath, notePath).map(toChat);

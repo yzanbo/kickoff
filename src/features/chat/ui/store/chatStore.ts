@@ -1,13 +1,12 @@
 import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
-import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
-import { streamingEffectOf } from "@shared/chat/streamingRules";
-import { chatAfter, detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
+import { chatAfter, detailFromIncrement, detailFromSnapshot, type ChatDetailState } from "./chatDetail";
 import { createPaging } from "./chatPaging";
 import { createStreamOps } from "./chatStream";
+import { createApply } from "./chatApply";
 import { createLogView } from "./logView";
 import { PREFETCH_QUEUE } from "./prefetch";
-import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, WARM_CHATS, type Channel, type ChatDetailView, type ChatLogView, type ChatProgressView, type ChatStoreDeps, type ChatVisibility, type Entry, type Published } from "./chatStoreTypes";
+import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, WARM_CHATS, cancelEntryWork, newEntry, type Channel, type ChatDetailView, type ChatLogView, type ChatProgressView, type ChatStoreDeps, type ChatVisibility, type Entry, type Published } from "./chatStoreTypes";
 
 /*
  * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・ノートの欄）で
@@ -41,31 +40,7 @@ export function createChatStore(deps: ChatStoreDeps) {
   };
 
   const create = (chatId: number): Entry => {
-    const entry: Entry = {
-      chatId,
-      detail: EMPTY_DETAIL,
-      error: null,
-      progress: EMPTY_PROGRESS,
-      stream: { gen: 0, text: "", pending: "", retired: null, lastAt: null, cancel: null },
-      replay: null,
-      request: 0,
-      epoch: 0,
-      paging: null,
-      viewers: new Map(),
-      releasedAt: deps.now(),
-      prefetched: null,
-      memos: new Map(),
-      cancelShrink: null,
-      stale: false,
-      loaded: false,
-      shown: false,
-      published: { detail: EMPTY_VIEW, log: EMPTY_LOG, progress: EMPTY_PROGRESS },
-      dirty: new Set(),
-      cancelPublish: null,
-      hold: null,
-      cancelFill: null,
-      fillTriedAt: null,
-    };
+    const entry = newEntry(chatId, deps.now());
     entries.set(chatId, entry);
     return entry;
   };
@@ -202,11 +177,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     const released = idle.filter((e) => e.prefetched === null).sort((a, b) => b.releasedAt - a.releasedAt);
     const prefetched = idle.filter((e) => e.prefetched !== null).sort((a, b) => b.prefetched! - a.prefetched!);
     for (const e of [...released.slice(WARM_CHATS), ...prefetched.slice(PREFETCH_QUEUE)]) {
-      e.cancelPublish?.();
-      e.cancelFill?.();
-      e.cancelShrink?.();
-      e.stream.cancel?.();
-      e.hold?.();
+      cancelEntryWork(e);
       entries.delete(e.chatId);
       deps.chats.forget(e.chatId);
     }
@@ -265,37 +236,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     busy: (): boolean => [...entries.values()].some((e) => e.viewers.size > 0 && (e.replay !== null || e.paging !== null)),
 
     /** サーバーの知らせを当てる（店にあるチャットのものだけ。見る部品がなくても当てる） */
-    apply(event: BusEvent) {
-      if (event.type === "chat_subagent") {
-        const e = entries.get(event.chat_id);
-        if (!e) return;
-        // 作業 ID ごとに覚える（再開すると呼び出し ID が変わるため。行へのまとめ方は collectSubagents が決める）
-        const at = new Date(deps.now()).toISOString();
-        e.progress = { progress: { ...e.progress.progress, [event.subagent.task_id]: event.subagent }, progressAt: { ...e.progress.progressAt, [event.subagent.task_id]: at } };
-        mark(e, "progress");
-        return;
-      }
-      // 書いている途中の返答を足す・消す（スマホ・コアと同じ決まり）。中身を読む前は、読めたあとに当て直す分として積むだけ
-      const effect = streamingEffectOf(event);
-      const id = effect?.chatId ?? detailChatIdOf(event);
-      const e = id === null ? undefined : entries.get(id);
-      if (!e) return;
-      e.replay?.push(event);
-      if (!e.loaded) return;
-      // 途中の文を先に消してから記録を足す（同じ差し替えで、確定した返答が入り途中の文が消える）
-      if (effect) stream.apply(e, effect);
-      if (event.type === "chat_delta") return;
-      // 末尾より前で巻き戻した: 索引が作り直しになるので、末尾から読み直す
-      if (event.type === "chat_events_deleted" && e.detail.range.tailStart > 0 && event.from_event_id < e.detail.range.tailStart && e.replay === null) {
-        void load(e, true);
-        return;
-      }
-      // チャット自身は知っているチャットが直す（ここでは見せ直すだけ）
-      if (event.type === "chat") return mark(e, "detail");
-      const prev = e.detail;
-      e.detail = reduceChatDetail(prev, event, e.chatId);
-      changed(e, prev);
-    },
+    apply: createApply({ entries, now: deps.now, stream, load, mark, changed }),
 
     /** SSE をつなぎ直した: 見ているチャットは取り直し、見ていないチャットは次に見るときに取り直す */
     reconnected() {

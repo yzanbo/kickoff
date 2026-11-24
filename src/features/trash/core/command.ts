@@ -1,5 +1,5 @@
 // AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れるコマンド）。起動のときにデータのフォルダの bin/ に置き、チャットの PATH に足す。
-// 置き場の形（<id>/origin・chat・at と item/<名前>）は TrashService.importInbox が読む。uuidgen・mv・date は macOS のもの
+// 置き場の形（<id>/origin・chat・at と item/<名前>）は inbox.ts の readInbox が読む。uuidgen・mv・date は macOS のもの
 import fs from "node:fs/promises";
 import path from "node:path";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";

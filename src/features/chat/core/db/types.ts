@@ -1,5 +1,5 @@
-// チャットの店に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める。コアの中だけで使う）
-import type { ChatOptionsPatch, ChatStatus, GitHubKind } from "@shared/chat/types";
+// チャットの店の型: 作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める）・一覧の絞り込み・変えられる列。コアの中だけで使う
+import type { Chat, ChatOptionsPatch, ChatStatus, GitHubKind } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 
 /** 選択（モデル・深さ・権限・ファスト）は省けば、指定しない・毎回確認・使わない */
@@ -28,3 +28,35 @@ export interface NewChat extends ChatOptionsPatch {
   /** AI が作った世代（AI の create_chat が作ったチャットだけ。省けば 0 = 利用者が作った） */
   ai_generation?: number;
 }
+
+/** チャットの一覧の絞り込み（並びは最後に動いた順） */
+export interface ChatFilter {
+  projectId?: number;
+  statuses?: ChatStatus[];
+  limit?: number;
+  includeArchived?: boolean;
+  onlyArchived?: boolean;
+}
+
+/** update で変えられる列（型と UPDATE の対象をここ 1 つで決める。固定・グループ・プロジェクト・アーカイブは専用の操作で変える） */
+export const CHAT_COLUMNS = [
+  "title",
+  "status",
+  "error",
+  "session_id",
+  "turn_started_at",
+  "model",
+  "effort",
+  "permission_mode",
+  "fast_mode",
+  "cost_usd",
+  "num_turns",
+  "context_tokens",
+  "context_window",
+  "branch",
+  "finished_worktree_branch",
+  "unread",
+] as const satisfies readonly (keyof Chat)[];
+
+/** チャットの変えられる項目 */
+export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;

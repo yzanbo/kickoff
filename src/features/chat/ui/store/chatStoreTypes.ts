@@ -165,3 +165,41 @@ export const EMPTY_LOG: ChatLogView = {
   streamGen: 0,
 };
 export const EMPTY_PROGRESS: ChatProgressView = { progress: {}, progressAt: {} };
+
+/** チャット 1 つの入れ物を空で作る（now は見る部品がなくなった時刻の初めの値） */
+export function newEntry(chatId: number, now: number): Entry {
+  return {
+    chatId,
+    detail: EMPTY_DETAIL,
+    error: null,
+    progress: EMPTY_PROGRESS,
+    stream: { gen: 0, text: "", pending: "", retired: null, lastAt: null, cancel: null },
+    replay: null,
+    request: 0,
+    epoch: 0,
+    paging: null,
+    viewers: new Map(),
+    releasedAt: now,
+    prefetched: null,
+    memos: new Map(),
+    cancelShrink: null,
+    stale: false,
+    loaded: false,
+    shown: false,
+    published: { detail: EMPTY_VIEW, log: EMPTY_LOG, progress: EMPTY_PROGRESS },
+    dirty: new Set(),
+    cancelPublish: null,
+    hold: null,
+    cancelFill: null,
+    fillTriedAt: null,
+  };
+}
+
+/** 入れ物の待っている仕事（見せる値の差し替え・読み足し・縮める・書いている途中の返答・ためた知らせ）を止める（店から捨てる前） */
+export function cancelEntryWork(e: Entry): void {
+  e.cancelPublish?.();
+  e.cancelFill?.();
+  e.cancelShrink?.();
+  e.stream.cancel?.();
+  e.hold?.();
+}
