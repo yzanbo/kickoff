@@ -11,7 +11,7 @@ test("全部の機能を載せても、何もしていなければ時計に予�
   const core = createTestCore({ clock });
   const events: BusEvent[] = [];
   core.bus.subscribe((e) => events.push(e));
-  assert.equal((await core.call("GET", "/api/status")).status, 200);
+  assert.equal((await core.api("GET /api/status")).status, 200);
   await settle();
   assert.deepEqual(events, []);
   assert.equal(clock.pending, 0);

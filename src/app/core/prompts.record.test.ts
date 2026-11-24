@@ -38,7 +38,7 @@ const done = async () => ({ status: "completed" as const, sessionId: "s", turns:
 
 /** 1 回送って終わったチャットを作る（API） */
 async function finishedChat(ctx: Ctx, text = "親の質問") {
-  const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text })).body.id;
+  const id: number = (await ctx.api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text } })).body.id;
   await until(() => ctx.store.chats.get(id)?.status === "completed");
   return id;
 }
@@ -74,25 +74,24 @@ const CASES: Record<string, () => Promise<string>> = {
     const ctx = setup();
     const parentId = await finishedChat(ctx);
     const answer = ctx.store.events.list(parentId).find((e) => e.type === "result")!;
-    const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "これはどういう意味？", quote: "Hono の middleware", inherit: true, event_id: answer.id })).body;
+    const child = (await ctx.api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "これはどういう意味？", quote: "Hono の middleware", inherit: true, event_id: answer.id } })).body;
     await idle(ctx, child.id);
     return promptRecord({ prompt: ctx.provider.prompts.at(-1), turnContext: ctx.provider.lastTurnContext }, [parentId, child.id]);
   },
   "child-no-inherit": async () => {
     const ctx = setup();
     const parentId = await finishedChat(ctx);
-    const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "質問", inherit: false })).body;
+    const child = (await ctx.api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "質問", inherit: false } })).body;
     await idle(ctx, child.id);
     return promptRecord({ prompt: ctx.provider.prompts.at(-1), turnContext: ctx.provider.lastTurnContext }, [parentId, child.id]);
   },
   // Markdown のノートと HTML のノートのチャット
   "note-chat": async () => {
     const ctx = setup();
-    const base = `/api/projects/${ctx.project.id}`;
     const systemPrompts: string[] = [];
     for (const [file, content] of [["設計/画面.md", "# 画面\n"], ["資料.html", "<p>x</p>"]]) {
-      await ctx.call("POST", `${base}/notes`, { path: file, content });
-      const chat = (await ctx.call("POST", `${base}/note/chat`, { path: file, text: "相談したい" })).body;
+      await ctx.api("POST /api/projects/:projectId/notes", { params: { projectId: ctx.project.id }, body: { path: file, content } });
+      const chat = (await ctx.api("POST /api/projects/:projectId/note/chat", { params: { projectId: ctx.project.id }, body: { path: file, text: "相談したい" } })).body;
       await idle(ctx, chat.id);
       systemPrompts.push(ctx.provider.lastSystemPrompt);
     }
@@ -104,8 +103,8 @@ const CASES: Record<string, () => Promise<string>> = {
     gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
     const chatId = await finishedChat(ctx, "こんにちは");
     fs.writeFileSync(path.join(ctx.project.repo_path, "a.txt"), "a changed\n");
-    await ctx.call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null, new_worktree_branch: "feat/move", carry: true });
-    await ctx.call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" });
+    await ctx.api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: null, new_worktree_branch: "feat/move", carry: true } });
+    await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "続けて" } });
     await idle(ctx, chatId);
     return promptRecord({ prompt: ctx.provider.prompts.at(-1), turnContext: ctx.provider.lastTurnContext }, [chatId]);
   },
@@ -114,7 +113,7 @@ const CASES: Record<string, () => Promise<string>> = {
     const ctx = setup();
     ctx.provider.networkFailures = 1;
     ctx.network.online = false;
-    const chatId: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "1" })).body.id;
+    const chatId: number = (await ctx.api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text: "1" } })).body.id;
     await until(() => ctx.runner.live(chatId).reconnect !== null);
     ctx.network.online = true;
     await until(() => ctx.provider.prompts.length === 2 && !ctx.runner.isBusy(chatId));
@@ -125,21 +124,21 @@ const CASES: Record<string, () => Promise<string>> = {
     const ctx = setup();
     const chatId = await finishedChat(ctx, "はじめ");
     await ctx.call("PUT", "/api/settings", { pre_compact_prompt: " 共通の指示 " });
-    await ctx.call("PATCH", `/api/projects/${ctx.project.id}`, { pre_compact_prompt: "プロジェクトの指示" });
+    await ctx.api("PATCH /api/projects/:projectId", { params: { projectId: ctx.project.id }, body: { pre_compact_prompt: "プロジェクトの指示" } });
     // 手で圧縮したら要約の記録を残す（残さないと、圧縮するまで次の圧縮前指示を送らない）
     ctx.provider.emitCompactOnCompact = true;
-    await ctx.call("POST", `/api/chats/${chatId}/compact`);
+    await ctx.api("POST /api/chats/:chatId/compact", { params: { chatId: chatId } });
     await until(() => ctx.provider.prompts.length === 3 && !ctx.runner.isBusy(chatId));
     const manual = ctx.provider.prompts[1];
     const release = ctx.provider.hold();
-    await ctx.call("POST", `/api/chats/${chatId}/messages`, { text: "作業" });
+    await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "作業" } });
     await until(() => ctx.provider.prompts.length === 4);
-    await ctx.call("POST", `/api/chats/${chatId}/compact`);
+    await ctx.api("POST /api/chats/:chatId/compact", { params: { chatId: chatId } });
     const busy = ctx.provider.told[0];
     release();
     await until(() => ctx.provider.prompts.at(-1) === "/compact" && !ctx.runner.isBusy(chatId));
     ctx.store.chats.update(chatId, { context_window: 200_000, context_tokens: 120_000 });
-    await ctx.call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" });
+    await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "続けて" } });
     await idle(ctx, chatId);
     return promptRecord({ "prompt（手で圧縮する前）": manual, "伝える文（作業中に手で圧縮したとき）": busy, "preCompact（自動の圧縮の前）": ctx.provider.preCompacts.at(-1)?.message }, [chatId]);
   },
@@ -148,9 +147,9 @@ const CASES: Record<string, () => Promise<string>> = {
     const ctx = setup();
     const chatId = await finishedChat(ctx, "はじめ");
     await ctx.call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });
-    await ctx.call("PATCH", `/api/projects/${ctx.project.id}`, { post_compact_prompt: "ノートを読み直す" });
+    await ctx.api("PATCH /api/projects/:projectId", { params: { projectId: ctx.project.id }, body: { post_compact_prompt: "ノートを読み直す" } });
     ctx.provider.emitCompactOnCompact = true;
-    await ctx.call("POST", `/api/chats/${chatId}/compact`);
+    await ctx.api("POST /api/chats/:chatId/compact", { params: { chatId: chatId } });
     await until(() => ctx.provider.prompts.length === 3 && !ctx.runner.isBusy(chatId));
     return promptRecord({ prompt: ctx.provider.prompts[2], turnContext: ctx.provider.lastTurnContext }, [chatId]);
   },
@@ -171,7 +170,7 @@ const CASES: Record<string, () => Promise<string>> = {
       { kind: "tool", name: "Bash", input: { command: "ls src" }, result: "core\nrenderer", isError: false },
       { kind: "user", text: "テストも見て" },
     ];
-    const child = (await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "core には何がある？" })).body;
+    const child = (await ctx.api("POST /api/chats/:chatId/subagents/:agentId/children", { params: { chatId: parentId, agentId: "a1" }, body: { text: "core には何がある？" } })).body;
     await idle(ctx, child.id);
     const user = ctx.store.events.list(child.id).find((e) => e.type === "user");
     const file = user?.type === "user" ? await ctx.uploads.resolve(user.data.attachments![0].id) : null;
@@ -187,11 +186,11 @@ const CASES: Record<string, () => Promise<string>> = {
       { type: "tool_result", tool_use_id: "r1", content: "…", is_error: false },
       { type: "text", text: "子チャット「依頼」で検討した結果、次をお願いします。" },
     ];
-    const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "依頼", inherit: false })).body;
+    const child = (await ctx.api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "依頼", inherit: false } })).body;
     await idle(ctx, child.id);
     ctx.provider.emits = [];
     const end = ctx.store.events.list(child.id).find((e) => e.type === "result")!;
-    await ctx.call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: end.id });
+    await ctx.api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "send", turn_event_id: end.id } });
     await idle(ctx, parentId);
     return promptRecord({ prompt: ctx.provider.prompts.at(-1), turnContext: ctx.provider.lastTurnContext }, [parentId, child.id]);
   },
@@ -202,13 +201,12 @@ const CASES: Record<string, () => Promise<string>> = {
     fs.writeFileSync(path.join(ctx.project.repo_path, "a.txt"), "a changed\n");
     const chat = ctx.store.chats.create({ project_id: ctx.project.id, provider: "claude", title: "c", status: "completed" });
     ctx.provider.emits = [{ type: "text", text: "最初の答え" }];
-    await ctx.call("POST", `/api/chats/${chat.id}/messages`, { text: "最初の話" });
+    await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chat.id }, body: { text: "最初の話" } });
     await idle(ctx, chat.id);
     ctx.provider.emits = [];
-    const url = `/api/chats/${chat.id}/provider-switch`;
-    const preview = await ctx.call("GET", `${url}?target=codex`);
-    await ctx.call("POST", url, { target: "codex", confirmation: preview.body.confirmation });
-    await ctx.call("POST", `/api/chats/${chat.id}/messages`, { text: "Codex への指示" });
+    const preview = await ctx.api("GET /api/chats/:chatId/provider-switch", { params: { chatId: chat.id }, query: { target: "codex" } });
+    await ctx.api("POST /api/chats/:chatId/provider-switch", { params: { chatId: chat.id }, body: { target: "codex", confirmation: preview.body.confirmation } });
+    await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chat.id }, body: { text: "Codex への指示" } });
     await until(() => ctx.provider.prompts.length === 2 && !ctx.runner.isBusy(chat.id));
     const eventIds = ctx.store.events.list(chat.id).map((e) => e.id);
     return promptRecord({ prompt: ctx.provider.prompts[1], turnContext: ctx.provider.lastTurnContext }, [chat.id, ...eventIds]);

@@ -9,16 +9,16 @@ import { allowCarry as allow, busyTurn, continuations, mainChat } from "@/featur
 
 test("片付けの予約と重なれば先に片付ける。本体へなら移すのは片付けで済み、続きは送るが送信待ちは止めたまま（G4・J3）", async () => {
   const ctx = setup();
-  const { call, worktreeFinisher, provider } = ctx;
+  const { api, worktreeFinisher, provider } = ctx;
   const chatId = await mainChat(ctx);
-  const wt = ((await call("POST", `/api/projects/${ctx.project.id}/git/worktrees`, { branch: "feat/done" })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
-  await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt });
+  const wt = ((await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: ctx.project.id }, body: { branch: "feat/done" } })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
+  await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: wt } });
   const { tools, release } = await busyTurn(ctx, chatId);
   assert.match(await worktreeFinisher.finishFromChat(chatId, undefined), /予約しました/);
   // 片付けを予約したワークツリーからは変更を持っていけない（取り消す口はないので、持っていかずに移すよう案内する。6 章 B4）
   await assert.rejects(tools.move({ to: "new_worktree", branch: "feat/next", carry: true }, allow), /片付けの予約は取り消せません）。持っていかずに移してください/);
   assert.match(await tools.move({ to: "main", continuation: "本体で続ける" }, allow), /先に片付けます/);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "あとの指示", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "あとの指示", when: "later" } });
   release();
   await until(async () => !(await isBusy(ctx, chatId)) && (await continuations(ctx, chatId)).length === 1 && (await chatOf(ctx, chatId)).status === "completed");
   assert.equal((await chatOf(ctx, chatId)).worktree_path, null);

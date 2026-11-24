@@ -27,7 +27,7 @@ const refs = (repo: string) => execFileSync("git", ["for-each-ref", "--format=%(
 
 test("画面の「消す」: 失うもの（force の変更・delete_branch の取り込んでいないコミット）は控えに入れてゴミ箱に 3 日残り、戻すと同じ名前で作り直して変更も戻る", async () => {
   const ctx = setup();
-  const { call, project, store } = ctx;
+  const { api, project, store } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n", "gone.txt": "x\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/d");
   fs.writeFileSync(path.join(wt, "d.txt"), "d\n");
@@ -36,7 +36,7 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
   fs.writeFileSync(path.join(wt, "a.txt"), "書きかけ\n");
   fs.writeFileSync(path.join(wt, "new.txt"), "まだ Git にない\n");
   fs.rmSync(path.join(wt, "gone.txt"));
-  const removed = await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, force: true, delete_branch: true });
+  const removed = await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: wt, force: true, delete_branch: true } });
   assert.equal(removed.status, 200);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(store.chats.get(chatId)?.worktree_path, null);
@@ -44,38 +44,38 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
   // 本体に戻した区切りを置く（片付けた理由・コミットしていない変更は控えに入れたこと）
   const [moved] = await moves(ctx, chatId);
   assert.deepEqual([moved.reason, moved.from.worktree_path, moved.from.branch, moved.to.worktree_path, moved.backed_up], ["worktree_finished", wt, "feat/d", null, true]);
-  const [item] = (await call("GET", `/api/projects/${project.id}/trash`)).body;
+  const [item] = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.equal(item.kind, "worktree");
   assert.equal(item.label, "ワークツリー feat/d（取り込んでいないコミット 1 個・変更 3 ファイル）");
   assert.equal(item.by_chat_id, null);
   assert.match(refs(repo), /refs\/kickoff\/trash\/.*\/branch\nrefs\/kickoff\/trash\/.*\/changes/);
   // 戻す: ブランチ（取り込んでいないコミットも）と途中の変更（まだ Git にないファイル・消したファイルも）が戻り、控えの参照は消える
-  assert.equal((await call("POST", `/api/trash/${item.id}/restore`, {})).status, 200);
+  assert.equal((await api("POST /api/trash/:itemId/restore", { params: { itemId: item.id }, body: {} })).status, 200);
   assert.equal(fs.readFileSync(path.join(wt, "d.txt"), "utf8"), "d\n");
   assert.equal(fs.readFileSync(path.join(wt, "a.txt"), "utf8"), "書きかけ\n");
   assert.equal(fs.readFileSync(path.join(wt, "new.txt"), "utf8"), "まだ Git にない\n");
   assert.equal(fs.existsSync(path.join(wt, "gone.txt")), false);
   assert.equal(gitIn(wt)("diff", "--cached", "--name-only").trim(), "", "戻した変更はコミットしていない変更のまま");
   assert.equal(refs(repo), "");
-  assert.equal((await call("GET", `/api/projects/${project.id}/trash`)).body.length, 0);
+  assert.equal((await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body.length, 0);
 });
 
 test("画面の「消す」: 失うものがなければ控えを作らない。控えは 3 日たったら参照ごと消える", async () => {
   const ctx = setup();
-  const { call, project, trashBin, trashClock } = ctx;
+  const { api, project, trashBin, trashClock } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/clean");
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, delete_branch: true })).status, 200);
-  assert.equal((await call("GET", `/api/projects/${project.id}/trash`)).body.length, 0);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: wt, delete_branch: true } })).status, 200);
+  assert.equal((await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body.length, 0);
   // 片付けた印は、そのチャットでまた送ったら外れ、最後に作業したブランチは本体のいまのブランチになる
   assert.equal(ctx.store.chats.get(chatId)?.finished_worktree_branch, "feat/clean");
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "本体で続き" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "本体で続き" } });
   await until(() => ctx.store.chats.get(chatId)?.status === "completed");
   assert.deepEqual([ctx.store.chats.get(chatId)?.finished_worktree_branch, ctx.store.chats.get(chatId)?.branch], [null, "main"]);
   // 変更を捨てた控えは 3 日で消える
   const { wt: wt2 } = await worktreeChat(ctx, "feat/x");
   fs.writeFileSync(path.join(wt2, "x.txt"), "x\n");
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt2, force: true })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: wt2, force: true } })).status, 200);
   assert.notEqual(refs(repo), "");
   trashClock.now += TRASH_KEEP_MS + 1000;
   await trashBin.sweep();
@@ -154,7 +154,7 @@ test("AI の後始末: リモートの名前に / があっても、追いかけ
 
 test("AI の後始末（ワークツリー自身のチャットから）: 予約して作業の終わりに消し、送信待ちは止めておく。ほかのワークツリーのチャットからは消せない", async () => {
   const ctx = setup();
-  const { call, project, store, provider, worktreeFinisher } = ctx;
+  const { call, api, project, store, provider, worktreeFinisher } = ctx;
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/self");
   const { chatId: otherChat } = await worktreeChat(ctx, "feat/other");
@@ -162,7 +162,7 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   // 本体のチャットからは、作業中のチャットがあれば断る（待たない）
   const main = await mainChat(ctx);
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "実装して" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "実装して" } });
   await until(() => isBusy(ctx, chatId));
   await assert.rejects(worktreeFinisher.finishFromChat(main, "feat/self"), /作業中のチャットがあるので消せません/);
   // 自分のワークツリー: 予約だけして、作業中は消さない

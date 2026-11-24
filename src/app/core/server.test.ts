@@ -46,16 +46,16 @@ test("本文が JSON として読めない・必須の本文が空なら 400（�
 });
 
 test("URL の :id は正の整数でなければ 400（クエリの ID と同じ）、なければ 404。どのルートも同じ引き当て", async () => {
-  const { call, project } = setup();
+  const { call, api, project } = setup();
   for (const url of ["/api/projects/abc/chats", "/api/projects/1.5/chats", "/api/projects/0/chats", "/api/chats/x", "/api/projects/abc/git/status", "/api/projects/-1/chats"]) {
     assert.deepEqual(await call("GET", url), { status: 400, body: { error: "ID の指定が正しくありません" } }, url);
   }
-  assert.equal((await call("PATCH", "/api/groups/x", { name: "g" })).status, 400);
+  assert.equal((await api("PATCH /api/groups/:groupId", { params: { groupId: "x" }, body: { name: "g" } })).status, 400);
   assert.equal((await call("POST", "/api/chats/x/queue", { text: "a" })).status, 400);
-  assert.deepEqual(await call("GET", "/api/projects/999/git/status"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
-  assert.deepEqual(await call("DELETE", "/api/groups/999"), { status: 404, body: { error: "グループが見つかりません" } });
-  assert.deepEqual(await call("POST", "/api/chats/999/cancel"), { status: 404, body: { error: "チャットが見つかりません" } });
-  assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).status, 200);
+  assert.deepEqual(await api("GET /api/projects/:projectId/git/status", { params: { projectId: 999 } }), { status: 404, body: { error: "プロジェクトが見つかりません" } });
+  assert.deepEqual(await api("DELETE /api/groups/:groupId", { params: { groupId: 999 } }), { status: 404, body: { error: "グループが見つかりません" } });
+  assert.deepEqual(await api("POST /api/chats/:chatId/cancel", { params: { chatId: 999 } }), { status: 404, body: { error: "チャットが見つかりません" } });
+  assert.equal((await api("GET /api/projects/:projectId/chats", { params: { projectId: project.id } })).status, 200);
 });
 
 test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 hello（本体の版・API の版・本体の ID）を送る", async () => {
