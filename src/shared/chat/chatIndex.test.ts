@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { makeEvent } from "@shared/chat/testing";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import { collectVisuals } from "@shared/visuals/aiVisual";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";
 import { collectSubagents } from "./subagents";
 import { subagentReport } from "./subagentReport";
@@ -29,11 +28,10 @@ function digestResults(events: ChatEvent[], ctx: IndexContext) {
       out.push(entries, entries.map((e) => subagentReport(e, events)), [...subagentAskers(approvals, events, entries)]);
     }
   }
-  out.push([...collectVisuals(events)]);
   return out;
 }
 
-test("どの切れ目の索引 ＋ 末尾でも、記録全体から作るもの（サブエージェント・報告・回答待ち・図）が全件と同じになる（ランダムな記録。種は固定）", () => {
+test("どの切れ目の索引 ＋ 末尾でも、記録全体から作るもの（サブエージェント・報告・回答待ち。図は @shared/visuals の aiVisual.test.ts）が全件と同じになる（ランダムな記録。種は固定）", () => {
   for (const [seed, running] of [[1, false], [2, true], [3, false], [7, true]] as const) {
     const events = scenarioChat({ turns: 24, seed, running });
     const ctx = contextOf(events);

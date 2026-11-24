@@ -6,9 +6,11 @@ import path from "node:path";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { ApprovalRequest } from "@/features/ai/core/index";
 import { testMaterials, type TestGuardMaterials } from "@/app/core/testing/testGate";
+import { setupCore, until } from "@/app/core/testing/testCore";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { toolGateFactory } from "./gate";
-import { WRITE_SCOPE_DENIED } from "./guard/writeScope";
+import { judgeFileWrite, WRITE_SCOPE_DENIED } from "./guard/writeScope";
 import { MACOS_SELF_GUARD } from "./macosRules";
 import type { GuardRuleSource, GuardVerdict } from "./rules";
 
@@ -170,4 +172,18 @@ test("承認カードを待つのをやめる合図: 渡した signal（Claude �
   await gate.guard(bash("docker compose down"), { signal: hook });
   await gate.guard(bash("docker compose down"));
   assert.deepEqual([signals[0] === hook, signals[1] === run], [true, true]);
+});
+
+test("書き込み先の守り: OS の一時フォルダは Bash の砂場と同じく、Write・Edit でも聞かずに書ける（外のほかの場所は聞く）", async () => {
+  const tmp = tempDir({ real: true });
+  const rules = { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: [] };
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
+  const { store, runner, project, gateMaterials } = setupCore(provider, { bashSandbox: { rules, proxyPort: null, trashDir: null } });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const scope = gateMaterials[0].writeScope;
+  assert.ok(scope);
+  const facts = { workdir: project.repo_path, writableDirs: scope.writableDirs, memoryParents: [], workplaces: scope.workplaces };
+  assert.equal((await judgeFileWrite(path.join(tmp, "perf", "check.ts"), facts)).kind, "pass");
+  assert.equal((await judgeFileWrite(path.join(tempDir({ real: true }), "a.ts"), facts)).kind, "ask");
 });

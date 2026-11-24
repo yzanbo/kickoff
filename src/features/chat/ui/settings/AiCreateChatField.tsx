@@ -1,5 +1,5 @@
 import { AI_CREATE_CHAT_MODE_LABELS, AI_CREATE_CHAT_MODES, type AiCreateChatMode } from "@shared/settings/types";
-import { applySettings, useAppSettings } from "@/features/settings/ui";
+import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 
 /**

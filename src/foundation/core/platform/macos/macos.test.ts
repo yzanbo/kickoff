@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { macosDockerStarterOf } from "@/features/docker/core/macosEngine";
 import { parseCwds } from "./listening";
 import { appBundleOf, parseEtime, parsePs } from "./processes";
 import { parseChildren } from "./shell";
@@ -44,15 +43,6 @@ test("parseCwds: lsof -Fpn の p と n の行", () => {
     [520, "/work/app"],
     [600, "/work/app wt"],
   ]);
-});
-
-test("macosDockerStarterOf: context の名前から開くアプリ・コピーするコマンド", () => {
-  assert.deepEqual(macosDockerStarterOf("orbstack"), { kind: "open", app: "OrbStack", label: "OrbStack を開く" });
-  assert.deepEqual(macosDockerStarterOf("desktop-linux"), { kind: "open", app: "Docker", label: "Docker Desktop を開く" });
-  assert.deepEqual(macosDockerStarterOf("colima"), { kind: "copy", command: "colima start" });
-  assert.deepEqual(macosDockerStarterOf("colima-dev"), { kind: "copy", command: "colima start --profile dev" });
-  assert.equal(macosDockerStarterOf("default"), null);
-  assert.equal(macosDockerStarterOf(null), null);
 });
 
 test("parseChildren: ps の pid・ppid の行を、親 → 子の並びにする（読めない行は飛ばす）", () => {

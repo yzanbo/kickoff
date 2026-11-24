@@ -3,7 +3,7 @@
 import "./pastWorkplace.css";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ProjectFiles } from "@shared/foundation/fileTypes";
-import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceBoundary, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";
+import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceBoundary, type WorkplacePlace } from "@shared/chat/workplaceBoundaries";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { listWorkplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";

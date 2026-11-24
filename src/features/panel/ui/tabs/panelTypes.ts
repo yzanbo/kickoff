@@ -1,4 +1,9 @@
-import type { Attachment } from "@shared/chat/types";
+/**
+ * タブに入れる、上の機能の値の型（panel は中身を見ずに渡すだけ）。持ち主の機能が declare module で足す:
+ * attachment = 新しい子チャットの入力欄に初めに入れる添付（chat の Attachment）
+ */
+export interface PanelTabValues {}
+type ValueOf<K extends string> = K extends keyof PanelTabValues ? PanelTabValues[K] : never;
 
 /** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ノート・子チャット・新しい子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
@@ -46,7 +51,7 @@ export type PanelTab =
    * follow: 作ったあと設定の「子チャットを作ったとき」に従う（右の欄なら置き換え、別ウィンドウ・開かないならタブを閉じる。右の欄の「＋」は従わず、いつも置き換える）。
    * text・attachments: 入力欄に初めに入れる文と添付（「AI に渡す」の「子チャットで聞く」）
    */
-  | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean; text?: string; attachments?: Attachment[] }
+  | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean; text?: string; attachments?: ValueOf<"attachment">[] }
   /** url は開いたときのページ、current はいまのページ（保存や webview の作り直しに使う）。restored は欄を開くまで読み込まない復元タブ */
   | { key: string; kind: "browser"; url: string; title: string; current?: string; restored?: boolean }
   /**

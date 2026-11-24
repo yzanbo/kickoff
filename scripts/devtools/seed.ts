@@ -13,7 +13,6 @@ import type { QueuedMessage } from "@shared/chat/types";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { DB_FILE } from "../../src/foundation/core/db/db.js";
 import { testStore } from "../../src/app/core/testing/testStore.js";
-import type { NewChat } from "../../src/foundation/core/db/types.js";
 
 const { values } = parseArgs({ options: { root: { type: "string" }, data: { type: "string" }, now: { type: "string" } } });
 if (!values.root || !values.data || !values.now) throw new Error("--root <置き場所>・--data <保存先> と --now <ms> を渡してください");
@@ -92,6 +91,8 @@ sample.close();
 // --- Kickoff の DB
 // 新しいスキーマの空の DB に入れる（置き場所は毎回作り直すので、前の版の DB は残らない）
 const store = testStore({ file: path.join(dataDir, DB_FILE) });
+/** チャットの店に渡す作成時の入力（chat の店の create の引数） */
+type NewChat = Parameters<typeof store.chats.create>[0];
 const { db } = store;
 db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });

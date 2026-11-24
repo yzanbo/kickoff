@@ -13,7 +13,7 @@ import { workdirOf } from "@/features/chat/core/workdir";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { jsonBody } from "@/foundation/core/http/input";
-import { attachmentSourceSchema } from "@/foundation/core/http/schemas";
+import { attachmentSourceSchema } from "@/features/chat/core/index";
 
 /** 「AI に渡す」で取る画像の形式（画面で大きく見られ、AI が Read で読めるもの） */
 const CAPTURE_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];

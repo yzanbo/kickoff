@@ -4,8 +4,11 @@
 // 圧縮前指示を混ぜる。Node・DOM に依存しない。テストからだけ使う
 import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
 import { makeEvent, type EventInput } from "@shared/chat/testing";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, visualIdLine } from "@shared/visuals/aiVisual";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/chat/indexedTools";
 import { relayMessage } from "@shared/chat/prompts";
+
+/** 図のツールの結果の ID の行（@shared/visuals/aiVisual の visualIdLine と同じ形。図の一覧のテストが、この行から図を拾えることを確かめる） */
+const visualIdLine = (id: string) => `visual_id: ${id}`;
 
 /** 種から決まる乱数（0 以上 1 未満。mulberry32） */
 function seededRandom(seed: number): () => number {

@@ -7,7 +7,7 @@ import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } f
 import { MarkdownFileLinksContext } from "@/foundation/ui/kit/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/kit/markdown/markdownImages";
 import { MarkdownLinkOpenerContext } from "@/foundation/ui/kit/markdown/markdownLinks";
-import { imageSourcesIn } from "@shared/remoteImages/remoteImages";
+import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/foundation/ui/kit/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";

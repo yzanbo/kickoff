@@ -63,7 +63,7 @@ export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, ba
   const chat = createChatStores(db, onChange, base.settings, createProviderHandoffStores(db).chatProviderSessions.remembered);
   const groups = createGroupStore(db, onChange, {
     idsIn: (group) => chat.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
-    getChat: chat.chats.get,
+    ungrouped: (chatId) => onChange({ type: "chat", chat: chat.chats.get(chatId)! }),
   });
   const store: ChatStoreDeps = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds), aiDefaults: createProjectAiDefaultsStore(db, onChange) };
   return withFeatureStores(store, base, onChange);

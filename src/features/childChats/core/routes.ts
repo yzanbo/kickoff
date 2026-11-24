@@ -4,12 +4,12 @@ import { childChatContract } from "@shared/childChats/contract";
 import type { Chat } from "@shared/chat/types";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
-import { childChatSchema, handoffSchema, subagentChildSchema } from "@/foundation/core/http/schemas";
 import type { ChatDetachBody } from "@shared/childChats/types";
 import type { AgentProvider } from "@/features/ai/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
-import { workdirOf, type ChatRunPort, type ChatStoreDeps } from "@/features/chat/core/index";
-import type { ProviderId } from "@shared/settings/types";
+import { CONTENT_REQUIRED, hasContent, messageShape, workdirOf, type ChatRunPort, type ChatStoreDeps } from "@/features/chat/core/index";
+import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
+import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { startChildChat } from "./children";
 import { detachChat } from "./detach";
 import { forkChat } from "./fork";
@@ -31,6 +31,24 @@ export interface ChildChatRouteDeps {
   forked(fromChatId: number, toChatId: number): Promise<void>;
   chatParam: Param<Chat>;
 }
+
+/** 子チャットで聞く（文か添付が要る。選んだ文の引用は任意。inherit なら親の会話を引き継ぐ） */
+const childChatSchema = z
+  .object({
+    ...messageShape,
+    quote: z.string().max(20_000).nullable().default(null),
+    inherit: z.boolean().default(true),
+    event_id: z.number().int().positive().nullable().default(null),
+    provider: z.enum(PROVIDER_IDS).optional(),
+  })
+  // 会話を引き継ぐときは、文も添付もなくてよい（聞かずに、親の会話を写した子チャットを開くだけ）
+  .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED);
+
+/** サブエージェントに子チャットで聞く（文か添付が要る） */
+const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED);
+
+/** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff） */
+const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() });
 
 export function childChatRoutes({ store, runner, providers, uploads, forked, chatParam }: ChildChatRouteDeps) {
   const deps = { store, runner, providers };

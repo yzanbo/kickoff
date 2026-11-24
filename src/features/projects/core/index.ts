@@ -11,6 +11,7 @@ import type { NoteFolderName, ProjectHooks } from "./service";
 import { createProjectStore, type ProjectStore } from "./db/projects";
 
 export type { ProjectStore } from "./db/projects";
+export { compactPrompt } from "./schemas";
 
 export interface ProjectsDeps {
   trash: TrashApi;

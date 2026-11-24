@@ -4,7 +4,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
-import { openPrNotice, useWorktreePrLookup } from "./prNoticeStore";
+import { openPrNotice, useWorktreePrLookup } from "@/features/worktrees/ui";
 import { prNoticeMarkLabel, prNoticeTitle } from "./prNoticePlan";
 
 /**

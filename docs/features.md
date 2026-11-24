@@ -1045,7 +1045,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | BASE-039 | 長いチャット・作業中の表示と入力を軽くする | chat | T:chatStore |
-| BASE-040 | サブエージェントのカードの手順を、そのサブエージェントの記録だけから作る | subagents | T:subagents/subagentEvents |
+| BASE-040 | サブエージェントのカードの手順を、そのサブエージェントの記録だけから作る | subagents | T:conversation/subagentEvents |
 | BASE-041 | 裏のタブのチャットは描くのを止める | conversation | M |
 | BASE-042 | 長い一覧は画面に入る分から描く | 土台:ui | E:sidebar-keys,sidebar-range,sidebar-drag,board-find |
 | BASE-043 | 画面のビルドと配信を速くする | 道具 | M |

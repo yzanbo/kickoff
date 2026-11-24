@@ -1,7 +1,8 @@
 import "./GitHubDetail.css";
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
-import type { GitHubKind, GitHubPullDetail } from "@shared/github/types";
+import type { GitHubPullDetail } from "@shared/github/types";
+import type { GitHubKind } from "@shared/chat/types";
 import { githubApi } from "@/features/github/ui/api/github";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";

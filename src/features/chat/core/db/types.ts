@@ -1,6 +1,5 @@
-// 店に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める。コアの中だけで使う）
-import type { ChatOptionsPatch, ChatStatus } from "@shared/chat/types";
-import type { GitHubKind } from "@shared/github/types";
+// チャットの店に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める。コアの中だけで使う）
+import type { ChatOptionsPatch, ChatStatus, GitHubKind } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 
 /** 選択（モデル・深さ・権限・ファスト）は省けば、指定しない・毎回確認・使わない */

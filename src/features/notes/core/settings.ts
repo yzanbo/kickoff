@@ -1,7 +1,7 @@
 // ノートの設定の PUT の zod（表は @shared/notes/settings）
 import { z } from "zod";
 import { defineSettingSchemas } from "@/foundation/core/settings/defineSettingSchemas";
-import { ABSOLUTE_FOLDER, isAbsoluteFolder } from "@/foundation/core/http/schemas";
+import { ABSOLUTE_FOLDER, isAbsoluteFolder } from "@/foundation/core/http/zodParts";
 import { noteSettings } from "@shared/notes/settings";
 
 export const noteSettingSchemas = defineSettingSchemas(noteSettings, {

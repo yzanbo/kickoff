@@ -3,14 +3,8 @@ import { boundaryAfter } from "@shared/chat/boundaries";
 import { test } from "vitest";
 import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { eventSequence } from "@shared/chat/testing";
-import {
-  latestWorkplaceMove,
-  workplaceAt,
-  workplaceBoundaries,
-  workplaceLabel,
-  workplaceMoveLine,
-  workplaceMoveNote,
-} from "./workplaceMoves";
+import { latestWorkplaceMove, workplaceAt, workplaceBoundaries, workplaceLabel } from "@shared/chat/workplaceBoundaries";
+import { workplaceMoveLine, workplaceMoveNote } from "./workplaceMoves";
 
 const main: WorkplaceRef = { project_id: 1, worktree_path: null, branch: "main", dir: "/repo" };
 const wtA: WorkplaceRef = { project_id: 1, worktree_path: "/repo-worktrees/feat-a", branch: "feat/a", dir: "/repo-worktrees/feat-a" };

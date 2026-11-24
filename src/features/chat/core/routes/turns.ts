@@ -4,7 +4,7 @@ import { chatTurnContract } from "@shared/chat/contract";
 import type { ChatRouteDeps } from "./deps";
 import { implement } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
-import { chatOptionsSchema, messageText } from "@/foundation/core/http/schemas";
+import { chatOptionsSchema, messageText } from "./schemas";
 import { sendBodySchema } from "./sendSchemas";
 import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";

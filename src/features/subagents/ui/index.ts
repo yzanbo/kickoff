@@ -10,6 +10,7 @@ export { agentHueStyle } from "./model/agentHues";
 export { SubagentCard } from "./SubagentCard";
 export { SubagentEndNote } from "./SubagentEndNote";
 export { subagentEvents } from "./model/subagentEvents";
+export { scopeOf } from "./model/subagentTree";
 export { SubagentActions } from "./SubagentActions";
 export { SubagentTellComposer } from "./SubagentTell";
 export { SubagentStatusText } from "./SubagentStatusText";

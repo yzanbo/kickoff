@@ -5,9 +5,10 @@ import { collectSubagents } from "@shared/chat/subagents";
 import { relayMessage, relayedText } from "@shared/chat/prompts";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { eventSequence, makeEvent } from "@shared/chat/testing";
-import { groupEvents } from "@/features/conversation/ui/timeline/timelineItems";
-import { subagentEvents } from "./subagentEvents";
-import { scopeOf } from "./subagentTree";
+import { scopeOf, subagentEvents } from "@/features/subagents/ui";
+import { groupEvents } from "./timelineItems";
+
+// サブエージェントの流れの記録（subagents の subagentEvents）を、この流れの項目（groupEvents）に渡したときに、読み込んだ記録の全体から作ったものと同じか
 
 /** 前の作り（読み込んだ記録の全体に、伝えた指示を混ぜてから groupEvents に渡す） */
 function itemsFromAll(events: ChatEvent[], scope: readonly string[], key: string, agentId: string | undefined) {

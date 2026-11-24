@@ -3,9 +3,9 @@ import { voiceContract } from "@shared/voice/contract";
 import { findWhisperModel } from "@shared/voice/models";
 import { SPEECH_TEXT_MAX, type OpenAiKeyBody, type SpeechBody } from "@shared/voice/types";
 import type { VoiceService } from "@/features/voice/core/service";
+import { voiceLanguage } from "@/features/voice/core/settings";
 import { Invalid } from "@/foundation/core/errors";
 import { implement, textParam } from "@/foundation/core/http/implement";
-import { voiceLanguage } from "@/foundation/core/http/schemas";
 import { formFields } from "@/foundation/core/http/zodParts";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */

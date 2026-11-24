@@ -1,6 +1,5 @@
 // ゴミ箱の機能のコアの入口（ほかの機能はここだけを読む）
 import path from "node:path";
-import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { idParam } from "@/foundation/core/http/implement";
@@ -14,16 +13,22 @@ export type { StoredTrashItem, TrashStore } from "./db/trash";
 export type { TrashKindDef } from "./kinds";
 export { TRASH_COMMAND, trashCommandEnv, type TrashCommand } from "./command";
 
+/** ゴミ箱が見るプロジェクトの項目（上の projects の Project の一部。:id の引き当てと、元の場所からプロジェクトを引くテストの前方一致） */
+interface TrashProject {
+  id: number;
+  repo_path: string;
+}
+
 export interface TrashDeps {
   /** プロジェクトの店（上の projects。組み立てがあとで作るので、呼ばれたときに引く。:id のプロジェクトとテストの前方一致） */
-  projects: () => { get(id: number): Project | undefined; list(): Project[] };
+  projects: () => { get(id: number): TrashProject | undefined; list(): TrashProject[] };
 }
 
 export interface TrashEnv {
   /** 入れた時刻・片付けの時計（省けば本物の時計） */
   now?: () => number;
   /** 元の場所を含むプロジェクトを、上の機能が登録した引き当てより先に引く（テストの前方一致） */
-  projectOfPath?: (origin: string, projects: Project[]) => number | null;
+  projectOfPath?: (origin: string, projects: TrashProject[]) => number | null;
 }
 
 /** Kickoff のゴミ箱（置き場は保存先の trash/。片付けは待ち受けのあとに始める） */

@@ -3,7 +3,7 @@
 機能の言葉を持たない画面の部品と仕組み。2 つ以上の機能が使い、機能の型・クラス名を持たないものだけを置く。機能のものは `src/features/<機能>/ui`、CSS は `styles/CLAUDE.md`、App・起動・下の帯は `@/app/renderer/`。
 
 ## 口の一覧
-- `store/`: `createStore`・`createKeyedStore`・`createCell`・`createSignal`・`createRegistry`・`useController`（店はこれだけ）
+- `store/`: `createStore`・`createKeyedStore`・`createCell`・`createSignal`・`createRegistry`・`useController`（店はこれだけ）・`settings/appSettings.ts`
 - `query/`: `useQuery`（1 つの部品だけが読む値）。`api/`: `client(contract)`（機能の呼び手は各機能の `ui/api.ts`・`ui/api/`。束ねない）・`serverApi`（接続の状態）・SSE の接続 `useServerConnection`・`useServerEvent` / `onServerEvent`
 - `storage/`: `defineSettings(機能, {…})`（各機能の `ui/storage.ts`）・`useSetting`・`readSetting` / `writeSetting`
 - `navigation/`: ルーター `router.ts`（`useRoute`）・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・履歴 `navigationHistory.ts`

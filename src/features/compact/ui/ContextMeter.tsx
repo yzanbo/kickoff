@@ -1,7 +1,7 @@
 import "./ContextMeter.css";
 import type { CompactingState } from "@shared/chat/chatLive";
 import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { autoCompactThreshold } from "@shared/compact/autoCompact";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useAction } from "@/foundation/ui/hooks/useAction";

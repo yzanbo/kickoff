@@ -1,4 +1,5 @@
-import type { GitHubIssueDetail, GitHubKind, GitHubPullDetail } from "@shared/github/types";
+import type { GitHubIssueDetail, GitHubPullDetail } from "@shared/github/types";
+import type { GitHubKind } from "@shared/chat/types";
 import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { githubRefresh } from "./githubRefresh";

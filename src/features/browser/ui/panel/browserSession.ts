@@ -1,4 +1,4 @@
-import { webUrlOf } from "@shared/remoteImages/linkWarnings";
+import { webUrlOf } from "@shared/foundation/linkWarnings";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { chatPanelSettings } from "@/features/chatPanel/ui";
 import { normalizeUrl } from "@/foundation/ui/lib/url";

@@ -4,7 +4,7 @@
 
 ## 地図
 - `ui/points.ts`: 拡張点 `settingsSections`・`settingsItems`（`scope: "app"` はアプリの設定、`project` はプロジェクトの編集 `ProjectEditDialog`）
-- `ui/stores/settings.ts`: 店・`saveSettings(patch)`・`applySettings(patch)`。`ui/DisplaySettings`（`section: "display"` の欄を並べる）
+- アプリの設定の店は土台の `@/foundation/ui/settings/appSettings.ts`（`useAppSettings`・`saveSettings(patch)`・`applySettings(patch)`）。`ui/DisplaySettings`（`section: "display"` の欄を並べる）
 - 節と欄の部品は各機能の `ui/settings/`（AI・音声・スマホ連携・通知など）
 - 値の表 `@shared/<機能>/settings.ts`（`setting({ default })`）・PUT の zod は機能の `core/settings.ts`（`defineSettingSchemas`）。束ね `@/app/shared/settings.ts`（`ALL_SETTINGS`）・`@/app/core/settings.ts`
 

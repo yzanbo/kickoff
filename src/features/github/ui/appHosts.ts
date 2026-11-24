@@ -5,7 +5,7 @@ import type { WorkplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
 import { PrNoticeHost } from "./prNotice/PrNoticeHost";
 import { WorktreePrMark } from "./prNotice/PrNoticeMark";
 import { prNoticeMarkLabel } from "./prNotice/prNoticePlan";
-import { worktreePrsStore } from "./prNotice/prNoticeStore";
+import { worktreePrsStore } from "@/features/worktrees/ui";
 
 export const githubHosts: AppHost[] = [
   // ワークツリーの PR がマージされた・閉じられた知らせ（片付けとチャットの扱いを 1 つの確認で聞く）

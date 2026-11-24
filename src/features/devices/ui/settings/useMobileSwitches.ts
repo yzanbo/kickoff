@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LoginItemState } from "@shared/foundation/ipc";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { loginItemState, setLoginItem as saveLoginItem } from "@/features/devices/ui/native";
 

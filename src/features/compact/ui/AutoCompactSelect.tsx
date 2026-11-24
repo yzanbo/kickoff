@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

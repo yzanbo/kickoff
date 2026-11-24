@@ -2,7 +2,7 @@ import "./NewProjectNoteDirField.css";
 import { projectNoteFolder } from "@shared/notes/names";
 import { useQuery } from "@/foundation/ui/query";
 import { useProjects, type NewProjectNoteFieldProps } from "@/features/projects/ui";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { Field } from "@/foundation/ui/kit/Field";
 import { notesApi } from "@/features/notes/ui/api";
 import { NoteOverlapNotice } from "./NoteOverlapNotice";

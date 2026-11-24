@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Project } from "@shared/projects/types";
 import { notesApi } from "@/features/notes/ui/api";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { InspectionList, noteOverlapLines, useProjects } from "@/features/projects/ui";
 
 /**

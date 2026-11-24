@@ -2,7 +2,7 @@
 import { aiDefaultsContract } from "@shared/ai/contract";
 import type { Project } from "@shared/projects/types";
 import { implement, type Param } from "@/foundation/core/http/implement";
-import { projectAiDefaultsSchema } from "@/foundation/core/http/schemas";
+import { projectAiDefaultsSchema } from "@/features/ai/core/optionsSchemas";
 import type { ProjectAiDefaultsStore } from "@/features/ai/core/db/projectAiDefaults";
 
 export function aiDefaultsRoutes(d: { defaults: ProjectAiDefaultsStore; projectParam: Param<Project> }) {

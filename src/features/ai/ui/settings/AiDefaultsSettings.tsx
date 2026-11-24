@@ -6,7 +6,7 @@ import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ChatDefaultsFields } from "./ChatDefaultsFields";
 import { defaultsCardProviders } from "./chatDefaultsModel";
-import { applySettings, useAppSettings } from "@/features/settings/ui";
+import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 
 /**
  * 設定: 新しいプロジェクトで使う AI と、AI ごとの新しいチャットの既定（モデル・推論の深さ・権限モード・ファストモード）。

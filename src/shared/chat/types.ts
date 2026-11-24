@@ -1,6 +1,5 @@
 import type { ChatOptionsPatch, EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 import type { MessageMarks } from "./chatEvent";
-import type { GitHubKind } from "@shared/github/types";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** 実行ごとに選べるオプション（チャット欄の選択）と、その一部（定義は値の一覧の隣 @shared/settings/types。設定・AI の画面も読む） */
@@ -107,6 +106,11 @@ export interface ChatPatch {
   pinned?: boolean;
   archived?: boolean;
 }
+
+/** GitHub の issue と PR の種類（チャットの結び付き・GitHub タブの一覧の切り替え） */
+export const GITHUB_KINDS = ["issue", "pr"] as const;
+export type GitHubKind = (typeof GITHUB_KINDS)[number];
+export const GITHUB_KIND_LABELS: Record<GitHubKind, string> = { issue: "issue", pr: "PR" };
 
 /** チャットと GitHub の issue・PR の結び付き（PUT /api/chats/:chatId/github の本文・新しいチャットの github） */
 export interface GitHubLink {

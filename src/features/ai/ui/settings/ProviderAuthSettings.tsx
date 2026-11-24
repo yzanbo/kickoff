@@ -6,7 +6,7 @@ import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode }
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { providersStore } from "@/features/ai/ui/stores/providers";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { PAY_PER_USE_LABEL } from "@/features/ai/ui/provider/providerChoice";

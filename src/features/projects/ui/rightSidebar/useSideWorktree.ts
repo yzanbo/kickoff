@@ -1,6 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import type { Chat } from "@shared/chat/types";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 
 /** プロジェクトごとの、右サイドバーのコードの画面が見ている作業場所と、そのとき付いていったチャット（とその作業場所） */
@@ -46,7 +45,7 @@ export function useSideWorktree(projectId: number): [string | undefined, (worktr
  * 真ん中に開いているチャットに付いていった後の状態（変わらなければ同じ物を返す）。チャットがこのプロジェクトのものでなければ付いていかない。
  * 同じチャット・同じ作業場所なら、中で選び直した作業場所を残す
  */
-export function followWorktree(state: Followed, chat: Pick<Chat, "id" | "project_id" | "worktree_path"> | undefined, projectId: number): Followed {
+export function followWorktree(state: Followed, chat: { id: number; project_id: number; worktree_path: string | null } | undefined, projectId: number): Followed {
   if (!chat || chat.project_id !== projectId) return state;
   const worktree = chat.worktree_path ?? undefined;
   const follow = `${chat.id}:${worktree ?? ""}`;

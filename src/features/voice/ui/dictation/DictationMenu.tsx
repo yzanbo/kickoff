@@ -5,7 +5,8 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/voice/ui/storage";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { applySettings, openSettings, useAppSettings } from "@/features/settings/ui";
+import { openSettings } from "@/features/settings/ui";
+import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { listMics } from "@/features/voice/ui/capture/recorder";
 
 /** ▾ を押したときに、開いているメニューを外側のクリックとして閉じない（押したボタンの側で開閉する） */

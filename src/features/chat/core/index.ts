@@ -52,6 +52,7 @@ export { replaceSession, type SessionTrash } from "./sessionSwitch";
 export type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "./ports";
 export type { ChatStoreDeps, ChatStores } from "./stores";
 export type { NoteChatLink } from "./notesLink";
+export { attachmentSourceSchema, CONTENT_REQUIRED, hasContent, messageShape, notePathSchema } from "./routes/schemas";
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
 const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
@@ -128,7 +129,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   // グループを消したら、中のチャットをグループなしに戻して知らせる
   deps.groups.useMembers({
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
-    getChat: store.chats.get,
+    ungrouped: (chatId) => bus.publish({ type: "chat", chat: store.chats.get(chatId)! }),
   });
   const { trash: trashBin, attachments } = deps;
   const { providers, keys: providerKeys, usage } = deps.ai;

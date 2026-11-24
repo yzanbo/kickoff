@@ -1,7 +1,7 @@
 // AI の設定の PUT の zod（表は @shared/ai/settings）
 import { z } from "zod";
 import { defineSettingSchemas } from "@/foundation/core/settings/defineSettingSchemas";
-import { providerDefaultsSchema } from "@/foundation/core/http/schemas";
+import { providerDefaultsSchema } from "./optionsSchemas";
 import { aiSettings } from "@shared/ai/settings";
 import { PROVIDER_AUTH_MODES, PROVIDER_IDS } from "@shared/settings/types";
 

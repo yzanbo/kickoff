@@ -1,6 +1,6 @@
 import type { ContextMenuEvent, Params, WebviewTag } from "electron";
 import { useEffect, useEffectEvent } from "react";
-import { webUrlOf } from "@shared/remoteImages/linkWarnings";
+import { webUrlOf } from "@shared/foundation/linkWarnings";
 import { googleSearch } from "@/foundation/ui/lib/url";
 import { HandOffItems } from "@/features/attachments/ui";
 import { ClipboardItems, copyClipboardText } from "@/foundation/ui/kit/ClipboardItems";

@@ -1,4 +1,4 @@
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { addProject } from "@/features/projects/ui/stores/projects";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { runAfterNewProject } from "./afterNewProject";

@@ -1,5 +1,8 @@
 import type { ProviderId } from "@shared/settings/types";
 
+/** 圧縮前指示・圧縮後指示の長さの上限（文字。設定の共通の指示・プロジェクトのそれぞれ） */
+export const COMPACT_PROMPT_MAX = 4000;
+
 export interface Project {
   id: number;
   name: string;

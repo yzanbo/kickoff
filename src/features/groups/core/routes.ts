@@ -3,9 +3,9 @@ import { z } from "zod";
 import { groupContract } from "@shared/groups/contract";
 import type { Project } from "@shared/projects/types";
 import { idParam, implement, type Param } from "@/foundation/core/http/implement";
-import { groupName } from "@/foundation/core/http/schemas";
 import type { GroupStore } from "./db/groups";
 
+const groupName = z.string().trim().min(1).max(60);
 const nameBody = z.object({ name: groupName });
 
 export function groupRoutes(d: { groups: GroupStore; projectParam: Param<Project> }) {

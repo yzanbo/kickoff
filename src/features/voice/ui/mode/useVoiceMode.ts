@@ -7,7 +7,7 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/voice/ui/storage";
 import { useVoiceStatus } from "@/features/voice/ui/store";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { ensureVoiceReady } from "@/features/voice/ui/capture/ensureVoiceReady";
 import { createLevelChannel } from "@/features/voice/ui/capture/levelChannel";
 import { armVoiceHandoff, disarmVoiceHandoff, RETURN_MS, returnVoiceHandoff, takeVoiceHandoff } from "./voiceHandoff";

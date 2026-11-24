@@ -2,7 +2,7 @@
 // 要対応（回答待ち・未読）の数を Dock のアイコンの赤い数字で出す（設定で切り替え。設定が届くまでは出す）
 import type { AppHost } from "@/foundation/ui/shell/points";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { useProjects } from "@/features/projects/ui";
 import { useChatStates } from "@/features/chat/ui";
 import { useNotificationTargets } from "./notificationClicks";

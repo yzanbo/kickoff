@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import type { Chat } from "@shared/chat/types";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
@@ -18,7 +17,7 @@ export type PanelController = ReturnType<typeof usePanel>;
  */
 export type PanelPageOps = ReturnType<typeof panelOps> & {
   /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
-  replaceWithChat: (tabKey: string, chat: Chat) => void;
+  replaceWithChat: (tabKey: string, chat: { id: number; project_id: number; title?: string }) => void;
 };
 
 /** 欄の操作を住所に結びつけたもの（中身は state/actions.ts の関数） */

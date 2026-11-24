@@ -1,6 +1,5 @@
 // GitHub タブで issue・PR を開く（チャットの見出し・ボードのカードの札は行き先 githubItem で、本文のリンクは直に呼ぶ）
-import type { GitHubLink } from "@shared/chat/types";
-import type { GitHubKind } from "@shared/github/types";
+import type { GitHubLink, GitHubKind } from "@shared/chat/types";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";

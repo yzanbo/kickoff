@@ -117,7 +117,9 @@ const featureImports = FEATURES.flatMap((f) => [
   { name: `feature-desktop:${f}`, from: [`src/features/${f}/desktop/**`], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", `src/features/${f}/{desktop,core}/**`], message: `機能（${f}）のメインは、取り決め・土台のコアとメイン・自分のメインだけを読む` },
   { name: `feature-desktop-core-types:${f}`, from: [`src/features/${f}/desktop/**`], typeOnlyAllowed: true, deny: [`src/features/${f}/core/**`], message: `機能（${f}）のメインが自分のコアから読むのは型だけ` },
   { name: `ui-storage:${f}`, from: [`src/features/${f}/ui/storage.ts`], allow: ["src/shared/**", "src/foundation/ui/storage/index.ts", `src/features/${f}/ui/*.ts`], allowModules: [], pureLocal: true, message: `保存の宣言（${f} の ui/storage.ts）は、@/foundation/ui/storage・@shared・同じフォルダの純粋な .ts（パッケージ・React を読まない）だけを読む（起動の片付けより前に読むため）` },
-  { name: `feature-worker:${f}`, from: [`src/features/${f}/worker/**`], allow: ["src/shared/**", `src/features/${f}/worker/**`], message: `機能（${f}）の別プロセスは、取り決めと自分の別プロセスだけを読む（コアとは取り決めの型だけでつなぐ）` },
+  // 別プロセスは口を受け取れないので、OS の違い（シェルの起動・プロセスの親子）は土台のコアの platform/ を直に読む
+  { name: `feature-worker:${f}`, from: [`src/features/${f}/worker/**`], tests: "exclude", allow: ["src/shared/**", "src/foundation/core/platform/**", `src/features/${f}/worker/**`], message: `機能（${f}）の別プロセスは、取り決めと土台のコアの OS の口（platform/）と自分の別プロセスだけを読む（コアとは取り決めの型だけでつなぐ）` },
+  { name: `feature-worker-tests:${f}`, from: [`src/features/${f}/worker/**/*.test.ts`], allow: ["src/shared/**", "src/foundation/core/platform/**", "src/foundation/core/testing/**", `src/features/${f}/worker/**`], message: `機能（${f}）の別プロセスのテストは、別プロセスと同じ先と、土台のコアのテストの補助（src/foundation/core/testing）だけを読む` },
 ]);
 
 /** @type {StructureConfig} */

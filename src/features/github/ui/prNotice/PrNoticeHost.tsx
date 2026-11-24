@@ -3,7 +3,7 @@ import type { WorktreePrNotice } from "@shared/git/types";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useCell } from "@/foundation/ui/store";
 import { PrNoticeDialog } from "./PrNoticeDialog";
-import { noticeKey, prNoticeRequest, useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
+import { noticeKey, prNoticeRequest, useWorktreePrNotices, worktreePrsStore } from "@/features/worktrees/ui";
 import { worktreesApi } from "@/features/worktrees/ui";
 
 /** GitHub に聞き直してもらう（コアが 30 秒以内の続けての頼みはまとめる。聞けなくても前の知らせのまま） */

@@ -1,6 +1,7 @@
 // GitHub タブの一覧の絞り込みと、GitHub の検索の書き方（search の q）の行き来。コアが GitHub に聞くときと、画面の検索の欄で同じものを使う。
 // 担当・マイルストーンの複数は「どれか」（(assignee:a OR assignee:b)。GitHub の新しい検索 ISSUE_ADVANCED の書き方）、ラベルの複数は「すべて」
-import { GITHUB_SORTS, type GitHubKind, type GitHubListFilter, type GitHubMineFilter, type GitHubSort, type GitHubStateFilter } from "./types";
+import { GITHUB_SORTS, type GitHubListFilter, type GitHubMineFilter, type GitHubSort, type GitHubStateFilter } from "./types";
+import type { GitHubKind } from "@shared/chat/types";
 
 /** 既定の絞り込み（開いているもの・更新が新しい順） */
 export function defaultGitHubFilter(kind: GitHubKind): GitHubListFilter {

@@ -1,6 +1,6 @@
 import { notesApi } from "@/features/notes/ui/api";
 import { useQuery } from "@/foundation/ui/query";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { NoteFolderField } from "./NoteFolderField";
 
 /** 設定: ノートの保存先（親フォルダ。この下にプロジェクトごとのフォルダを作る） */

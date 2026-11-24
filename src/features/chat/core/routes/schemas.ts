@@ -1,14 +1,8 @@
-import path from "node:path";
+// チャットのルートで共通に使う zod の形と上限（送る指示・添付・送信待ち・名前・GitHub の結び付き。検証の失敗の 400 は http/app.ts の onError）
 import { z } from "zod";
-import { expandHome } from "@/foundation/core/system/paths";
-import { type Attachment, type AttachmentSource, type ChatOptionsPatch, type GitHubLink, ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
-import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
-import { GITHUB_KINDS } from "@shared/github/types";
+import { type Attachment, type AttachmentSource, type ChatOptionsPatch, type GitHubLink, ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, GITHUB_KINDS } from "@shared/chat/types";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
-import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
-import { branchName, folderPath } from "./zodParts";
-
-// ルートで共通に使う zod の形と上限のうち、機能の言葉を持つもの（機能に依らない部品は zodParts.ts。検証の失敗の 400 は http/app.ts の onError）
+import { branchName, folderPath } from "@/foundation/core/http/zodParts";
 
 /** 送る指示 1 件の文字数の上限（チャット・送信待ち・巻き戻しで同じ） */
 const MAX_MESSAGE_CHARS = 50_000;
@@ -16,26 +10,6 @@ const MAX_MESSAGE_CHARS = 50_000;
 const MAX_ATTACHMENTS = 20;
 /** 送信待ちの複数選択の上限 */
 export const MAX_QUEUE_SELECTION = 500;
-
-/** 絶対パス（~ で始めてもよい）のフォルダの指定か（ノートの親フォルダ・プロジェクトのノートのフォルダ） */
-export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
-export const ABSOLUTE_FOLDER = "フォルダは / か ~ から始まる場所で指定してください";
-
-/** 圧縮前指示・圧縮後指示（設定の共通の指示・プロジェクトの指示。空にするのは null） */
-export const compactPrompt = z.string().trim().min(1).max(COMPACT_PROMPT_MAX).nullable();
-
-export const groupName = z.string().trim().min(1).max(60);
-
-/** プロジェクトの名前と説明（作成・取り込み・編集で同じ。説明の空は null にそろえる） */
-export const projectName = z.string().trim().min(1).max(100);
-export const projectDescription = z
-  .string()
-  .max(10_000)
-  .nullable()
-  .transform((s) => s || null);
-
-/** 音声入力の言語（"auto" か、ISO 639-1 などの言語コード） */
-export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の指定が正しくありません");
 
 /** 送信待ちの指示の ID */
 export const queueId = z.string().min(1).max(100);
@@ -52,24 +26,6 @@ export const chatOptionsSchema = z
   })
   .partial()
   .default({}) satisfies z.ZodType<ChatOptionsPatch>;
-
-/** チャットの選択の既定の 1 つ（モデルの null はその AI の既定） */
-const chatOptionsDefaults = z.object({
-  model: z.string().min(1).max(100).nullable(),
-  effort: z.enum(EFFORT_LEVELS).nullable(),
-  permission_mode: z.enum(PERMISSION_MODES),
-  fast_mode: z.boolean(),
-});
-/** Claude Code はその AI の既定のモデルを持たないので、モデルを null にしない */
-const claudeModelChosen = (defaults: Partial<Record<string, { model?: string | null }>>) => defaults.claude?.model !== null;
-const CLAUDE_MODEL = "Claude Code の既定のモデルを選んでください";
-
-/** AI ごとのチャットの既定（AI の ID → 選択）。アプリの設定は AI ごとに項目をすべて送る */
-export const providerDefaultsSchema = z.partialRecord(z.enum(PROVIDER_IDS), chatOptionsDefaults).refine(claudeModelChosen, CLAUDE_MODEL);
-/** プロジェクトのその AI のチャットの既定（書いた項目だけ。書いていない項目はアプリのその AI の既定に従う） */
-export const projectAiDefaultsSchema = z
-  .object({ provider: z.enum(PROVIDER_IDS), options: chatOptionsDefaults.partial().strict() })
-  .refine((body) => claudeModelChosen({ [body.provider]: body.options }), CLAUDE_MODEL);
 
 /** ノートのフォルダからの相対パス（外・隠しファイルは指せない） */
 export const notePathSchema = z
@@ -145,24 +101,6 @@ export const newChatSchema = z
   })
   .refine(hasContent, CONTENT_REQUIRED);
 
-/** 子チャットで聞く（文か添付が要る。選んだ文の引用は任意。inherit なら親の会話を引き継ぐ） */
-export const childChatSchema = z
-  .object({
-    ...messageShape,
-    quote: z.string().max(20_000).nullable().default(null),
-    inherit: z.boolean().default(true),
-    event_id: z.number().int().positive().nullable().default(null),
-    provider: z.enum(PROVIDER_IDS).optional(),
-  })
-  // 会話を引き継ぐときは、文も添付もなくてよい（聞かずに、親の会話を写した子チャットを開くだけ）
-  .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED);
-
-/** サブエージェントに子チャットで聞く（文か添付が要る） */
-export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED);
 
 /** 次の指示を送る本文の欄（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する。chat の sendSchemas.ts が when を足して広げる） */
 export const queueMessageFields = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() });
-
-/** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff） */
-export const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() });
-

@@ -28,4 +28,4 @@
 - ToDo はセッションが替わると番号が振り直されるので、それまでの分を締める。指示の一覧は `promptListOf` 1 回で作って共有する。
 - 検索の印は描いている範囲だけに CSS Custom Highlight API で付ける（DOM を書き換えない）。正規表現はコアで流さない。
 - 区切りより前の行は `PastWorkplace`（そのときの作業場所から開く・書き直しを止める）。
-- テスト: `ui/**/*.test.ts`・`@/features/chat/ui/store/chatLog.test.ts`（索引＋末尾）。
+- テスト: `ui/**/*.test.ts`（索引＋末尾は `ui/timeline/chatLogDigest.test.ts`）。

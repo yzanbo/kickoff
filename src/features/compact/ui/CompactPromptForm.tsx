@@ -1,4 +1,4 @@
-import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
+import { COMPACT_PROMPT_MAX } from "@shared/projects/types";
 import { Field } from "@/foundation/ui/kit/Field";
 import { SaveActions } from "@/foundation/ui/kit/SaveActions";
 import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";

@@ -5,7 +5,7 @@ import { implement } from "@/foundation/core/http/implement";
 import { applyChatUpdate, HTTP_REFUSALS, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
-import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
+import { chatTitle, githubLinkSchema, newChatSchema } from "./schemas";
 import { flag, optionalId } from "@/foundation/core/http/zodParts";
 import { chatTranscript } from "@/features/chat/core/transcript";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";

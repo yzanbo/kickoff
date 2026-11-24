@@ -13,6 +13,12 @@ import { childTab, newChildTab, openTab } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui/places";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
 
+declare module "@/features/panel/ui/tabs/panelTypes" {
+  interface PanelTabValues {
+    attachment: Attachment;
+  }
+}
+
 /** 子チャットで聞くときに渡すもの（どのチャットの、どの記録から、どの文を。openAskChild） */
 export interface AskChildTarget {
   parentId: number;

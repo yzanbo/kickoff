@@ -1,6 +1,6 @@
 import "./LinkSettings.css";
 import { LINK_OPEN_TARGET_LABELS, LINK_OPEN_TARGETS, type LinkOpenTarget } from "@shared/settings/types";
-import { applySettings, useAppSettings } from "@/features/settings/ui";
+import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { Field } from "@/foundation/ui/kit/Field";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";

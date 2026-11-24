@@ -1,10 +1,12 @@
 // 音声の設定の PUT の zod（表は @shared/voice/settings）
 import { z } from "zod";
 import { defineSettingSchemas } from "@/foundation/core/settings/defineSettingSchemas";
-import { voiceLanguage } from "@/foundation/core/http/schemas";
 import { WHISPER_MODEL_IDS } from "@shared/voice/models";
 import { voiceSettings } from "@shared/voice/settings";
 import { OPENAI_TTS_VOICES, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN } from "@shared/voice/types";
+
+/** 音声入力の言語（"auto" か、ISO 639-1 などの言語コード） */
+export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の指定が正しくありません");
 
 export const voiceSettingSchemas = defineSettingSchemas(voiceSettings, {
   voice_enabled: z.boolean(),

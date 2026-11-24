@@ -11,7 +11,7 @@ import { statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, type StatusTone } from "@/foundation/ui/kit/StatusDot";
 import { useEditedProject, projectsApi } from "@/features/projects/ui";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { ProjectAiDefaults } from "./ProjectAiDefaults";
 import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/plannedProviders";
 

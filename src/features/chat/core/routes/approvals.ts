@@ -4,7 +4,7 @@ import { approvalContract } from "@shared/chat/contract";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { ChatRouteDeps } from "./deps";
 import { implement } from "@/foundation/core/http/implement";
-import { attachmentsSchema } from "@/foundation/core/http/schemas";
+import { attachmentsSchema } from "./schemas";
 import { optionalId } from "@/foundation/core/http/zodParts";
 
 const decisionSchema = z.discriminatedUnion("action", [

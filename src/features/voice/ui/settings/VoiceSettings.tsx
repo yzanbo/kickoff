@@ -8,7 +8,7 @@ import { useVoiceStatus } from "@/features/voice/ui/store";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { VOICE_PROVIDER_INFO } from "./voiceOptions";
 import { VoiceLocalSetup } from "./VoiceLocalSetup";
 import { VoiceMacosSetup } from "./VoiceMacosSetup";

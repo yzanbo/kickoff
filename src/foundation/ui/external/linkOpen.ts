@@ -1,8 +1,8 @@
 // 外部リンクを開く: 開く前に確認の画面（URL と警告）を出し、設定の開き先（Kickoff のブラウザ / 既定のブラウザ）で開く。
 // 「今後確認しない」はドメインごとにアプリ全体で覚える（設定の trusted_link_domains）。警告に当たるリンクは覚えていても毎回確かめる
-import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/remoteImages/linkWarnings";
+import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/foundation/linkWarnings";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { applySettings, settingsStore } from "@/features/settings/ui/stores/settings";
+import { applySettings, settingsStore } from "@/foundation/ui/settings/appSettings";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { open } from "@/foundation/ui/navigation/open";
 import { openInDefaultBrowser } from "./native";

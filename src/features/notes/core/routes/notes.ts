@@ -10,7 +10,7 @@ import type { UploadStore } from "@/features/attachments/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
-import { CONTENT_REQUIRED, hasContent, messageShape, notePathSchema } from "@/foundation/core/http/schemas";
+import { CONTENT_REQUIRED, hasContent, messageShape, notePathSchema } from "@/features/chat/core/index";
 import { folderPath, optionalId, repoPath } from "@/foundation/core/http/zodParts";
 import type { NoteDirs } from "@/features/notes/core/noteDir";
 import type { NoteService } from "@/features/notes/core/service";

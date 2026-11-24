@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Chat } from "@shared/chat/types";
 import { makeWorktree } from "@shared/foundation/testing/data";
 import { compareWorkplaces, countBusyAt, sameWorkplace, workplaceKey, workplaceOf, workplacePath } from "./workplace";
 
@@ -66,7 +65,7 @@ test("作業場所の並び: 本体 → ワークツリー（名前順）→ フ
 });
 
 test("countBusyAt: 同じ作業場所（null = 本体）で作業中のチャットだけを数え、いまのチャットは数えない", () => {
-  const chat = (id: number, worktree_path: string | null, status: Chat["status"]) => ({ id, worktree_path, status });
+  const chat = (id: number, worktree_path: string | null, status: string) => ({ id, worktree_path, status });
   const chats = [chat(1, null, "running"), chat(2, null, "running"), chat(3, null, "completed"), chat(4, "/repo-worktrees/feat-a", "running")];
   assert.equal(countBusyAt(chats, null), 2);
   assert.equal(countBusyAt(chats, null, 1), 1);

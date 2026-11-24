@@ -1,6 +1,6 @@
 // 送る口 1 本と送信待ちの口の本文の確かめ（形は @shared/chat/send）
 import { z } from "zod";
-import { attachmentsSchema, CONTENT_REQUIRED, editingIdsSchema, hasContent, MAX_QUEUE_SELECTION, messageText, queueId, queueMessageFields } from "@/foundation/core/http/schemas";
+import { attachmentsSchema, CONTENT_REQUIRED, editingIdsSchema, hasContent, MAX_QUEUE_SELECTION, messageText, queueId, queueMessageFields } from "./schemas";
 import { QUEUE_ACTIONS } from "@shared/chat/types";
 import type { QueueCommand } from "@shared/chat/queueCommand";
 import type { QueueCommandsBody, QueueEditingBody, QueueSendBody, SendBody } from "@shared/chat/send";

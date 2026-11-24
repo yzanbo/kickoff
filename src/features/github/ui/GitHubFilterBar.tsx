@@ -1,7 +1,8 @@
 import "./GitHubFilterBar.css";
 import { useEffect, useEffectEvent, useState, type MouseEvent } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
-import { GITHUB_KIND_LABELS, GITHUB_KINDS, GITHUB_MINE_FILTER_LABELS, GITHUB_SORT_LABELS, GITHUB_SORTS, GITHUB_STATE_FILTER_LABELS, GITHUB_STATE_FILTERS, type GitHubKind, type GitHubListFilter, type GitHubMineFilter, type GitHubRepoMeta } from "@shared/github/types";
+import { GITHUB_MINE_FILTER_LABELS, GITHUB_SORT_LABELS, GITHUB_SORTS, GITHUB_STATE_FILTER_LABELS, GITHUB_STATE_FILTERS, type GitHubListFilter, type GitHubMineFilter, type GitHubRepoMeta } from "@shared/github/types";
+import { GITHUB_KIND_LABELS, GITHUB_KINDS, type GitHubKind } from "@shared/chat/types";
 import { defaultGitHubFilter, githubSearchText, mineFiltersFor, parseGitHubSearchText } from "@shared/github/searchQuery";
 import { cx } from "@/foundation/ui/lib/cx";
 import { activeFilterCount } from "./githubFilters";

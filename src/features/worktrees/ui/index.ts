@@ -4,3 +4,4 @@ export { confirmRemoveWorktree, removalNotes, removeWorktreeAndRefresh } from ".
 export { downVolumesCheck, dropConnectionsCheck } from "./worktreeEnvText";
 export { worktreePullRequests } from "./pullRequests";
 export { worktreesApi } from "./api/worktrees";
+export { noticeKey, openPrNotice, prNoticeRequest, useWorktreePrLookup, useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";

@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { pickProjectHue } from "@shared/projects/colors";
 import type { Notify } from "@/foundation/core/db/common";
@@ -9,7 +8,8 @@ import { chatGroupsTable } from "@/features/groups/core/schema";
 export interface GroupMembers {
   /** そのグループのチャット（ゴミ箱のものを除く）の番号 */
   idsIn(group: ChatGroup): number[];
-  getChat(id: number): Chat | undefined;
+  /** グループなしに戻したチャットを知らせる（チャットの形は chat の持ち物なので、知らせも chat の店の側で作る） */
+  ungrouped(chatId: number): void;
 }
 
 export type GroupStore = ReturnType<typeof createGroupStore>;
@@ -37,7 +37,7 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, members: Gr
       if (!group) return;
       const chatIds = members.idsIn(group);
       rows.remove(id);
-      for (const chatId of chatIds) onChange({ type: "chat", chat: members.getChat(chatId)! });
+      for (const chatId of chatIds) members.ungrouped(chatId);
       onChange({ type: "group_deleted", id, project_id: group.project_id });
     },
   };

@@ -4,7 +4,7 @@ import type { Chat, ChatStatus, GitHubLink } from "@shared/chat/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import { chatsTable } from "@/features/chat/core/schema";
-import type { NewChat } from "@/foundation/core/db/types";
+import type { NewChat } from "./types";
 import { rememberChatSession } from "./agentSessions";
 import type { LogRevisions } from "./logRevisions";
 

@@ -7,7 +7,8 @@ import { PROJECT_HUES } from "@shared/foundation/hues";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { idsBody } from "@/foundation/core/http/zodParts";
-import { ABSOLUTE_FOLDER, isAbsoluteFolder, compactPrompt, projectDescription, projectName } from "@/foundation/core/http/schemas";
+import { ABSOLUTE_FOLDER, isAbsoluteFolder } from "@/foundation/core/http/zodParts";
+import { compactPrompt, projectDescription, projectName } from "./schemas";
 import { changeProjectFolder, createProject, importProject, inspectFolder, startProjectGit, trashProjectById, updateProject, type ProjectsCtx } from "./service";
 
 // 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）

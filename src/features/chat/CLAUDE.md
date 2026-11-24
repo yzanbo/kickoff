@@ -18,7 +18,7 @@
 
 ## 落とし穴
 - 未読の条件 `isUnreadEvent` は、コアの `store.events.latestUnreadId` が SQL で同じものを持つ（変えたら両方）。
-- 画面は記録の末尾と索引を読む。記録全体から作る関数には索引＋末尾を `mergeById` で重ねて渡す。選ぶ規則は `selectIndexIds` 1 か所（コアの `buildIndex` も通す。SQL に書き直さない）。規則を変えた・関数を足したら `chatIndex.test.ts` の「どの切れ目でも全件と同じ」を通す。
+- 画面は記録の末尾と索引を読む。記録全体から作る関数には索引＋末尾を `mergeById` で重ねて渡す。選ぶ規則は `selectIndexIds` 1 か所（コアの `buildIndex` も通す。SQL に書き直さない）。規則を変えた・関数を足したら `chatIndex.test.ts` の「どの切れ目でも全件と同じ」（図は `@shared/visuals/aiVisual.test.ts`）を通す。
 - 書きかけの足し・消し（`streamingEffectOf`）・送信待ちの止める印（`queueStops.ts`）は、コア・画面・スマホが同じ関数（変えたら 3 つに効く）。
 - 削除したチャットの書きかけは composer が `chat_deleted` で消す。
 - テスト: `core/routes.*.test.ts`・`core/run/machine/*.test.ts`・`core/run/scenarios.runner.test.ts`・`@shared/chat/*.test.ts`。

@@ -3,7 +3,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
-import { applySettings, useAppSettings } from "@/features/settings/ui";
+import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { canNotify, notify, openNotificationSettings } from "@/features/notifications/ui/native";
 
 /** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数。変えたらすぐ保存する） */

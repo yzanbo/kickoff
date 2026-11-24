@@ -10,7 +10,7 @@ import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
 import { NO_MODELS, useModelsState } from "@/features/ai/ui/stores/providers";
 import { useProjectAiDefaults } from "@/features/ai/ui/stores/projectAiDefaults";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { fitChatOptions, initialChatOptions, type DefaultedFor } from "./chatOptionsRules";
 import { fastSupportOf } from "./models";
 

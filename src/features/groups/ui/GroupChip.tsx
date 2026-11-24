@@ -1,13 +1,12 @@
 import { Folder } from "lucide-react";
 import type { CSSProperties } from "react";
-import type { Chat } from "@shared/chat/types";
 import { useGroup } from "@/features/groups/ui/stores/groups";
 
 /**
  * どのグループのチャットかの札（グループの色。タブの名前の後ろの札・グループ別のまとまりの札と同じ色 --hue。形はブランチの印と同じ小さなピル）。
  * チャットの見出しとサイドバーの行（2 行のとき）で使う。グループなし・読み込み中・もうないグループは出さない
  */
-export function GroupChip({ chat }: { chat: Pick<Chat, "project_id" | "group_id"> }) {
+export function GroupChip({ chat }: { chat: { project_id: number; group_id: number | null } }) {
   const group = useGroup(chat.project_id, chat.group_id);
   if (!group) return null;
   return (

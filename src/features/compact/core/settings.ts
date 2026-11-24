@@ -1,7 +1,7 @@
 // 圧縮の設定の PUT の zod（表は @shared/compact/settings）
 import { z } from "zod";
 import { defineSettingSchemas } from "@/foundation/core/settings/defineSettingSchemas";
-import { compactPrompt } from "@/foundation/core/http/schemas";
+import { compactPrompt } from "@/features/projects/core/index";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/compact/autoCompact";
 import { compactSettings } from "@shared/compact/settings";
 

@@ -1,64 +1,10 @@
-// 作業場所を移した区切り（記録の workplace_moved）の決まり。
-// コア（巻き戻し・分岐・起点・AI への知らせ）と画面（区切りの 1 行・ボタン・ファイルのチップ）とスマホで同じものを使う
-import type { ChatEvent, ChatEventDataOf, ChatEventOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
+// 作業場所を移した区切り（記録の workplace_moved）の 1 行と AI への知らせ。区切りの一覧・そのときの作業場所・呼び名は @shared/chat/workplaceBoundaries。
+// コア（AI への知らせ）と画面（区切りの 1 行）とスマホで同じものを使う
+import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
+import { folderName, workplaceLabel } from "@shared/chat/workplaceBoundaries";
 
 type MoveData = ChatEventDataOf<"workplace_moved">;
-
-/** 作業場所のうち、どこを開くかを決める所（プロジェクトとワークツリー。本体なら null） */
-export interface WorkplacePlace {
-  project_id: number;
-  worktree_path: string | null;
-}
-
-/** 区切り（記録の ID と、移す前の作業場所）。記録の ID の順 */
-export interface WorkplaceBoundary {
-  id: number;
-  from: WorkplacePlace;
-  /** 移す前の作業場所の呼び名（「本体」「ワークツリー（feat/x）」。開けないときの文） */
-  fromLabel: string;
-}
-
-/** 記録の区切りの一覧（ID の順。画面は記録が変わるたびに作り直さず、これを覚えて workplaceAtBoundaries に渡す） */
-export function workplaceBoundaries(events: readonly ChatEvent[]): WorkplaceBoundary[] {
-  const out: WorkplaceBoundary[] = [];
-  for (const e of events) {
-    if (e.type !== "workplace_moved") continue;
-    const from = e.data.from;
-    out.push({ id: e.id, from: { project_id: from.project_id, worktree_path: from.worktree_path }, fromLabel: workplaceLabel(from) });
-  }
-  return out.sort((a, b) => a.id - b.id);
-}
-
-/** いちばん新しい区切り（なければ null） */
-export function latestWorkplaceMove(events: readonly ChatEvent[]): ChatEventOf<"workplace_moved"> | null {
-  let latest: ChatEventOf<"workplace_moved"> | null = null;
-  for (const e of events) if (e.type === "workplace_moved" && (!latest || e.id > latest.id)) latest = e;
-  return latest;
-}
-
-/** 区切りの一覧から、その記録のときの作業場所（後ろにある最初の区切りの「移す前」。区切りが後ろになければいまの作業場所） */
-function workplaceAtBoundaries(boundaries: readonly WorkplaceBoundary[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
-  for (const b of boundaries) if (b.id > eventId) return { ...b.from, moved: true };
-  return { ...current, moved: false };
-}
-
-/** その記録のときの作業場所（ファイルのチップ・変更カード・読んだ画像を開く所） */
-export function workplaceAt(events: readonly ChatEvent[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
-  return workplaceAtBoundaries(workplaceBoundaries(events), eventId, current);
-}
-
-/** 区切りより前の発言のファイル・画像を、そのときの作業場所がもうなくて開けないときの文 */
-export const workplaceGoneText = (label: string): string => `この発言のときの作業場所（${label}）はもうないので開けません`;
-
-/** パスの最後の名前 */
-const baseName = (p: string) => p.replace(/\/+$/, "").split("/").pop() || p;
-
-/** 作業場所の呼び名（「本体」「ワークツリー（feat/x）」） */
-export function workplaceLabel(ref: Pick<WorkplaceRef, "worktree_path" | "branch">): string {
-  if (ref.worktree_path === null) return "本体";
-  return `ワークツリー（${ref.branch ?? baseName(ref.worktree_path)}）`;
-}
 
 /** 理由の頭（会話の区切りの 1 行） */
 const REASON_HEADS: Record<WorkplaceMoveReason, string> = {
@@ -76,7 +22,7 @@ const REASON_HEADS: Record<WorkplaceMoveReason, string> = {
 function fromTo(data: MoveData): string {
   if (data.reason === "folder_moved") return `${data.from.dir} → ${data.to.dir}`;
   const named = data.from.project_id !== data.to.project_id;
-  const side = (ref: WorkplaceRef) => (named ? `${workplaceLabel(ref)}（${baseName(ref.dir)}）` : workplaceLabel(ref));
+  const side = (ref: WorkplaceRef) => (named ? `${workplaceLabel(ref)}（${folderName(ref.dir)}）` : workplaceLabel(ref));
   return `${side(data.from)} → ${side(data.to)}`;
 }
 

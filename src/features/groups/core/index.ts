@@ -19,7 +19,7 @@ export { requireGroupOf } from "./requireGroup";
 /** チャットのグループ（店とルート） */
 export function createGroups(k: Kernel, deps: { projects: ProjectsApi }): CoreFeature<GroupsApi> {
   let members: GroupMembers | null = null;
-  const store = createGroupStore(k.db, (e) => k.bus.publish(e), { idsIn: (group) => members?.idsIn(group) ?? [], getChat: (id) => members?.getChat(id) });
+  const store = createGroupStore(k.db, (e) => k.bus.publish(e), { idsIn: (group) => members?.idsIn(group) ?? [], ungrouped: (chatId) => members?.ungrouped(chatId) });
   return {
     name: "groups",
     api: { store, useMembers: (given) => void (members = given) },

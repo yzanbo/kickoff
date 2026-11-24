@@ -1,10 +1,7 @@
 // GitHub タブ（プロジェクトの連携先のリポジトリの issue・PR を読む）の形。中身は DB に持たず、開くたびに GitHub に聞く
 import type { CiState } from "./ciTypes";
+import type { GitHubKind } from "@shared/chat/types";
 
-/** 一覧の種類（issue と PR は切り替えて別々の一覧にする） */
-export const GITHUB_KINDS = ["issue", "pr"] as const;
-export type GitHubKind = (typeof GITHUB_KINDS)[number];
-export const GITHUB_KIND_LABELS: Record<GitHubKind, string> = { issue: "issue", pr: "PR" };
 
 /** 一覧の状態の絞り込み（merged は PR だけ） */
 export const GITHUB_STATE_FILTERS = ["open", "closed", "merged", "all"] as const;

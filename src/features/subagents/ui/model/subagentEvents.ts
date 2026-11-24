@@ -82,7 +82,7 @@ const lastResults = createLruMap<string, ChatEvent[]>(500);
 /**
  * そのサブエージェントの手順に使う記録（ID の順）。scope は流れ（行のキーと、再開した回の呼び出し ID）、agentId があれば
  * そのサブエージェントへ伝えた指示（digest から。末尾より前のものも）を key の流れの自分の発言として混ぜる。groupEvents(結果, scope) は、
- * 読み込んだ記録の全体を渡したときと同じ項目になる（subagentEvents.test.ts）。中身が前と同じなら前と同じ配列を返す
+ * 読み込んだ記録の全体を渡したときと同じ項目になる（conversation の ui/timeline/subagentEvents.test.ts）。中身が前と同じなら前と同じ配列を返す
  */
 export function subagentEvents(loaded: readonly ChatEvent[], digest: readonly ChatEvent[], scope: readonly string[], key: string, agentId: string | undefined): ChatEvent[] {
   const index = indexOf(loaded);

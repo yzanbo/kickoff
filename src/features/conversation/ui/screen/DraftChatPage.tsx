@@ -11,7 +11,7 @@ import { useChatDisplayMenu } from "./useChatDisplayMenu";
 import { useForegroundProvider } from "./useForegroundProvider";
 import { ChatFontSizeButton } from "./ChatFontSizeButton";
 import { TextWidthToggle, useWideText } from "./TextWidthToggle";
-import { useAppSettings } from "@/features/settings/ui";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { RestrictionNotice } from "./RestrictionNotice";
 
 /**

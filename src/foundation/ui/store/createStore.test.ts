@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatGroup } from "@shared/groups/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { fakeLoader } from "@shared/foundation/testing/async";
 import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
@@ -32,9 +31,17 @@ test("期限で自動更新する店: 使用中のキーだけ、古くなった
   assert.deepEqual(calls, [1, 2, 1]);
 });
 
-// 土台のテストなので機能（groups）の補助は読まず、形だけで作る
-const group = (id: number, project_id = 1): ChatGroup => ({ id, project_id, name: `g${id}`, position: id, hue: 0, created_at: TEST_TIME });
-const groupEvent = (g: ChatGroup) => busEvent("group", { group: g });
+// 土台のテストなので機能（groups）の型・補助は読まず、形だけで作る（知らせの group の中身はこの形を満たす）
+interface TestGroup {
+  id: number;
+  project_id: number;
+  name: string;
+  position: number;
+  hue: number;
+  created_at: string;
+}
+const group = (id: number, project_id = 1): TestGroup => ({ id, project_id, name: `g${id}`, position: id, hue: 0, created_at: TEST_TIME });
+const groupEvent = (g: TestGroup) => busEvent("group", { group: g });
 
 test("店: 同時に何度頼まれても読み込みは 1 回で、届いたら値を出す", async () => {
   const { calls, load } = fakeLoader<void, number>();
@@ -108,8 +115,8 @@ test("店: 使っている値の読み込みに失敗したら、間隔を伸ば
 });
 
 test("店: 知らせで値を直し、読み込みの最中に届いた知らせは、届いた値にもう一度当てる", async () => {
-  const { calls, load } = fakeLoader<number, ChatGroup[]>();
-  const store = createKeyedStore<number, ChatGroup[]>({
+  const { calls, load } = fakeLoader<number, TestGroup[]>();
+  const store = createKeyedStore<number, TestGroup[]>({
     load,
     reduce: { group: (list, e, projectId) => (e.group.project_id === projectId ? [...list.filter((g) => g.id !== e.group.id), e.group] : list) },
   });

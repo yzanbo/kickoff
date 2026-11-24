@@ -1,9 +1,9 @@
-// ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられた）。
+// ワークツリーの PR の知らせの店（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられた。確認の画面と見張りは github）。
 // 見張りはコア（5 分ごと）で、アプリを開いたときに 1 回読み、変わったらサーバーの知らせ（プロジェクトの分を丸ごと）で入れ替える
 import { useMemo } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
 import { createCell, type ReduceTable } from "@/foundation/ui/store";
-import { worktreesApi } from "@/features/worktrees/ui";
+import { worktreesApi } from "./api/worktrees";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 

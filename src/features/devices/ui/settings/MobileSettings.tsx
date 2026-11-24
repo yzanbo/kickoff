@@ -7,7 +7,7 @@ import { devicesApi } from "@/features/devices/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
-import { saveSettings, useAppSettings } from "@/features/settings/ui";
+import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
