@@ -28,7 +28,7 @@ export interface PanelStore {
   kindOf(tab: TabBase): AnyTabKind;
   /** 欄の決まり（知らない欄なら undefined） */
   surfaceOf(id: PanelSurface): AnySurface | undefined;
-  /** プロジェクトを消したとき: そのプロジェクトの、タブを保存する欄（右サイドバー）の保存を消し、このウィンドウが持っていれば取り出す */
+  /** プロジェクトを消したとき: タブを保存する欄（右サイドバー）の保存を消し、このウィンドウが持つそのプロジェクトの欄をタブの後始末をして捨てる */
   forgetProject(projectId: number): void;
   /**
    * 写しの店にする / やめる（サイドバーの別ウィンドウ。パネルはメインのウィンドウのものを写した値で読み = chatPanel の panelFollow.ts、自分では変えない。
@@ -158,12 +158,11 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     surfaceOf: (id) => surfaceById.get(id),
     forgetProject(projectId) {
       for (const surface of surfaces) {
-        if (!surface.saved) continue;
-        const key = panelKey(surface.id, projectId);
-        if (!owns(key)) continue;
-        surface.saved.write(projectId, null);
-        take((k) => k === key);
+        if (surface.saved && owns(panelKey(surface.id, projectId))) surface.saved.write(projectId, null);
       }
+      // そのプロジェクトの欄は、タブの後始末（ターミナルはシェルも止める）をしてから捨てる
+      const gone = take((key) => owns(key) && parsePanelKey(key)?.scope === projectId);
+      for (const [, state] of gone) state.tabs.forEach(dispose);
     },
     setReplica(on) {
       replica = on;
@@ -220,7 +219,7 @@ function store(): PanelStore {
 
 /**
  * サーバーの知らせで欄を片付ける（起動で 1 回。やめるときは返り値を呼ぶ）: 削除したチャットのタブ（そのチャットのサブエージェントのタブも）は、
- * どの欄でも閉じる（画面に出ていない欄も）。削除したプロジェクトの右サイドバーのブラウザは保存からも外す
+ * どの欄でも閉じる（画面に出ていない欄も）。削除したプロジェクトの欄はタブの後始末をして捨て、右サイドバーのブラウザは保存からも外す
  */
 export function startPanelServerEvents(): () => void {
   return onServerEvent(["project_deleted", "chat_deleted"], (e) => {

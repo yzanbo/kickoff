@@ -101,3 +101,15 @@ test("削除したチャットのタブは、画面に出ていない欄でも�
   publishServerEvent({ type: "chat_deleted", id: 60, project_id: 6 });
   assert.deepEqual(keys("kanban:6"), ["chat:61"]);
 });
+
+test("削除したプロジェクトの欄は、下のパネルのターミナルも後始末して（シェルも止めて）捨てる", () => {
+  useStore();
+  closedShells.length = 0;
+  openTab("bottom:7", terminalTab(target(7)));
+  openTab("bottom:8", terminalTab(target(8)));
+  const [shell] = keys("bottom:7");
+  publishServerEvent({ type: "project_deleted", id: 7 });
+  assert.deepEqual(closedShells, [shell]);
+  assert.deepEqual(keys("bottom:7"), []);
+  assert.equal(keys("bottom:8").length, 1);
+});
