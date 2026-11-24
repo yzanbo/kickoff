@@ -51,8 +51,9 @@
     cursor: pointer;
   }
 
+  /* 乗せたら色で見せる（下線は使わない） */
   .docker-compose-file:hover:not(:disabled) {
-    text-decoration: underline;
+    color: var(--accent-fg);
   }
 
   .docker-compose-file:disabled {

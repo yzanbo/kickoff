@@ -20,7 +20,6 @@
 
   .github-repo-link:hover {
     color: var(--text);
-    text-decoration: underline;
   }
 
   /* 一覧 */

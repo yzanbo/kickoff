@@ -30,8 +30,9 @@
     cursor: pointer;
   }
 
+  /* 乗せたら色で見せる（下線は使わない） */
   .ci-pull-link:hover {
-    text-decoration: underline;
+    color: var(--text);
   }
 
   /* ジョブとステップ */
