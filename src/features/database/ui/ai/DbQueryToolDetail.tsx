@@ -4,6 +4,7 @@ import { useKnownChat } from "@/features/chat/ui";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { aiQueryConnection } from "./aiQuery";
 import { openSqlInChat } from "./openSqlInChat";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
 /**
  * チャットのツールの行を開いた中身（db_query）: 流した SQL を全文 SQL の色で（承認カードと同じ）と、「SQL のタブで開く」
@@ -13,7 +14,7 @@ import { openSqlInChat } from "./openSqlInChat";
 export function DbQueryToolDetail({ chatId, sql, connectionName, result, highlight }: { chatId: number; sql: string; connectionName: string | undefined; result: string | undefined; highlight: boolean }) {
   const chat = useKnownChat(chatId);
   // DB の API はこの Mac からだけ受けるので、ブラウザ（スマホ）では接続を読まない
-  const local = Boolean(window.kickoff);
+  const local = inDesktopApp();
   const enabled = local && chat !== undefined;
   const connections = useDbConnections(chat?.project_id ?? 0, enabled).data ?? [];
   const connection = aiQueryConnection(connections, connectionName, result);

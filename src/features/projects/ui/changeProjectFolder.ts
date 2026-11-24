@@ -6,6 +6,7 @@ import { worktreesStore, worktreeSource } from "@/foundation/ui/workplace/worktr
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
 import { gitInitChoice } from "./gitInitChoice";
+import { pickFolder } from "./native";
 
 /**
  * プロジェクトのフォルダ（本体）を選び直す（プロジェクトの設定の「基本情報」の「変更…」から）。
@@ -17,7 +18,7 @@ import { gitInitChoice } from "./gitInitChoice";
  */
 export async function changeProjectFolder(project: Project): Promise<void> {
   // 何のために選ぶのかを窓の上の文とボタンで伝える（macOS の窓は題を出さないため）
-  const picked = await window.kickoff?.dialog.pickFolder("プロジェクトフォルダを変更", {
+  const picked = await pickFolder("プロジェクトフォルダを変更", {
     message: `「${project.name}」のプロジェクトフォルダを変更します。新しいフォルダを選んでください（いま: ${project.repo_path}）。ファイルは移しません。`,
     buttonLabel: "このフォルダに変更",
     defaultPath: project.repo_path,

@@ -1,9 +1,6 @@
 // diagnostics が window.kickoff を読む所（Mac のアプリの中だけ: 性能の記録・ログの場所・コアのプロセスの様子）
 import type { CoreStatus, DiagnosticsFolders, DiagnosticsOverview, DiagnosticsState } from "@shared/foundation/ipc";
 
-/** Mac のアプリの中か（ブラウザで開いた画面では記録を取れない・コアの帯を出さない） */
-export const inDesktopApp = () => Boolean(window.kickoff);
-
 /** 性能の記録の口（Mac のアプリの外なら何もしない・null） */
 export const diagnosticsNative = {
   start: () => void window.kickoff?.diagnostics.start(),

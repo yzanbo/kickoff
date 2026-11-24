@@ -42,7 +42,7 @@ export const send = <A extends unknown[]>(): SendSpec<A> => ({ kind: "send" });
 export const event = <A extends unknown[]>(): EventSpec<A> => ({ kind: "event" });
 
 /** フォルダを選ぶ窓の文（message: 窓の上に出す説明。省けば title / buttonLabel: 決めるボタンの名前 / defaultPath: 初めに開くフォルダ） */
-interface PickFolderOptions {
+export interface PickFolderOptions {
   message?: string;
   buttonLabel?: string;
   defaultPath?: string;

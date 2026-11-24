@@ -7,6 +7,7 @@ import { useChatOf, rootChatOf, knownChat } from "@/features/chat/ui";
 import { SideScope } from "@/features/conversation/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { closeSelf, type PopoutRoute } from "@/foundation/ui/navigation/popout";
+import { onCloseRequested } from "@/foundation/ui/lib/desktopApp";
 
 /**
  * 子チャットの別ウィンドウ: ふつうのチャットの画面（ChatScreen）に、上の帯（親を見る・親チャットに渡す・右の欄に戻す）を足す。
@@ -21,7 +22,7 @@ export function PopoutChildChat({ route: { chatId } }: { route: Extract<PopoutRo
   // 閉じ方を聞かずに閉じる（メインプロセスに頼む。デスクトップアプリでなければ、ふつうに閉じる）
   const closeWindow = closeSelf;
   // ✕・⌘W はメインプロセスが止めて知らせてくる。閉じ方を聞いてから閉じる（チャットが消えていれば、そのまま閉じる）
-  const onCloseRequested = useEffectEvent(() => {
+  const closeRequested = useEffectEvent(() => {
     if (!chat) return closeWindow();
     if (asking.current) return;
     asking.current = true;
@@ -29,7 +30,7 @@ export function PopoutChildChat({ route: { chatId } }: { route: Extract<PopoutRo
       .catch(reportFailure("閉じられませんでした"))
       .finally(() => (asking.current = false));
   });
-  useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);
+  useEffect(() => onCloseRequested(() => closeRequested()), []);
 
   // いちばん上の親（一覧をまだ読んでいなければ、すぐ上の親）
   const root = chat ? rootChatOf(chat, knownChat) : null;

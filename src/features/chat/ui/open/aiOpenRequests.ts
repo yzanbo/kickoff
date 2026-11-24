@@ -7,6 +7,7 @@ import { rootChatOf } from "@/features/chat/ui/state/descendants";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
 declare module "@/foundation/ui/navigation/open" {
   interface OpenTargetMap {
@@ -68,6 +69,6 @@ function openRequested(request: OpenViewRequest) {
  */
 export function useAiOpenRequests() {
   useServerEvent("open_view", (e) => {
-    if (window.kickoff) openRequested(e.request);
+    if (inDesktopApp()) openRequested(e.request);
   });
 }

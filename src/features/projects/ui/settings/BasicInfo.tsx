@@ -15,6 +15,7 @@ import { settingsItemsOf } from "@/features/settings/ui";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
 import { TagEditor } from "./TagEditor";
 import { useEditedProject } from "./editedProject";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
 /** 基本情報（名前と概要・フォルダ・ほかの機能が足す欄（ノートのフォルダ）・色・タグ）。名前と概要は欄の外を押す・Enter で保存する */
 export function BasicInfo() {
@@ -86,7 +87,7 @@ function FolderRow({ project }: { project: Project }) {
     >
       <div className="input-row">
         <input type="text" aria-label="プロジェクトフォルダ" value={project.repo_path} readOnly />
-        {window.kickoff && (
+        {inDesktopApp() && (
           <button type="button" className="btn" onClick={() => void changeProjectFolder(project)}>
             変更…
           </button>

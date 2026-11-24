@@ -10,6 +10,8 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 import { useEditedProject } from "./editedProject";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
+import { pickReferences } from "@/features/projects/ui/native";
 
 /** プロジェクトの設定の「参照資料」の節 */
 export function ReferencesSection() {
@@ -43,7 +45,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
   };
 
   const pick = async () => {
-    const paths = (await window.kickoff?.dialog.pickReferences()) ?? [];
+    const paths = await pickReferences();
     await add(paths);
   };
 
@@ -86,7 +88,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
       )}
 
       <div className="reference-actions">
-        {window.kickoff && (
+        {inDesktopApp() && (
           <button className="btn" disabled={saving} onClick={() => void pick()}>
             <Plus size={14} /> フォルダ・ファイルを追加
           </button>
@@ -101,7 +103,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
           <input
             type="text"
             value={typed}
-            placeholder={window.kickoff ? "またはパスを入力（例: ~/Documents/spec）" : "パスを入力（例: ~/Documents/spec）"}
+            placeholder={inDesktopApp() ? "またはパスを入力（例: ~/Documents/spec）" : "パスを入力（例: ~/Documents/spec）"}
             aria-label="参照資料のパス"
             onChange={(e) => setTyped(e.target.value)}
           />

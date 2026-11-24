@@ -8,7 +8,7 @@ import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import type { FileTarget, ReopenRoute } from "@/foundation/ui/navigation/router";
 import type { PanelFrame } from "@/features/panel/ui";
 import type { TabGroup } from "./page/tabOrder";
-import { inDesktopApp } from "./native";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
 /** 画面を置く場所（真ん中のタブ・右サイドバー・チャットの右の欄） */
 export type ProjectViewPlace = "center" | "rightSidebar" | "chatSide";

@@ -1,7 +1,7 @@
 import { BatteryWarning } from "lucide-react";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { inDesktopApp } from "@/features/devices/ui/native";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 import type { useMobileSwitches } from "./useMobileSwitches";
 
 /** スマホからつなぐ・ログイン時に起動の 2 つのスイッチと、その説明（設定の「スマホ連携」のいちばん上） */

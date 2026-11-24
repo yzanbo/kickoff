@@ -8,6 +8,7 @@ import { SideBody } from "./RightSidebar";
 import { SideRail } from "./SideRail";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
 import { useMainWindowRoute } from "@/foundation/ui/navigation/useMainWindowRoute";
+import { onCloseRequested } from "@/foundation/ui/lib/desktopApp";
 
 /** メインのウィンドウがチャット欄の状態を渡してくるのを待つ上限（過ぎたら空のまま描く） */
 const ADOPT_WAIT_MS = 3000;
@@ -59,8 +60,8 @@ export function PopoutSideChat() {
   }, []);
   const route = useMainWindowRoute((open) => postWindowMessage("sideWindow", { open, holding }));
   // ✕・⌘W（メインプロセスが閉じるのを止めて知らせる）: チャット欄をメインのウィンドウに戻してから閉じる
-  const onCloseRequested = useEffectEvent(() => returnSideWindow(false));
-  useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);
+  const closeRequested = useEffectEvent(() => returnSideWindow(false));
+  useEffect(() => onCloseRequested(() => closeRequested()), []);
   const { missing } = useProjects();
   const fallbackProject = useFallbackProject();
   const routeProject = routeProjectId(route);

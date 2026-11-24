@@ -4,7 +4,8 @@ import { useQuery } from "@/foundation/ui/query";
 import { DiagnosticsPath } from "@/features/diagnostics/ui/DiagnosticsPath";
 import { overviewLines } from "@/features/diagnostics/ui/overviewLines";
 import { Field } from "@/foundation/ui/kit/Field";
-import { diagnosticsNative, inDesktopApp } from "@/features/diagnostics/ui/native";
+import { diagnosticsNative } from "@/features/diagnostics/ui/native";
+import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
 /**
  * 診断: 重いときに、再起動せずその場で性能の記録を取る（10 秒）。押すと設定を閉じ、記録の間も操作を続けられる

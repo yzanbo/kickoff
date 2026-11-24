@@ -484,17 +484,7 @@
       "src/shared/chat/subagents.ts": 301,
       "src/shared/database/sqlStatements.ts": 315
     },
-    "native": [
-      "src/features/chat/ui/open/aiOpenRequests.ts",
-      "src/features/chatPanel/ui/popout/PopoutChildChat.tsx",
-      "src/features/database/ui/ai/DbQueryToolDetail.tsx",
-      "src/features/github/ui/IssueFromTextItem.tsx",
-      "src/features/projects/ui/changeProjectFolder.ts",
-      "src/features/projects/ui/new/FolderField.tsx",
-      "src/features/projects/ui/rightSidebar/PopoutRightSidebar.tsx",
-      "src/features/projects/ui/settings/BasicInfo.tsx",
-      "src/features/projects/ui/settings/ReferenceEditor.tsx"
-    ],
+    "native": [],
     "sql": [],
     "css": [],
     "pattern": {},
