@@ -130,14 +130,26 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
     setRevision((n) => n + 1);
   };
 
+  // 開いたあとで読めなくなった（外で消された・ノートのフォルダが変わった）。その間は編集の部品が外れるので、読めるようになったら
+  // 書き始めの中身を書いてあるものに入れ直して作り直す（書き始めのままだと、書きかけが見えないまま未保存と出て、保存すると見えない中身を書く）
+  const missing = useRef(false);
+  const onMissing = useEffectEvent(() => {
+    if (current.current?.key === key) missing.current = true;
+  });
   // 読み込んだら書き始める。開いたあとに届いた中身は、ほかで変わったかを見る
   const onFile = useEffectEvent((f: DocumentFile) => {
     const now = current.current;
     if (now?.key !== key) {
+      missing.current = false;
       const start = startDocument(f, draft ? readSetting(draft(key)) : null);
       if (draft && start.dropDraft) writeSetting(draft(key), null);
       startFrom({ key, base: f }, start.text, start.status);
       return;
+    }
+    if (missing.current) {
+      missing.current = false;
+      setInitial(text.current ?? now.base.content);
+      setRevision((n) => n + 1);
     }
     const action = freshAction(now.base, text.current ?? now.base.content, f);
     if (action === "reload") startFrom({ key, base: f }, f.content, "saved");
@@ -149,6 +161,7 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
   const file = loaded.data;
   useEffect(() => {
     if (file) onFile(file);
+    else onMissing();
   }, [file]);
 
   const afterSave = useEffectEvent(() => onSaved?.());
