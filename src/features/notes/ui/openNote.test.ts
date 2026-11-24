@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { noteOpenWay, type NoteOpenWay } from "./openNote";
+import { noteOpenWay, noteShowPlace, type NoteOpenWay, type NoteShowPlace } from "./openNote";
 
 const base = { place: "side", canPopout: true, chatId: 5, hasDraftSide: false, inPopout: false, fromNoteChat: false } as const;
 
@@ -18,5 +18,21 @@ const cases: [string, Partial<Parameters<typeof noteOpenWay>[0]>, NoteOpenWay][]
 for (const [name, at, want] of cases) {
   test(`noteOpenWay: ${name}`, () => {
     assert.equal(noteOpenWay({ ...base, ...at }), want);
+  });
+}
+
+// チャットからでなくノートを開く先（全ノートの画面・プロジェクトの画面・全プロジェクトの画面 × 共通のノートか）
+const showCases: [string, Parameters<typeof noteShowPlace>, NoteShowPlace][] = [
+  ["全ノートの画面ならふつうのノートもその中", ["allNotes", false], "allNotes"],
+  ["全ノートの画面なら共通のノートもその中", ["allNotes", true], "allNotes"],
+  ["プロジェクトを見ていればふつうのノートはそのプロジェクトのノートのタブ", ["project", false], "project"],
+  ["プロジェクトを見ていれば共通のノートは見ているプロジェクトのノートのタブ", ["project", true], "host"],
+  ["全プロジェクトの画面ならふつうのノートはそのプロジェクトのノートのタブ", ["none", false], "project"],
+  ["全プロジェクトの画面なら共通のノートは全ノートの画面", ["none", true], "allNotes"],
+];
+
+for (const [name, args, want] of showCases) {
+  test(`noteShowPlace: ${name}`, () => {
+    assert.equal(noteShowPlace(...args), want);
   });
 }

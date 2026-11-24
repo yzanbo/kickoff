@@ -1,6 +1,7 @@
 import type { Placement } from "@/foundation/ui/lib/floating";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
 
 /** 一覧の右クリックで指したもの（node: 右クリックした行。null = 空いている所。many: 選んだいくつかの行の 1 つを右クリックしたときの、選んでいるものすべて） */
 export interface NoteMenuTarget {
@@ -11,9 +12,14 @@ export interface NoteMenuTarget {
 /** 右クリックの「〜へ移す」の行き先の欄（ドラッグできない場面のため。動かす先は欄の根） */
 export interface NoteMoveTarget {
   projectId: number;
-  /** メニューの文（「共通のノートへ移す」など） */
+  /** 欄の名前（行き先が多くて「ほかの欄へ移す」の横に並べるときの文） */
+  name: string;
+  /** メニューにそのまま並べるときの文（「共通のノートへ移す」など） */
   label: string;
 }
+
+/** 行き先がこれより多ければ、「ほかの欄へ移す」の横に開く子のメニューにまとめる（全ノートの画面ではプロジェクトの数だけ並ぶため） */
+const FLAT_MOVE_TARGETS = 2;
 
 interface Props {
   at: Placement;
@@ -42,13 +48,25 @@ interface Props {
 export function NoteListMenu({ at, target, dir, onClose, onCreate, onRename, onReveal, onOpenInNewTabs, onTrash, moveTargets, onMoveTo }: Props) {
   const { node, many } = target;
   const fullPath = (path: string) => `${dir}/${path}`;
-  const moveItems = (nodes: readonly { path: string; dir: boolean }[]) =>
-    moveTargets.map((t) => (
-      <MenuItem key={t.projectId} onSelect={() => onMoveTo(t.projectId, nodes)}>
-        {t.label}
-        {nodes.length > 1 && `（${nodes.length} 件）`}
-      </MenuItem>
-    ));
+  const moveItems = (nodes: readonly { path: string; dir: boolean }[]) => {
+    const count = nodes.length > 1 ? `（${nodes.length} 件）` : "";
+    if (moveTargets.length <= FLAT_MOVE_TARGETS)
+      return moveTargets.map((t) => (
+        <MenuItem key={t.projectId} onSelect={() => onMoveTo(t.projectId, nodes)}>
+          {t.label}
+          {count}
+        </MenuItem>
+      ));
+    return (
+      <MenuSub label={`ほかの欄へ移す${count}`} menuLabel="移す先の欄">
+        {moveTargets.map((t) => (
+          <MenuItem key={t.projectId} onSelect={() => onMoveTo(t.projectId, nodes)}>
+            {t.name}
+          </MenuItem>
+        ))}
+      </MenuSub>
+    );
+  };
   if (many) {
     const notes = many.filter((n) => !n.dir).map((n) => n.path);
     return (

@@ -540,6 +540,10 @@
 |---|---|---|---|
 | NOTE-028 | ノートのタブ・右サイドバー・入力欄の上の一覧に共通のノートの欄を出す | notes | M |
 | NOTE-029 | 欄の間でノートをノートのチャットごと移す | notes | T:noteMoveModel,notes/routes.transfer |
+| NOTE-030 | 全ノートの画面で共通のノートとプロジェクトごとのノートを欄に並べて開く | notes | T:allNotesModel,router |
+| NOTE-031 | サイドバーの「全ノート」の行・⌘K・AI の open_note から全ノートの画面へ開く | notes | T:openNote |
+| NOTE-032 | 設定で共通のノートのフォルダを選ぶ | notes | T:notes/routes.common |
+| NOTE-033 | 共通のノートのゴミ箱を見て元に戻す | notes | M |
 
 ## CODE コードと Git
 

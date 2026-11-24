@@ -49,6 +49,8 @@ export interface NoteSectionProps {
   moveTargets: readonly NoteMoveTarget[];
   /** ノートがないときの案内 */
   emptyHint: string;
+  /** 見出しの「…」に欄のゴミ箱を出す（共通のノート。プロジェクトの欄はプロジェクトの「ゴミ箱」タブがあるので出さない） */
+  showTrash?: boolean;
   /** 欄の外（空の画面の「新しいノート」）で作ったノートの、名前を変え始める頼み。受け取ったら onRenameRequestTaken */
   renameRequest?: string | null;
   onRenameRequestTaken?: () => void;
@@ -57,7 +59,10 @@ export interface NoteSectionProps {
 /** ノートの欄の状態と操作（NoteSection が描く） */
 export function useNoteSection(props: NoteSectionProps) {
   const { projectId, shownPath, query, active, onOpen } = props;
-  const list = useNoteList(projectId);
+  // 探している間は、閉じた欄も開いて見つかったものを見せる
+  const fold = useFold(props.fold.place, props.fold.key, { defaultOpen: props.fold.defaultOpen, forceOpen: query.trim() !== "" });
+  // 閉じている欄はノートの一覧を読みに行かない（全ノートの画面はプロジェクトの数だけ欄が並ぶため。開いたときに読む）
+  const list = useNoteList(projectId, fold.open);
   // 欄で選んでいる行（null = 表示中のノートに合わせる、"" = 何も選んでいない、パス = 押したフォルダ）。表示中のノートが変わったら合わせ直す
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [shownPath]);
@@ -68,9 +73,8 @@ export function useNoteSection(props: NoteSectionProps) {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<NoteRenaming | null>(null);
   const startRename = (path: string) => setRenaming({ path, round: 0 });
-  // 探している間は、閉じた欄も開いて見つかったものを見せる
-  const fold = useFold(props.fold.place, props.fold.key, { defaultOpen: props.fold.defaultOpen, forceOpen: query.trim() !== "" });
   const [planning, setPlanning] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   const entries = list.data?.entries;
   const tree = buildNoteTree(entries ?? []);
@@ -175,5 +179,5 @@ export function useNoteSection(props: NoteSectionProps) {
   const openInNewTabs = async (paths: string[]) => {
     for (const path of paths) await onOpen(projectId, path, true);
   };
-  return { actions, clearPicks, dir, dirs, dragPaths, dropInto, dropTarget, fold, folderForNew, folders, found, hasNotes, isSelected, list, menu, moveTo, multi, openInNewTabs, planning, rename, renaming, reveal, rowClick, rowMenu, setDropTarget, setPlanning, setRenaming, startRename, tree };
+  return { actions, clearPicks, dir, dirs, dragPaths, dropInto, dropTarget, fold, folderForNew, folders, found, hasNotes, isSelected, list, menu, moveTo, multi, openInNewTabs, planning, rename, setTrashOpen, trashOpen, renaming, reveal, rowClick, rowMenu, setDropTarget, setPlanning, setRenaming, startRename, tree };
 }

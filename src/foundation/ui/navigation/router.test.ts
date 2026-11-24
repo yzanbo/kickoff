@@ -10,6 +10,8 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse(""), { name: "allProjects" });
   assert.deepEqual(parse("#/"), { name: "allProjects" });
   assert.deepEqual(parse("#/nowhere"), { name: "allProjects" });
+  assert.deepEqual(parse("#/notes"), { name: "allNotes" });
+  assert.deepEqual(parse("#/notes/x"), { name: "allProjects" });
   assert.deepEqual(parse("#/projects/3"), { name: "project", id: 3, tab: "board" });
   assert.deepEqual(parse("#/projects/3/changes"), { name: "project", id: 3, tab: "changes" });
   assert.deepEqual(parse("#/projects/3/history"), { name: "project", id: 3, tab: "history" });
@@ -46,6 +48,7 @@ test("parse: 新しいチャットとチャット（focus は 0 なら付けな�
 test("href と parse の往復: 画面 → URL → 画面で同じになる", () => {
   const routes: Route[] = [
     { name: "allProjects" },
+    { name: "allNotes" },
     { name: "project", id: 1, tab: "board" },
     { name: "project", id: 1, tab: "changes" },
     { name: "project", id: 1, tab: "history" },
@@ -70,7 +73,8 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
   assert.equal(href({ name: "newChat", projectId: 2 }), "#/projects/2/new");
 });
 
-test("routeProjectId: プロジェクトの画面・新しいチャット・チャットはそのプロジェクト、全プロジェクトは null", () => {
+test("routeProjectId: プロジェクトの画面・新しいチャット・チャットはそのプロジェクト、全プロジェクト・全ノートは null", () => {
+  assert.equal(routeProjectId({ name: "allNotes" }), null);
   assert.equal(routeProjectId({ name: "project", id: 4, tab: "board" }), 4);
   assert.equal(routeProjectId({ name: "newChat", projectId: 5 }), 5);
   assert.equal(routeProjectId({ name: "chat", projectId: 6, chatId: 1 }), 6);
@@ -85,6 +89,7 @@ test("lastingRoute: 起動したときに開く画面として覚えるのは、
   assert.equal(href(lastingRoute(parse("#/projects/3/changes"))), "#/projects/3/changes");
   assert.equal(href(lastingRoute(parse("#/projects/3/new?group=2"))), "#/projects/3/new?group=2");
   assert.equal(href(lastingRoute(parse("#/"))), "#/");
+  assert.equal(href(lastingRoute(parse("#/notes"))), "#/notes");
 });
 
 test("navigate: replace は画面の履歴も置き換える通知を添え、通常の移動とは区別できる", () => {

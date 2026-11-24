@@ -2,3 +2,4 @@
 export { SideNote } from "./SideNote";
 export { useNoteList } from "./store";
 export { notesApi } from "./api";
+export { AllNotesPage } from "./allNotes/AllNotesPage";

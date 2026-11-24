@@ -1,5 +1,5 @@
 import "./Sidebar.css";
-import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, StickyNote } from "lucide-react";
 import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
 import { useLayoutEffect } from "react";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
@@ -31,7 +31,7 @@ interface Props {
 }
 
 /**
- * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
+ * 左のサイドバー（新しいチャット・全プロジェクト・全ノート・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
  * （上の段は押すと開く・作るものだけにする）
  */
 export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
@@ -97,6 +97,10 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
         <NewChatButton projectId={newChatProject} onClick={onNewChat} />
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
+        </a>
+        {/* どのプロジェクトにも属さない共通のノートと、プロジェクトごとのノートを並べた画面（アイコンはプロジェクトの「ノート」タブと同じ） */}
+        <a className={`nav-row ${route.name === "allNotes" ? "active" : ""}`} href={href({ name: "allNotes" })}>
+          <StickyNote size={15} /> 全ノート
         </a>
         <button className="nav-row" onClick={onSearch}>
           <Search size={15} /> 検索 <KeyHint command="palette.open" />

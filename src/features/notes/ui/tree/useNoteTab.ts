@@ -1,14 +1,12 @@
 // ノートのタブの状態と操作（欄を並べる一覧・右のタブの欄・URL の頼み・最後に表示したノート。欄の中は useNoteSection。描くのは NoteTab）
 import { useEffect, useEffectEvent, useState } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
-import { filesSettings } from "@/features/files/ui";
 import { storage } from "@/features/notes/ui/storage";
-import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { notesStore, useNoteList } from "@/features/notes/ui/store";
-import { focusedPane, usePanel, type PanelScope } from "@/features/panel/ui";
+import { usePanel, type PanelScope } from "@/features/panel/ui";
 import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteLeave";
-import { notePanelKey, openNoteInPanel } from "@/features/notes/ui/notePanel";
+import { focusedNote, notePanelKey, openNoteInPanel } from "@/features/notes/ui/notePanel";
 import { requestNoteReveal } from "@/features/notes/ui/noteReveal";
 import { useCommonNotes } from "@/features/notes/ui/commonNotes";
 import { openExternal } from "@/foundation/ui/external/native";
@@ -33,14 +31,12 @@ export function useNoteTab({ projectId, openNote, openNoteLine, scope, onOpenedN
   // 右の欄はいつも開いておく（タブがなければ案内。欄の決まりの alwaysOpen）
   const panel = usePanel("notes", scope ?? projectId);
   // 一覧の選んでいる行 = ピントのあるペインで表示中のノート（共通のノートのこともある）
-  const focusedTab = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
-  const shown = focusedTab?.kind === "note" ? { projectId: focusedTab.projectId, path: focusedTab.path } : null;
+  const shown = focusedNote(panel);
   const shownPathIn = (id: number) => (shown?.projectId === id ? shown.path : "");
   const [remembered, setRemembered] = useSetting(storage.settings.selected(projectId));
   const [query, setQuery] = useState("");
-  // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: filesSettings.listWidth, min: 200, keep: 320 });
-  const [listHidden, setListHidden] = useSetting(storage.settings.listHidden);
+  // 作ったら隠した一覧を出す（隠す・出すのは NoteSplit）
+  const [, setListHidden] = useSetting(storage.settings.listHidden);
   const common = useCommonNotes();
   // 選んでいる欄（押した欄。ほかの欄で選んだ行はその欄が外す）
   const [activeSection, setActiveSection] = useState(projectId);
@@ -104,5 +100,5 @@ export function useNoteTab({ projectId, openNote, openNoteLine, scope, onOpenedN
     if (common.state === "ready") notesStore.invalidate(common.projectId);
   };
   const hasTree = Boolean(list.data?.entries.length);
-  return { activeSection, common, emptyActions, hasTree, list, listHidden, onCreated, open, panel, query, refresh, renameRequest, reveal, setActiveSection, setListHidden, setQuery, setRenameRequest, shownPathIn, width, widthPaneRef };
+  return { activeSection, common, emptyActions, hasTree, list, onCreated, open, panel, query, refresh, renameRequest, reveal, setActiveSection, setQuery, setRenameRequest, shownPathIn };
 }

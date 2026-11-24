@@ -241,6 +241,7 @@ scripts/  docs/           道具と文書
 | 添付 / AI に渡す | `Attachment`・`handOffTargets` | |
 | ノート | `Note`・`note_path` | プロジェクトの外のフォルダに置く |
 | 共通のノート | `ProjectKind`（`common`） | どのプロジェクトにも属さないノート。中では見えないプロジェクトのノート |
+| 全ノート | Route `allNotes`・`AllNotesPage` | 共通のノートとプロジェクトごとのノートを欄に並べた画面（URL は `#/notes`） |
 | 見えないプロジェクト | `isListedProject`・`projects.kind` | Kickoff が用意し、一覧に出さず操作させないプロジェクト |
 | ゴミ箱 | `TrashItem`・`registerKind` | 種類は各機能が登録 |
 | DB 接続 | `DbConnection` | パスワードは `secrets` |

@@ -1,0 +1,11 @@
+/* ==== 欄のゴミ箱のダイアログ（NoteTrashDialog。共通のノートのゴミ箱） ==== */
+@layer feature {
+  /* 中のゴミ箱の一覧（trash の部品）は見出しを残して流すので、高さを決めて縦に並べる */
+
+  .note-trash-body {
+    display: flex;
+    flex-direction: column;
+    height: min(60vh, 560px);
+    min-height: 0;
+  }
+}

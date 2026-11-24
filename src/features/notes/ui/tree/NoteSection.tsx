@@ -10,6 +10,7 @@ import { NoteFoundList } from "./NoteFoundList";
 import { NoteListMenu } from "./NoteListMenu";
 import { NotePlanDialog } from "./NotePlanDialog";
 import { NoteSectionTools } from "./NoteSectionTools";
+import { NoteTrashDialog } from "./NoteTrashDialog";
 import { NoteTree } from "./NoteTree";
 import { noteListDropProps } from "./noteDrag";
 import { useNoteSection, type NoteSectionFold, type NoteSectionProps } from "./useNoteSection";
@@ -71,6 +72,7 @@ export function NoteSection(props: NoteSectionProps) {
             onCreateFolder={() => void s.actions.createFolder(s.folderForNew(null))}
             onPlan={() => s.setPlanning(true)}
             onReveal={canOpenExternal() && list.data?.exists ? () => void s.reveal("") : null}
+            onOpenTrash={props.showTrash ? () => s.setTrashOpen(true) : null}
           />
         }
       />
@@ -126,6 +128,7 @@ export function NoteSection(props: NoteSectionProps) {
           onMoveTo={s.moveTo}
         />
       )}
+      {s.trashOpen && <NoteTrashDialog projectId={projectId} dir={s.dir} title={title} onClose={() => s.setTrashOpen(false)} />}
       {s.planning && <NotePlanDialog projectId={projectId} onApply={s.actions.moveMany} onClose={() => s.setPlanning(false)} />}
     </section>
   );

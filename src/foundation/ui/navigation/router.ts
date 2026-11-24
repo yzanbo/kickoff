@@ -35,6 +35,8 @@ export interface FileTarget {
 export type Route =
   /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
   | { name: "allProjects" }
+  /** 全ノート（どのプロジェクトにも属さないノートと、プロジェクトごとのノートを欄に並べた画面。URL は #/notes） */
+  | { name: "allNotes" }
   /**
    * file: ファイルタブで開くファイル（開いたら URL から外す）。note: ノートのタブで開くノート（ノートのフォルダからの相対パス。開いたら URL から外す）。
    * noteLine: そのノートで移る行（⌘K の「ノート内の文言」から。URL は ?line=）
@@ -49,6 +51,8 @@ export type Route =
 export function parse(hash: string): Route {
   const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
   const params = new URLSearchParams(query);
+
+  if (path === "/notes") return { name: "allNotes" };
 
   const chat = path.match(/^\/projects\/(\d+)\/chats\/(\d+)$/);
   if (chat) {
@@ -164,6 +168,8 @@ export function href(route: Route): string {
     }
     case "chat":
       return `#/projects/${route.projectId}/chats/${route.chatId}${route.focus ? `?event=${route.focus}` : ""}`;
+    case "allNotes":
+      return "#/notes";
     default:
       return "#/";
   }
@@ -215,7 +221,7 @@ export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>
  */
 export const reopened = createSignal<ReopenRoute>();
 
-/** 画面がどのプロジェクトに属するか（サイドバーの強調表示・⌘N・AI に見せる画面。全プロジェクトの画面なら null） */
+/** 画面がどのプロジェクトに属するか（サイドバーの強調表示・⌘N・AI に見せる画面。全プロジェクト・全ノートの画面なら null） */
 export function routeProjectId(route: Route): number | null {
   if (route.name === "project") return route.id;
   if (route.name === "newChat" || route.name === "chat") return route.projectId;

@@ -3,7 +3,8 @@
 // 別ウィンドウの中ならメインのウィンドウに頼む / ノートのチャットからならノートのタブ / そのチャット（子チャットなら、いちばん上の親）の右の欄 / だめならノートのタブ
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { baseName } from "@shared/foundation/path";
-import { navigate } from "@/foundation/ui/navigation/router";
+import { navigate, parse, routeProjectId } from "@/foundation/ui/navigation/router";
+import { setFold } from "@/foundation/ui/hooks/useFold";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { storage } from "./storage";
 import { readSetting } from "@/foundation/ui/storage";
@@ -11,7 +12,8 @@ import { chatSidePanel, knownChat, openInRootSide } from "@/features/chat/ui";
 import { isSideViewShown, trySideOpen } from "@/features/projects/ui";
 import { noteTab, openTab, sidePanelsHandedOut, type DraftScope } from "@/features/panel/ui";
 import { isHiddenProject, screenProjectFor } from "./commonNotes";
-import { notePanelKey, openNoteInPanel, sideNoteScope } from "./notePanel";
+import { ALL_NOTES_PANEL_KEY, notePanelKey, openNoteInPanel, sideNoteScope } from "./notePanel";
+import { ALL_NOTES_FOLD_PLACE, allNotesFoldKey } from "./allNotes/allNotesModel";
 import { requestNoteReveal } from "./noteReveal";
 import { revealNoteFolders } from "./tree/useNoteFolders";
 
@@ -36,26 +38,59 @@ export function noteOpenWay(at: {
   return "rootSide";
 }
 
-/** このウィンドウのノートのタブ（右サイドバーがノートを見せていればそこ）で開く。line はそのノートで移る行 */
+/** チャットからでなくノートを開く先（noteShowPlace が決める） */
+export type NoteShowPlace = "allNotes" | "project" | "host";
+
+/**
+ * チャットからでなくノートを開く先（純粋）: 全ノートの画面を見ていれば、どのノートもその画面の中（画面を移ると、見ていた一覧から離れて迷うため）。
+ * ふつうのプロジェクトのノートはそのプロジェクトのノートのタブ（project）。見えないプロジェクト（共通のノート）はその画面がないので、
+ * プロジェクトを見ていればそのノートのタブ（host）、見ていなければ（全プロジェクトの画面）全ノートの画面
+ */
+export function noteShowPlace(viewing: "allNotes" | "project" | "none", hidden: boolean): NoteShowPlace {
+  if (viewing === "allNotes") return "allNotes";
+  if (!hidden) return "project";
+  return viewing === "project" ? "host" : "allNotes";
+}
+
+/** いま見ている画面の種類（noteShowPlace に渡す形） */
+function viewing(): "allNotes" | "project" | "none" {
+  const route = parse(location.hash);
+  if (route.name === "allNotes") return "allNotes";
+  return routeProjectId(route) === null ? "none" : "project";
+}
+
+/** このウィンドウのノートのタブ（右サイドバーがノートを見せていればそこ・全ノートの画面ならその中）で開く。line はそのノートで移る行 */
 export function showInNoteTab(projectId: number, path: string, { line, replace }: { line?: number; replace?: boolean } = {}) {
-  if (isHiddenProject(projectId)) return showHiddenProjectNote(projectId, path, { line, replace });
+  const hidden = isHiddenProject(projectId);
+  const place = noteShowPlace(viewing(), hidden);
+  if (place === "allNotes") return showInAllNotes(projectId, path, hidden, { line, replace });
+  if (place === "host") return showHiddenProjectNote(projectId, path, { line, replace });
   if (trySideOpen(projectId, { kind: "note", path, ...(line ? { line } : {}) })) return;
   navigate({ name: "project", id: projectId, tab: "notes", note: path, ...(line ? { noteLine: line } : {}) }, { replace });
 }
 
 /**
- * 見えないプロジェクト（共通のノート）のノートを開く先。そのプロジェクトの画面はないので、いま見ているプロジェクトのノートのタブ
- * （右サイドバーがノートを見せていればそこ）に、見えないプロジェクトのノートのタブとして開く。URL の ?note= はそのプロジェクトのノートを指すので使わず、
- * 右のタブの欄に直に開いてから画面を移る（右サイドバーの頼み trySideOpen と同じく、右サイドバーを別ウィンドウへ移しているときは真ん中）
+ * 見えないプロジェクト（共通のノート）のノートを、いま見ているプロジェクトのノートのタブ（右サイドバーがノートを見せていればそこ）に、
+ * 見えないプロジェクトのノートのタブとして開く。URL の ?note= はそのプロジェクトのノートを指すので使わず、右のタブの欄に直に開いてから画面を移る
+ * （右サイドバーの頼み trySideOpen と同じく、右サイドバーを別ウィンドウへ移しているときは真ん中）。見ているプロジェクトがもうなければ全ノートの画面
  */
 function showHiddenProjectNote(projectId: number, path: string, { line, replace }: { line?: number; replace?: boolean }) {
   const host = screenProjectFor(projectId);
-  if (host === undefined) return;
+  if (host === undefined) return showInAllNotes(projectId, path, true, { line, replace });
   if (line) requestNoteReveal(projectId, path, line);
   const side = !sidePanelsHandedOut() && isSideViewShown(host, "notes");
   void openNoteInPanel(projectId, path, true, notePanelKey(host, side ? sideNoteScope(host) : undefined));
   revealNoteFolders(projectId, path);
   if (!side) navigate({ name: "project", id: host, tab: "notes" }, { replace });
+}
+
+/** 全ノートの画面で開く（入った欄を開いてから右のタブの欄に直に開き、まだ見ていなければ画面を移る） */
+function showInAllNotes(projectId: number, path: string, hidden: boolean, { line, replace }: { line?: number; replace?: boolean }) {
+  if (line) requestNoteReveal(projectId, path, line);
+  setFold(ALL_NOTES_FOLD_PLACE, allNotesFoldKey(projectId, hidden), true);
+  void openNoteInPanel(projectId, path, true, ALL_NOTES_PANEL_KEY);
+  revealNoteFolders(projectId, path);
+  if (parse(location.hash).name !== "allNotes") navigate({ name: "allNotes" }, { replace });
 }
 
 /** ノートのタブでそのノートを開く（DB クライアントの手順ノートのタブの「ノートのタブで開く」。別ウィンドウの中からはメインのウィンドウに頼む） */

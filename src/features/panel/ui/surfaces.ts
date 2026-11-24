@@ -13,7 +13,7 @@ export function projectOfPanel(key: string): number | null {
 }
 
 /**
- * その欄が出る画面（画面に出ていない欄の下書きを開くとき、ここへ移ってから開く）: 全プロジェクトの欄は全プロジェクトの画面、
+ * その欄が出る画面（画面に出ていない欄の下書きを開くとき、ここへ移ってから開く）: 全プロジェクトの欄は全プロジェクトの画面（ノートの欄は全ノートの画面）、
  * プロジェクトの欄（チャット欄・フッター）はそのプロジェクトのボード。ボードの右のパネルは、チャットをボードと分けていれば
  * （設定の CHAT_PLACEMENT）「チャット」タブ、そうでなければボード。知らない形なら undefined
  */
@@ -21,7 +21,8 @@ export function panelScreen(key: string): Route | undefined {
   const at = parsePanelKey(key);
   // サブエージェントの欄はチャットの中にあり、下書きを持たないので移る先はない
   if (!at || at.surface === "agents") return undefined;
-  if (at.scope === "all") return { name: "allProjects" };
+  // ノートのタブの右の欄の "all" は全ノートの画面のもの
+  if (at.scope === "all") return at.surface === "notes" ? { name: "allNotes" } : { name: "allProjects" };
   if (typeof at.scope !== "number") return undefined;
   if (at.surface === "notes") return { name: "project", id: at.scope, tab: "notes" };
   const chats = at.surface === "kanban" && readSetting(CHAT_PLACEMENT) === "separate";

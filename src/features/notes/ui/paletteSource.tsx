@@ -7,7 +7,6 @@ import { notesStore } from "./store";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
 import type { Project } from "@shared/projects/types";
-import { isListedProject } from "@shared/projects/kinds";
 import { noteOwnerName } from "./commonNotes";
 import { showInNoteTab } from "./openNote";
 import type { PaletteItem } from "@/features/palette/ui";
@@ -35,7 +34,7 @@ export function usePaletteNotes(enabled: boolean): readonly PaletteItem[] {
         text: e.path,
         hint: folder ? `${folder} · ${owner}` : owner,
         icon: noteIcon(e.path),
-        ...openNoteItem(project, id, e.path),
+        ...openNoteItem(id, e.path),
       });
     }
   }
@@ -45,12 +44,11 @@ export function usePaletteNotes(enabled: boolean): readonly PaletteItem[] {
 const NONE: readonly PaletteItem[] = [];
 
 /**
- * ⌘K の行を押したときの開き方: ふつうはそのプロジェクトのノートのタブへ移る URL。見えないプロジェクト（共通のノート）にはその画面がないので、
- * 移らずにノートを開く口（showInNoteTab。いま見ているプロジェクトのノートのタブに開く）を呼ぶ
+ * ⌘K の行を押したときの開き方: AI の open_note・ノートのリンクと同じ口（showInNoteTab）。ふつうはそのプロジェクトのノートのタブへ移り、
+ * 見えないプロジェクト（共通のノート）はいま見ているプロジェクトのノートのタブ、全ノートの画面を見ていればその中に開く
  */
-function openNoteItem(project: Project | undefined, id: number, path: string, line?: number): Pick<PaletteItem, "route" | "run"> {
-  if (project && !isListedProject(project)) return { run: () => showInNoteTab(id, path, { line }) };
-  return { route: { name: "project", id, tab: "notes", note: path, ...(line ? { noteLine: line } : {}) } };
+function openNoteItem(id: number, path: string, line?: number): Pick<PaletteItem, "run"> {
+  return { run: () => showInNoteTab(id, path, { line }) };
 }
 
 /** ノートの中の文で見つかった 1 行を、⌘K の行にする（押すとそのプロジェクトのノートのタブでノートを開き、その行へ移る） */
@@ -62,6 +60,6 @@ export function noteTextItem(hit: NoteSearchHit, projectsById: ReadonlyMap<numbe
     text: hit.text,
     hint: `${baseName(hit.path)}:${hit.line} · ${noteOwnerName(project)}`,
     icon: noteIcon(hit.path),
-    ...openNoteItem(project, hit.project_id, hit.path, hit.line),
+    ...openNoteItem(hit.project_id, hit.path, hit.line),
   };
 }

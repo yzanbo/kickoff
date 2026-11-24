@@ -1,6 +1,6 @@
 // プロジェクトの「ノート」タブの右の欄（パネルの notes。開いたノートをタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import { isUnder, remapPrefix } from "@shared/foundation/path";
-import { noteTab, openInFocusedPane, panelKey, type PanelScope, type PanelTab, type ViewScope } from "@/features/panel/ui";
+import { focusedPane, noteTab, openInFocusedPane, panelKey, type PanelScope, type PanelTab, type ViewScope } from "@/features/panel/ui";
 import { confirmLeaveNote } from "./noteLeave";
 
 /** 右サイドバーのノートの右のタブの欄の範囲（真ん中のノートのタブとは別に覚える） */
@@ -9,7 +9,17 @@ export const sideNoteScope = (projectId: number): ViewScope => `view-side-${proj
 /** ノートのタブの右の欄の覚える名前（プロジェクトごと。scope を渡せばその範囲 = 右サイドバーのノート） */
 export const notePanelKey = (projectId: number, scope?: PanelScope) => panelKey("notes", scope ?? projectId);
 
+/** 全ノートの画面の右のタブの欄（どのプロジェクトのノートも 1 つの欄に開く。範囲はプロジェクトによらない "all"） */
+export const ALL_NOTES_PANEL_KEY = panelKey("notes", "all");
+
 type NoteTab = Extract<PanelTab, { kind: "note" }>;
+
+/** ピントのあるペインで表示中のノート（一覧で選んでいる行。ノートでなければ null） */
+export function focusedNote(panel: { tabs: readonly PanelTab[]; layout: Parameters<typeof focusedPane>[0] }): { projectId: number; path: string } | null {
+  const active = focusedPane(panel.layout).active;
+  const tab = panel.tabs.find((t) => t.key === active);
+  return tab?.kind === "note" ? { projectId: tab.projectId, path: tab.path } : null;
+}
 
 /**
  * 名前を変えた・動かしたノート（フォルダならその中のノート）のタブの付け替え（パネルの mapTabs に渡す。ノートのタブの右・右サイドバー・チャットの右の欄のどれでも。

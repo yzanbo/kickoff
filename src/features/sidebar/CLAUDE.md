@@ -1,6 +1,6 @@
 # 左のサイドバー（`features/sidebar`）
 
-上に新しいチャット・全プロジェクト・検索、その下にプロジェクトごとのチャットの一覧、左下に設定。まとめ方・並び・行の操作は `src/features/chatList/CLAUDE.md`、プロジェクトの印・メニューは `src/features/projects/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `LST-`。
+上に新しいチャット・全プロジェクト・全ノート（notes の全ノートの画面）・検索、その下にプロジェクトごとのチャットの一覧、左下に設定。まとめ方・並び・行の操作は `src/features/chatList/CLAUDE.md`、プロジェクトの印・メニューは `src/features/projects/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `LST-`。
 
 ## 地図
 - `ui/Sidebar`・`useSidebar`（殻・開閉と幅）・`useProjectNav`・`ProjectNav`・`ProjectList`

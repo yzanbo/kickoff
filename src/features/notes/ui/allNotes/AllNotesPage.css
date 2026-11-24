@@ -1,0 +1,18 @@
+/* ==== 全ノートの画面（AllNotesPage。見出しと画面の枠はプロジェクトの画面と同じ、中身はノートのタブと同じ NoteSplit） ==== */
+@layer feature {
+  .all-notes-title {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* 見出しの下を縦いっぱいに使う（ノートのタブと同じく、一覧と開いたノートの枠は .changes が囲む） */
+
+  .all-notes-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+}

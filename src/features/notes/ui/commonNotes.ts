@@ -12,6 +12,9 @@ import { notesApi } from "./api";
 /** 共通のノートの欄・持ち主の名前（見えないプロジェクトの name は言語によらない作ったときの名前なので、画面ではこちらを出す） */
 export const COMMON_NOTES_LABEL = "共通のノート";
 
+/** 共通のノートの欄が空のときの案内（ノートのタブ・全ノートの画面で同じ） */
+export const COMMON_NOTES_EMPTY_HINT = "共通のノートはまだありません。見出しの ＋ から作ると、どのプロジェクトのノートのタブ・全ノートの画面からも開けます（どのチャットの AI からも読み書きできます）。";
+
 // 共通のノートの id と使えない理由（コアは知らせを出さないので、設定とプロジェクトの知らせで読み直す。重なり・場所はどちらかが変わったときにだけ変わる）
 const defaultsStore = createStore<NoteDefaults>({ load: () => notesApi("GET /api/notes/defaults"), reloadOn: { settings: true, project: true } });
 
@@ -19,6 +22,9 @@ const defaultsStore = createStore<NoteDefaults>({ load: () => notesApi("GET /api
 export type CommonNotes = { state: "loading" } | { state: "ready"; projectId: number } | { state: "unavailable"; message: string };
 
 const LOADING: CommonNotes = { state: "loading" };
+
+/** ノートの既定の場所と共通のノートの様子（設定のノートの節。届くまでは undefined） */
+export const useNoteDefaults = (): NoteDefaults | undefined => useStore(defaultsStore).data;
 
 /** 共通のノートの様子（id か使えない理由。どちらもない間は読み込み中） */
 export function useCommonNotes(): CommonNotes {

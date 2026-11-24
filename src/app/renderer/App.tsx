@@ -23,6 +23,7 @@ import { Sidebar, SidebarOpenButton } from "@/features/sidebar/ui/Sidebar";
 import { useSidebar } from "@/features/sidebar/ui/useSidebar";
 import { usePopoutHosts } from "@/features/sidebar/ui/popoutHosts";
 import { AllProjectsPage } from "@/features/board/ui/AllProjectsPage";
+import { AllNotesPage } from "@/features/notes/ui";
 import { LayoutToggles } from "./LayoutToggles";
 import { NavigationButtons } from "./NavigationButtons";
 import { historySteps } from "./commands";
@@ -32,7 +33,7 @@ const BEFORE_TOGGLES = 200;
 
 /**
  * メインのウィンドウの画面: 殻（AppShell。根に置く物・全体の副作用・ダイアログは持ち主が appHosts に入れる）と、
- * 配置（サイドバー・プロジェクトの画面 / 全プロジェクト・下のパネル・右サイドバー・右端の列・下の帯・レイアウトの開閉）
+ * 配置（サイドバー・プロジェクトの画面 / 全プロジェクト / 全ノート・下のパネル・右サイドバー・右端の列・下の帯・レイアウトの開閉）
  */
 export function App() {
   // 最初の描き終わり（起動の時刻の記録。いちばん外の部品なので、中の部品の layout effect のあと）
@@ -46,7 +47,7 @@ export function App() {
   const sidebar = useSidebar();
   // URL のプロジェクト（もうないとわかったものは、ないものとする）
   const projectId = useExistingProject(routeProjectId(route));
-  // URL にプロジェクトがない画面（全プロジェクト）で使うプロジェクト: サイドバーで最後に選んでいたもの（もうなければ先頭）。
+  // URL にプロジェクトがない画面（全プロジェクト・全ノート）で使うプロジェクト: サイドバーで最後に選んでいたもの（もうなければ先頭）。
   // ⌘N の新しいチャットの作成先と、チャット欄の持ち主（全プロジェクトのボードの「新規」も同じ）
   const fallbackProject = useFallbackProject();
   // サイドバー・チャット欄の別ウィンドウが開いている間、いまの画面とパネルの状態を送る（チャット欄は状態ごと渡し、このウィンドウでは描かない）
@@ -92,6 +93,8 @@ export function App() {
               openNote={route.name === "project" ? route.note : undefined}
               openNoteLine={route.name === "project" ? route.noteLine : undefined}
             />
+          ) : route.name === "allNotes" ? (
+            <AllNotesPage />
           ) : (
             <AllProjectsPage />
           )}

@@ -16,10 +16,12 @@ import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { notePopout } from "./popoutKinds";
 import { paletteSources } from "@/features/palette/ui";
 import { notePaletteSource, noteTextPaletteSource } from "./paletteSources";
-import { notesSection, noteOpenItem } from "./settings/appSettings";
+import { commonNotesTrashItem, notesSection, noteOpenItem } from "./settings/appSettings";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { notesHosts } from "./appHosts";
 import { describeTab, noteView, userViewTabs } from "@/features/userView/ui";
+import { routeLeaveGuards } from "@/foundation/ui/navigation/router";
+import { leaveAllNotes } from "./allNotes/allNotesLeave";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -46,6 +48,9 @@ export const contributes = [
   // アプリの設定の節・欄
   settingsSections.item(notesSection),
   settingsItems.item(noteOpenItem),
+  settingsItems.item(commonNotesTrashItem),
+  // 全ノートの画面を離れる前の書きかけの確かめ
+  routeLeaveGuards.item(leaveAllNotes),
   // アプリの根に置く物
   ...notesHosts.map((h) => appHosts.item(h)),
 ];

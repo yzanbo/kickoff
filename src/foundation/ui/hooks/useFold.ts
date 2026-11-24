@@ -56,6 +56,9 @@ export function useFolds(place: string, keys: readonly string[]) {
   return { isOpen, set, toggle: (key: string, defaultOpen = true) => set(key, !isOpen(key, defaultOpen)) };
 }
 
+/** まとまり 1 つの開閉を部品の外から変える（開くものを見せる前に、その入ったまとまりを開く。描いている useFold は保存の知らせでそろう） */
+export const setFold = (place: string, key: string, open: boolean) => writeSetting(uiStorage.settings.fold(foldId(place, key)), open);
+
 /**
  * 場所の「すべて閉じる / 開く」（サイドバーの見出しの行）: その場所で覚えているまとまり（描いていないもの・閉じたプロジェクトの中も）をそろえ、
  * 描いているまとまり（useFold・useFolds の keys）にも知らせる

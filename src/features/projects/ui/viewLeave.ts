@@ -17,14 +17,14 @@ export const confirmLeaveView = (surface: string, action: string): Promise<boole
 
 /** その URL で真ん中に出す画面の置き場所の名前（プロジェクトの画面でなければ null。ProjectPage と同じ決め方） */
 function centerSurfaceOf(route: Route): string | null {
-  if (route.name === "allProjects") return null;
+  if (route.name === "allProjects" || route.name === "allNotes") return null;
   const placement = readSetting(CHAT_PLACEMENT);
   const tab = route.name === "project" ? route.tab : boardTabOf(placement);
   const view = resolveProjectView(tab, placement === "separate")?.id ?? "board";
   return projectViewSurface({ place: "center", projectId: route.name === "project" ? route.id : route.projectId, view });
 }
 
-/** ルーターの移動の前: 真ん中の画面が替わる・外れる（別のタブ・チャット・別のプロジェクト・全プロジェクトへ移る）なら、その画面の書きかけを聞く */
+/** ルーターの移動の前: 真ん中の画面が替わる・外れる（別のタブ・チャット・別のプロジェクト・全プロジェクト・全ノートへ移る）なら、その画面の書きかけを聞く */
 export const leaveProjectView: RouteLeaveGuard = (from, to) => {
   const surface = centerSurfaceOf(from);
   if (!surface || surface === centerSurfaceOf(to) || !hasUnsaved((e) => e.surface === surface)) return null;

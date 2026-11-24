@@ -10,9 +10,10 @@ import { EmptyTrashButton, TrashRow } from "./TrashRow";
 /**
  * プロジェクトの「ゴミ箱」タブ。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / ノートの「ゴミ箱に入れる」・
  * チャットの削除）を新しい順に並べ、何を・いつ・誰が消したか・消えるまでの残り・大きさと「元に戻す」「完全に消す」を出す。3 日を待たずに全部を消す
- * 「ゴミ箱を空にする」も見出しに置く（repoPath はプロジェクトのフォルダ。projects の画面が渡す）
+ * 「ゴミ箱を空にする」も見出しに置く（repoPath はプロジェクトのフォルダ。projects の画面が渡す）。
+ * 共通のノートのゴミ箱（見えないプロジェクトのゴミ箱）もこの部品で、見出しの名前（title）だけを替える
  */
-export function TrashTab({ projectId, repoPath }: { projectId: number; repoPath: string }) {
+export function TrashTab({ projectId, repoPath, title = "ゴミ箱" }: { projectId: number; repoPath: string; title?: string }) {
   const { data, error, loaded } = useProjectTrash(projectId);
   // 残りの時間を描き直す
   useTicker(60_000);
@@ -21,7 +22,7 @@ export function TrashTab({ projectId, repoPath }: { projectId: number; repoPath:
     <div className="trash-tab">
       <header className="trash-head">
         <Trash2 size={16} aria-hidden />
-        <h2>ゴミ箱</h2>
+        <h2>{title}</h2>
         <span className="muted small">{`消したものを ${TRASH_KEEP_DAYS} 日取っておきます。${TRASH_KEEP_DAYS} 日たつと本当に消えます（待たずに完全に消すこともできます。OS のゴミ箱とは別です）。`}</span>
         <span className="spacer" />
         <EmptyTrashButton items={items} label="ゴミ箱を空にする" title={`ゴミ箱の ${items.length} 件を完全に消しますか？`} />
