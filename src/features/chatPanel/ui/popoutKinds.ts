@@ -16,7 +16,7 @@ declare module "@/foundation/ui/navigation/popout" {
     chat: { chatId: number };
     /**
      * チャットのパネルのチャット（いちばん上の親）・送る前の新しいチャットのタブ（panel は移す元の欄、key はタブのキー。chatId がなければ新しいチャットで、
-     * 中身（書きかけの文・添付など）は localStorage の panel:popout-tab-handoff で渡す）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
+     * 中身（書きかけの文・添付など）は composer の新しいチャットの下書き（同じキー）にあり、どのウィンドウからも読める）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
      * （@/features/panel/ui/popout/tabWindow.ts）
      */
     chats: { panel: string; key: string; chatId?: number; projectId: number };
