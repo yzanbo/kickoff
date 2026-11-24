@@ -1,7 +1,7 @@
 import "./NewIssueDialog.css";
 import { useState } from "react";
 import { X } from "lucide-react";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
@@ -37,7 +37,7 @@ export function NewIssueDialog({ projectId, initialBody, onCreated, onClose }: {
     void action.run(
       "create",
       async () => {
-        const created = await api.githubCreateIssue(projectId, { title: title.trim(), body, labels, assignees });
+        const created = await githubApi.githubCreateIssue(projectId, { title: title.trim(), body, labels, assignees });
         dialog.close();
         onCreated?.(created.number);
       },

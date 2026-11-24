@@ -3,10 +3,9 @@ import type { HandoffVia } from "@shared/chat/chatEvent";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { HandoffResult } from "@shared/childChats/types";
 import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@shared/chat/handoff";
-import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "./api";
 import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
-import { knownChat, confirmArchiveChats, confirmDeleteChats } from "@/features/chat/ui";
+import { knownChat, confirmArchiveChats, confirmDeleteChats, turnsApi } from "@/features/chat/ui";
 import { handBackToParent } from "./askChild";
 
 /**
@@ -25,7 +24,7 @@ export async function requestHandoff(chat: Pick<Chat, "id" | "title">) {
     multiline: true,
   }).then((r) => r?.value ?? null);
   if (extra === null) return;
-  await api.sendMessage(chat.id, { text: handoffRequestPrompt(chat.title ?? "", extra), options: {}, attachments: [], when: "now", handoff_request: true }).catch(reportFailure("依頼文を頼めませんでした"));
+  await turnsApi.sendMessage(chat.id, { text: handoffRequestPrompt(chat.title ?? "", extra), options: {}, attachments: [], when: "now", handoff_request: true }).catch(reportFailure("依頼文を頼めませんでした"));
 }
 
 /**

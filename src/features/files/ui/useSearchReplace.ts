@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ProjectReplaceResult } from "@shared/files/types";
 import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
-import { ApiError } from "@/foundation/ui/api";
+import { ApiError } from "@/foundation/ui/api/http";
 import { baseName } from "@/foundation/ui/lib/format";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";

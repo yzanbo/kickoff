@@ -2,14 +2,14 @@ import "./GitHubConnectionGate.css";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 
 /** プロジェクトの GitHub の連携先が使えるか（GitHub・CI のタブと新しい issue の確認が読む。使えなければ reason に理由） */
 export const useGitHubConnection = (projectId: number) =>
-  useQuery(["github.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
+  useQuery(["github.connection", projectId], () => githubApi.githubConnection(projectId), { keepPrevious: true });
 
 /**
  * GitHub の連携先が使えるときだけ中身を描く（確かめている間は「確認中…」、使えなければ理由と「もう一度確かめる」）。

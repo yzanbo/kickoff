@@ -1,10 +1,9 @@
 import { createElement, useState } from "react";
 import type { ChatGroup } from "@shared/groups/types";
-import { api } from "@/foundation/ui/api";
 import { NewChatItem } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { confirmDeleteGroup, groupsSettings, ungroupedPosition } from "@/features/groups/ui";
+import { confirmDeleteGroup, groupsSettings, ungroupedPosition, groupsApi } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
 import { useBoard } from "./BoardContext";
@@ -27,7 +26,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const { view } = useBoard().layout;
 
   const removeGroup = async (group: ChatGroup) => {
-    if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));
+    if (await confirmDeleteGroup(group)) void guard(() => groupsApi.deleteGroup(group.id));
   };
   // グループの「…」メニュー（右クリックでも開く）
   const groupMenu = useGroupMenu({
@@ -63,7 +62,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     ungroupedAt,
     renameGroup: (group: ChatGroup, name: string) => {
       setRenaming(undefined);
-      void guard(() => api.renameGroup(group.id, name));
+      void guard(() => groupsApi.renameGroup(group.id, name));
     },
   };
 }

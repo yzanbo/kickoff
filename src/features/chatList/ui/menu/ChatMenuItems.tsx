@@ -1,11 +1,10 @@
 import { Archive, ArchiveRestore, Copy, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, NewChatItem, openAskChild, togglePinChat, type NewChatPlace } from "@/features/chat/ui";
+import { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, NewChatItem, openAskChild, togglePinChat, type NewChatPlace, chatsApi } from "@/features/chat/ui";
 import { openNewProject } from "@/features/projects/ui";
 import { DetachSubmenu } from "@/features/childChats/ui";
 import { manageImageHosts } from "@/features/remoteImages/ui";
@@ -48,7 +47,7 @@ export function ChatMenuItems({
   // 新しいグループの名前を聞いて作り、このチャットをそこへ移す
   const createGroupAndMove = async () => {
     const group = await askNewGroup(chat.project_id);
-    if (group) await api.setChatGroup(chat.id, group.id);
+    if (group) await chatsApi.setChatGroup(chat.id, group.id);
   };
   // 失敗はお知らせで出す（メニューは閉じる）
   const act = (fn: () => Promise<unknown>) => {
@@ -86,11 +85,11 @@ export function ChatMenuItems({
       </MenuItem>
       {/* 未読の印（サイドバーで太字になる。次に開くまで残る） */}
       {chat.unread ? (
-        <MenuItem onSelect={() => act(() => api.markSeen(chat.id))}>
+        <MenuItem onSelect={() => act(() => chatsApi.markSeen(chat.id))}>
           <MailOpen size={14} /> 既読にする
         </MenuItem>
       ) : (
-        <MenuItem onSelect={() => act(() => api.markUnseen(chat.id))}>
+        <MenuItem onSelect={() => act(() => chatsApi.markUnseen(chat.id))}>
           <Mail size={14} /> 未読にする
         </MenuItem>
       )}
@@ -109,7 +108,7 @@ export function ChatMenuItems({
         <MoveToGroupItem
           projectId={chat.project_id}
           current={chat.group_id}
-          onPick={(group) => act(() => api.setChatGroup(chat.id, group?.id ?? null))}
+          onPick={(group) => act(() => chatsApi.setChatGroup(chat.id, group?.id ?? null))}
           onCreate={() => act(createGroupAndMove)}
         />
       )}
@@ -139,7 +138,7 @@ export function ChatMenuItems({
       </MenuItem>
       {/* GitHub の issue・PR との結び付き（GitHub タブの「AI に渡す」で付く。外すと PR を作るときの「Closes #n」・札・一覧の印からも外れる） */}
       {chat.github_number !== null && (
-        <MenuItem onSelect={() => act(() => api.clearChatGitHub(chat.id))}>
+        <MenuItem onSelect={() => act(() => chatsApi.clearChatGitHub(chat.id))}>
           <Unlink size={14} /> GitHub #{chat.github_number} との結び付きを外す
         </MenuItem>
       )}

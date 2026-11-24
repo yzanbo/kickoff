@@ -2,7 +2,7 @@ import "./AttachmentPeek.css";
 import { FileInput, FileText, StickyNote } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Attachment } from "@shared/chat/types";
-import { attachmentUrl } from "@/foundation/ui/api";
+import { attachmentUrl } from "@/features/attachments/ui/api/uploads";
 import { AttachmentGrid } from "./AttachmentGrid";
 import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
 import { useAttachmentViewer } from "./useAttachmentViewer";

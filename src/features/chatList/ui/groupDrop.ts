@@ -1,13 +1,12 @@
 import { useState, type DragEvent } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { showDropHint } from "@/foundation/ui/kit/DropHint";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
-import { confirmArchiveChats, knownChat } from "@/features/chat/ui";
+import { confirmArchiveChats, knownChat, chatsApi } from "@/features/chat/ui";
 import { UNGROUPED_SORT_ID } from "@/features/groups/ui";
 import { classifyDrop, type DropKind } from "./classifyDrop";
 import { CHAT_DRAG, DRAFT_DRAG, GROUP_DRAG_TYPE, type DraftRef } from "./drag";
@@ -128,7 +127,7 @@ export function useGroupDrop({
 export async function restoreDroppedChat(chat: Chat, groupId?: number | null) {
   try {
     if (!chat.archived_at || !(await confirmArchiveChats(chat))) return;
-    if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
+    if (groupId !== undefined && chat.group_id !== groupId) await chatsApi.setChatGroup(chat.id, groupId);
   } catch (e) {
     reportFailure("アーカイブから戻せませんでした")(e);
   }

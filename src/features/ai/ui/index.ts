@@ -14,3 +14,4 @@ export { ClaudeMark } from "./ClaudeMark";
 export { accountLine, usageLevel } from "./usage/usage";
 export { UsageBar } from "./usage/UsageMeter";
 export { useConnectionRecheck } from "./settings/connectionRecheck";
+export { providersApi } from "./api/providers";

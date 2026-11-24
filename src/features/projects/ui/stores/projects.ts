@@ -2,7 +2,7 @@
 // アプリを開いたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。部品は useProjects で読む（props で中継しない）
 import type { Project } from "@shared/projects/types";
 import type { ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useSyncExternalStore } from "react";
@@ -19,7 +19,7 @@ export const reduceProjects: ReduceTable<Project[]> = {
   project_deleted: (list, event) => (list.some((p) => p.id === event.id) ? list.filter((p) => p.id !== event.id) : list),
 };
 
-const projectsStore = createStore<Project[]>({ load: () => api.projects(), reduce: reduceProjects });
+const projectsStore = createStore<Project[]>({ load: () => projectsApi.projects(), reduce: reduceProjects });
 
 /** いまのプロジェクトの一覧（部品の外から読む。まだ届いていなければ空） */
 export const currentProjects = (): Project[] => projectsStore.get().data ?? [];

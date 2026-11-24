@@ -2,7 +2,6 @@ import { SquarePen } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
@@ -12,7 +11,7 @@ import { workplacePath, type WorkplaceChoice } from "@/foundation/ui/workplace/w
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
-import { chooseBusyWorkplaceAction, currentChats, useChats } from "@/features/chat/ui";
+import { chooseBusyWorkplaceAction, currentChats, useChats, chatsApi } from "@/features/chat/ui";
 import { appendDraft, claimVoiceHandoff, Composer, composerPills, focusDraft, newChatComposerDraft, patchNewChatDraft, useNewChatDraft, type NewChatDraft, type VoiceReply } from "@/features/composer/ui";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
@@ -113,7 +112,7 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
         setPlace(target);
       }
     }
-    const chat = await api.startChat(projectId, {
+    const chat = await chatsApi.startChat(projectId, {
       text: prompt,
       title,
       provider,

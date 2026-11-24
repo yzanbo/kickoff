@@ -1,6 +1,6 @@
 // 書き直し・送り直し・ファイルを戻す・再試行の口（RewindActions）の実装。チャットの画面がチャットごとに 1 回だけ作り、選択と送り方を描くたびに入れ直す
 import type { Attachment } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { turnsApi } from "@/features/chat/ui";
 import { createCell } from "@/foundation/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { ChatOptionsState } from "@/features/ai/ui";
@@ -30,7 +30,7 @@ export function createRewindActions(chatId: number, follow: () => void): RewindP
       const choice = await confirmRewindSend(chatId, eventId);
       if (!choice) return false;
       follow();
-      await api.rewindChat(chatId, eventId, text, now().options.options, choice.restoreFiles);
+      await turnsApi.rewindChat(chatId, eventId, text, now().options.options, choice.restoreFiles);
       return true;
     },
     resend: async (text, attachments) => {

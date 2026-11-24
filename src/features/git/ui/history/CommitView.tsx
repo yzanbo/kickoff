@@ -3,7 +3,6 @@ import { List, ListTree } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";
 import type { GitCommit, GitFileChange, GitRefs } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -19,6 +18,7 @@ import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { ChangedFiles, toggleFolder } from "@/features/git/ui/changes/ChangedFiles";
 import { CommitSummary } from "./CommitSummary";
 import type { RefTarget } from "./refTarget";
+import { loadProjectGitHub } from "./projectGitHubSource";
 import { gitApi } from "@/features/git/ui/api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
@@ -54,7 +54,7 @@ export function CommitView({
   const loaded = useQuery(commit.hash, () => gitApi("GET /api/projects/:projectId/git/commits/:hash", { params: { ...workdirInput(target).params, hash: commit.hash }, query: workdirInput(target).query }), { deps: [at] });
   const detail = loaded.data;
   // 連携先が GitHub なら、SHA の横にこのコミットの GitHub のページを開くボタンを出す（プロジェクトごとに 1 回聞く）
-  const github = useQuery(["CommitView.github", projectId], () => api.projectGitHub(projectId).catch(() => null), { keepPrevious: true });
+  const github = useQuery(["CommitView.github", projectId], () => loadProjectGitHub(projectId).catch(() => null), { keepPrevious: true });
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木）

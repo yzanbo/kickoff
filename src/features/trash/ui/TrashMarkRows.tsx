@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { TrashMark } from "@shared/trash/marks";
-import { ApiError } from "@/foundation/ui/api";
+import { ApiError } from "@/foundation/ui/api/http";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { trashApi } from "./api";

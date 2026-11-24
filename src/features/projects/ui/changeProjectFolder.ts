@@ -1,8 +1,8 @@
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { currentProjects } from "@/features/projects/ui/stores/projects";
-import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import { worktreesStore, worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
 import { gitInitChoice } from "./gitInitChoice";
@@ -24,7 +24,7 @@ export async function changeProjectFolder(project: Project): Promise<void> {
   });
   if (!picked) return;
   try {
-    const info = await api.inspectWorkspace(picked);
+    const info = await projectsApi.inspectWorkspace(picked);
     if (!info.exists || !info.is_directory) return void (await alert("フォルダが見つかりません", info.path));
     const target = info.path;
     // 登録済みかはコアが実体のパスで比べる（/tmp → /private/tmp など、登録したパスがシンボリックリンクを含んでいても見分ける）
@@ -67,7 +67,7 @@ export async function changeProjectFolder(project: Project): Promise<void> {
         ? { checked: false }
         : null;
     if (decided === null) return;
-    await api.setProjectRepoPath(project.id, { path: target, init_git: decided.checked });
+    await projectsApi.setProjectRepoPath(project.id, { path: target, init_git: decided.checked });
     // ワークツリーの作業場所（path）は本体のフォルダから決まるので、すぐ取り直す
     worktreesStore.invalidate(project.id);
   } catch (e) {
@@ -82,6 +82,6 @@ const WORKTREE_MAIN = (count: number) => `ワークツリーで作業してい�
 async function worktreeChats(project: Project, nextRoot: string | null): Promise<{ count: number; sameRepo: boolean }> {
   const count = currentChats({ projectId: project.id }).filter((chat) => chat.worktree_path).length;
   if (count === 0) return { count, sameRepo: false };
-  const top = (await api.gitWorktrees(project.id).catch(() => [])).find((w) => w.main)?.root;
+  const top = (await worktreeSource().list(project.id).catch(() => [])).find((w) => w.main)?.root;
   return { count, sameRepo: Boolean(top && top === nextRoot) };
 }

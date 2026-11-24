@@ -4,9 +4,8 @@ import { createPortal } from "react-dom";
 import { Lock } from "lucide-react";
 import { errorMessage } from "@shared/foundation/errors";
 import { isLocalImagePath, remoteImageOf, type RemoteImage } from "@shared/remoteImages/remoteImages";
-import { api } from "@/foundation/ui/api";
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/kit/markdown/markdownImages";
-import { useAttachmentViewer } from "@/features/attachments/ui";
+import { useAttachmentViewer, uploadsApi } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui";
 import { useQuery } from "@/foundation/ui/query";
 import { useAllowedHosts } from "./imageHosts";
@@ -71,7 +70,7 @@ function LocalChatImage({ chatId, path, alt }: { chatId: number; path: string; a
   return (
     <span className="chat-image">
       <LoadedImage
-        load={() => api.toolImage(chatId, path, at).then(({ blob }) => URL.createObjectURL(blob))}
+        load={() => uploadsApi.toolImage(chatId, path, at).then(({ blob }) => URL.createObjectURL(blob))}
         loadKey={`${chatId}:local:${at ?? ""}:${path}`}
         alt={alt}
         label={path}

@@ -1,8 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { busyBlockReason, confirmArchiveChats } from "@/features/chat/ui";
+import { busyBlockReason, confirmArchiveChats, chatsApi } from "@/features/chat/ui";
 import { restoreDroppedChat, useChatDropTarget } from "@/features/chatList/ui";
 import { isForeignChat, useProjectChatDrops } from "./projectChatDrop";
 
@@ -14,7 +13,7 @@ import { isForeignChat, useProjectChatDrops } from "./projectChatDrop";
 async function archiveDroppedChat(chat: Chat, groupId?: number | null) {
   try {
     if (!chat.archived_at && !(await confirmArchiveChats(chat))) return;
-    if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
+    if (groupId !== undefined && chat.group_id !== groupId) await chatsApi.setChatGroup(chat.id, groupId);
   } catch (e) {
     reportFailure("アーカイブできませんでした")(e);
   }

@@ -1,6 +1,6 @@
 // 巻き戻しの確かめ（会話だけ・ファイルだけ・両方）。ファイルを戻すのは Claude Code のファイルのチェックポイント（コアの rewind-files）
 import type { FileRewindResult } from "@shared/ai/types";
-import { api } from "@/foundation/ui/api";
+import { turnsApi } from "@/features/chat/ui";
 import { alert, choose, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 
 /**
@@ -18,7 +18,7 @@ const NOT_RESTORED = "コマンドで変えたファイル・アプリの外で�
 
 /** その発言を送る前の状態に戻すと変わるファイル（戻せない（記録がない）なら undefined） */
 async function preview(chatId: number, eventId: number): Promise<FileRewindResult | undefined> {
-  return api.rewindFiles(chatId, eventId, true).catch(() => undefined);
+  return turnsApi.rewindFiles(chatId, eventId, true).catch(() => undefined);
 }
 
 /**
@@ -54,7 +54,7 @@ export async function restoreFilesBefore(chatId: number, eventId: number): Promi
   const fail = reportFailure("ファイルを戻せませんでした");
   let files: FileRewindResult;
   try {
-    files = await api.rewindFiles(chatId, eventId, true);
+    files = await turnsApi.rewindFiles(chatId, eventId, true);
   } catch (e) {
     return fail(e);
   }
@@ -68,5 +68,5 @@ export async function restoreFilesBefore(chatId: number, eventId: number): Promi
     confirmLabel: "ファイルを戻す",
     danger: true,
   });
-  if (ok) await api.rewindFiles(chatId, eventId, false).then(() => undefined, fail);
+  if (ok) await turnsApi.rewindFiles(chatId, eventId, false).then(() => undefined, fail);
 }

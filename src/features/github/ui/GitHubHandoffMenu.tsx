@@ -1,9 +1,8 @@
 import "./GitHubHandoffMenu.css";
 import { Wrench } from "lucide-react";
 import type { GitHubIssueDetail, GitHubPullDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { type HandOffItem, HandOffButton } from "@/features/attachments/ui";
+import { type HandOffItem, HandOffButton, uploadsApi } from "@/features/attachments/ui";
 import { fixReviewComments } from "./githubHandoff";
 import { captureNameOf, handOffText, itemDocument, linkOf, sourceOf, worktreeBranchOf } from "./githubPrompt";
 
@@ -16,7 +15,7 @@ function handOffItemOf(projectId: number, detail: GitHubIssueDetail | GitHubPull
     projectId,
     what: `${kind === "pr" ? "PR" : "issue"} #${detail.item.number} の題名・本文・コメント`,
     text: handOffText(detail),
-    capture: () => api.capture({ name: captureNameOf(detail), mime: "text/markdown", text: itemDocument(detail), source: sourceOf(detail) }),
+    capture: () => uploadsApi.capture({ name: captureNameOf(detail), mime: "text/markdown", text: itemDocument(detail), source: sourceOf(detail) }),
     link: linkOf(detail),
     branch: worktreeBranchOf(detail),
   };

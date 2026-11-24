@@ -22,7 +22,7 @@
 - ノートのフォルダは、どのチャットでも実行のときに書ける場所に足し、システムプロンプトで伝える（`core/turnParts.ts`。AI のツールは `core/tools.ts`）。AI に渡すパスは区切りが分かる形に。
 - 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外。コアも 400）。
 - ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` で除く）
-- ノートを足すときは付けたときの写し（`api.noteSnapshot`。`taken_at`）。足す口は `appendToDraft`（別ウィンドウはメインに頼む）。
+- ノートを足すときは付けたときの写し（`note/snapshot`。`taken_at`）。足す口は `appendToDraft`（別ウィンドウはメインに頼む）。
 
 ## 落とし穴
 

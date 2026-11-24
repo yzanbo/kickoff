@@ -2,8 +2,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
-import { api } from "@/foundation/ui/api";
-import { projectsSettings } from "@/features/projects/ui";
+import { projectsSettings, projectsApi } from "@/features/projects/ui";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { PROJECT_DRAG_TYPE } from "@/features/chatList/ui";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
@@ -27,7 +26,7 @@ export function useProjectLaneReorder(enabled: boolean) {
     sideBy: "order",
     onStart: ensureAllRows,
     onMove: (from, to, side) => {
-      void api.reorderProjects(moveInList(ids, from, to, side) ?? ids);
+      void projectsApi.reorderProjects(moveInList(ids, from, to, side) ?? ids);
       if (order !== "manual") setOrder("manual");
     },
   });

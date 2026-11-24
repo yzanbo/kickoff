@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { removeTagFrom, renameTagIn } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -13,7 +13,7 @@ const projectsWith = (projects: readonly Project[], tag: string) => projects.fil
 async function retag(projects: readonly Project[], change: (tags: readonly string[]) => string[], failure: string): Promise<boolean> {
   for (const project of projects) {
     try {
-      await api.updateProject(project.id, { tags: change(project.tags) });
+      await projectsApi.updateProject(project.id, { tags: change(project.tags) });
     } catch (e) {
       await alert(failure, `「${project.name}」: ${errorMessage(e)}`);
       return false;

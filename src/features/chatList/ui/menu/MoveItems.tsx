@@ -1,9 +1,8 @@
 import { ChevronRight, Folder, FolderInput } from "lucide-react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
 import { useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
-import { askNewGroupName, GroupPickFlyout } from "@/features/groups/ui";
+import { askNewGroupName, GroupPickFlyout, groupsApi } from "@/features/groups/ui";
 import { ProjectPickFlyout } from "@/features/projects/ui";
 
 /**
@@ -63,5 +62,5 @@ export function MoveToProjectItem({
 /** 新しいグループの名前を聞いて作る（「作成して移す」。やめたら null） */
 export async function askNewGroup(projectId: number): Promise<ChatGroup | null> {
   const name = await askNewGroupName("作成して移す");
-  return name ? api.createGroup(projectId, name) : null;
+  return name ? groupsApi.createGroup(projectId, name) : null;
 }

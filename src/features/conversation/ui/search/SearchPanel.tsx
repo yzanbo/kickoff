@@ -2,8 +2,7 @@ import "./SearchPanel.css";
 import { Bot, Search, User } from "lucide-react";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { SearchHit } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
-import { chatTitle } from "@/features/chat/ui";
+import { chatTitle, chatsApi } from "@/features/chat/ui";
 import { ProjectMark, sidebarOrder, useProjects } from "@/features/projects/ui";
 import { useDebouncedSearch } from "@/foundation/ui/hooks/useDebouncedSearch";
 import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
@@ -41,7 +40,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
   const [query, setQuery] = useState("");
   const modal = usePaletteDialog();
   // 入力が止まったら検索する（範囲を変えても探し直す）
-  const { results: hits, loading } = useDebouncedSearch(query, (q) => api.search(q, scope === "chat" ? { chatId } : scope === "all" ? {} : { projectId: scope }), 200, scope);
+  const { results: hits, loading } = useDebouncedSearch(query, (q) => chatsApi.search(q, scope === "chat" ? { chatId } : scope === "all" ? {} : { projectId: scope }), 200, scope);
   const nav = useRovingList({ mode: "activeDescendant", keys: hits, onPick: open });
   useEffect(() => nav.setIndex(0), [hits]);
 

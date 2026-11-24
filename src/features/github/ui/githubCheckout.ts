@@ -1,7 +1,9 @@
 // PR のチェックアウト: 取るたびに新しいワークツリー / 本体を選び（既定の印は付けない）、本体ならまだコミットしていない変更と
 // 本体で作業中のチャットを確認で知らせる。fork の PR も取れる（コアが pr-N に取ってくる）。取ったら、その作業場所で新しいチャットを始めるボタンを出す
 import type { GitHubPullDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
+import { gitApi } from "@/features/git/ui";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
@@ -23,7 +25,7 @@ export async function checkoutPull(projectId: number, detail: GitHubPullDetail, 
   }).then((r) => r?.value ?? null);
   if (!place) return;
   if (place === "main") {
-    const status = await api.gitStatus(projectId).catch(() => null);
+    const status = await gitApi("GET /api/projects/:projectId/git/status", workdirInput(projectId)).catch(() => null);
     const changes = status?.repo ? new Set([...status.staged, ...status.unstaged, ...status.conflicts].map((f) => f.path)).size : 0;
     const notes = mainCheckoutNotes(changes, running);
     if (notes.length > 0) {
@@ -31,7 +33,7 @@ export async function checkoutPull(projectId: number, detail: GitHubPullDetail, 
       if (!ok) return;
     }
   }
-  const result = await api.githubCheckout(projectId, n, place).catch((e: unknown) => {
+  const result = await githubApi.githubCheckout(projectId, n, place).catch((e: unknown) => {
     void reportFailure("PR のブランチを取り出せませんでした")(e);
     return null;
   });

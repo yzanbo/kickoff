@@ -1,6 +1,6 @@
 // 「AI に渡す」の「新しいチャットで始める」: 作業場所を選んで、文と添付を入れた新しいチャットのタブを開く（送るのは自分で）
 import type { Attachment, GitHubLink } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { choose } from "@/foundation/ui/kit/ask";
@@ -11,7 +11,7 @@ import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 
 /** 作業場所を選ぶ（新しいワークツリー / 本体 / いまあるワークツリー）。やめたら null。branch は新しいワークツリーの名前の案 */
 export async function chooseWorkplace(projectId: number, branch: string): Promise<WorkplaceChoice | null> {
-  const worktrees = (await api.gitWorktrees(projectId).catch(() => [])).filter((w) => !w.main && !w.prunable && w.branch);
+  const worktrees = (await worktreeSource().list(projectId).catch(() => [])).filter((w) => !w.main && !w.prunable && w.branch);
   const picked = await choose({
     title: "どこで作業しますか",
     message: "ほかのチャットと並行して進めるなら、新しいワークツリーがおすすめです（ファイルがぶつかりません）。",

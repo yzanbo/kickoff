@@ -1,5 +1,5 @@
 import type { GitHubIssueDetail, GitHubKind, GitHubPullDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { githubRefresh } from "./githubRefresh";
 
@@ -11,10 +11,10 @@ export type GitHubDetail = GitHubIssueDetail | GitHubPullDetail;
  * 移ったときは、コアが最後に取った中身（10 分まで）があれば、GitHub の答えが届くまでそれを出す
  */
 export function useGitHubDetail(projectId: number, kind: GitHubKind, number: number) {
-  const detail = useQuery<GitHubDetail>(["github.detail", projectId, kind, number], () => (kind === "pr" ? api.githubPull(projectId, number) : api.githubIssue(projectId, number)), {
+  const detail = useQuery<GitHubDetail>(["github.detail", projectId, kind, number], () => (kind === "pr" ? githubApi.githubPull(projectId, number) : githubApi.githubIssue(projectId, number)), {
     keepPrevious: true,
     ...githubRefresh(),
-    seed: () => api.githubCachedDetail(projectId, kind, number),
+    seed: () => githubApi.githubCachedDetail(projectId, kind, number),
   });
   // 前のものの中身・失敗は出さない（keepPrevious は、同じものの取り直しが失敗しても中身を残すため）
   if (detail.stale) return { data: null, error: null, loading: true, refresh: detail.reload };

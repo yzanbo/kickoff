@@ -1,7 +1,7 @@
 import "./GitHubLabelPicker.css";
 import { useState } from "react";
 import { Tag, UserRound } from "lucide-react";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useQuery } from "@/foundation/ui/query";
 import { CheckItem } from "@/foundation/ui/kit/menuParts";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -30,7 +30,7 @@ export function GitHubLabelPicker({
   disabled?: boolean;
 }) {
   const menu = useContextMenu<null>();
-  const meta = useQuery(["github.meta", projectId], () => api.githubMeta(projectId));
+  const meta = useQuery(["github.meta", projectId], () => githubApi.githubMeta(projectId));
   const [picked, setPicked] = useState<string[]>(selected);
   const open = menu.menu !== null;
   const close = () => {

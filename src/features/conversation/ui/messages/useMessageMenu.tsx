@@ -1,10 +1,9 @@
 import { Suspense, useEffect, type MouseEvent, type ReactNode } from "react";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyRich } from "@/features/conversation/ui/richCopy";
-import { useOptionalChatScreen } from "@/features/chat/ui";
+import { useOptionalChatScreen, chatsApi } from "@/features/chat/ui";
 import { MessageSquarePlus } from "lucide-react";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
@@ -52,7 +51,7 @@ export function useQuoteMenu(extra?: ReactNode) {
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
   const copyTranscript = (chatId: number) =>
-    void api
+    void chatsApi
       .chatTranscriptMarkdown(chatId)
       .then((transcript) => copyRich(transcript.markdown))
       .catch(reportFailure("やり取りをコピーできませんでした"));

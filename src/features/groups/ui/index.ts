@@ -8,3 +8,4 @@ export { GroupPickFlyout } from "./GroupPickFlyout";
 export { askNewGroupName, confirmDeleteGroup } from "./groupDialogs";
 export { NO_GROUPS, useGroupsOf } from "./stores/groups";
 export { orderGroupBuckets, splitAtUngrouped, UNGROUPED_SORT_ID, ungroupedPosition } from "./groupOrder";
+export { groupsApi } from "./api/groups";

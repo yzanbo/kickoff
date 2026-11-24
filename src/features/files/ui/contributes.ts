@@ -1,4 +1,4 @@
-// files が拡張点に出すもの（app/renderer/registry.ts が入れる）: ファイルのタブの種類 2 つ（と AI に返す説明）・ファイルの右の欄と、ファイルの行き先、プロジェクトの画面のファイル・検索、⌘⇧F、会話の中のファイルのリンク
+// files が拡張点に出すもの（app/renderer/registry.ts が入れる）: ファイルのタブの種類 2 つ（と AI に返す説明）・ファイルの右の欄と、ファイルの行き先、プロジェクトの画面のファイル・検索、⌘⇧F、会話の中のファイルのリンク・作業場所のファイルの一覧を読む口
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { panelSurfaces, panelTabs } from "@/features/panel/ui";
 import { fileTarget } from "./openTargets";
@@ -12,6 +12,9 @@ import { codeSearchCommand } from "./codeSearchFocus";
 import { chatFileLinks } from "@/features/chat/ui";
 import { filesChatFileLinks } from "./links/chatFileLinksPort";
 import { describeTab, editorView, userViewTabs } from "@/features/userView/ui";
+import { workplaceFilesSources } from "@/foundation/ui/workplace/workplaceFiles";
+import { workdirInput } from "@/foundation/ui/api/workdir";
+import { filesApi } from "./api";
 
 export const contributes = [
   panelTabs.item(fileTabKind),
@@ -25,4 +28,5 @@ export const contributes = [
   popoutKinds.item(filePopout),
   codeSearchCommand,
   chatFileLinks.item(filesChatFileLinks),
+  workplaceFilesSources.item({ files: (target) => filesApi("GET /api/projects/:projectId/files", workdirInput(target)) }),
 ];

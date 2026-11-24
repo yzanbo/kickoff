@@ -4,7 +4,7 @@ import { PROJECT_HUES } from "@shared/projects/colors";
 import type { Project } from "@shared/projects/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { Field } from "@/foundation/ui/kit/Field";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
@@ -20,7 +20,7 @@ import { useEditedProject } from "./editedProject";
 export function BasicInfo() {
   const project = useEditedProject();
   const save = (patch: { name: string } | { description: string }) =>
-    void api.updateProject(project.id, patch).catch((e: unknown) => alert("基本情報を保存できませんでした", errorMessage(e)));
+    void projectsApi.updateProject(project.id, patch).catch((e: unknown) => alert("基本情報を保存できませんでした", errorMessage(e)));
 
   return (
     <section className="section">
@@ -47,7 +47,7 @@ export function BasicInfo() {
 
 /** プロジェクトの色（サイドバー・見出し・カンバンで使う）。一覧から選ぶと、すぐ変わる */
 function ColorField({ project }: { project: Project }) {
-  const choose = (hue: number) => void api.updateProject(project.id, { hue }).catch((e: unknown) => alert("色を変えられませんでした", errorMessage(e)));
+  const choose = (hue: number) => void projectsApi.updateProject(project.id, { hue }).catch((e: unknown) => alert("色を変えられませんでした", errorMessage(e)));
   return (
     <Field label="色" help="サイドバー・見出し・全プロジェクトのカンバンで、このプロジェクトを見分ける色です。作ったときに、ほかと被らない色を選んでいます。">
       <div className="color-swatches" role="radiogroup" aria-label="プロジェクトの色">

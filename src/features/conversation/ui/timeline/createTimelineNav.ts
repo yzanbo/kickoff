@@ -1,7 +1,6 @@
 // 流れの中を移る口（TimelineNav）の実装。チャットの画面がチャットごとに 1 回だけ作り、会話の欄が描くたびに窓を入れ直す
-import { api } from "@/foundation/ui/api";
 import { createCell } from "@/foundation/ui/store";
-import { chatLog, chatWindow, type TimelineNav } from "@/features/chat/ui";
+import { chatLog, chatWindow, type TimelineNav, chatsApi } from "@/features/chat/ui";
 import { jumpToEvent } from "./jumpToEvent";
 import type { TimelineScroll } from "./timelineScroll";
 
@@ -79,7 +78,7 @@ export function createTimelineNav({ chatId, scroll, beforeReveal }: TimelineNavD
     stepPrompt: (dir, from) => now().stepPrompt(dir, from),
     searchTexts: async () => {
       const { tailStart } = chatWindow.read(chatId);
-      return tailStart > 0 ? (await api.chatTexts(chatId, tailStart)).events : [];
+      return tailStart > 0 ? (await chatsApi.chatTexts(chatId, tailStart)).events : [];
     },
     drawn: createCell(0),
     jumping,

@@ -2,7 +2,7 @@ import "./GitHubDetail.css";
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
 import type { GitHubKind, GitHubPullDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -49,18 +49,18 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
   const threadActions = useMemo<ThreadActions>(
     () => ({
       reply: async (thread, body) => {
-        await api.githubReplyThread(projectId, number, thread.id, body);
+        await githubApi.githubReplyThread(projectId, number, thread.id, body);
         refresh();
       },
       resolve: async (thread, resolved) => {
-        await api.githubResolveThread(projectId, number, thread.id, resolved);
+        await githubApi.githubResolveThread(projectId, number, thread.id, resolved);
         refresh();
       },
     }),
     [projectId, number, refresh],
   );
   const setLabels = (labels: string[]) =>
-    void api
+    void githubApi
       .githubSetLabels(projectId, number, labels)
       .then(refresh)
       .catch(reportFailure("ラベルを変えられませんでした"));

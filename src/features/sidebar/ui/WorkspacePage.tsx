@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { groupsApi } from "@/features/groups/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
@@ -146,7 +146,7 @@ export const WorkspacePage = memo(function WorkspacePage({
               placeholder="グループ名（例: コードレビュー）"
               onSubmit={(name) => {
                 setCreating(false);
-                void api.createGroup(project.id, name);
+                void groupsApi.createGroup(project.id, name);
               }}
               onCancel={() => setCreating(false)}
             />

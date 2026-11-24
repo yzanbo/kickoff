@@ -2,9 +2,8 @@
 // 中身は chatTabPages.tsx、見た目の足し替えは chatTabFaces.tsx、右クリックは chatTabMenus.tsx。ui/contributes.ts が panelTabs に入れる
 import { Bot, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen } from "lucide-react";
 import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats } from "@/features/chat/ui";
+import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats, chatsApi } from "@/features/chat/ui";
 import { ChildTabBadge } from "@/features/childChats/ui";
 import { discardNewChatDraft, draftTitleOf, newChatDraft } from "@/features/composer/ui";
 import { defineTabKind, type PanelTab } from "@/features/panel/ui";
@@ -17,7 +16,7 @@ import { discardDraftSidePanel } from "./agents/draftSide";
 type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 
 /** チャット・子チャットの名前を変える（名前を変える API） */
-const renameChat = (chatId: number, title: string) => void api.renameChat(chatId, title).catch(reportFailure("名前を変更できませんでした"));
+const renameChat = (chatId: number, title: string) => void chatsApi.renameChat(chatId, title).catch(reportFailure("名前を変更できませんでした"));
 
 /** チャットのタブの名前: 知っているチャットの最新の名前 → タブが覚えた名前（まだ届いていないチャット）→ 「チャット」 */
 export function chatTabLabel(t: TabOf<"chat">, chat: Pick<Chat, "title"> | undefined): string {

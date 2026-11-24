@@ -5,7 +5,6 @@ import { LOCKED_LABELS } from "@shared/chat/boundaries";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatClock, formatDuration } from "@/foundation/ui/lib/time";
 import { copyRich } from "@/features/conversation/ui/richCopy";
-import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
@@ -17,7 +16,7 @@ import { requestHandoff } from "@/features/childChats/ui/handBack";
 import { AddToParentButton } from "@/features/childChats/ui/AddToParentButton";
 import { HandBackMarks } from "@/features/childChats/ui";
 import { useFeatureBlock } from "@/features/ai/ui";
-import { useBeforeWorkplaceMove, useTimelineBusy } from "@/features/chat/ui";
+import { useBeforeWorkplaceMove, useTimelineBusy, turnsApi } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 import type { TurnExtras } from "./turnExtras";
 import { turnExtras } from "./selectors";
@@ -78,7 +77,7 @@ function TurnFooter({ event, extras }: { event: ChatEventOf<"result">; extras: T
           className="turn-action"
           disabled={forkBlock !== null}
           onClick={() =>
-            void api
+            void turnsApi
               .forkChat(event.chat_id, event.id)
               .then((chat) => open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }))
               .catch(reportFailure("分岐できませんでした"))

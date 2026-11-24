@@ -1,7 +1,7 @@
 import type { ChatGroup } from "@shared/groups/types";
-import { api } from "@/foundation/ui/api";
+import { groupsApi } from "@/features/groups/ui";
 import { restoreDroppedChat, useGroupDrop } from "@/features/chatList/ui";
-import { busyBlockReason, moveDroppedChatToProject } from "@/features/chat/ui";
+import { busyBlockReason, moveDroppedChatToProject, chatsApi } from "@/features/chat/ui";
 import { useProjects } from "@/features/projects/ui";
 
 /** 落としたあとの操作を流す（失敗の出し方は呼ぶ側。列は列の上の文、段はお知らせ） */
@@ -25,10 +25,10 @@ export function useGroupDropTargets(
     ungroupedAt: columns ? ungroupedAt : undefined,
     onReorder: (ids, at) => {
       if (at !== undefined && at !== ungroupedAt) setUngroupedAt?.(at);
-      if (ids.some((id, i) => id !== groups[i]?.id)) run(() => api.reorderGroups(projectId, ids), "グループを並べ替えられませんでした");
+      if (ids.some((id, i) => id !== groups[i]?.id)) run(() => groupsApi.reorderGroups(projectId, ids), "グループを並べ替えられませんでした");
     },
     on: {
-      chat: (chat, groupId) => run(() => api.setChatGroup(chat.id, groupId), "グループを移せませんでした"),
+      chat: (chat, groupId) => run(() => chatsApi.setChatGroup(chat.id, groupId), "グループを移せませんでした"),
       // アーカイブ済みのカードは、確かめて戻してから、落とした列・段のグループへ入れる
       archived: (chat, groupId) => void restoreDroppedChat(chat, groupId),
       foreign: columns

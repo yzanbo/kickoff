@@ -4,14 +4,14 @@
 import type { ProviderStatus, ModelOption } from "@shared/ai/types";
 import type { GitHubStatus } from "@shared/foundation/server";
 import type { ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
+import { providersApi } from "@/features/ai/ui/api/providers";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useStore } from "@/foundation/ui/store/useStore";
 
-export const providersStore = createStore<ProviderStatus[]>({ load: () => api.providers(), maxAge: 0 });
-export const githubStore = createStore<GitHubStatus>({ load: () => api.github(), maxAge: 0 });
-const modelsStore = createKeyedStore<ProviderId, ModelOption[]>({ load: (provider) => api.models(provider) });
+export const providersStore = createStore<ProviderStatus[]>({ load: () => providersApi.providers(), maxAge: 0 });
+export const githubStore = createStore<GitHubStatus>({ load: () => providersApi.github(), maxAge: 0 });
+const modelsStore = createKeyedStore<ProviderId, ModelOption[]>({ load: (provider) => providersApi.models(provider) });
 
 export const NO_MODELS: ModelOption[] = Object.freeze([]) as unknown as ModelOption[];
 

@@ -2,7 +2,8 @@
 // 送るのは自分で。ほかの渡し先（新しいチャット・このチャット・子チャット・ほかのチャット）は共通の「AI に渡す」（features/chat/handoff）
 import type { Attachment } from "@shared/chat/types";
 import type { CiRun } from "@shared/github/ciTypes";
-import { api } from "@/foundation/ui/api";
+import { ciApi } from "@/features/github/ui/api/ci";
+import { uploadsApi } from "@/features/attachments/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { HandOffItem } from "@/features/attachments/ui";
 import { handOffToWorkplaceChat } from "@/features/github/ui/githubHandoff";
@@ -10,8 +11,8 @@ import { ciCaptureName, ciFailedDocument, ciFixText, ciHandOffText, ciLinkOf, ru
 
 /** 押した時点の落ちたステップのログを札にする（外から来た中身。鍵らしい値はコアが伏せる。長ければ終わりを多めに残す） */
 async function captureFailedLog(projectId: number, run: CiRun): Promise<Attachment> {
-  const log = await api.ciFailedLog(projectId, run.id);
-  return api.capture({
+  const log = await ciApi.ciFailedLog(projectId, run.id);
+  return uploadsApi.capture({
     name: ciCaptureName(run),
     mime: "text/markdown",
     text: ciFailedDocument(log),
@@ -40,7 +41,7 @@ export function ciHandOffItem(projectId: number, run: CiRun, repo: string, defau
  */
 export async function fixCiRun(projectId: number, run: CiRun, repo: string) {
   const [place, attachment] = await Promise.all([
-    api.ciRunWorktree(projectId, run.id).catch((e: unknown) => {
+    ciApi.ciRunWorktree(projectId, run.id).catch((e: unknown) => {
       reportFailure(`${run.branch ?? "ブランチ"} の作業場所を用意できませんでした`)(e);
       return null;
     }),

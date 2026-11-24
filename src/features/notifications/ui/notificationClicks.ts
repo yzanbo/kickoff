@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { api } from "@/foundation/ui/api";
-import { openChat } from "@/features/chat/ui";
+import { openChat, chatsApi } from "@/features/chat/ui";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { onNotificationClick } from "./native";
 
@@ -18,7 +17,7 @@ export function useNotificationTargets() {
 
 /** 通知のチャットを開く（子チャットなら設定の開き方、ノートのチャットならそのノート。読めなければいちばん上のチャットとして） */
 async function openNotifiedChat(projectId: number, chatId: number) {
-  const chat = await api.chatDetail(chatId, { limit: 1 }).then(
+  const chat = await chatsApi.chatDetail(chatId, { limit: 1 }).then(
     (d) => d.chat,
     () => null,
   );

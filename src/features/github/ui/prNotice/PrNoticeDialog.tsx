@@ -2,7 +2,7 @@ import "./PrNoticeDialog.css";
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
@@ -13,7 +13,7 @@ import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { downVolumesCheck, dropConnectionsCheck, removeWorktreeAndRefresh, useWorktreeEnv } from "@/features/worktrees/ui";
+import { downVolumesCheck, dropConnectionsCheck, removeWorktreeAndRefresh, useWorktreeEnv, worktreesApi } from "@/features/worktrees/ui";
 import {
   PR_CHAT_ACTIONS,
   PR_CHAT_ACTION_LABELS,
@@ -41,7 +41,7 @@ export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNo
   const { projectName } = useProjects();
   const chats = useChatsWithChildren().filter((c) => c.project_id === projectId && c.worktree_path === notice.worktree);
   const running = chats.filter((c) => c.status === "running").length;
-  const info = useQuery(["PrNoticeDialog.info", projectId, notice.worktree], () => api.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), { keepPrevious: true });
+  const info = useQuery(["PrNoticeDialog.info", projectId, notice.worktree], () => worktreesApi.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), { keepPrevious: true });
   const [worktreeAction, setWorktreeAction] = useState<PrWorktreeAction>(defaultWorktreeAction(notice));
   const [chatAction, setChatAction] = useState<PrChatAction>("archive");
   // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すか（初めは消す）
@@ -81,7 +81,7 @@ export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNo
         pullError = removed.pullError;
       }
       // チャットは全部を試してから、失敗をまとめて知らせる（途中の失敗で残りを止めない）
-      const failures = await tryEach(ids, (id) => (effectiveChatAction === "delete" ? api.deleteChat(id) : api.archiveChat(id)));
+      const failures = await tryEach(ids, (id) => (effectiveChatAction === "delete" ? chatsApi.deleteChat(id) : chatsApi.archiveChat(id)));
       if (failures.length > 0)
         throw new Error(`チャット ${failures.length} 件を${PR_CHAT_ACTION_LABELS[effectiveChatAction]}できませんでした: ${failures.join(" / ")}`);
     });
@@ -97,7 +97,7 @@ export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNo
       aria-label={prNoticeTitle(notice)}
       onClose={() => {
         // 片付けずに閉じたら、同じ PR では確認を出し直さない（印から開き直せる。片付けて知らせが消えていれば何もしない）
-        if (!notice.dismissed && !gone) void api.dismissWorktreePr(projectId, notice.pr.number).catch(() => undefined);
+        if (!notice.dismissed && !gone) void worktreesApi.dismissWorktreePr(projectId, notice.pr.number).catch(() => undefined);
         onClose();
       }}
     >

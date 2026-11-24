@@ -2,7 +2,7 @@ import "./GitHubCommentBox.css";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { GITHUB_CLOSE_REASONS, GITHUB_CLOSE_REASON_LABELS, type GitHubCloseReason, type GitHubIssueDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -27,7 +27,7 @@ export function GitHubCommentBox({ projectId, detail, onChanged }: { projectId: 
   // 書いた文があれば、先にコメントしてから
   const withComment = async (then?: () => Promise<void>) => {
     if (hasText) {
-      await api.githubComment(projectId, item.number, text);
+      await githubApi.githubComment(projectId, item.number, text);
       setText("");
     }
     await then?.();
@@ -35,8 +35,8 @@ export function GitHubCommentBox({ projectId, detail, onChanged }: { projectId: 
   };
   const comment = () => hasText && !busy && void action.run("comment", () => withComment());
   const close = (reason: GitHubCloseReason) =>
-    void action.run("close", () => withComment(() => api.githubSetState(projectId, item.kind, item.number, { state: "closed", reason: isPr ? null : reason })));
-  const reopen = () => void action.run("reopen", () => withComment(() => api.githubSetState(projectId, item.kind, item.number, { state: "open", reason: null })));
+    void action.run("close", () => withComment(() => githubApi.githubSetState(projectId, item.kind, item.number, { state: "closed", reason: isPr ? null : reason })));
+  const reopen = () => void action.run("reopen", () => withComment(() => githubApi.githubSetState(projectId, item.kind, item.number, { state: "open", reason: null })));
 
   const canClose = item.state === "open" && viewer.can_close;
   const canReopen = item.state === "closed" && viewer.can_reopen;

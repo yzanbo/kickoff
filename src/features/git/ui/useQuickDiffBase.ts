@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@/foundation/ui/query";
 import type { GitFileChange, GitStatus } from "@shared/git/types";
-import type { GitTarget } from "@/foundation/ui/api";
 import { gitApi } from "./api";
-import { workdirInput } from "@/foundation/ui/api/workdir";
+import { workdirInput, type GitTarget } from "@/foundation/ui/api/workdir";
 
 /**
  * 編集の部品の行の横に出す Git との違いの帯の、元の中身（VS Code と同じく、ステージした中身。なければコミットの中身）。

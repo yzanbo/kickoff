@@ -3,7 +3,7 @@ import { Plus, Tag } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags, validateTagAdd } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
 import { errorMessage } from "@shared/foundation/errors";
@@ -39,7 +39,7 @@ export function TagEditor({ project }: { project: Project }) {
   const save = (next: string[]) => {
     setError(undefined);
     setTags(next);
-    api.updateProject(project.id, { tags: next }).catch((e: unknown) => {
+    projectsApi.updateProject(project.id, { tags: next }).catch((e: unknown) => {
       setError(errorMessage(e));
       setTags(project.tags);
     });

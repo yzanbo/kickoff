@@ -1,14 +1,14 @@
 // アプリの設定（すべての画面で 1 つ）。初めて使うときに読み、変わったらサーバーの知らせ（settings）で置き換える。
 // 保存は選んだ・書き終えたらすぐ（下書きと保存のボタンは持たない）。保存は saveSettings だけが送る
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { api } from "@/foundation/ui/api";
+import { settingsApi } from "@/features/settings/ui/api/settings";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
 /** 保存したら、応答（保存したあとの設定）を set で入れる（知らせを待たずに画面をそろえる） */
 export const settingsStore = createStore<AppSettings>({
-  load: () => api.settings(),
+  load: () => settingsApi.settings(),
   reduce: { settings: (_current, e) => e.settings },
 });
 
@@ -22,7 +22,7 @@ export const useAppSettings = () => useStore(settingsStore);
 export async function saveSettings(patch: Partial<AppSettings>): Promise<void> {
   settingsStore.update((current) => ({ ...current, ...patch }));
   try {
-    settingsStore.set(await api.updateSettings(patch));
+    settingsStore.set(await settingsApi.updateSettings(patch));
   } catch (e) {
     void settingsStore.reload().catch(() => {});
     throw e;

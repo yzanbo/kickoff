@@ -1,8 +1,7 @@
 import { useQuery } from "@/foundation/ui/query";
 import type { GitBlame } from "@shared/git/types";
-import type { GitTarget } from "@/foundation/ui/api";
 import { gitApi } from "./api";
-import { workdirInput } from "@/foundation/ui/api/workdir";
+import { workdirInput, type GitTarget } from "@/foundation/ui/api/workdir";
 
 /**
  * 開いているファイルの行ごとの変更の記録（`GET /git/blame`。エディタのいまの行の右に、いつ誰が変えたかを出す GitLens と同じ形）。

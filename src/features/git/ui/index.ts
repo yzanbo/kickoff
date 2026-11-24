@@ -3,3 +3,5 @@ export { useGitStatus } from "./useGitStatus";
 export { branchMenuItems, type BranchMenuItem } from "./history/branchMenuItems";
 export { ChangedFiles, toggleFolder } from "./changes/ChangedFiles";
 export { DiffStack, type StackFold } from "./diff/DiffStack";
+export { gitApi } from "./api";
+export { projectGitHubSources } from "./history/projectGitHubSource";

@@ -3,7 +3,7 @@ import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquare
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LOOKS } from "@shared/attachments/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/chat/types";
-import { api, attachmentUrl } from "@/foundation/ui/api";
+import { uploadsApi, attachmentUrl } from "@/features/attachments/ui/api/uploads";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime } from "@/foundation/ui/lib/time";
@@ -64,7 +64,7 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
 function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const image = isImage(attachment);
-  const text = useQuery(["CaptureAttachmentChip.text", attachment.id], () => (image ? Promise.resolve("") : api.attachmentText(attachment)), { keepPrevious: true });
+  const text = useQuery(["CaptureAttachmentChip.text", attachment.id], () => (image ? Promise.resolve("") : uploadsApi.attachmentText(attachment)), { keepPrevious: true });
   const Icon = ATTACHMENT_SOURCE_ICONS[attachment.source.type];
   return (
     <dialog ref={dialogRef} className="dialog floating app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>

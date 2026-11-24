@@ -1,5 +1,5 @@
 import type { Attachment } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { turnsApi } from "@/features/chat/ui";
 import { queueModeTexts, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import type { SendWhen } from "@/features/composer/ui/composerKeys";
 import type { ChatOptionsState } from "@/features/ai/ui";
@@ -40,8 +40,8 @@ export function useChatSend({
     queued,
     mode: queueMode,
     options: options.options,
-    send: (body) => api.sendMessage(chatId, body),
-    cancel: () => api.cancelChat(chatId),
+    send: (body) => turnsApi.sendMessage(chatId, body),
+    cancel: () => turnsApi.cancelChat(chatId),
     confirmStop,
     onStopping,
     beforeSend,

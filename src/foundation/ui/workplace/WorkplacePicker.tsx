@@ -1,7 +1,6 @@
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
-import { api } from "@/foundation/ui/api";
 import { prompt } from "@/foundation/ui/kit/ask";
-import { useWorktrees } from "./worktreesStore";
+import { useWorktrees, worktreeSource } from "./worktreesStore";
 import { workplaceHue } from "./workplaceHue";
 import { worktreeLabel } from "./WorktreePicker";
 import { WORKPLACE_SHORT_LABELS, type WorkplaceChoice } from "./workplace";
@@ -24,7 +23,7 @@ export function askNewWorktreeBranch(projectId: number, initial?: string): Promi
       label: "ワークツリーでやりたいこと（AI がブランチ名を提案します）",
       placeholder: "例: ログイン画面を作り、セッションが切れたらログインに戻す",
       buttonLabel: "AI で提案",
-      suggest: (summary) => api.suggestBranches(projectId, summary).then((r) => r.branches),
+      suggest: (summary) => worktreeSource().suggestBranches(projectId, summary),
     },
   }).then((r) => r?.value ?? null);
 }

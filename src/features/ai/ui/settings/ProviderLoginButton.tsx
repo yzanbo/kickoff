@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LogIn } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { providersApi } from "@/features/ai/ui/api/providers";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { providersStore } from "@/features/ai/ui/stores/providers";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -30,7 +30,7 @@ export function ProviderLoginButton({ provider }: { provider: ProviderStatus }) 
   const start = async () => {
     setState({ kind: "starting" });
     try {
-      const { auth_url } = await api.startProviderLogin(provider.id);
+      const { auth_url } = await providersApi.startProviderLogin(provider.id);
       openInDefaultBrowser(auth_url);
       setState({ kind: "waiting" });
     } catch (e) {
@@ -42,7 +42,7 @@ export function ProviderLoginButton({ provider }: { provider: ProviderStatus }) 
     return (
       <div className="provider-login">
         <p className="muted small">ブラウザでログインしてください。終わると、ここに反映されます。</p>
-        <button className="btn" onClick={() => void api.cancelProviderLogin(provider.id)}>
+        <button className="btn" onClick={() => void providersApi.cancelProviderLogin(provider.id)}>
           やめる
         </button>
       </div>

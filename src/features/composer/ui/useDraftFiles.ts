@@ -4,9 +4,9 @@ import { createFilePreviews } from "./filePreviews";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 import type { Attachment } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ComposerDraft } from "./composerDraft";
+import { uploadsApi } from "@/features/attachments/ui";
 
 export interface PendingFile {
   key: string;
@@ -114,7 +114,7 @@ export function useDraftFiles(draft?: ComposerDraft) {
       const key = newKey();
       const preview = file.type.startsWith("image/") ? { preview: true as const } : {};
       setFiles((prev) => [...prev, { key, file, ...preview }]);
-      api
+      uploadsApi
         .upload(file)
         .then((attachment) => uploaded(key, attachment))
         .catch((e: unknown) =>
@@ -128,7 +128,7 @@ export function useDraftFiles(draft?: ComposerDraft) {
     const key = newKey();
     const file = new File([], `チャット履歴-${chatTitle(chat.title)}.md`, { type: "text/markdown" });
     setFiles((prev) => [...prev, { key, file }]);
-    api
+    uploadsApi
       .chatTranscript(chat.id)
       .then((attachment) => uploaded(key, attachment))
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));

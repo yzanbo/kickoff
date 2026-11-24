@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { groupsApi } from "@/features/groups/ui/api/groups";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useKeyedStores } from "@/foundation/ui/store/useStore";
 
@@ -19,7 +19,7 @@ export const reduceGroups: ReduceTable<ChatGroup[], number> = {
 };
 
 export const groupsStore = createKeyedStore<number, ChatGroup[]>({
-  load: (projectId) => api.groups(projectId),
+  load: (projectId) => groupsApi.groups(projectId),
   reduce: reduceGroups,
   dropOn: { project_deleted: (e) => e.id },
 });

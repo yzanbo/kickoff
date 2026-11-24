@@ -6,7 +6,6 @@ import { isAiVisible } from "@shared/database/aiVisibility";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
-import { api } from "@/foundation/ui/api";
 import { notesApi } from "@/features/notes/ui";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
@@ -16,7 +15,7 @@ import { prompt } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
-import { type HandOffItem, HandOffButton } from "@/features/attachments/ui";
+import { type HandOffItem, HandOffButton, uploadsApi } from "@/features/attachments/ui";
 
 /** 失敗の文から見分けた種類と、よくある原因（接続のダイアログの「つながるか試す」と、つながらないときの案内で共通） */
 export function DbFailureHelp({ error }: { error: string }) {
@@ -39,7 +38,7 @@ function failureItem(projectId: number, c: DbConnection, error: string): HandOff
     projectId,
     what: `「${c.name}」につながらない様子（失敗の文・接続の設定・手順ノートの場所）`,
     text: dbFixText(c),
-    capture: () => api.capture({ name: "db-failure.md", mime: "text/markdown", text: dbFailureDocument(c, error), source: { type: "db_failure", label: c.name, url: null } }),
+    capture: () => uploadsApi.capture({ name: "db-failure.md", mime: "text/markdown", text: dbFailureDocument(c, error), source: { type: "db_failure", label: c.name, url: null } }),
   };
 }
 

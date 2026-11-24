@@ -5,7 +5,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
 import { walkDown } from "@shared/foundation/tree";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { createKeyedSelector, createSelector, type ReduceTable } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
@@ -40,8 +40,8 @@ export const reduceChats = (archived: boolean): ReduceTable<Chat[]> => ({
   project_deleted: (list, event) => (list.some((r) => r.project_id === event.id) ? list.filter((r) => r.project_id !== event.id) : list),
 });
 
-const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: reduceChats(false) });
-const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: reduceChats(true) });
+const activeChats = createStore<Chat[]>({ load: () => chatsApi.allChats(), reduce: reduceChats(false) });
+const archivedChats = createStore<Chat[]>({ load: () => chatsApi.allChats({ archived: true }), reduce: reduceChats(true) });
 /** 詳細を読んだチャット（チャットの店が入れ、中身を捨てたら忘れる） */
 const seenChats = createSeenChats();
 onServerEvent("chat", (e) => seenChats.update(e.chat));
@@ -186,7 +186,7 @@ export function useKnownChat(id: number, { fetch = false }: { fetch?: boolean } 
   const chat = useSyncExternalStore(subscribeKnown, () => knownChat(id));
   const missing = fetch && loaded && id > 0 && !chat;
   // 行だけを取る（詳細の記録は 1 件だけ読む）
-  useEffect(() => (missing ? seenChats.fetch(id, () => api.chatDetail(id, { limit: 1 }).then((d) => d.chat)) : undefined), [missing, id]);
+  useEffect(() => (missing ? seenChats.fetch(id, () => chatsApi.chatDetail(id, { limit: 1 }).then((d) => d.chat)) : undefined), [missing, id]);
   return chat;
 }
 

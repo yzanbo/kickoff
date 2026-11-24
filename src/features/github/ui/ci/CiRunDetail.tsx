@@ -2,7 +2,7 @@ import "./CiRunDetail.css";
 import { useState } from "react";
 import { ArrowLeft, ExternalLink, GitPullRequest, RotateCcw } from "lucide-react";
 import { CI_STATE_LABELS, type CiJob, type CiRunDetail } from "@shared/github/ciTypes";
-import { api } from "@/foundation/ui/api";
+import { ciApi } from "@/features/github/ui/api/ci";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { elapsedBetween, formatDayTime, formatDuration, relativeTime } from "@/foundation/ui/lib/time";
@@ -46,7 +46,7 @@ export function CiRunDetailView({
   onChanged: () => void;
   onBack?: () => void;
 }) {
-  const detail = useQuery(["CiRunDetail.detail", projectId, runId], () => api.ciRun(projectId, runId), {
+  const detail = useQuery(["CiRunDetail.detail", projectId, runId], () => ciApi.ciRun(projectId, runId), {
     keepPrevious: true,
     ...githubRefresh<CiRunDetail>((d) => (d?.run.state === "pending" ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS)),
   });
@@ -64,7 +64,7 @@ export function CiRunDetailView({
   };
   const rerun = (failed: boolean) =>
     void action.run(failed ? "failed" : "all", async () => {
-      await api.ciRerun(projectId, runId, failed);
+      await ciApi.ciRerun(projectId, runId, failed);
       showToast(failed ? "失敗したジョブのやり直しを頼みました" : "すべてのジョブのやり直しを頼みました");
       detail.reload();
       onChanged();

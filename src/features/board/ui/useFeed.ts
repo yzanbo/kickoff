@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import type { FeedItem } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { feedItemOf, upsertFeedItems } from "./feed";
+import { chatsApi } from "@/features/chat/ui";
 
 const NO_ITEMS: readonly FeedItem[] = Object.freeze([]);
 /** 読む件数（チャットの数。絞り込みは画面で、出しているチャットに合うものだけ） */
@@ -25,7 +25,7 @@ export function useFeed(active: boolean) {
     if (!active) return;
     let alive = true;
     const load = () =>
-      api
+      chatsApi
         .feed(FEED_LIMIT)
         .then((list) => alive && (setItems(list), setError(undefined)))
         .catch((e: unknown) => alive && setError(errorMessage(e)))

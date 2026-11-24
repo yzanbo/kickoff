@@ -2,7 +2,7 @@ import "./MergeDialog.css";
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { GITHUB_MERGE_METHOD_LABELS, type GitHubMergeMethod, type GitHubPullDetail } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -13,7 +13,7 @@ import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openDialog } from "@/foundation/ui/kit/openDialog";
-import { confirmRemoveWorktree } from "@/features/worktrees/ui";
+import { confirmRemoveWorktree, worktreesApi } from "@/features/worktrees/ui";
 import { mergeWarnings, pickMergeMethod } from "./githubMerge";
 
 /** PR のマージの確認を開く（onMerged はマージできたとき） */
@@ -41,7 +41,7 @@ export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectI
     void action.run(
       "merge",
       async () => {
-        await api.githubMerge(projectId, item.number, { method, sha: detail.head_sha });
+        await githubApi.githubMerge(projectId, item.number, { method, sha: detail.head_sha });
         setRemembered(method);
         dialog.close();
         onMerged();
@@ -97,6 +97,6 @@ export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectI
 /** マージした PR のブランチのワークツリー（同じ名前か、ほかの人の fork なら pr-N）があれば、消す確認を出す */
 async function offerWorktreeCleanup(projectId: number, detail: GitHubPullDetail) {
   const branches = [detail.item.head_ref, `pr-${detail.item.number}`];
-  const worktree = (await api.gitWorktrees(projectId)).find((w) => !w.main && !w.prunable && w.branch !== null && branches.includes(w.branch));
+  const worktree = (await worktreesApi.gitWorktrees(projectId)).find((w) => !w.main && !w.prunable && w.branch !== null && branches.includes(w.branch));
   if (worktree) await confirmRemoveWorktree(projectId, worktree, worktree.branch ?? worktree.path);
 }

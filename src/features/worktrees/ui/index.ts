@@ -2,3 +2,5 @@
 export { useWorktreeEnv } from "./envStore";
 export { confirmRemoveWorktree, removalNotes, removeWorktreeAndRefresh } from "./removeWorktreeFlow";
 export { downVolumesCheck, dropConnectionsCheck } from "./worktreeEnvText";
+export { worktreePullRequests } from "./pullRequests";
+export { worktreesApi } from "./api/worktrees";

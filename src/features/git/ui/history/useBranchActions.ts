@@ -2,10 +2,9 @@ import { useState } from "react";
 import type { GitBranchAction, GitBranchActionResult, GitOperation, GitRefs } from "@shared/git/types";
 import { GIT_OPERATION_LABELS } from "@shared/git/labels";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { useChats } from "@/features/chat/ui/store/knownChats";
-import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import { worktreesStore, worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, choose, confirm, prompt } from "@/foundation/ui/kit/ask";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
@@ -116,7 +115,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
 
   /** ブランチをワークツリーとして取り出し、作ったら見ている作業場所をそこへ切り替えるか聞く（失敗は投げる） */
   const addBranchWorktree = async (branch: string) => {
-    const list = await api.addWorktree(projectId, branch);
+    const list = await worktreeSource().add(projectId, branch);
     worktreesStore.set(projectId, list);
     worktreesStore.invalidate(projectId);
     log.refresh();

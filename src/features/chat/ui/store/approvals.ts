@@ -2,7 +2,7 @@
 // （チャットの中身の店・一覧の印・チャットの見出しもここから引く）。起動したときに startApprovals で 1 回読み、届いた・答えたはサーバーの知らせで直す
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { approvalsApi } from "@/features/chat/ui/api/approvals";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -14,7 +14,7 @@ const reduceApprovals: ReduceTable<Approval[]> = {
   approval_resolved: (list, event) => (list.some((a) => a.id === event.id) ? list.filter((a) => a.id !== event.id) : list),
 };
 
-const approvalsStore = createStore<Approval[]>({ load: () => api.approvals(), reduce: reduceApprovals });
+const approvalsStore = createStore<Approval[]>({ load: () => approvalsApi.approvals(), reduce: reduceApprovals });
 
 /** 読み始め、読む部品の有無に関係なく知らせで直し続ける（起動のときに app/renderer/main.tsx が 1 回。別ウィンドウも同じ。返した関数でやめる） */
 export const startApprovals = (): (() => void) => approvalsStore.retain();

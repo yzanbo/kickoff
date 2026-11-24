@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { blob, empty, route, sse, type Contract } from "@shared/foundation/contract";
 import { form } from "@shared/foundation/contract/route";
-import { ApiError, client } from "./index";
+import { ApiError } from "./http";
+import { client } from "./client";
 
 const contract = {
   "GET /api/items": route<never, string[], { project_id?: number | null; open?: boolean; q?: string }>(),

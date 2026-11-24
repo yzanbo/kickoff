@@ -1,9 +1,8 @@
 import { Folder, FolderPlus } from "lucide-react";
 import { useState } from "react";
-import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { askNewGroupName } from "@/features/groups/ui";
+import { askNewGroupName, groupsApi } from "@/features/groups/ui";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 
@@ -11,7 +10,7 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 export function GroupCreateToolButton({ projectId }: { projectId: number }) {
   const create = async () => {
     const name = await askNewGroupName();
-    if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
+    if (name) await groupsApi.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
   return (
     <button className="btn" data-size="sm" onClick={() => void create()}>
@@ -36,7 +35,7 @@ export function LaneGroupCreate({ projectId }: { projectId: number }) {
             placeholder="グループ名（例: コードレビュー）"
             onSubmit={(name) => {
               setCreating(false);
-              void guard(() => api.createGroup(projectId, name));
+              void guard(() => groupsApi.createGroup(projectId, name));
             }}
             onCancel={() => setCreating(false)}
           />

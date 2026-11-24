@@ -2,7 +2,7 @@ import "./GitHubPullChanges.css";
 import { memo, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
 import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -159,7 +159,7 @@ export function GitHubPullChanges({
   headSha: string | null;
   onChanged: () => void;
 }) {
-  const loaded = useQuery(`${projectId}:${number}`, () => api.githubPullFiles(projectId, number), { deps: [version] });
+  const loaded = useQuery(`${projectId}:${number}`, () => githubApi.githubPullFiles(projectId, number), { deps: [version] });
   // レビュー: ためた行のコメント（画面の保存）と、いま書いている行
   const [draft, setDraft] = useReviewDraft(projectId, number);
   const [composing, setComposing] = useState<ReviewTarget | null>(null);

@@ -3,7 +3,6 @@ import { Check } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";
 import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";
 import { useProviders } from "@/features/ai/ui/stores/providers";
@@ -11,7 +10,7 @@ import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, type StatusTone } from "@/foundation/ui/kit/StatusDot";
-import { useEditedProject } from "@/features/projects/ui";
+import { useEditedProject, projectsApi } from "@/features/projects/ui";
 import { useAppSettings } from "@/features/settings/ui";
 import { ProjectAiDefaults } from "./ProjectAiDefaults";
 import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/plannedProviders";
@@ -23,7 +22,7 @@ export function ProjectAiSection() {
   const providers = useProviders();
   const planned = usePlannedProviders();
   const { error, guard } = useAction();
-  const choose = (id: ProviderId) => guard(() => api.updateProject(project.id, { provider: id }));
+  const choose = (id: ProviderId) => guard(() => projectsApi.updateProject(project.id, { provider: id }));
 
   return (
     <section className="section">

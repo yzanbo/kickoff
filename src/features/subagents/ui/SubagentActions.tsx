@@ -1,13 +1,12 @@
 import "./SubagentStatusText.css";
 import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { activityOf } from "@/features/chat/ui/state/stall";
 import { isSubagentHalted } from "@/features/subagents/ui/model/subagentList";
 import { HAND_OVER_NOW, resumeRequest, retryRequest } from "@shared/chat/prompts";
-import { useActionButton } from "@/features/chat/ui";
+import { useActionButton, turnsApi } from "@/features/chat/ui";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。
@@ -47,7 +46,7 @@ export function SubagentActions({
           disabled={action.pending("report")}
           onClick={(e) => {
             e.stopPropagation();
-            action.press("report", () => api.sendMessage(chatId, { text: HAND_OVER_NOW, options: {}, attachments: [], when: "now" }), "報告を渡せませんでした");
+            action.press("report", () => turnsApi.sendMessage(chatId, { text: HAND_OVER_NOW, options: {}, attachments: [], when: "now" }), "報告を渡せませんでした");
           }}
         >
           <Inbox size={12} aria-hidden />
@@ -75,7 +74,7 @@ export function SubagentActions({
     ) : null;
   }
   if (!isSubagentHalted(entry)) return null;
-  const send = (text: string) => api.sendMessage(chatId, { text, options: {}, attachments: [], when: "now" });
+  const send = (text: string) => turnsApi.sendMessage(chatId, { text, options: {}, attachments: [], when: "now" });
   const resume = (e: React.MouseEvent) => {
     e.stopPropagation();
     const { agentId } = entry;
@@ -126,7 +125,7 @@ function StopStalled({ chatId, entry, agentId, className }: { chatId: number; en
           confirmLabel: "止める",
           danger: true,
         });
-        if (ok) await api.stopBackgroundTask(chatId, agentId);
+        if (ok) await turnsApi.stopBackgroundTask(chatId, agentId);
       },
       "サブエージェントを止められませんでした",
     );

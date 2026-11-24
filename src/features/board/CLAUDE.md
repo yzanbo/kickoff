@@ -26,5 +26,5 @@
 - 複数選択はボードごとに `useChatSelectionState`（範囲は `boardCardIds`。サイドバーの選択とは別）。
 - アーカイブ済みは下に畳む部品 `ArchivedFold`。カードはどこも `ProgressiveItems` で描く。範囲の選択・ドラッグでは、先に `ensureAllRows` で残りを描く。⌘F は名前の検索欄（データで絞るので描いていないカードも探せる）。
 - フィードは届いた返答を 1 フレームの分まとめて `upsertFeedItems` で当てる（1 件ごとに描き直さない）。
-- グループの並びは DB（`api.reorderGroups`）、「No Group」の位置は画面に覚える（`groups:ungrouped-at`。サイドバーと共通。並べ方は `@/features/groups/ui/groupOrder.ts`）。
+- グループの並びは DB（`groupsApi.reorderGroups`）、「No Group」の位置は画面に覚える（`groups:ungrouped-at`。サイドバーと共通。並べ方は `@/features/groups/ui/groupOrder.ts`）。
 - 段・グループの数は下書きも 1 つと数える（サイドバーと同じ）。

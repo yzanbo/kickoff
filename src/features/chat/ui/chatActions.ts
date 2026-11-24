@@ -1,6 +1,6 @@
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatTitle } from "./chatTitle";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
@@ -78,19 +78,19 @@ export async function confirmArchiveChats(target: ChatTarget | readonly ChatTarg
             confirmLabel: "アーカイブ",
           },
   ).then((r) => r !== null);
-  if (ok) await eachChat(Array.isArray(target) ? targets : targets[0], restore ? "戻す" : "アーカイブ", (r) => api.archiveChat(r.id, !restore));
+  if (ok) await eachChat(Array.isArray(target) ? targets : targets[0], restore ? "戻す" : "アーカイブ", (r) => chatsApi.archiveChat(r.id, !restore));
   return ok;
 }
 
 /** チャットをサイドバーのプロジェクトの上に固定する（固定していればやめる） */
-export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => api.pinChat(chat.id, !chat.pinned);
+export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => chatsApi.pinChat(chat.id, !chat.pinned);
 
 /**
  * チャットを削除する = Kickoff のゴミ箱へ（消したチャットの入力欄の書きかけの文・添付は、入力欄が知らせ chat_deleted で消す）。label を渡すと、
  * 入れた直後に「元に戻す」の知らせを出す（まとめて消すときは出さない）
  */
 export async function deleteChat(chatId: number, label?: string) {
-  const { trash_id } = await api.deleteChat(chatId);
+  const { trash_id } = await chatsApi.deleteChat(chatId);
   if (label !== undefined) showTrashedToast(trash_id, label);
 }
 
@@ -121,10 +121,10 @@ export async function confirmDeleteChats(target: Pick<Chat, "id" | "title"> | re
 }
 
 /** まとめて既読にする（未読の印を消す。印のないものはそのまま） */
-export const markChatsSeen = (chats: Chat[]) => eachChat(chats.filter((r) => r.unread), "既読に", (r) => api.markSeen(r.id));
+export const markChatsSeen = (chats: Chat[]) => eachChat(chats.filter((r) => r.unread), "既読に", (r) => chatsApi.markSeen(r.id));
 
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
-export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachChat(chats, "移動", (r) => api.setChatGroup(r.id, groupId));
+export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachChat(chats, "移動", (r) => chatsApi.setChatGroup(r.id, groupId));
 
 /**
  * 確かめてから、チャットを別のプロジェクトへ移す（右クリックの「プロジェクトを変更」・サイドバーのプロジェクトへのドラッグで共通。やめたら false）。
@@ -150,8 +150,8 @@ export async function confirmMoveChatToProject(
     confirmLabel: "移動する",
   });
   if (!ok) return false;
-  await api.moveChat(chat.id, project.id);
-  if (group) await api.setChatGroup(chat.id, group.id);
+  await chatsApi.moveChat(chat.id, project.id);
+  if (group) await chatsApi.setChatGroup(chat.id, group.id);
   const route = parse(window.location.hash);
   if (route.name === "chat" && route.chatId === chat.id) open({ kind: "chat", projectId: project.id, chatId: chat.id });
   return true;

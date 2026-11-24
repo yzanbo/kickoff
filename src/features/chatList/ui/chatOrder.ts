@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui";
 import { addChats } from "@/features/chat/ui/store/knownChats";
 import { flattenBucketChats, type BucketBy, type BucketOptions } from "./buckets";
 import type { ChatGrouping } from "./chatGrouping";
@@ -61,7 +61,7 @@ export function useChatOrder(chats: readonly Chat[], project: number | undefined
 /**
  * ドラッグでチャットを並べ替える（サイドバーの行・パネルの一覧のペインのチャットのタブ）。並べられるのは、同じ範囲
  * （同じグループ・作業場所・固定・アーカイブ済みの中。order.scope）のチャットどうしだけ。落とすと、いま見えているサイドバーの並びのまま
- * 動かしたものだけを動かし、その並び全体を手動の並びとして保存して（api.reorderChats。プロジェクトの中の 1 つの並び）、並び順を手動に切り替える
+ * 動かしたものだけを動かし、その並び全体を手動の並びとして保存して（chatsApi.reorderChats。プロジェクトの中の 1 つの並び）、並び順を手動に切り替える
  * （最近順・状態順のときも。プロジェクトの並べ替えと同じ）。応答のチャットはすぐ一覧に入れ、知らせを待たずにそろえる
  */
 export function useManualChatReorder(order: ChatListOrder) {
@@ -77,7 +77,7 @@ export function useManualChatReorder(order: ChatListOrder) {
       const next = moveInList(order.ids, moved, target, side);
       if (!next) return;
       if (current !== "manual") setOrder("manual");
-      void api.reorderChats(projectId, next).then(addChats);
+      void chatsApi.reorderChats(projectId, next).then(addChats);
     },
     [canMove, order, current, setOrder],
   );
@@ -87,7 +87,7 @@ export function useManualChatReorder(order: ChatListOrder) {
       const next = insertNear(order.ids, moved, target, side);
       if (!next) return;
       if (current !== "manual") setOrder("manual");
-      void api.reorderChats(projectId, next).then(addChats);
+      void chatsApi.reorderChats(projectId, next).then(addChats);
     },
     [order, current, setOrder],
   );

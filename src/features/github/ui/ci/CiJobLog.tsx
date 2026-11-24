@@ -2,7 +2,7 @@ import "./CiJobLog.css";
 import { memo, useEffect, useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { CiJob, CiStep, CiStepLog } from "@shared/github/ciTypes";
-import { api } from "@/foundation/ui/api";
+import { ciApi } from "@/features/github/ui/api/ci";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
@@ -60,7 +60,7 @@ function IconLink({ url, label }: { url: string; label: string }) {
 
 /** ジョブのログ（ステップごと）。まだ出ていない（動いている）ときは、その旨と GitHub へのリンク */
 function CiJobLogBody({ projectId, runId, job, focus }: { projectId: number; runId: number; job: CiJob; focus: boolean }) {
-  const log = useQuery(["CiJobLog.log", projectId, runId, job.id], () => api.ciJobLog(projectId, runId, job.id), { keepPrevious: true });
+  const log = useQuery(["CiJobLog.log", projectId, runId, job.id], () => ciApi.ciJobLog(projectId, runId, job.id), { keepPrevious: true });
   if (log.error) return <ErrorText message={errorText(log.error)} />;
   if (!log.data) return <p className="muted small ci-log-note">ログを読み込み中…</p>;
   const failed = stepToOpen(job);

@@ -2,7 +2,7 @@ import "./GitHubTab.css";
 import { useCallback } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
 import type { GitHubItem, GitHubListFilter } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListDetail } from "@/foundation/ui/kit/layout/ListDetail";
@@ -52,7 +52,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const selected = parseGitHubSelected(selectedText);
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter);
-  const meta = useQuery(["github.meta", projectId], () => api.githubMeta(projectId));
+  const meta = useQuery(["github.meta", projectId], () => githubApi.githubMeta(projectId));
   // 左の一覧を隠せる（広いときだけ。狭いときは一覧と中身を切り替えて 1 つずつ出す）
   const layout = useListDetail({ width: storage.settings.listWidth, hidden: storage.settings.listHidden, min: 260, keep: 360, detailMin: DETAIL_MIN_WIDTH, hasSelection: !!selected });
   const { narrow } = layout;

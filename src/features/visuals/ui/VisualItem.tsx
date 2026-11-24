@@ -2,7 +2,6 @@ import "./VisualItem.css";
 import { CodeXml, Eye, Maximize2, RotateCcw, StickyNote, TriangleAlert } from "lucide-react";
 import { memo, useState } from "react";
 import { AI_UPDATE_VISUAL_TOOL, VISUAL_KIND_LABELS, type ChatVisual } from "@shared/visuals/aiVisual";
-import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
@@ -11,7 +10,7 @@ import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useOptionalChatScreen, useOptionalTimelineNav } from "@/features/chat/ui";
+import { useOptionalChatScreen, useOptionalTimelineNav, turnsApi } from "@/features/chat/ui";
 import type { ToolCall } from "@/features/chat/ui";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
@@ -159,7 +158,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   const shownError = error?.code === visual.code ? error.message : null;
   const onError = (message: string) => setError({ code: visual.code, message });
   // 利用者が図の中のボタンを押したときだけ届く。作業していなければすぐ送り、作業中なら送信待ちに入れる（いまの作業に割り込まない）
-  const onPrompt = screen ? (text: string) => void api.sendMessage(screen.chatId, { text, options: {}, attachments: [], when: "later" }).catch(reportFailure("図から送れませんでした")) : undefined;
+  const onPrompt = screen ? (text: string) => void turnsApi.sendMessage(screen.chatId, { text, options: {}, attachments: [], when: "later" }).catch(reportFailure("図から送れませんでした")) : undefined;
   const save = () => {
     if (!screen) return;
     // ノートの名前の決まりと保存は notes が持つ（行き先 noteFromVisual）

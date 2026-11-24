@@ -1,13 +1,12 @@
 import { ChevronDown, Copy } from "lucide-react";
 import { useCallback, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import type { DockerCompose } from "@shared/docker/types";
-import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { type HandOffItem, HandOffItems, isLongSelection } from "@/features/attachments/ui";
+import { type HandOffItem, HandOffItems, isLongSelection, uploadsApi } from "@/features/attachments/ui";
 import { aroundRow, logCaptureLabel, logQuote, rowText, type LogContainerInfo, type LogRow } from "./dockerLogView";
 import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
@@ -30,7 +29,7 @@ function logHandOff(projectId: number, compose: DockerCompose, rows: LogRow[], i
     projectId,
     what: `${what}（長いので札にします）`,
     text: "",
-    capture: () => api.capture({ name: "docker-logs.txt", mime: "text/plain", text, source: { type: "docker_logs", label: logCaptureLabel(rows, infos), url: null }, tail_share: 0.8 }),
+    capture: () => uploadsApi.capture({ name: "docker-logs.txt", mime: "text/plain", text, source: { type: "docker_logs", label: logCaptureLabel(rows, infos), url: null }, tail_share: 0.8 }),
   };
 }
 

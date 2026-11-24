@@ -1,5 +1,5 @@
 import type { PaletteTextSource } from "@/features/palette/ui";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui";
 import { currentProjectsIndex } from "@/features/projects/ui";
 import { messageItem } from "./paletteSource";
 
@@ -8,5 +8,5 @@ export const messagePaletteSource: PaletteTextSource = {
   id: "message",
   label: "チャット内の文言",
   order: 40,
-  search: (q) => api.search(q, {}).then((hits) => hits.map((h) => messageItem(h, currentProjectsIndex().projectName))),
+  search: (q) => chatsApi.search(q, {}).then((hits) => hits.map((h) => messageItem(h, currentProjectsIndex().projectName))),
 };

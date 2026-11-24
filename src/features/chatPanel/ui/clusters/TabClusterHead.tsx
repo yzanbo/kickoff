@@ -2,10 +2,9 @@ import "./TabClusterHead.css";
 import type { ReactNode } from "react";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { askNewGroupName, confirmDeleteGroup } from "@/features/groups/ui";
+import { askNewGroupName, confirmDeleteGroup, groupsApi } from "@/features/groups/ui";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -99,13 +98,13 @@ export function TabClusterHead({
   const createGroup = async () => {
     if (projectId === undefined) return;
     const name = await askNewGroupName();
-    if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
+    if (name) await groupsApi.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
   // 自分で作ったグループの札（グループ別のとき）
   const group = cluster.group;
   const deleteGroup = async () => {
     if (!group) return;
-    if (await confirmDeleteGroup({ name: group.name })) await api.deleteGroup(group.id).catch(reportFailure("グループを削除できませんでした"));
+    if (await confirmDeleteGroup({ name: group.name })) await groupsApi.deleteGroup(group.id).catch(reportFailure("グループを削除できませんでした"));
   };
   const counts = chats ? stateCounts(chats, pending) : undefined;
   const countTitle = chats ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;

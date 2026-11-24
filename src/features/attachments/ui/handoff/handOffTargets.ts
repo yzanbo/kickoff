@@ -1,7 +1,7 @@
 // 「AI に渡す」の共通の口: 各タブの 1 つのもの（issue・PR・DB のつながらない様子など）を、押した時点の中身の札にして、選んだチャットの入力欄に入れる。
 // どの渡し先でも入力欄で止め、送るのは自分で。渡し先は上の機能が handOffTargets に登録する（この機能は入力欄・子チャット・新しいチャットを知らない）
 import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { definePoint } from "@/foundation/ui/points";
 
@@ -85,5 +85,5 @@ export async function captureOf(item: HandOffItem): Promise<Attachment[] | null>
 
 /** まだどれにも結び付いていないチャットなら、issue・PR に結び付ける */
 export function linkChat(item: HandOffItem, chat: Pick<Chat, "id" | "github_number">) {
-  if (item.link && chat.github_number === null) void api.setChatGitHub(chat.id, item.link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
+  if (item.link && chat.github_number === null) void chatsApi.setChatGitHub(chat.id, item.link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }

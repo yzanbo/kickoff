@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { makeChat } from "@shared/chat/testing";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { setAskHost, type AskRequest } from "@/foundation/ui/kit/ask";
 import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { confirmArchiveChats, confirmDeleteChats } from "./chatActions";
@@ -21,12 +21,12 @@ function answerAll(): AskRequest[] {
   fake.busy.clear();
   fake.archived = [];
   fake.deleted = [];
-  const archive = vi.spyOn(api, "archiveChat").mockImplementation(async (id) => {
+  const archive = vi.spyOn(chatsApi, "archiveChat").mockImplementation(async (id) => {
     if (fake.busy.has(id)) throw new Error("作業中です");
     fake.archived.push(id);
     return makeChat(id);
   });
-  const remove = vi.spyOn(api, "deleteChat").mockImplementation(async (id) => {
+  const remove = vi.spyOn(chatsApi, "deleteChat").mockImplementation(async (id) => {
     if (fake.busy.has(id)) throw new Error("作業中です");
     fake.deleted.push(id);
     return { trash_id: String(id) };

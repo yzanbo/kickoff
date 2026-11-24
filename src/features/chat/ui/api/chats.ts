@@ -1,4 +1,4 @@
-import type { Chat, FeedItem, SearchHit, ChatPatch } from "@shared/chat/types";
+import type { Chat, FeedItem, GitHubLink, SearchHit, ChatPatch } from "@shared/chat/types";
 import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatTexts, ChatTranscript } from "@shared/chat/detail";
 import type { NewChatBody } from "@shared/chat/send";
 import type { TrashedResult } from "@shared/trash/types";
@@ -42,4 +42,8 @@ export const chatsApi = {
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
   /** チャットを Kickoff のゴミ箱へ入れる（子チャットも。3 日は戻せる）。入れたゴミ箱の ID を返す */
   deleteChat: (chatId: number) => request<TrashedResult>("DELETE", `/api/chats/${chatId}`),
+  /** チャットに issue・PR を結び付ける（並び順は変えない） */
+  setChatGitHub: (chatId: number, link: GitHubLink) => request<Chat>("PUT", `/api/chats/${chatId}/github`, link),
+  /** チャットの結び付きを外す */
+  clearChatGitHub: (chatId: number) => request<Chat>("DELETE", `/api/chats/${chatId}/github`),
 };

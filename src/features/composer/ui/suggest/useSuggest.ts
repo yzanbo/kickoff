@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
 import type { SlashCommandOption } from "@shared/ai/types";
-import { api, type GitTarget } from "@/foundation/ui/api";
+import type { GitTarget } from "@/foundation/ui/api/workdir";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
+import { workplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { findTrigger, isSuggestAcceptKey, matchCommands, matchFiles } from "./suggestMatch";
-import { useFeatureBlock } from "@/features/ai/ui";
+import { useFeatureBlock, providersApi } from "@/features/ai/ui";
 
 export type SuggestItem =
   | { kind: "slash"; key: string; command: SlashCommandOption }
@@ -23,8 +24,8 @@ function targetOf(key: string): GitTarget {
 }
 
 // 作業場所ごとの、コマンドとファイルの一覧（チャット欄がいくつあっても、取りに行くのは作業場所ごとに 1 回。しばらくしたら取り直す）
-const commandsStore = createKeyedStore<string, SlashCommandOption[]>({ load: (key) => api.slashCommands(targetOf(key)), maxAge: MAX_AGE_MS });
-const filesStore = createKeyedStore<string, string[]>({ load: async (key) => (await api.projectFiles(targetOf(key))).files, maxAge: MAX_AGE_MS });
+const commandsStore = createKeyedStore<string, SlashCommandOption[]>({ load: (key) => providersApi.slashCommands(targetOf(key)), maxAge: MAX_AGE_MS });
+const filesStore = createKeyedStore<string, string[]>({ load: async (key) => (await workplaceFiles(targetOf(key))).files, maxAge: MAX_AGE_MS });
 
 /**
  * チャット欄の / と @ の候補（Claude Code の VS Code 拡張と同じ）。

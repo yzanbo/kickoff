@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { COMPACT_PROMPT_FIELDS, compactPromptFor, type CompactPromptKind } from "@shared/chat/prompts";
-import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { addProject, useProjects } from "@/features/projects/ui";
+import { addProject, useProjects, projectsApi } from "@/features/projects/ui";
 import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { savedCompactPrompt } from "./compactPromptKinds";
 
@@ -24,7 +23,7 @@ export function useCompactPrompt(kind: CompactPromptKind, projectId: number | nu
 
   const update = async (patch: Record<string, string | boolean | null>) => {
     // 保存の応答は知らせを待たずに店へ入れる（入れないと、知らせが届くまで保存した文が「書きかけ」のまま残る）
-    if (projectId !== null) addProject(await api.updateProject(projectId, patch));
+    if (projectId !== null) addProject(await projectsApi.updateProject(projectId, patch));
     else await saveSettings(patch);
   };
   const submit = () => update({ [fields.text]: next });

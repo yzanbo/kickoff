@@ -1,7 +1,9 @@
 // ワークツリーを消す流れ（画面から消す所はどれもここを通る: 消す確認・WorktreeBar の「片付ける」・PR の知らせ・マージのあとの片付け）
 import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
+import { gitApi } from "@/features/git/ui";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 import { choose, confirm } from "@/foundation/ui/kit/ask";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { worktreeEnvOf } from "./envStore";
@@ -40,10 +42,10 @@ export async function removeWorktreeAndRefresh(
   path: string,
   { pullMain, ...opts }: RemoveWorktreeOptions,
 ): Promise<{ list: GitWorktree[]; pullError: string | null }> {
-  const list = await api.removeWorktree(projectId, path, opts);
+  const list = await worktreesApi.removeWorktree(projectId, path, opts);
   worktreesStore.set(projectId, list);
   worktreesStore.invalidate(projectId);
-  const pullError = pullMain ? await api.gitPull(projectId).then(() => null, (e: unknown) => errorMessage(e)) : null;
+  const pullError = pullMain ? await gitApi("POST /api/projects/:projectId/git/pull", workdirInput(projectId)).then(() => null, (e: unknown) => errorMessage(e)) : null;
   return { list, pullError };
 }
 
@@ -55,7 +57,7 @@ export async function removeWorktreeAndRefresh(
  * 消したら一覧を取り直し、消した後の一覧を返す（やめたら null）。失敗は投げる
  */
 export async function confirmRemoveWorktree(projectId: number, worktree: Pick<GitWorktree, "path" | "branch">, label: string): Promise<GitWorktree[] | null> {
-  const info = await api.worktreeRemovalInfo(projectId, worktree.path);
+  const info = await worktreesApi.worktreeRemovalInfo(projectId, worktree.path);
   const notes = removalNotes(info, { deleteBranch: "ask" }).map((note) => `・${note}`);
   const message = [
     `${worktree.path} のフォルダを消します。ここで作業していたチャットは、続きを本体で進めます。`,

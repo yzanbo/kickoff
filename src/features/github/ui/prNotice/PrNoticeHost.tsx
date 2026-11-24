@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useCell } from "@/foundation/ui/store";
 import { PrNoticeDialog } from "./PrNoticeDialog";
 import { noticeKey, prNoticeRequest, useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
+import { worktreesApi } from "@/features/worktrees/ui";
 
 /** GitHub に聞き直してもらう（コアが 30 秒以内の続けての頼みはまとめる。聞けなくても前の知らせのまま） */
 const refreshNotices = () =>
-  void api
+  void worktreesApi
     .refreshWorktreePrs()
     .then((list) => worktreePrsStore.set(list))
     .catch(() => undefined);

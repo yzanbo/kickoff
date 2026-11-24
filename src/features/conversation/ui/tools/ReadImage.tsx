@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
 import { formatBytes } from "@shared/foundation/text/bytes";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
-import { useAttachmentViewer } from "@/features/attachments/ui";
+import { useAttachmentViewer, uploadsApi } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui/screen/pastWorkplace";
 import { readImageHeight, readImageKey, rememberReadImageHeight } from "./readImageHeights";
 
@@ -65,7 +64,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
     }
     setLoaded(undefined);
     setError(undefined);
-    api
+    uploadsApi
       .toolImage(chatId, path, at)
       .then(({ blob, mtime }) => {
         if (!alive) return;

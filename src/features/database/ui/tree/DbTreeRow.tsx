@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/database/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { TreeNode } from "@/foundation/ui/kit/list/tree";
-import { ApiError } from "@/foundation/ui/api";
+import { ApiError } from "@/foundation/ui/api/http";
 import { useDbClient, type DbClientActions } from "@/features/database/ui/state/dbClientContext";
 import { SshHostKeyDialog } from "@/features/database/ui/connection/SshHostKeyDialog";
 import type { TreeGet, TreeLoad } from "./useTreeLoads";

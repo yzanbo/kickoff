@@ -1,5 +1,5 @@
 import type { DragEvent } from "react";
-import { api } from "@/foundation/ui/api";
+import { groupsApi } from "@/features/groups/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
@@ -33,7 +33,7 @@ export function useClusterReorder(clusters: TabCluster[] | null) {
       if (projectId === undefined) return;
       // ほかのプロジェクトのグループは並べ替えに入れない（そのプロジェクトのグループだけの並びを送る）
       const own = next.filter((id) => projectOf(id) === projectId);
-      void api.reorderGroups(projectId, own).catch(reportFailure("グループを並べ替えられませんでした"));
+      void groupsApi.reorderGroups(projectId, own).catch(reportFailure("グループを並べ替えられませんでした"));
     },
   });
   return {

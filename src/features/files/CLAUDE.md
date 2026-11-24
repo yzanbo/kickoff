@@ -6,7 +6,7 @@
 - `core/files.ts`（読み書き。土台の `workplaceFiles`、ほかの機能へは `FilesApi`）・`core/search.ts`・`core/routes/files.ts`（`@shared/files/contract.ts`・`workdirInput`）・`core/tools.ts`（`open_file`）
 - `ui/EditorTab`・`FilesPane`・`FileTree`・`useFileOps`・`fileMenuItems`・`ui/fileTabKinds.ts`・`useFileTabs`・`ProjectFileTab`
 - `ui/FileView`・`useFileDocument`・`CodeEditor`・`monacoEditor.ts`（付け足しは `codeEditorParts.ts`）・`editorModels.ts`・`SideFileView`
-- `ui/useProjectSearch`・`useSearchReplace`・`ui/filesStore.ts`（作業場所ごとの一覧の店）・`ui/links/`（チップ。chat の口 `chatFileLinks` の実装）
+- `ui/useProjectSearch`・`useSearchReplace`・`ui/filesStore.ts`（作業場所ごとの一覧の店）・`ui/links/`（チップ。chat の口 `chatFileLinks` の実装）・土台の口 `workplaceFilesSources`（下の機能が読む一覧。`ui/contributes.ts`）
 - Git の状態・差分のタブは口 `ui/filesGit.ts` で受ける（git が登録。files は git を読まない）
 
 ## 決まり

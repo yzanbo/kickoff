@@ -2,9 +2,8 @@ import "./ConnectionStatus.css";
 import { WifiOff } from "lucide-react";
 import type { ReconnectState } from "@shared/chat/chatLive";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
-import { api } from "@/foundation/ui/api";
 import { TICK_SECOND, useTicker } from "@/foundation/ui/hooks/useTicker";
-import { useActionButton } from "@/features/chat/ui";
+import { useActionButton, turnsApi } from "@/features/chat/ui";
 import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** 再試行中の文（「接続が切れています。再試行 3/10・あと 8 秒」）。残りの秒数を数える */
@@ -46,7 +45,7 @@ export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect:
         className="link-button"
         title="つながっても自動で再開しない（自分でメッセージを送ると、続きから再開します）"
         disabled={action.pending()}
-        onClick={() => action.press("", () => api.stopReconnect(chatId), "自動の再開をやめられませんでした")}
+        onClick={() => action.press("", () => turnsApi.stopReconnect(chatId), "自動の再開をやめられませんでした")}
       >
         自動で再開しない
       </button>

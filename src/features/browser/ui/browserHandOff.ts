@@ -1,7 +1,7 @@
 // 埋め込みブラウザのタブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を札にする
 import type { Attachment } from "@shared/chat/types";
 import { webUrlOf } from "@shared/remoteImages/linkWarnings";
-import { api } from "@/foundation/ui/api";
+import { uploadsApi } from "@/features/attachments/ui";
 import { showToast } from "@/foundation/ui/kit/toast";
 import type { HandOffItem } from "@/features/attachments/ui";
 import { consoleDocument, consoleLabelOf, pageLinkOf, screenLabelOf } from "./consoleDocument";
@@ -21,11 +21,11 @@ async function captureTab(webContentsId: number, page: { url: string; title: str
   const url = pageLinkOf(page.url);
   const jobs: Promise<Attachment>[] = [];
   if (taken.screen) {
-    jobs.push(api.capture({ name: "browser-screen.jpg", mime: "image/jpeg", image_base64: taken.screen.data, source: { type: "browser_screen", label: screenLabelOf(page, taken.screen), url } }));
+    jobs.push(uploadsApi.capture({ name: "browser-screen.jpg", mime: "image/jpeg", image_base64: taken.screen.data, source: { type: "browser_screen", label: screenLabelOf(page, taken.screen), url } }));
   }
   if (taken.console.length > 0) {
     jobs.push(
-      api.capture({
+      uploadsApi.capture({
         name: "browser-console.md",
         mime: "text/markdown",
         text: consoleDocument(page, taken.console, clock),
@@ -63,7 +63,7 @@ export function browserSelectionItem(projectId: number, text: string, url: strin
     projectId,
     what: "ブラウザで選んだ文",
     text: "",
-    capture: () => api.capture({
+    capture: () => uploadsApi.capture({
       name: "browser-selection.txt",
       mime: "text/plain",
       text,

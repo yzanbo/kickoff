@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { knownChat } from "./store/knownChats";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatTitle } from "./chatTitle";
 import { choose, reportFailure } from "@/foundation/ui/kit/ask";
 import { confirmArchiveChats, confirmDeleteChats, deleteChat } from "./chatActions";
@@ -55,7 +55,7 @@ export async function closeChatWithChoice(
       // 既定をアーカイブにしていても、アーカイブは必ず確かめる（いま聞いた選択肢で選んだときは、それを確かめたことにする）。
       // やめたら閉じない
       if (!chat.archived_at) {
-        if (confirmed) await api.archiveChat(chat.id, true);
+        if (confirmed) await chatsApi.archiveChat(chat.id, true);
         else if (!(await confirmArchiveChats({ id: chat.id, title: chat.title, archived_at: null }))) return;
       }
     } else if (action === "delete") {

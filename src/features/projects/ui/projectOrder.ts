@@ -1,6 +1,6 @@
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 
@@ -29,7 +29,7 @@ export const archivedProjects = (projects: Project[]) => projects.filter((p) => 
 
 /** 上に固定する・やめる、しまう・戻す、タグを付け外す（右クリックのメニュー・見出しのピン・戻すボタンで共通。失敗はお知らせのダイアログで出す） */
 export const changeProject = (id: number, patch: { pinned?: boolean; archived?: boolean; tags?: string[] }) =>
-  void api.updateProject(id, patch).catch((e: unknown) => alert("変更できませんでした", errorMessage(e)));
+  void projectsApi.updateProject(id, patch).catch((e: unknown) => alert("変更できませんでした", errorMessage(e)));
 
 /** 確かめてから、プロジェクトをアーカイブから戻す（やめたら何もしない） */
 export async function confirmRestoreProject(project: Pick<Project, "id" | "name">) {

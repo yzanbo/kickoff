@@ -1,6 +1,6 @@
 import "./ConnectionPopover.css";
 import { useEffect, useRef, type RefObject } from "react";
-import { api } from "@/foundation/ui/api";
+import { serverApi } from "@/foundation/ui/api/server";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { accountLine, githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui";
 import type { ConnectionState } from "@/foundation/ui/api/serverConnection";
@@ -26,7 +26,7 @@ const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…"
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
 export function ConnectionPopover({ anchor, state, since, onClose, onOpenSettings }: Props) {
   // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）。プロバイダー・GitHub は店から（開くたびに確かめ直す）
-  const status = useQuery(["ConnectionPopover.status", state], () => api.status(), { keepPrevious: true });
+  const status = useQuery(["ConnectionPopover.status", state], () => serverApi("GET /api/status"), { keepPrevious: true });
   const providerState = useProviders();
   const githubState = useGitHubStatus();
   const shownState = useRef(state);

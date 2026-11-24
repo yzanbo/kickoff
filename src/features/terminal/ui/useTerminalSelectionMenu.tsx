@@ -1,11 +1,10 @@
 import type { Terminal } from "@xterm/xterm";
 import { ChevronDown, Copy } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
-import { api } from "@/foundation/ui/api";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { type HandOffItem, HandOffItems, cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "@/features/attachments/ui";
+import { type HandOffItem, HandOffItems, cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote, uploadsApi } from "@/features/attachments/ui";
 import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
 /** 小さなボタンの幅の目安（画面の右端からはみ出さないように寄せる） */
@@ -19,7 +18,7 @@ function selectionItem(projectId: number, cwd: string, text: string): HandOffIte
     projectId,
     what: `ターミナルで選んだ文（${lines} 行。長いので札にします）`,
     text: "",
-    capture: () => api.capture({ name: "terminal.txt", mime: "text/plain", text, source: { type: "terminal", label: terminalCaptureLabel(cwd, text), url: null }, tail_share: 0.8 }),
+    capture: () => uploadsApi.capture({ name: "terminal.txt", mime: "text/plain", text, source: { type: "terminal", label: terminalCaptureLabel(cwd, text), url: null }, tail_share: 0.8 }),
   };
 }
 

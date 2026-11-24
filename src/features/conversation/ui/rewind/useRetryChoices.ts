@@ -1,5 +1,5 @@
 import { RETRY_PROMPT } from "@shared/chat/prompts";
-import { api } from "@/foundation/ui/api";
+import { turnsApi } from "@/features/chat/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { type ChatOptionsState, effortsFor, fitChatOptions, groupModels } from "@/features/ai/ui";
 import type { RetryChange, RetryChoices } from "@/features/conversation/ui/rewindContext";
@@ -38,5 +38,5 @@ export function retryTurn(chatId: number, options: ChatOptionsState, change: Ret
     next.effort = change.effort;
     options.setEffort(change.effort);
   }
-  void api.sendMessage(chatId, { text: RETRY_PROMPT, options: next, attachments: [] }).catch(reportFailure("再試行できませんでした"));
+  void turnsApi.sendMessage(chatId, { text: RETRY_PROMPT, options: next, attachments: [] }).catch(reportFailure("再試行できませんでした"));
 }

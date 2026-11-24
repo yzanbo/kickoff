@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 
@@ -18,7 +18,7 @@ export function useChatRename(onError: (message: string) => void = alertRenameFa
         ? {
             onSubmit: (title: string) => {
               setRenamingId(null);
-              void api.renameChat(chat.id, title).catch((e: unknown) => onError(errorMessage(e)));
+              void chatsApi.renameChat(chat.id, title).catch((e: unknown) => onError(errorMessage(e)));
             },
             onCancel: () => setRenamingId(null),
           }

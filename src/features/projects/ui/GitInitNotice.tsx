@@ -1,6 +1,6 @@
 import { GitBranch } from "lucide-react";
 import { useState } from "react";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 
@@ -19,7 +19,7 @@ export async function startProjectGit(projectId: number): Promise<boolean> {
   });
   if (!ok) return false;
   try {
-    await api.initProjectGit(projectId);
+    await projectsApi.initProjectGit(projectId);
     return true;
   } catch (e) {
     await reportFailure("git の管理を始められませんでした")(e);

@@ -1,7 +1,7 @@
 import "./AttachmentGrid.css";
 import type { RefObject } from "react";
 import type { Attachment } from "@shared/chat/types";
-import { attachmentUrl } from "@/foundation/ui/api";
+import { attachmentUrl } from "@/features/attachments/ui/api/uploads";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { AttachmentChip, isPreviewable, viewerImagesOf } from "./AttachmentChip";
 import { useAttachmentViewer } from "./useAttachmentViewer";

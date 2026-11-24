@@ -3,11 +3,10 @@ import { Bot, Square, SquareTerminal } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
-import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ActivityNote } from "@/features/subagents/ui/SubagentChip";
-import { useActionButton, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
+import { useActionButton, useOptionalActivityNav, useOptionalSubagentNav, turnsApi } from "@/features/chat/ui";
 import { useTaskOutput } from "./commandOutputs";
 import { backgroundCallTarget } from "./backgroundTarget";
 
@@ -51,7 +50,7 @@ export function BackgroundTasks({
           }))
         )
           return;
-        await api.stopBackgroundTask(chatId, task.task_id);
+        await turnsApi.stopBackgroundTask(chatId, task.task_id);
       },
       "裏の作業を止められませんでした",
     );

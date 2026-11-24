@@ -1,9 +1,8 @@
 // チャットのパネル・チャットの画面の右の欄のタブの中身（チャット・新しいチャット・子チャット・新しい子チャット・サブエージェント。種類の項目の Page は chatTabKinds.ts）。
 // 中身からタブへの知らせは、どれも patchTab（その種類のタブの中身だけを変える）か、送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット）
 import { Activity } from "react";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { chatPaneSlot, createdChildPlace, openChat, useKeepAlive } from "@/features/chat/ui";
+import { chatPaneSlot, createdChildPlace, openChat, useKeepAlive, chatsApi } from "@/features/chat/ui";
 import { ChatScreen, NewChildPane, SideChildChat, SubagentScreen } from "@/features/conversation/ui";
 import { childTab, useTabPage, type PanelTab, type TabPageProps } from "@/features/panel/ui";
 import { NewChatPane } from "./tabs/NewChatPane";
@@ -22,7 +21,7 @@ export function NewChatPage({ tab: t, panel, visible }: PageOf<"new">) {
       visible={visible}
       onCreated={(chat) => {
         // 固定していた下書きは、できたチャットも固定する（送るまでの間に固定を付け外ししていても、いまの値で）
-        if (newChatDraft(t.key)?.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
+        if (newChatDraft(t.key)?.pinned) void chatsApi.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
         // 下書きの右の欄（開いたノートなど）は、できたチャットの右の欄へ移す
         moveDraftSidePanel(t.key, chat.id);
         panel.replaceWithChat(t.key, chat);

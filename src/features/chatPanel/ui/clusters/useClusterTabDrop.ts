@@ -1,9 +1,8 @@
 import { useState, type DragEvent } from "react";
-import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { newChatDraft } from "@/features/composer/ui";
-import { knownChat } from "@/features/chat/ui";
+import { knownChat, chatsApi } from "@/features/chat/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";
 import type { TabCluster } from "./tabClusters";
@@ -17,7 +16,7 @@ interface DropHandlers {
 
 /**
  * タブの列をグループ別にまとめているとき、チャットのタブを別のグループのまとまりの枠（No Group も）に落とすと、
- * チャットをそのグループへ移す（サイドバー・全プロジェクトのボードのグループの列へのドラッグと同じ api.setChatGroup）。送る前の新しいチャット（下書き）は作成先のグループを変える。
+ * チャットをそのグループへ移す（サイドバー・全プロジェクトのボードのグループの列へのドラッグと同じ chatsApi.setChatGroup）。送る前の新しいチャット（下書き）は作成先のグループを変える。
  * 移せるかは clusterTabDrop（同じプロジェクトのグループだけ・子チャットは移さない）。落とす位置の印・ペインの中の並べ替えはタブの列（useTabDrag）に任せ、
  * ここは移せる枠を点線で示して、落としたらグループを変えるだけ
  */
@@ -46,7 +45,7 @@ export function useClusterTabDrop(panel: PanelController, dragging: string | nul
         onDrop: () => {
           const drop = dropOf(c);
           setOver(null);
-          if (drop?.kind === "chat") void api.setChatGroup(drop.chatId, drop.groupId).catch(reportFailure("グループへ移せませんでした"));
+          if (drop?.kind === "chat") void chatsApi.setChatGroup(drop.chatId, drop.groupId).catch(reportFailure("グループへ移せませんでした"));
           else if (drop) setDraftGroup({ panel: panel.key, key: drop.tabKey }, drop.groupId ?? undefined, drop.groupName);
         },
       };

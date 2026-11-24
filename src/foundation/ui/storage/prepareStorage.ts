@@ -1,4 +1,4 @@
-import { api } from "@/foundation/ui/api";
+import { serverApi } from "@/foundation/ui/api/server";
 import { assertGroups, forgetIdSettings, pruneUndeclared, type StorageGroup } from "./groups";
 import { readSetting, writeSetting } from "./settings";
 import { storage as shellStorage } from "./storage";
@@ -28,7 +28,7 @@ export function adoptDatabase(groups: readonly StorageGroup[], databaseId: strin
 export async function prepareStorage(groups: readonly StorageGroup[], { timeoutMs = STATUS_TIMEOUT_MS }: { timeoutMs?: number } = {}): Promise<void> {
   assertGroups(groups);
   pruneUndeclared(groups);
-  const databaseId = api.status().then((status) => status.database_id);
+  const databaseId = serverApi("GET /api/status").then((status) => status.database_id);
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<undefined>((resolve) => (timer = setTimeout(resolve, timeoutMs, undefined)));
   const id = await Promise.race([databaseId, timeout]).catch(() => undefined);

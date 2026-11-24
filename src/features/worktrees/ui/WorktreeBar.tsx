@@ -2,7 +2,8 @@ import "./WorktreeBar.css";
 import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
 import type { PullRequestInfo } from "@shared/git/types";
 import { PR_STATE_LABELS, prStateOf } from "@shared/git/prState";
-import { api } from "@/foundation/ui/api";
+import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
+import { pullRequestSource } from "./pullRequests";
 import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -39,7 +40,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
   const pr = useQuery<PullRequestInfo | null>(
     ["WorktreeBar.pr", projectId, worktree],
     () =>
-      api.pullRequest(target).catch((e: unknown) => {
+      pullRequestSource().get(target).catch((e: unknown) => {
         // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
         worktreesStore.invalidate(projectId);
         throw e;
@@ -53,7 +54,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
 
   const create = () =>
     action.run("create", async () => {
-      pr.setData(await api.createPullRequest(target));
+      pr.setData(await pullRequestSource().create(target));
       void git.refresh();
     });
 
@@ -63,7 +64,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
     if (prNotice) return openPrNotice(prNotice);
     // 消す前に失うもの（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット）を調べて知らせる
     // Kickoff が組の名前を割り当てたワークツリーならコンテナとデータも、このワークツリーの DB から作った接続があればそれも消すかを一緒に選ぶ
-    const info = await api.worktreeRemovalInfo(projectId, worktree).catch(() => null);
+    const info = await worktreesApi.worktreeRemovalInfo(projectId, worktree).catch(() => null);
     const notes = info ? removalNotes(info, { deleteBranch: true }).map((note) => `・${note}`) : [];
     const confirm = {
       title: "ワークツリーを片付けますか？",
@@ -88,7 +89,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
   // ［AI で整える］: チャットを作って開く（手順を流したあとの一覧も入れる）
   const setup = () =>
     action.run("setup", async () => {
-      const { chat, worktrees } = await api.setupWorktreeEnv(projectId, worktree);
+      const { chat, worktrees } = await worktreesApi.setupWorktreeEnv(projectId, worktree);
       worktreesStore.set(projectId, worktrees);
       addChat(chat);
       open({ kind: "chat", projectId: projectId, chatId: chat.id });

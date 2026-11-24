@@ -4,13 +4,13 @@
 
 ## 口の一覧
 - `store/`: `createStore`・`createKeyedStore`・`createCell`・`createSignal`・`createRegistry`・`useController`（店はこれだけ）
-- `query/`: `useQuery`（1 つの部品だけが読む値）。`api/`: `client(contract)`・SSE の接続 `useServerConnection`・`useServerEvent` / `onServerEvent`
+- `query/`: `useQuery`（1 つの部品だけが読む値）。`api/`: `client(contract)`（機能の呼び手は各機能の `ui/api.ts`・`ui/api/`。束ねない）・`serverApi`（接続の状態）・SSE の接続 `useServerConnection`・`useServerEvent` / `onServerEvent`
 - `storage/`: `defineSettings(機能, {…})`（各機能の `ui/storage.ts`）・`useSetting`・`readSetting` / `writeSetting`
 - `navigation/`: ルーター `router.ts`（`useRoute`）・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・履歴 `navigationHistory.ts`
 - `points.ts`: 拡張点 `definePoint`（入れるのは `@/app/renderer/registry.ts` だけ。部品は `lazyPart`）
 - `kit/`: `IconButton`・`Popover`・`PopupMenu`・`ask.ts`・`Dialog`・`Field` ほか・`StatusDot`・`Markdown`・`dragGhost.ts`・`drag/`・`tabs/`・`usePageFind`・アイコン `icons.ts`
 - `hooks/`: `useWindowEvent`・`useLatest`・`useSizeObserver`・`useNearViewport`・`useAction`・`useRovingList`・`useTree`・`useDragSize`・`useOverflowCompact`・`useTicker`・`useCodeMirror`
-- `lib/`（`keys.ts`・`time.ts`・`textFind.ts`）・`document/`（`useDocument`）・`workplace/`・`external/`・`code/`・`markdown/`・`diff/`・`theme/`・`shell/`（`appHosts`・`openAppDialog`・`footerItems`）・`testing/`
+- `lib/`（`keys.ts`・`time.ts`・`textFind.ts`）・`document/`（`useDocument`）・`workplace/`（ワークツリーの口 `worktreeSource`・ファイルの一覧 `workplaceFiles` は持ち主の機能が登録）・`external/`・`code/`・`markdown/`・`diff/`・`theme/`・`shell/`（`appHosts`・`openAppDialog`・`footerItems`）・`testing/`
 
 ## 決まり
 - 土台は機能・`app` を読まない。機能のものが要るときは拡張点か引数で受ける。

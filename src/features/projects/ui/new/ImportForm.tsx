@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
@@ -25,7 +25,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const submitting = busy !== null;
 
   // フォルダが決まったら中身を点検する（入力中は少し待つ）。フォルダを変えたら git の管理の選択は初めに戻す
-  const inspected = useQuery(folder.trim() ? ["ImportForm.inspect", folder] : null, () => api.inspectWorkspace(folder), { delay: 300 });
+  const inspected = useQuery(folder.trim() ? ["ImportForm.inspect", folder] : null, () => projectsApi.inspectWorkspace(folder), { delay: 300 });
   const inspection = inspected.data;
   const inspecting = inspected.loading;
   useEffect(() => setInitGit(false), [folder]);
@@ -45,7 +45,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const importProject = (e: FormEvent) => {
     e.preventDefault();
     if (!inspection) return;
-    void run("submit", async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit, ...noteDirBody(noteBase, noteDir) })), { keepBusy: true });
+    void run("submit", async () => onCreated(await projectsApi.importProject({ path: inspection.path, name, description, init_git: initGit, ...noteDirBody(noteBase, noteDir) })), { keepBusy: true });
   };
 
   return (

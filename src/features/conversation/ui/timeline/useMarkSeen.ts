@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { isUnreadEvent } from "@shared/chat/state";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
 
 /** 自分で見ていると数える操作（チャットの画面の中のスクロール・クリック・キー入力） */
@@ -54,7 +54,7 @@ export function useMarkSeen({
     if (sent.current.chatId !== chat.id) sent.current = { chatId: chat.id, upTo: 0 };
     if (!chat.unread && lastUnreadId <= sent.current.upTo) return;
     sent.current.upTo = lastUnreadId;
-    void api.markSeen(chat.id, lastEventId).catch(() => {});
+    void chatsApi.markSeen(chat.id, lastEventId).catch(() => {});
   });
 
   // 表示した・一番下まで来た・チャットが替わったとき。裏のタブを表に戻した直後は、裏の間に増えた分へ一番下を寄せる前に

@@ -4,7 +4,7 @@ import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { EffortDefault } from "@shared/ai/types";
 import { providerCan } from "@shared/ai/providers";
 import type { ChatOptions, EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
+import { providersApi } from "@/features/ai/ui/api/providers";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
@@ -27,7 +27,7 @@ const effortKeyOf = (projectId: number, model: string | null, worktree: string |
 const effortDefaults = createKeyedStore<string, EffortDefault>({
   load: (key) => {
     const [projectId, model, worktree] = key.split("\n");
-    return api.effortDefault(Number(projectId), model || null, worktree || undefined);
+    return providersApi.effortDefault(Number(projectId), model || null, worktree || undefined);
   },
   maxAge: EFFORT_DEFAULT_MAX_AGE_MS,
 });

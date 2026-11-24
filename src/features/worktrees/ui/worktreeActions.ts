@@ -1,5 +1,5 @@
 // worktrees が作業場所の飾り（workplaceDecor の actions）に出す、ワークツリーを作る・消す（履歴の左の一覧の「ワークツリー」と、その行の右クリック）
-import { api } from "@/foundation/ui/api";
+import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 import type { WorkplaceActions } from "@/foundation/ui/workplace/workplaceDecor";
 import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
@@ -11,7 +11,7 @@ export const worktreeActions: WorkplaceActions = {
   async create(projectId) {
     const branch = await askNewWorktreeBranch(projectId);
     if (!branch) return false;
-    worktreesStore.set(projectId, await api.addWorktree(projectId, branch));
+    worktreesStore.set(projectId, await worktreesApi.addWorktree(projectId, branch));
     worktreesStore.invalidate(projectId);
     return true;
   },

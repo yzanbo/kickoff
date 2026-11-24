@@ -10,7 +10,9 @@ import { githubSettingsSection } from "./settings/settingsSections";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { workplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
 import { githubHosts, prNoticeDecor } from "./appHosts";
-import { branchMenuItems } from "@/features/git/ui";
+import { branchMenuItems, projectGitHubSources } from "@/features/git/ui";
+import { worktreePullRequests } from "@/features/worktrees/ui";
+import { githubApi } from "./api/github";
 import { pushPrItem } from "./pushPrItem";
 import { viewDescribers } from "@/foundation/ui/shell/viewDescribers";
 import { githubDescriber } from "./viewDescriber";
@@ -29,6 +31,9 @@ export const contributes = [
   workplaceDecor.item(prNoticeDecor),
   // 履歴の手元のブランチの右クリックの「プッシュして PR を作る」
   branchMenuItems.item(pushPrItem),
+  // 履歴のコミットの「GitHub で開く」の連携先と、ワークツリーの帯の PR（読む・作る）
+  projectGitHubSources.item({ projectGitHub: githubApi.projectGitHub }),
+  worktreePullRequests.item({ get: githubApi.pullRequest, create: (target) => githubApi.createPullRequest(target) }),
   // AI の get_user_view に返す、開いている issue・PR
   viewDescribers.item(githubDescriber),
 ];

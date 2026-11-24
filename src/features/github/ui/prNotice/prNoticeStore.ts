@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
 import { createCell, type ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { worktreesApi } from "@/features/worktrees/ui";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -15,7 +15,7 @@ export const reduceWorktreePrs: ReduceTable<WorktreePrNotice[]> = {
   worktree_prs: (list, event) => [...list.filter((n) => n.project_id !== event.project_id), ...event.notices],
 };
 
-export const worktreePrsStore = createStore<WorktreePrNotice[]>({ load: () => api.worktreePrs(), reduce: reduceWorktreePrs });
+export const worktreePrsStore = createStore<WorktreePrNotice[]>({ load: () => worktreesApi.worktreePrs(), reduce: reduceWorktreePrs });
 
 /** いまの知らせ（すべてのプロジェクト。届くまでは空） */
 export const useWorktreePrNotices = (): WorktreePrNotice[] => useStore(worktreePrsStore).data ?? NONE;

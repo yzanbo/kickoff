@@ -1,6 +1,6 @@
 import { StickyNote } from "lucide-react";
 import type { Attachment, NoteAttachment } from "@shared/chat/types";
-import { attachmentUrl } from "@/foundation/ui/api";
+import { attachmentUrl } from "@/features/attachments/ui/api/uploads";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat, useOptionalChatScreen } from "@/features/chat/ui";
 import type { ViewerImage } from "@/foundation/ui/kit/imageViewer/ImageViewer";

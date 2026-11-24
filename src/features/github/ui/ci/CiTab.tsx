@@ -2,7 +2,7 @@ import "./CiTab.css";
 import { useCallback, useMemo } from "react";
 import { ExternalLink, Workflow } from "lucide-react";
 import type { CiRun, CiRunList } from "@shared/github/ciTypes";
-import { api } from "@/foundation/ui/api";
+import { ciApi } from "@/features/github/ui/api/ci";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListDetail } from "@/foundation/ui/kit/layout/ListDetail";
@@ -45,7 +45,7 @@ export function CiTab({ projectId }: { projectId: number }) {
 function CiBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
   const [selectedText, setSelectedText] = useSetting(storage.settings.ciSelected(projectId));
   const selected = parseCiSelected(selectedText);
-  const list = useQuery(["CiTab.list", projectId], () => api.ciRuns(projectId), {
+  const list = useQuery(["CiTab.list", projectId], () => ciApi.ciRuns(projectId), {
     keepPrevious: true,
     // 動いている実行がある間は短く
     ...githubRefresh<CiRunList>((d) => (hasPending(d) ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS)),

@@ -1,10 +1,10 @@
 import type { ProjectPatch } from "@shared/foundation/apiTypes";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { useEditedProject } from "@/features/projects/ui";
+import { useEditedProject, projectsApi } from "@/features/projects/ui";
 
 /** 「自動」「gh で有効なもの」を表す select の値 */
 const AUTO = "";
@@ -17,9 +17,9 @@ const AUTO = "";
 export function GitHubSection() {
   const project = useEditedProject();
   // 保存したら、自動の連携先を見せ直すため取り直す
-  const github = useQuery(["GitHubSection.github", project.id, project.github_remote, project.github_account], () => api.projectGitHub(project.id), { keepPrevious: true });
+  const github = useQuery(["GitHubSection.github", project.id, project.github_remote, project.github_account], () => githubApi.projectGitHub(project.id), { keepPrevious: true });
   const { error, guard } = useAction();
-  const save = (patch: ProjectPatch) => guard(() => api.updateProject(project.id, patch));
+  const save = (patch: ProjectPatch) => guard(() => projectsApi.updateProject(project.id, patch));
   const data = github.data;
   const active = data?.accounts.find((a) => a.active);
   // 選んでいるアカウントが gh からなくなっていても、選んでいることが分かるように残す

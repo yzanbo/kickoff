@@ -1,6 +1,6 @@
 import { useEffectEvent, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { chatsApi } from "@/features/chat/ui/api/chats";
 import { onServerEvent, onServerOpen } from "@/foundation/ui/api/events";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { CHAT_STORE_EVENTS } from "./chatDetail";
@@ -35,8 +35,8 @@ const chatStore = createChatStore({
   timer,
   now: () => Date.now(),
   windowHidden: () => document.visibilityState === "hidden",
-  load: (chatId, query) => api.chatDetail(chatId, query),
-  page: (chatId, query) => api.chatEvents(chatId, query),
+  load: (chatId, query) => chatsApi.chatDetail(chatId, query),
+  page: (chatId, query) => chatsApi.chatEvents(chatId, query),
   chats: knownChatsForStore,
   approvals: approvalsOf,
 });

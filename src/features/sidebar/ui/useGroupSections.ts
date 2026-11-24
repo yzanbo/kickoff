@@ -7,11 +7,10 @@ import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { detachBlockReason, detachChild } from "@/features/childChats/ui/detachChild";
 import { errorMessage } from "@shared/foundation/errors";
 import { alert } from "@/foundation/ui/kit/ask";
-import { api } from "@/foundation/ui/api";
-import { NewChatItem } from "@/features/chat/ui";
+import { NewChatItem, chatsApi } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
-import { confirmDeleteGroup, groupsSettings, UNGROUPED_SORT_ID, ungroupedPosition } from "@/features/groups/ui";
+import { confirmDeleteGroup, groupsSettings, UNGROUPED_SORT_ID, ungroupedPosition, groupsApi } from "@/features/groups/ui";
 import { restoreDroppedChat, useGroupDrop } from "@/features/chatList/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
@@ -40,7 +39,7 @@ export function useGroupSections({ project, groups, menuExtra }: { project: Proj
   const projectId = project.id;
   const [renaming, setRenaming] = useState<number>();
   const removeGroup = async (group: ChatGroup) => {
-    if (await confirmDeleteGroup(group)) await api.deleteGroup(group.id);
+    if (await confirmDeleteGroup(group)) await groupsApi.deleteGroup(group.id);
   };
   // グループの「…」メニュー（右クリックでも開く）
   const menu = useGroupMenu({
@@ -59,10 +58,10 @@ export function useGroupSections({ project, groups, menuExtra }: { project: Proj
     ungroupedAt,
     onReorder: (ids, at) => {
       if (at !== undefined && at !== ungroupedAt) setUngroupedAt(at);
-      if (ids.some((id, i) => id !== groups[i]?.id)) void api.reorderGroups(projectId, ids);
+      if (ids.some((id, i) => id !== groups[i]?.id)) void groupsApi.reorderGroups(projectId, ids);
     },
     on: {
-      chat: (chat, groupId) => void api.setChatGroup(chat.id, groupId),
+      chat: (chat, groupId) => void chatsApi.setChatGroup(chat.id, groupId),
       // アーカイブ済みのチャット（まとまりのいちばん下の「アーカイブ済み」の行）を落としたら、確かめて戻し、そのグループへ移す
       archived: (chat, groupId) => void restoreDroppedChat(chat, groupId),
       // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）

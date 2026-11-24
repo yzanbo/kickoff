@@ -1,4 +1,3 @@
-import type { Chat, GitHubLink } from "@shared/chat/types";
 import type { GitHubCreatedIssue, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
 import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta } from "@shared/github/types";
 import type { ProjectGitHub } from "@shared/git/types";
@@ -66,8 +65,4 @@ export const githubApi = {
   /** PR のブランチを取り出す（worktree = ワークツリー / main = 本体のブランチを切り替える） */
   githubCheckout: (projectId: number, number: number, place: GitHubCheckoutPlace) =>
     request<GitHubPullWorktree>("POST", `/api/projects/${projectId}/github/pulls/${number}/checkout`, { place }),
-  /** チャットに issue・PR を結び付ける（並び順は変えない） */
-  setChatGitHub: (chatId: number, link: GitHubLink) => request<Chat>("PUT", `/api/chats/${chatId}/github`, link),
-  /** チャットの結び付きを外す */
-  clearChatGitHub: (chatId: number) => request<Chat>("DELETE", `/api/chats/${chatId}/github`),
 };

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GitHubItemPage, GitHubListFilter } from "@shared/github/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { errorText, useCursorPages, useQuery } from "@/foundation/ui/query";
 import { freshItemNumbers, GITHUB_FRESH_MS } from "./githubFresh";
 import { githubRefresh } from "./githubRefresh";
@@ -31,7 +31,7 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter) {
     async (signal) => {
       const refresh = force.current;
       force.current = false;
-      const page = await api.githubItems(projectId, filter, { refresh });
+      const page = await githubApi.githubItems(projectId, filter, { refresh });
       const changed = signal.aborted ? [] : freshItemNumbers(shown.current?.items ?? null, page.items);
       if (changed.length > 0) setFresh(new Set(changed));
       return page;
@@ -41,7 +41,7 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter) {
   useEffect(() => {
     shown.current = list.stale ? null : (list.data ?? null);
   });
-  const pages = useCursorPages(list, (cursor) => api.githubItems(projectId, filter, { cursor }), (a, b) => a.number === b.number);
+  const pages = useCursorPages(list, (cursor) => githubApi.githubItems(projectId, filter, { cursor }), (a, b) => a.number === b.number);
 
   return {
     page: list.data ?? null,

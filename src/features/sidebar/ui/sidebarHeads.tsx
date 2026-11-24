@@ -4,7 +4,7 @@ import type { HTMLAttributes, MouseEvent, ReactNode } from "react";
 import { COLUMN_LOOKS, STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { Chat } from "@shared/chat/types";
 import { NO_GROUP_LABEL } from "@shared/groups/labels";
-import { api } from "@/foundation/ui/api";
+import { groupsApi } from "@/features/groups/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { FOLD_ROW } from "@/foundation/ui/kit/FoldHead";
@@ -170,7 +170,7 @@ export function workspaceHeads(o: WorkspaceHeadsInput): HeadTable<PlacedDraft> {
               initial={group.name}
               onSubmit={(name) => {
                 s.onRenameEnd();
-                void api.renameGroup(group.id, name);
+                void groupsApi.renameGroup(group.id, name);
               }}
               onCancel={s.onRenameEnd}
             />

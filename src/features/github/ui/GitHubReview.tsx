@@ -2,7 +2,7 @@ import "./GitHubReview.css";
 import { useState, type ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraftComment, type GitHubReviewEvent } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
@@ -42,7 +42,7 @@ export function GitHubReviewBar({
   const count = draft.comments.length;
   const send = (event: GitHubReviewEvent) =>
     void action.run(event, async () => {
-      await api.githubReview(projectId, number, { event, body: draft.body, comments: draft.comments, commit_id: headSha });
+      await githubApi.githubReview(projectId, number, { event, body: draft.body, comments: draft.comments, commit_id: headSha });
       setDraft(EMPTY_REVIEW_DRAFT);
       setOpen(false);
       onSent();

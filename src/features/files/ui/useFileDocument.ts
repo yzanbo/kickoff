@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FileContent } from "@shared/foundation/fileTypes";
-import { workdirInput } from "@/foundation/ui/api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 import { useDocument } from "@/foundation/ui/document/useDocument";
 import { baseName } from "@/foundation/ui/lib/format";
 import { errorText } from "@/foundation/ui/query";

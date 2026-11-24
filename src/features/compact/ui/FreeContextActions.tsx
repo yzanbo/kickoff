@@ -3,8 +3,7 @@ import { Hourglass, X } from "lucide-react";
 import type { CompactingState } from "@shared/chat/chatLive";
 import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";
 import { queueActionOf } from "@shared/chat/queueActions";
-import { api } from "@/foundation/ui/api";
-import { chatQueueApi } from "@/features/chat/ui";
+import { chatQueueApi, turnsApi } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { useAction } from "@/foundation/ui/hooks/useAction";
 import { confirm } from "@/foundation/ui/kit/ask";
@@ -75,7 +74,7 @@ export function FreeContextActions({
       });
       if (!ok) return;
     }
-    const done = await action.run(kind, () => (kind === "compact" ? api.compactChat(chat.id) : api.clearContext(chat.id)));
+    const done = await action.run(kind, () => (kind === "compact" ? turnsApi.compactChat(chat.id) : turnsApi.clearContext(chat.id)));
     if (!done) onFailed();
   };
 

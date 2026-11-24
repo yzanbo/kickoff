@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";
 import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
+import { providersApi } from "@/features/ai/ui/api/providers";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { providersStore } from "@/features/ai/ui/stores/providers";
 import { saveSettings, useAppSettings } from "@/features/settings/ui";
@@ -44,7 +44,7 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
     }, { done: "保存しました" });
   const storeKey = (value: string | null) =>
     save.run("save", async () => {
-      await api.saveProviderApiKey(p.id, value);
+      await providersApi.saveProviderApiKey(p.id, value);
       if (keyOnly && value && p.auth_mode !== "api_key") await writeMode("api_key");
       setKey("");
       await providersStore.reload();

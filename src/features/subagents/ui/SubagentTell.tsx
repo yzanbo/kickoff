@@ -5,7 +5,6 @@ import type { Attachment } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { PROVIDER_LABELS } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
 import { isCancelKey, isComposing, consumeKey } from "@/foundation/ui/lib/keys";
 import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -15,7 +14,7 @@ import { Composer, settingDraft } from "@/features/composer/ui";
 import type { SendWhen } from "@/features/composer/ui/composerKeys";
 import { useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions, useFeatureBlock } from "@/features/ai/ui";
-import { openCreatedChild } from "@/features/chat/ui";
+import { openCreatedChild, turnsApi } from "@/features/chat/ui";
 import type { SubagentsView } from "./subagentsContext";
 
 type AskMode = "relay" | "child";
@@ -34,7 +33,7 @@ const ASK_MODE_HELP: Record<AskMode, string> = {
  * - メインエージェント経由で伝える: Kickoff から直接は送れないので、メインエージェントに  SendMessage でそのまま渡してもらう（メインエージェントが作業中なら止めずに伝え、
  *   作業中でなければすぐ送る。どちらも tell の API が決める）。送った文は、そのサブエージェントの流れに自分の発言として出る。
  *   終わったサブエージェントに伝えると、終わったところから再開する（案内に出す）。
- * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
+ * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`turnsApi.askSubagentInChild`）。
  *   メインエージェントにもサブエージェント本人にも伝わらず、メインエージェントが作業中でもすぐ送る。作った子チャットは設定の「子チャットを作ったとき」で開く。
  * 書きかけの文はサブエージェントごとに残す（storage.settings.tellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す。
  * 入力欄はチャット欄と同じ形にそろえ、効くものだけを出す: 定型文の帯・ほかのチャットの参照はどちらでも。伝えるときは、メインエージェントの作業中に いま / あとで
@@ -53,11 +52,11 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
   const relay = async (text: string, attachments: Attachment[], sendMode?: SendWhen) => {
     const message = relayMessage(agentId, description, text);
-    await api.sendMessage(view.chatId, { text: message, options: {}, attachments, when: view.busy ? (sendMode ?? queueMode) : "now" });
+    await turnsApi.sendMessage(view.chatId, { text: message, options: {}, attachments, when: view.busy ? (sendMode ?? queueMode) : "now" });
     onSent?.();
   };
   const ask = async (text: string, attachments: Attachment[]) => {
-    const child = await api.askSubagentInChild(view.chatId, agentId, { text, attachments, options: options.options });
+    const child = await turnsApi.askSubagentInChild(view.chatId, agentId, { text, attachments, options: options.options });
     onSent?.();
     openCreatedChild(child);
   };

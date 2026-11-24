@@ -1,6 +1,6 @@
 import "./DeleteProject.css";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { navigate } from "@/foundation/ui/navigation/router";
@@ -20,7 +20,7 @@ export function DeleteProject() {
     });
     if (!ok) return;
     await guard(async () => {
-      const { trash_id } = await api.deleteProject(project.id);
+      const { trash_id } = await projectsApi.deleteProject(project.id);
       navigate({ name: "allProjects" });
       showTrashedToast(trash_id, project.name);
     });

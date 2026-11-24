@@ -11,7 +11,7 @@ import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { projectsSettings } from "@/features/projects/ui";
+import { projectsSettings, projectsApi } from "@/features/projects/ui";
 import { projectKey } from "@/features/chatList/ui/bucketHeads";
 import { loadCurrentProject, saveCurrentProject } from "@/features/projects/ui/currentProject";
 import { useProjectMenu } from "@/features/projects/ui/ProjectMenu";
@@ -19,7 +19,6 @@ import { useAllDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { chatListSettings } from "@/features/chatList/ui";
 import { waitingChats } from "@/features/chat/ui";
 import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
-import { api } from "@/foundation/ui/api";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
@@ -76,7 +75,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     can: (id) => !isArchived(id),
     onStart: ensureAllRows,
     onMove: (from, to, side) => {
-      void api.reorderProjects(moveInList(projectIds, from, to, side) ?? projectIds);
+      void projectsApi.reorderProjects(moveInList(projectIds, from, to, side) ?? projectIds);
       if (projectOrder !== "manual") setProjectOrder("manual");
     },
   });

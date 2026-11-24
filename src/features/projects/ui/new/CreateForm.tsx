@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api } from "@/foundation/ui/api";
+import { projectsApi } from "@/features/projects/ui/api/projects";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
@@ -45,7 +45,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   }, [name, folderEdited]);
 
   // 保存先を点検する（入力中は少し待つ。届くまでは前の結果のまま、読めなければどちらもなし）。リポジトリの中なら、手で選ぶまでは git の管理を始めない（リポジトリの中にリポジトリを作らない）
-  const parent = useQuery(["CreateForm.parent", parentDir], () => api.inspectWorkspace(parentDir), { delay: 300, keepPrevious: true });
+  const parent = useQuery(["CreateForm.parent", parentDir], () => projectsApi.inspectWorkspace(parentDir), { delay: 300, keepPrevious: true });
   const parentInfo = parent.error ? undefined : parent.data;
   // 保存先が git のリポジトリの中ならその一番上（中に作ると、初めは親のリポジトリの中のフォルダにする）
   const parentRepo = parentInfo?.is_git ? parentInfo.git_root : null;
@@ -58,7 +58,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void run("submit", async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...noteDirBody(folderName, noteDir) })), { keepBusy: true });
+    void run("submit", async () => onCreated(await projectsApi.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...noteDirBody(folderName, noteDir) })), { keepBusy: true });
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;

@@ -2,14 +2,15 @@
 // 送るのは自分で。ほかの渡し先（新しいチャット・このチャット・子チャット・ほかのチャット）は共通の「AI に渡す」（features/chat/handoff）
 import type { Attachment, GitHubLink } from "@shared/chat/types";
 import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
-import { api } from "@/foundation/ui/api";
+import { githubApi } from "@/features/github/ui/api/github";
 import { open } from "@/foundation/ui/navigation/open";
-import { currentChats } from "@/features/chat/ui";
+import { currentChats, chatsApi } from "@/features/chat/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { appendToDraft } from "@/features/composer/ui";
 import { captureNameOf, reviewDocument, reviewFixText, sourceOf } from "./githubPrompt";
+import { uploadsApi } from "@/features/attachments/ui";
 
 /**
  * レビューコメントで直す: PR のブランチのワークツリー（なければその場で作る。fork の PR も）で作業しているチャットの入力欄に、
@@ -19,11 +20,11 @@ import { captureNameOf, reviewDocument, reviewFixText, sourceOf } from "./github
 export async function fixReviewComments(projectId: number, detail: GitHubPullDetail, link: GitHubLink, threads?: GitHubReviewThread[]) {
   const fail = reportFailure("PR のブランチのワークツリーを用意できませんでした");
   const [place, attachment] = await Promise.all([
-    api.githubPullWorktree(projectId, detail.item.number).catch((e: unknown) => {
+    githubApi.githubPullWorktree(projectId, detail.item.number).catch((e: unknown) => {
       fail(e);
       return null;
     }),
-    api
+    uploadsApi
       .capture({ name: captureNameOf(detail, true), mime: "text/markdown", text: reviewDocument(detail, threads), source: sourceOf(detail, true) })
       .catch((e: unknown) => {
         reportFailure("レビューコメントを取れませんでした")(e);
@@ -49,5 +50,5 @@ export function handOffToWorkplaceChat(projectId: number, worktreePath: string |
   }
   appendToDraft(chat.id, text, [attachment]);
   open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
-  if (link && chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
+  if (link && chat.github_number === null) void chatsApi.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }
