@@ -1,48 +1,22 @@
-# CSS の決まり
+# CSS の決まり（`src/foundation/ui/styles`）
 
 入口 `@/app/renderer/styles/index.css` は土台の CSS だけを読み、機能の CSS は部品が import する。
 
-## 層と順
-- `index.css` は `@layer …;` と `@import … layer(…)` だけ。部品の CSS は `@layer feature { … }`（土台は `ui`）で包む。
-- 層は前から `tokens`（`tokens.css`。末尾に画面のコードが与える変数）・`base`（リセット・ピント・スクロールバー）・`vendor`（部品の隣の `*.vendor.css`）・`ui`・`feature`（機能と殻の `layout.css` ほか）・`state`（`state.css` の状態の印）。後ろの層が詳細度によらず勝つ。
-- 実行時に style を差す CodeMirror・Monaco の上書きは層の外の `*.unlayered.css`。xterm・codicon の CSS も層の外（直に import）。
-- 別のファイルの同じ詳細度の規則を上書きしない（部品の CSS は読む順が決まらない）。上書きは詳細度か、同じファイルの後ろで。
+## 口の一覧
+- 層: `tokens`（`tokens.css`。末尾に画面のコードが与える変数）→ `base` → `vendor`（`*.vendor.css`）→ `ui` → `feature`（部品は `@layer feature { … }`）→ `state`。後ろの層が詳細度によらず勝つ。層の外は `*.unlayered.css`
+- `types/`: 札・ピル・カード・浮く窓・帯・ボタン・行・木・開閉の型（色・枠・角・影は型の変数）。`layout.css`（ドラッグ領域の決まりは頭のコメント）
 
-## 置き場所
-- 規則は部品の隣の `<部品>.css` に書き、部品の先頭で import（複数の部品が使うなら外側の部品）。素のクラスでどこでも使う見た目（`.menu`・`.dialog`・入力欄）は `types/`。
-- 基底を上書きする `@media` / `@container` は、その基底と同じファイルの後ろに置く。
-- セレクタの最初のクラスは 1 つの領域（機能・土台・殻）の CSS だけが書く。ほかの領域の中だけで変えるなら、入れ物の持ち主の CSS か `.自分:is(.入れ物 *)`。
+## 決まり
+- 規則は部品の隣の `<部品>.css` に書き、部品の先頭で import。セレクタの最初のクラスは 1 つの領域の CSS だけが書く（ほかの領域の中だけで変えるなら `.自分:is(.入れ物 *)`）。
+- 別のファイルの同じ詳細度の規則を上書きしない（読む順が決まらない）。基底を上書きする `@media` / `@container` は同じファイルの後ろ。
+- 機能のクラスには大きさと並べ方だけを書く。新しいクラス名は領域の頭を付ける。使わないクラスは消す（組み立てて付ける頭 `state-` `status-` `tone-` などに気をつける）。
+- 定義していない変数を使わない: 文字 `--fs-N`（会話は `--chat-fs-N`）・z-index `--z-*`・影 `--shadow-1〜3`・角丸は `tokens.css` の 3 段・状態の印 `--dot-*`・文字 `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。
+- 下線は使わない（打ち消し線はよい）。回る印は `--dot-running`。`:focus-visible` の頭に `:where(:root:not([data-modality="pointer"]))`。
+- 大きさを決めたボタンは `padding: 0` と `place-items: center`（負の `margin` で合わせない）。狭いときは `@media` でなく `@container`。欄のまわりは `--gutter`。
 
-## 書き方
-- 同じ宣言のブロックを増やさない（省略の `overflow` `text-overflow` `white-space` は各規則に書いてよい）。
-- 札・ピル・カード・浮く窓・帯・ボタン・切り替え・行・木・開閉・空の文ほかは `types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
-- 並べ替えの線と動かしている物は `dragAttrs`（`data-drop`・`data-drag-source`。形は `--drop-*`）。
-- 大きさを決めたボタンは `padding: 0` にし、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`（大きさは `size`、ほかは className で幅と高さだけ）。
-- 色の地のボタン（`.btn-primary`・`.btn-danger`）は乗せると同じ色で少し暗く（それぞれに `:hover:not(:disabled)`）。
-- ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側）。
-- 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `provider-` `head-`）。
-- 新しいクラス名は領域の頭を付ける（1 語は避ける）。
-- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。Git・PR・CI は属性（`types/state-colors.css`）。プロジェクトの札の色は `ProjectMark.css`。アクセントの色の文字は `--accent-fg`。
-- 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
-- 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中はボタンの文字の色）。
-- `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（マウスの操作中は枠を出さない。`inputModality.ts`）。
-- 定義していない CSS 変数を使わない。画面のコードが与える変数は `tokens.css` の末尾に書く。文字の大きさ 10〜15px は `--fs-N`（会話は `--chat-fs-N`）、z-index の 10 以上は `--z-*`、影は `--shadow-1〜3`、色相は `hsl(var(--hue) var(--hue-fg))`。`getComputedStyle` で読む変数は名を変えたら読む側も直す。
-
-## 大きさと余白
-- `contain: strict` は大きさが外で決まる箱にだけ付ける（中身で高さの決まる箱は潰れる）。
-- `content-visibility: auto` は、外へはみ出す飾りを持つ要素でなく内側の要素に当てる。`contain-intrinsic-size` は余白と枠を引いた中身の高さを書く。
-- 欄の左右と真ん中の画面の中身のまわりは `--gutter`（一部だけ狭く・広くしない）。プロジェクトの画面はタブで幅を変えない。
-- 狭いときの並べ方は `@media` でなく `@container`（真ん中の幅はウィンドウより欄の幅で変わる）。
-- 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease`。開閉で大きさが動く欄は `.slide-pane`（`--pane-shown`・中身 `.slide-pane-inner`・大きさが外なら `data-size="outer"`）。
-
-### 角丸
-- `tokens.css` の 3 段とピル・丸だけを使い、数を直に書かない: 小 `--radius-sm` = 押す物と行、中 `--radius` = 面、大 `--radius-lg` = 浮く窓と大きなアイコンのタイル、ピル `999px`・丸 `50%`（高さの半分を px で書かない）。
-- 内側は外側より丸くしない（枠に沿わせる角は `calc(var(--radius) - 1px)`）。1〜5px の飾りと 16px 以下の小さな印だけは直に書いてよい。
-
-## Electron のドラッグ領域
-- ドラッグ領域（`.page-header` `.sidebar-header`・欄のタブの列）の中で操作するものには `-webkit-app-region: no-drag`（JS のクリックでは再現しないので計算後のスタイルで確かめる）。
-- ドラッグ領域は `overflow: hidden` で切られない（閉じても大きさを残す欄は `.slide-pane` で隠す）。
-- 入れ子の右の欄（`.agent-panel`）のタブの列はドラッグ領域にしない（外側の規則は子セレクタで自分の列に）。
-- ドラッグ領域は後に書いた要素が勝つので、閉じたサイドバーの開くボタン・左上の画面移動・右上の開閉は DOM の最後に置く。全体表示中の見出し（`MaximizedHeader`）はドラッグ領域より後、固定のボタンより前。
-- 外側のクリックで閉じるものが開いている間は、`<html data-dismissable>` でドラッグ領域を止める（`layout.css`）。
-- 左上の画面移動（`NavigationButtons`）はサイドバー・パネルの中に置かず固定し、空きは `.layout` の `--app-navigation-left` / `--app-titlebar-left-end` でそろえる。
+## 落とし穴
+- `contain: strict` は大きさが外で決まる箱だけ。`content-visibility: auto` は内側の要素に当て、`contain-intrinsic-size` は余白と枠を引いた高さ。
+- 色の地のボタンは乗せると同じ色で少し暗く。ダイアログの幅は `--dialog-w`、組のボタンは `.split-button`、並べ替えの線は `dragAttrs`（`--drop-*`）、開閉で動く欄は `.slide-pane`（動きは `--panel-motion-*`）。Git・PR・CI の色は属性（`types/state-colors.css`）。
+- `getComputedStyle` で読む変数は、名を変えたら読む側も直す。
+- ドラッグ領域の中で操作するものは `no-drag`（計算後のスタイルで確かめる）。
+- テスト: `scripts/check-structure.mjs` の CSS の検査（最初のクラスの持ち主）・`node scripts/ui-audit-buttons.mjs`。

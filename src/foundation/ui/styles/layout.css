@@ -1,5 +1,12 @@
 /* ==== レイアウト ==== */
 /* 左: サイドバー / 真ん中: 画面と下のパネル / 右: プロジェクトのチャット欄（下のパネルより下まで） / 下: 帯 */
+/*
+ * Electron のドラッグ領域（.page-header・.sidebar-header・欄のタブの列）:
+ * - 中で操作するものには -webkit-app-region: no-drag（JS のクリックでは再現しないので計算後のスタイルで確かめる）
+ * - overflow: hidden で切られない（閉じても大きさを残す欄は .slide-pane で隠す）。入れ子の右の欄（.agent-panel）のタブの列はドラッグ領域にしない
+ * - 後に書いた要素が勝つので、閉じたサイドバーの開くボタン・左上の画面移動・右上の開閉は DOM の最後（MaximizedHeader はドラッグ領域より後、固定のボタンより前）
+ * - 外側のクリックで閉じるものが開いている間は <html data-dismissable> で止める。左上の画面移動は固定し、空きは --app-navigation-left / --app-titlebar-left-end
+ */
 
 .layout {
   display: grid;

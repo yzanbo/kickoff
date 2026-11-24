@@ -6,7 +6,6 @@
 
 | 触る所 | 読む `CLAUDE.md` |
 |---|---|
-| 共有の型・決まり（`src/shared`） | `src/shared/CLAUDE.md` |
 | コアの土台（DB・HTTP・外部コマンド） | `src/foundation/core/CLAUDE.md` |
 | メインプロセス・preload の土台 | `src/foundation/desktop/CLAUDE.md` |
 | 画面の土台（データ・保存・共有部品・性能） | `src/foundation/ui/CLAUDE.md` |
@@ -28,7 +27,7 @@
 
 ## 層と依存の向き
 
-- `src/shared` は純粋な型と関数（Node・DOM・Electron・React・npm のパッケージに依らない。スマホも読む）。
+- `src/shared` は純粋な型と関数（Node・DOM・Electron・React・npm のパッケージに依らない。スマホも読む）。両側で同じにする決まりはここに 1 つ。
 - 土台 `src/foundation`（`core`・`ui`・`desktop`）は機能を読まない。機能の力が要るときは土台が口を宣言し、機能が登録して `src/app` が渡す。
 - 機能 `src/features/<機能>`（`core`・`ui`・`desktop`・`worker`）は `src/shared`・土台と、下の機能の入口（`core`・`ui` の `index.ts`）だけを読む。`src/app` は読まない。
 - 組み立て `src/app` だけが全部の機能を知る。コアと画面は互いに読まない（両方で使うものは `src/shared`）。

@@ -27,6 +27,8 @@
 - `chat_delta` はほかの知らせより先に配る（詳細の `streaming_text` と `offset` で重なりを捨てる）。失敗は投げずに未読の失敗と `error` の記録にする。
 - `ChatLive` は詳細の `live` と SSE の `chat_live` が同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後も）。
 - 終えるとき `shutdown` は作業中のチャットに `resume_pending` を付け、待たずに DB を閉じる。抜けた `result` は起動のとき `endInterruptedTurns` が足す。
+- `chats.active_at`（一覧の並び）を進めるのは `status` を変える更新だけ。ゴミ箱のチャットは `store.chats` の読み取りから外す（足すときも。`sessionInUse` は数える）。
+- 起動のとき作業中のまま残ったチャットは未読の失敗にし、止まった印のあるものを再開の確かめに渡す（`recoverInterrupted`）。
 - ターンの頭は `result` の直後（自分の発言で数えない）。`after` の記録が消えていれば `after_missing`。
-- 枠が戻る時刻は時計の時刻で見る（待つ時間でなく）。
-- テスト: `run/machine/step.test.ts`・`run/scenarios.runner.test.ts`（筋書き）・`routes.*.test.ts`。
+- 枠が戻る時刻は待つ時間でなく時計の時刻で見る。
+- テスト: `run/machine/step.test.ts`・`run/scenarios.runner.test.ts`・`routes.*.test.ts`。
