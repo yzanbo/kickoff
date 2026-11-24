@@ -65,8 +65,8 @@ export function dockerRoutes({ projectParam, parts: { lister, operations, watch 
     "GET /api/projects/:projectId/docker/logs": {
       query: z.object({ compose: composeKey }),
       run: ({ projectId: project, query }) =>
-        sseStream(clock, async (stream) => {
-          const session = watch.logSession(project, query.compose, (event) => void stream.writeSSE({ data: JSON.stringify(event) }));
+        sseStream(clock, async (stream, _finish, send) => {
+          const session = watch.logSession(project, query.compose, (event) => send({ data: JSON.stringify(event) }));
           const unsubscribe = bus.subscribe((event) => {
             if (event.type === "docker_changed" && event.project_id === project.id) void session.sync();
           });

@@ -29,7 +29,7 @@ Electron に依存しないサーバー（HTTP・SQLite・外部コマンド・A
 - 子のプロセスを起こしたら `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。重い同期の処理は `timed` / `noteSync` で名前を付ける。
 - `/api/*` は認証より前に、Origin が本体と違う書き換え・WebSocket を 403、本文 `MAX_BODY_BYTES` 超えを 413 で断る（`http/app.ts`）。JSON の本文は content-type を確かめる（`jsonBody`）。
 - MCP の口は `/api/*` の認証の外で、実行ごとの鍵だけを受ける（違えば 401）。鍵は環境変数で渡さない（AI が Bash で読めない）。終わったら失敗でも鍵を捨てる。
-- SSE はつないだらすぐ hello を送る（書くまで応答ヘッダーが届かない）。JSON は知らせごとに 1 回だけ作る。
+- SSE はつないだらすぐ hello を送る（書くまで応答ヘッダーが届かない）。JSON は知らせごとに 1 回だけ作る。知らせは `sseStream` の `send` で送る（読まれずにたまった分が上限を超えたら切る）。
 - `meta` の `database_id` は DB を作ったときの ID（画面が ID 入りの保存を捨てる・スマホが本体を見分ける目印）。製品版と開発版は `APP_ENVS` の別の保存先とポートで同時に動く。
 - ログインシェルの PATH の読み直しは裏で流し、待つのは外部コマンドを起こす所だけ（`shellPathSettled()`）。
 - テスト: DB はメモリ、外のネットワーク・本物の AI は呼ばない。API は `@/app/core/testing/testServer.ts` の `setup({ features })` の `api`、待つのは `until`、作ったものは `afterTest` で止める。ルートを変えたら機能の `core/routes.test.ts` に足す。

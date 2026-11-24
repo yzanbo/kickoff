@@ -12,7 +12,7 @@ import { sseStream } from "./sseStream";
 /** 呼び主への知らせの流れ（端末には開いた口の知らせだけを届け、取り消した・スマホ連携をオフにしたらそこで切る） */
 export function eventStream(k: Pick<Kernel, "bus" | "clock" | "paths">, version: string, hooks: Pick<ServeHooks, "deviceAuth" | "deviceMaySee">, caller: Caller): SseHandler {
   const { deviceAuth, deviceMaySee } = hooks;
-  return sseStream(k.clock, async (stream, finish) => {
+  return sseStream(k.clock, async (stream, finish, send) => {
     const unsubscribe = k.bus.subscribe((event) => {
       if (caller.kind === "device") {
         if ((event.type === "settings" || event.type === "devices") && !deviceAuth?.alive(caller.deviceId)) return finish();
@@ -21,7 +21,7 @@ export function eventStream(k: Pick<Kernel, "bus" | "clock" | "paths">, version:
       const start = syncStart();
       const data = sseDataOf(event);
       noteSyncSince(start, () => `sse:${event.type}`);
-      void stream.writeSSE({ data });
+      send({ data });
     });
     // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
     const hello: ServerHello = { core_version: version, api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: k.paths.databaseId };
