@@ -1,8 +1,8 @@
 import { providerCan } from "@shared/ai/providers";
+import { fastNote, inheritLabels, modelOf, offersProviderDefaultModel, showsFast } from "./chatDefaultsModel";
 import type { ModelOption } from "@shared/ai/types";
-import { EFFORT_LABELS, PERMISSION_LABELS, type ChatOptions, type ChatOptionsPatch, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
+import { type ChatOptions, type ChatOptionsPatch, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
-import { modelDisplayName } from "@/features/ai/ui/options/models";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions, providerDefaultModelLabel } from "@/features/ai/ui/options/AiOptions";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 
@@ -10,16 +10,6 @@ import { CheckField, Field } from "@/foundation/ui/kit/Field";
 const INHERIT = "__inherit__";
 /** 「その AI の既定のモデル」（null）を表す select の値（Claude Code のほかの AI だけ） */
 const PROVIDER_DEFAULT = "";
-
-/** ファストモードの、選んだモデルの対応の注記 */
-const fastNote = (model: ModelOption | undefined) =>
-  model?.supports_fast_mode === false ? "（このモデルは対応していません）" : model?.supports_fast_mode === null ? "（このモデルの対応状況を確認できません）" : "";
-
-/** ファストモードの欄を出すか（ファストモードを持つ AI か、モデルのどれかが対応している AI） */
-const showsFast = (provider: ProviderId, models: ModelOption[]) => providerCan(provider, "fast_mode") || models.some((m) => m.supports_fast_mode);
-
-/** モデルの値に当たる一覧の項目（null はその AI の既定のモデル） */
-const modelOf = (models: ModelOption[], model: string | null | undefined) => models.find((m) => m.value === model) ?? (model === null ? models.find((m) => m.is_default) : undefined);
 
 type ChatDefaultsFieldsProps =
   /** アプリの設定の AI の既定（項目をすべて持つ） */
@@ -37,7 +27,7 @@ export function ChatDefaultsFields(props: ChatDefaultsFieldsProps) {
 }
 
 function AppFields({ provider, value, onChange, models }: Extract<ChatDefaultsFieldsProps, { inherit?: undefined }> & { models: ModelOption[] }) {
-  const claude = provider === "claude";
+  const claude = !offersProviderDefaultModel(provider);
   const set = (patch: Partial<ChatOptions>) => onChange({ ...value, ...patch });
   const currentModel = modelOf(models, value.model);
   return (
@@ -92,9 +82,7 @@ function InheritFields({ provider, value, onChange, inherit, models }: Extract<C
   };
   const currentModel = modelOf(models, value.model === undefined ? inherit?.model : value.model);
   // アプリの設定の値（「アプリの設定に従う」の横に出す）
-  const appModel = !inherit ? "…" : inherit.model === null ? providerDefaultModelLabel(provider, models) : modelDisplayName(models, inherit.model);
-  const appEffort = inherit ? (inherit.effort ? EFFORT_LABELS[inherit.effort] : EFFORT_UNSET_LABEL) : "…";
-  const appPermission = inherit ? PERMISSION_LABELS[inherit.permission_mode] : "…";
+  const app = inheritLabels(provider, models, inherit);
   return (
     <>
       <Field label="モデル">
@@ -102,8 +90,8 @@ function InheritFields({ provider, value, onChange, inherit, models }: Extract<C
           value={value.model === undefined ? INHERIT : (value.model ?? PROVIDER_DEFAULT)}
           onChange={(e) => set("model", e.target.value === INHERIT ? INHERIT : e.target.value || null)}
         >
-          <option value={INHERIT}>アプリの設定に従う（{appModel}）</option>
-          {provider !== "claude" && <option value={PROVIDER_DEFAULT}>{providerDefaultModelLabel(provider, models)}</option>}
+          <option value={INHERIT}>アプリの設定に従う（{app.model}）</option>
+          {offersProviderDefaultModel(provider) && <option value={PROVIDER_DEFAULT}>{providerDefaultModelLabel(provider, models)}</option>}
           <ModelOptions models={models} value={value.model} />
         </select>
       </Field>
@@ -112,14 +100,14 @@ function InheritFields({ provider, value, onChange, inherit, models }: Extract<C
           value={value.effort === undefined ? INHERIT : (value.effort ?? "")}
           onChange={(e) => set("effort", e.target.value === INHERIT ? INHERIT : ((e.target.value || null) as EffortLevel | null))}
         >
-          <option value={INHERIT}>アプリの設定に従う（{appEffort}）</option>
+          <option value={INHERIT}>アプリの設定に従う（{app.effort}）</option>
           <option value="">{EFFORT_UNSET_LABEL}</option>
           <EffortOptions model={currentModel} />
         </select>
       </Field>
       <Field label="権限モード">
         <select value={value.permission_mode ?? INHERIT} onChange={(e) => set("permission_mode", e.target.value as PermissionMode | typeof INHERIT)}>
-          <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
+          <option value={INHERIT}>アプリの設定に従う（{app.permission}）</option>
           <PermissionOptions model={currentModel} />
         </select>
       </Field>
@@ -129,7 +117,7 @@ function InheritFields({ provider, value, onChange, inherit, models }: Extract<C
             value={value.fast_mode === undefined ? INHERIT : value.fast_mode ? "on" : "off"}
             onChange={(e) => set("fast_mode", e.target.value === INHERIT ? INHERIT : e.target.value === "on")}
           >
-            <option value={INHERIT}>アプリの設定に従う（{inherit ? (inherit.fast_mode ? "使う" : "使わない") : "…"}）</option>
+            <option value={INHERIT}>アプリの設定に従う（{app.fast}）</option>
             <option value="on" disabled={currentModel ? !currentModel.supports_fast_mode : false}>
               使う{fastNote(currentModel)}
             </option>

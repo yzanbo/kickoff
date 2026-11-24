@@ -1,10 +1,11 @@
 // ファイルのタブの種類: チャットの画面の右の欄のファイル（file）と、プロジェクトの「ファイル」「検索」「変更」タブの右のファイル（projectFile）。ui/contributes.ts が panelTabs に入れる
 import { FileText } from "lucide-react";
 import { baseName } from "@/foundation/ui/lib/format";
-import { defineTabKind, fileTab, repointedAt } from "@/features/panel/ui";
+import { defineTabKind } from "@/features/panel/ui";
 import { FileTabLead } from "./FileTabLead";
 import { FilePage, ProjectFileFace, ProjectFilePage, type FileTab, type ProjectFileTabData } from "./fileTabPages";
-import { confirmCloseFileTab, isFileTabDirty } from "./fileTabs";
+import { confirmCloseFileTab } from "./fileTabs";
+import { repointFileTab } from "./fileTabModel";
 
 export const fileTabKind = defineTabKind<FileTab>({
   id: "file",
@@ -22,13 +23,7 @@ export const fileTabKind = defineTabKind<FileTab>({
   }),
   // 開き直したら目立たせる行だけ変える
   reopen: (t) => ({ kind: "file", fields: { line: t.line } }),
-  // 作業場所を移したら新しい作業場所の同じファイルにする（行は引き継ぐ）。保存していない変更があれば、移す前の作業場所のまま残す
-  repoint: (t, move, panel) => {
-    const at = repointedAt(t, move);
-    if (!at) return null;
-    if (isFileTabDirty(panel, t.key)) return { kept: t.path };
-    return fileTab({ ...at, path: t.path, ...(t.line ? { line: t.line } : {}) });
-  },
+  repoint: repointFileTab,
   Page: FilePage,
 });
 

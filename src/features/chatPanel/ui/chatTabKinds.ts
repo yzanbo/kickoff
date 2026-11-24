@@ -1,7 +1,7 @@
 // チャットのパネル・チャットの画面の右の欄のタブの種類（チャット・新しいチャット・サブエージェント・子チャット・新しい子チャット）。
 // 中身は chatTabPages.tsx、見た目の足し替えは chatTabFaces.tsx、右クリックは chatTabMenus.tsx。ui/contributes.ts が panelTabs に入れる
 import { Bot, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen } from "lucide-react";
-import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
+import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats, chatsApi } from "@/features/chat/ui";
 import { ChildTabBadge } from "@/features/childChats/ui";
@@ -12,23 +12,12 @@ import { ChatTabFace, ChildTabFace, NewChatTabFace, SubagentTabFace } from "./ch
 import { ChatTabMenu, ChildTabMenu, NewChatTabMenu } from "./chatTabMenus";
 import { draftGroupOf, setDraftTitle } from "./drafts/panelDrafts";
 import { discardDraftSidePanel } from "./agents/draftSide";
+import { chatTabLabel, chatTabWorkplace, reopenChatTab, subagentTabRules } from "./chatTabModel";
 
 type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 
 /** チャット・子チャットの名前を変える（名前を変える API） */
 const renameChat = (chatId: number, title: string) => void chatsApi.renameChat(chatId, title).catch(reportFailure("名前を変更できませんでした"));
-
-/** チャットのタブの名前: 知っているチャットの最新の名前 → タブが覚えた名前（まだ届いていないチャット）→ 「チャット」 */
-export function chatTabLabel(t: TabOf<"chat">, chat: Pick<Chat, "title"> | undefined): string {
-  const title = chat?.title ?? t.title;
-  return title === undefined ? "チャット" : chatTitle(title);
-}
-
-/** タブの列からターミナルを開く場所: チャットの作業場所（チャットがまだ届いていなければ、タブのプロジェクトの本体） */
-export const chatTabWorkplace = (t: TabOf<"chat">, chat: Pick<Chat, "project_id" | "worktree_path"> | undefined) => ({
-  projectId: chat?.project_id ?? t.projectId,
-  worktree: chat?.worktree_path ?? null,
-});
 
 export const chatTabKind = defineTabKind<TabOf<"chat">>({
   id: "chat",
@@ -41,8 +30,7 @@ export const chatTabKind = defineTabKind<TabOf<"chat">>({
   ownerChatId: (t) => t.id,
   createWhen: "shown",
   workplaceOf: (t) => chatTabWorkplace(t, knownChat(t.id)),
-  // 検索結果から開き直したら、強調する発言だけ変える
-  reopen: (t) => (t.focus ? { kind: "chat", fields: { focus: t.focus } } : undefined),
+  reopen: reopenChatTab,
   prefetch: (tabs) => prefetchChats(tabs.map((t) => t.id)),
   // × は表示だけ消す・アーカイブ・削除を選んでから閉じる（見出しには名前を出さない）
   close: (t, { close }) => void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: knownChat(t.id)?.archived_at }, (action) => close({ dismiss: action === "close" })),
@@ -96,12 +84,7 @@ export const subagentTabKind = defineTabKind<TabOf<"subagent">>({
   id: "subagent",
   icon: Bot,
   badge: "サブ",
-  // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
-  label: (t) => (t.path ? `↳ ${t.title}` : t.title),
-  hint: (t) => t.path ?? t.title,
-  projectOf: () => undefined,
-  // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-  ownerChatId: (t) => t.chatId,
+  ...subagentTabRules,
   Face: SubagentTabFace,
   popout: (t) => ({ route: { kind: "subagent", chatId: t.chatId, agentKey: t.agentKey }, title: `${t.title} — サブエージェント` }),
   Page: SubagentPage,

@@ -425,7 +425,6 @@
       "feature-entry:src/features/sidebar/ui/bucketColor.tsx -> src/features/chatList/ui/BucketColorItem.tsx",
       "feature-entry:src/features/sidebar/ui/bucketColor.tsx -> src/features/chatList/ui/chatGrouping.ts",
       "feature-entry:src/features/sidebar/ui/bucketColor.tsx -> src/features/chatList/ui/useChatBuckets.ts",
-      "feature-entry:src/features/sidebar/ui/pinnedRows.test.ts -> src/features/chatPanel/ui/drafts/panelDrafts.ts",
       "feature-entry:src/features/sidebar/ui/projectChatDrop.ts -> src/features/chat/ui/chatActions.ts",
       "feature-entry:src/features/sidebar/ui/projectChatDrop.ts -> src/features/chat/ui/state/chatBusy.ts",
       "feature-entry:src/features/sidebar/ui/projectChatDrop.ts -> src/features/chat/ui/store/knownChats.ts",

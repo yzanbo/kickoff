@@ -1,10 +1,11 @@
 import "./AiDefaultsSettings.css";
-import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type ChatOptions, type ProviderId } from "@shared/settings/types";
+import { PROVIDER_IDS, PROVIDER_LABELS, type ChatOptions, type ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ChatDefaultsFields } from "./ChatDefaultsFields";
+import { defaultsCardProviders } from "./chatDefaultsModel";
 import { applySettings, useAppSettings } from "@/features/settings/ui";
 
 /**
@@ -15,7 +16,6 @@ export function AiDefaultsSettings() {
   const settings = useAppSettings().data;
   const statuses = useProviders().data;
   if (!settings) return null;
-  const others = OTHER_PROVIDER_IDS.filter((id) => statusOf(statuses, id)?.implemented);
   /** AI の既定を変える（AI ごとの一覧を丸ごと送る） */
   const setDefaults = (provider: ProviderId, next: ChatOptions) => applySettings({ provider_chat_defaults: { ...settings.provider_chat_defaults, [provider]: next } });
   return (
@@ -54,7 +54,7 @@ export function AiDefaultsSettings() {
         <p>AI ごとに、チャットを始めるときの設定を決めます。</p>
       </div>
       <div className="ai-defaults-cards">
-        {[...(["claude"] as const), ...others].map((id) => (
+        {defaultsCardProviders(statuses).map((id) => (
           <section key={id} className="ai-defaults-card card" aria-labelledby={`ai-defaults-${id}-title`}>
             <div className="ai-defaults-card-head">
               <span className="ai-defaults-card-icon"><ProviderIcon provider={id} size={18} /></span>

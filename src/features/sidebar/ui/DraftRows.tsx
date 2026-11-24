@@ -6,7 +6,7 @@ import { startDraftDrag } from "@/features/chatList/ui";
 import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import { cx } from "@/foundation/ui/lib/cx";
+import { draftRowClass } from "./chatRowClass";
 import { ChatRowFace } from "@/features/chatList/ui";
 import { panelKey } from "@/features/panel/ui";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
@@ -60,7 +60,7 @@ export function DraftRow({ draft }: { draft: PlacedDraft }) {
   if (renaming)
     return (
       <li className="chat-row-item">
-        <div className={cx("chat-row draft-row renaming", draft.pinned && "pinned", selected && "active")}>
+        <div className={draftRowClass({ pinned: draft.pinned, selected, renaming: true })}>
           <ChatRowFace mark={slot} editor={<DraftTitleInput draft={draft} onDone={() => setRenaming(false)} />} />
         </div>
       </li>
@@ -69,7 +69,7 @@ export function DraftRow({ draft }: { draft: PlacedDraft }) {
     <li className="chat-row-item">
       <button
         type="button"
-        className={cx("chat-row draft-row", draft.pinned && "pinned", selected && "active")}
+        className={draftRowClass({ pinned: draft.pinned, selected })}
         aria-current={selected || undefined}
         title="下書き（ドラッグでグループへ移す・右クリックで名前の変更・ピン留め・グループやプロジェクトの変更・削除）"
         draggable

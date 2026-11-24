@@ -6,6 +6,7 @@ import { busyWithUnread, showsBold } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
+import { chatRowClass, showsPinned } from "./chatRowClass";
 import { anchorPlacement, type Placement } from "@/foundation/ui/lib/floating";
 import { startChatDrag } from "@/features/chatList/ui";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
@@ -70,13 +71,13 @@ export function ChatRow({
   const selected = selection?.has(chat.id) ?? false;
   // 作業中のまま、まだ見ていない返答がある（印に未読の点を重ね、名前を太字に）
   const busyUnread = busyWithUnread(chat, state);
-  const pinned = chat.pinned && !chat.archived_at;
+  const pinned = showsPinned(chat);
   const mark = <StatusSlot state={state} unread={busyUnread} />;
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
       <li className="chat-row-item">
-        <div className={cx("chat-row", "renaming", pinned && "pinned", active && "active")}>
+        <div className={chatRowClass({ pinned, active, renaming: true })}>
           <ChatRowFace mark={mark} editor={<ChatTitleInput chat={chat} editor={rename} />} />
         </div>
       </li>
@@ -92,14 +93,7 @@ export function ChatRow({
   return (
     <li className="chat-row-item" {...reorder?.attrs} {...reorder?.handlers}>
       <a
-        className={cx(
-          "chat-row",
-          pinned && "pinned",
-          chat.archived_at && "archived",
-          active && "active",
-          selected && "multi-selected",
-          showsBold(state, busyUnread) && "is-unread",
-        )}
+        className={chatRowClass({ pinned, active, archived: Boolean(chat.archived_at), selected, bold: showsBold(state, busyUnread) })}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
         title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${STATE_LOOKS[state].label}${busyUnread ? "・未読あり" : ""}）`}

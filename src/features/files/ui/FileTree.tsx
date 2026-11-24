@@ -2,12 +2,12 @@ import "./FileTree.css";
 import type { DragEvent, MouseEvent, ReactNode } from "react";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import type { TreeNode as RowNode } from "@/foundation/ui/kit/list/tree";
 import { TreeView, type TreeRenaming, type TreeRowAttrs } from "@/foundation/ui/kit/list/TreeView";
 import { newEntryNameError, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { useTree } from "@/foundation/ui/kit/list/useTree";
 import type { ChangeMarks } from "./filesGit";
 import type { FileCreate, FileRename } from "./useFileOps";
+import { CREATE_KEY, fileRowLook, fileRows, type FileRow } from "./fileTreeModel";
 
 /** 選んだいくつかの行の 1 つ（右クリックのメニューに渡す。staged は変更の一覧のどちらのまとまりか。ファイルタブでは持たない） */
 export interface PickedEntry {
@@ -61,29 +61,6 @@ interface Props {
 export const siblingNameError = (siblings: readonly { name: string; path: string }[], self: string) => (name: string) =>
   /[/\\]/.test(name) ? "「/」は名前に使えません" : siblings.some((n) => n.path !== self && n.name === name) ? `「${name}」はもうあります` : null;
 
-/** 新しいファイル・フォルダの名前の欄の行のキー（パスと重ならない） */
-const CREATE_KEY = "\0create";
-
-/** 木の 1 行（file が null なら新しい名前の欄。無視しているフォルダは children を持たない = 開かない） */
-interface FileRow extends RowNode<string> {
-  file: TreeNode | null;
-  children?: FileRow[];
-}
-
-/** 描く木と、パスから同じ段の並びを引く表（名前の確かめに使う） */
-function fileRows(nodes: TreeNode[], creating: FileCreate["creating"] | undefined) {
-  const siblings = new Map<string, TreeNode[]>();
-  const walk = (level: TreeNode[], parent: string): FileRow[] => {
-    siblings.set(parent, level);
-    const rows = level.map((node): FileRow => ({ key: node.path, file: node, children: node.dir && !node.ignored ? walk(node.children, node.path) : undefined }));
-    return creating?.parent === parent ? [{ key: CREATE_KEY, file: null }, ...rows] : rows;
-  };
-  const roots = walk(nodes, "");
-  const childrenOf = (parent: string) => siblings.get(parent) ?? [];
-  const levelOf = (path: string) => childrenOf(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
-  return { roots, childrenOf, levelOf, nodeOf: (path: string) => levelOf(path).find((n) => n.path === path) };
-}
-
 /**
  * エクスプローラーのフォルダの木（土台の TreeView の上。開いているフォルダの中だけ描く）。
  * 押す・Space で開く / 開閉、Enter で名前の変更（Finder・ノートの木と同じ）、↑↓←→ で行を移る・開閉する
@@ -135,11 +112,8 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, mar
   const rowProps = (row: { node: FileRow }): TreeRowAttrs => {
     const node = row.node.file;
     if (!node) return {};
-    const mark = markOf(node);
     return {
-      className: node.ignored ? "ignored" : undefined,
-      "data-kind": mark?.kind,
-      title: mark ? `${node.path}（${mark.label}）` : node.path,
+      ...fileRowLook(node, markOf(node)),
       ...(!node.dir && fileDrag ? fileDrag(node.path) : {}),
       onContextMenu:
         rename && renamable(node)

@@ -4,11 +4,9 @@ import { useFolds } from "@/foundation/ui/hooks/useFold";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { FoldHead, type FoldHeadProps } from "@/foundation/ui/kit/FoldHead";
-import type { BucketKind, ChatBucket, DraftTarget } from "./buckets";
+import type { BucketKind, ChatBucket } from "./buckets";
 import { ChatRowList } from "./ChatRowList";
-
-/** 下書き（固定したものは「固定」の小見出しへ分ける） */
-type TreeDraft = DraftTarget & { pinned?: boolean };
+import { bucketOpen, splitPinned, type TreeDraft } from "./bucketTreeModel";
 
 /** まとまり 1 つの描き方（見出しの表 HeadTable が、まとまりの種類ごとに返す） */
 export interface HeadSpec {
@@ -74,7 +72,7 @@ export function BucketTree<D extends TreeDraft>(props: BucketTreeProps<D>) {
     buckets.filter((b) => b.kind !== "all").map((b) => b.key),
   );
   const items = buckets.flatMap((bucket) => {
-    const remembered = bucket.kind === "all" || forceOpen || folds.isOpen(bucket.key, bucket.kind !== "archived");
+    const remembered = bucketOpen(bucket, forceOpen, folds.isOpen);
     const toggle = () => folds.set(bucket.key, !remembered);
     const describe = heads[bucket.kind];
     const spec = describe ? describe(bucket, { open: remembered, toggle, parent }) : BARE;
@@ -147,15 +145,8 @@ function Rows<D extends TreeDraft>({ tree, bucket, spec, chats, sections }: { tr
  * （状態順でも、中の段の「固定」は重ねない）。最初に描く行の上限は、分けても元のまとまりで 1 つ
  */
 function PinnedApart<D extends TreeDraft>({ tree, bucket, spec, afterClass }: { tree: BucketTreeProps<D>; bucket: ChatBucket<D>; spec: HeadSpec; afterClass: string }) {
-  const pinnedChats = bucket.chats.filter((c) => c.pinned && !c.archived_at);
-  const regularChats = bucket.chats.filter((c) => !c.pinned || c.archived_at);
-  const pinnedDrafts = bucket.drafts.filter((d) => d.pinned);
-  const regularDrafts = bucket.drafts.filter((d) => !d.pinned);
-  const regularSections = bucket.children?.filter((b) => b.kind !== "pinned");
-  const hasPinned = pinnedChats.length > 0 || pinnedDrafts.length > 0;
-  const hasRegular = regularChats.length > 0 || regularDrafts.length > 0;
-  const [pinnedBudget, regularBudget] = useRowBudgets([pinnedChats.length, regularChats.length]);
-  const pinned: ChatBucket<D> = { ...bucket, key: `${bucket.key}/pinned`, kind: "pinned", chats: pinnedChats, drafts: pinnedDrafts, children: undefined, archived: undefined };
+  const { pinned, regularChats, regularDrafts, regularSections, hasPinned, hasRegular } = splitPinned(bucket);
+  const [pinnedBudget, regularBudget] = useRowBudgets([pinned.chats.length, regularChats.length]);
   const pinnedSpec = hasPinned ? (tree.heads.pinned?.(pinned, { open: true, toggle: () => {}, parent: bucket }) ?? BARE) : null;
   return (
     <>
