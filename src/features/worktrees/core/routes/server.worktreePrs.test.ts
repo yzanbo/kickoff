@@ -2,8 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { execFileSync } from "node:child_process";
-import type { GitWorktree, ProjectGitHub, WorktreePrNotice } from "@shared/git/types";
-import type { Project } from "@shared/projects/types";
+import type { ProjectGitHub, WorktreePrNotice } from "@shared/git/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { setup } from "@/app/core/testing/testServer";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
@@ -18,7 +17,7 @@ const merged = (number: number, branch: string, state: "MERGED" | "CLOSED" | "OP
 });
 
 test("ワークツリーの PR の知らせ: ワークツリーがなければ GitHub に聞かない。マージ済みの PR は（前に開いているのを見ていなくても）知らせる", async () => {
-  const { call, project, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
+  const { call, api, project, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
@@ -27,7 +26,7 @@ test("ワークツリーの PR の知らせ: ワークツリーがなければ G
   assert.equal(prFake.asked, 0);
   assert.deepEqual((await call("GET", "/api/worktree-prs")).body, []);
 
-  const worktrees = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/x" })).body as GitWorktree[];
+  const worktrees = (await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feat/x" } })).body;
   const folder = worktrees.find((w) => w.branch === "feat/x")!.path;
 
   // 開いている PR だけなら知らせない
@@ -56,9 +55,9 @@ test("ワークツリーの PR の知らせ: ワークツリーがなければ G
 });
 
 test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚えて出し直さない。ワークツリーを消したら、GitHub に聞かずに知らせと覚えが消える", async () => {
-  const { call, project, store, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
+  const { call, api, project, store, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
-  const worktrees = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "fix/y" })).body as GitWorktree[];
+  const worktrees = (await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "fix/y" } })).body;
   const folder = worktrees.find((w) => w.branch === "fix/y")!.path;
   prFake.prs = [merged(9, "fix/y", "CLOSED")];
   await prWatch.checkAll();
@@ -77,7 +76,7 @@ test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚え�
   assert.equal((await call("POST", `/api/projects/${project.id}/worktree-prs/10/dismiss`)).status, 404);
 
   const asked = prFake.asked;
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: folder, delete_branch: true })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: folder, delete_branch: true } })).status, 200);
   assert.deepEqual(prWatch.list(), []);
   assert.equal(prFake.asked, asked);
   assert.ok(events.some((e) => e.type === "worktree_prs" && e.notices.length === 0));
@@ -85,7 +84,7 @@ test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚え�
 });
 
 test("プロジェクトの GitHub の連携: 設定の「GitHub」にアカウント・GitHub の remote・自動の連携先を返し、見張りをオフにすると知らせが消えて GitHub に聞かない", async () => {
-  const { call, project, prFake, prWatch } = setup({ features: ["worktrees", "github"] });
+  const { call, api, project, prFake, prWatch } = setup({ features: ["worktrees", "github"] });
   const dir = project.repo_path;
   gitRepo({ dir, files: { "a.txt": "a\n" } });
   execFileSync("git", ["remote", "add", "origin", "https://github.com/me/r.git"], { cwd: dir });
@@ -99,20 +98,20 @@ test("プロジェクトの GitHub の連携: 設定の「GitHub」にアカウ�
   assert.equal(github.repo, "org/r");
 
   // 連携先とアカウントを選ぶ
-  const patched = (await call("PATCH", `/api/projects/${project.id}`, { github_remote: "origin", github_account: "work" })).body as Project;
+  const patched = (await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { github_remote: "origin", github_account: "work" } })).body;
   assert.equal(patched.github_remote, "origin");
   assert.equal(patched.github_account, "work");
   assert.equal(((await call("GET", `/api/projects/${project.id}/github`)).body as ProjectGitHub).repo, "me/r");
   // 空の名前は断る・null で自動に戻す
-  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { github_remote: "" })).status, 400);
-  assert.equal(((await call("PATCH", `/api/projects/${project.id}`, { github_remote: null, github_account: null })).body as Project).github_remote, null);
+  assert.equal((await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { github_remote: "" } })).status, 400);
+  assert.equal(((await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { github_remote: null, github_account: null } })).body).github_remote, null);
 
   // 見張り: マージ済みの PR を知らせたあと、オフにすると消え、聞き直さない
-  await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/z" });
+  await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feat/z" } });
   prFake.prs = [merged(3, "feat/z")];
   await prWatch.checkAll();
   assert.equal(prWatch.list().length, 1);
-  assert.equal(((await call("PATCH", `/api/projects/${project.id}`, { pr_watch: false })).body as Project).pr_watch, false);
+  assert.equal(((await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { pr_watch: false } })).body).pr_watch, false);
   await prWatch.checkProject(project.id);
   assert.deepEqual(prWatch.list(), []);
   const asked = prFake.asked;
@@ -120,7 +119,7 @@ test("プロジェクトの GitHub の連携: 設定の「GitHub」にアカウ�
   assert.equal(prFake.asked, asked);
   assert.deepEqual(prWatch.list(), []);
   // オンに戻すと、また知らせる
-  await call("PATCH", `/api/projects/${project.id}`, { pr_watch: true });
+  await api("PATCH /api/projects/:projectId", { params: { projectId: project.id }, body: { pr_watch: true } });
   await prWatch.checkProject(project.id);
   assert.equal(prWatch.list().length, 1);
 });

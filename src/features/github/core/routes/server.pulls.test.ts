@@ -26,11 +26,11 @@ function prSetup() {
 
 test("ブランチの PR: origin がなければ null、あれば gh pr view の答え（連携先を --repo で渡す）", async () => {
   const calls = ghWithPr();
-  const { call, project, git } = prSetup();
+  const { api, project, git } = prSetup();
   git("remote", "remove", "origin");
-  assert.equal((await call("GET", `/api/projects/${project.id}/git/pr`)).body, null);
+  assert.equal((await api("GET /api/projects/:projectId/git/pr", { params: { projectId: project.id } })).body, null);
   git("remote", "add", "origin", "https://github.com/o/r.git");
-  const res = await call("GET", `/api/projects/${project.id}/git/pr`);
+  const res = await api("GET /api/projects/:projectId/git/pr", { params: { projectId: project.id } });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { number: 7, url: PR.url, title: "直す", state: "OPEN", is_draft: false } satisfies PullRequestInfo);
   assert.deepEqual(calls(), ["pr view main --repo o/r --json number,url,title,state,isDraft"]);

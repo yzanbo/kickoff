@@ -11,7 +11,7 @@ import { gitLog } from "../history";
 import { chatOf } from "@/features/chat/core/testing";
 
 test("Git で管理していないフォルダでも、ファイルの一覧と検索は使える（.gitignore と node_modules は無視しているものに。フォルダの中に Git の印は作らない）", async () => {
-  const { call, project } = setup({ features: ["git", "files", "worktrees"] });
+  const { call, api, project } = setup({ features: ["git", "files", "worktrees"] });
   const dir = project.repo_path;
   const write = (file: string, text: string) => {
     fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
@@ -24,9 +24,9 @@ test("Git で管理していないフォルダでも、ファイルの一覧と�
   write("node_modules/pkg/index.js", "hello dep\n");
   write(".DS_Store", "x");
   fs.mkdirSync(path.join(dir, "empty"));
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
+  assert.deepEqual((await api("GET /api/projects/:projectId/git/status", { params: { projectId: project.id } })).body, { repo: false });
 
-  const files = (await call("GET", `/api/projects/${project.id}/files`)).body;
+  const files = (await api("GET /api/projects/:projectId/files", { params: { projectId: project.id } })).body;
   assert.deepEqual(files.files, [".gitignore", "README.md", "src/a.ts"]);
   assert.deepEqual(files.ignored, [
     { path: ".DS_Store", dir: false },
@@ -48,16 +48,16 @@ test("Git で管理していないフォルダでも、ファイルの一覧と�
   assert.equal((await search("hello", "&ignore=0")).total, 4);
   assert.deepEqual((await search("hello", "&include=src")).files.map((f: { path: string }) => f.path), ["src/a.ts"]);
   // 中身の読み書きは前から Git に依らない
-  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=src/a.ts`)).body.content, "hello world\n");
+  assert.equal((await api("GET /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "src/a.ts" } })).body.content, "hello world\n");
   assert.equal(fs.existsSync(path.join(dir, ".git")), false);
 });
 
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
   const ctx = setup({ features: ["git", "files", "worktrees"] });
-  const { call, project } = ctx;
+  const { call, api, project } = ctx;
   // Git で管理されていないフォルダ（ワークツリーの一覧は失敗にせず空）
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
-  assert.deepEqual(await call("GET", `/api/projects/${project.id}/git/worktrees`), { status: 200, body: [] });
+  assert.deepEqual((await api("GET /api/projects/:projectId/git/status", { params: { projectId: project.id } })).body, { repo: false });
+  assert.deepEqual(await api("GET /api/projects/:projectId/git/worktrees", { params: { projectId: project.id } }), { status: 200, body: [] });
 
   const { dir: repo, git } = gitRepo({ dir: project.repo_path, files: { "a.txt": "one\n", "b.txt": "bee\n" } });
   fs.writeFileSync(path.join(repo, "a.txt"), "one\ntwo\n");
@@ -65,7 +65,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   git("add", "b.txt");
   fs.writeFileSync(path.join(repo, "new.txt"), "hello\n");
 
-  const status = (await call("GET", `/api/projects/${project.id}/git/status`)).body;
+  const status = (await api("GET /api/projects/:projectId/git/status", { params: { projectId: project.id } })).body;
   assert.equal(status.repo, true);
   assert.equal(status.branch, "main");
   assert.deepEqual(status.staged, [{ path: "b.txt", kind: "M" }]);
@@ -98,26 +98,26 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   fs.writeFileSync(path.join(repo, ".gitignore"), "node_modules/\n");
   fs.mkdirSync(path.join(repo, "node_modules", "pkg"), { recursive: true });
   fs.writeFileSync(path.join(repo, "node_modules", "pkg", "index.js"), "x\n");
-  const files = (await call("GET", `/api/projects/${project.id}/files`)).body;
+  const files = (await api("GET /api/projects/:projectId/files", { params: { projectId: project.id } })).body;
   assert.deepEqual(files.files, [".gitignore", "a.txt", "b.txt", "new.txt"]);
   assert.deepEqual(files.ignored, [{ path: "node_modules", dir: true }]);
   assert.equal(files.truncated, false);
   // ファイルの中身（リポジトリの外・外を指すリンクは読ませない）
-  const opened = (await call("GET", `/api/projects/${project.id}/file?path=a.txt`)).body;
+  const opened = (await api("GET /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "a.txt" } })).body;
   assert.deepEqual({ ...opened, hash: undefined }, { content: "one\ntwo\n", hash: undefined, binary: false, truncated: false });
   assert.match(opened.hash, /^[0-9a-f]{40}$/);
   // 保存: 開いたときの指紋が同じなら書く。ほかで変わっていれば 409 で上書きしない。null なら上書きする
-  const saved = await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "one\nTWO\n", base_hash: opened.hash });
+  const saved = await api("PUT /api/projects/:projectId/file", { params: { projectId: project.id }, body: { path: "a.txt", content: "one\nTWO\n", base_hash: opened.hash } });
   assert.equal(saved.status, 200);
   assert.equal(fs.readFileSync(path.join(repo, "a.txt"), "utf8"), "one\nTWO\n");
-  const stale = await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "mine\n", base_hash: opened.hash });
+  const stale = await api("PUT /api/projects/:projectId/file", { params: { projectId: project.id }, body: { path: "a.txt", content: "mine\n", base_hash: opened.hash } });
   assert.equal(stale.status, 409);
   assert.equal(fs.readFileSync(path.join(repo, "a.txt"), "utf8"), "one\nTWO\n");
-  assert.equal((await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "one\ntwo\n", base_hash: null })).status, 200);
-  assert.equal((await call("PUT", `/api/projects/${project.id}/file`, { path: "../outside.txt", content: "x", base_hash: null })).status, 400);
-  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
+  assert.equal((await api("PUT /api/projects/:projectId/file", { params: { projectId: project.id }, body: { path: "a.txt", content: "one\ntwo\n", base_hash: null } })).status, 200);
+  assert.equal((await api("PUT /api/projects/:projectId/file", { params: { projectId: project.id }, body: { path: "../outside.txt", content: "x", base_hash: null } })).status, 400);
+  assert.equal((await api("GET /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "../outside.txt" } })).status, 400);
   fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
-  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);
+  assert.equal((await api("GET /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "link.txt" } })).status, 400);
 
   // 画像のプレビュー: 中身をそのまま、その種類で返す。icns は中のいちばん大きい PNG。画像でない・外を指すリンク・外は 400
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
@@ -165,49 +165,49 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   // 名前の変更: 同じフォルダの中で変え、変えたあとのパスを返す。同じ名前があれば 409、ないものは 404、使えない名前・外は 400
   fs.mkdirSync(path.join(repo, "dir"));
   fs.writeFileSync(path.join(repo, "dir", "old.txt"), "x\n");
-  const renamed = await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/old.txt", name: "new name.txt" });
+  const renamed = await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/old.txt", name: "new name.txt" } });
   assert.deepEqual([renamed.status, renamed.body], [200, { path: "dir/new name.txt" }]);
   assert.equal(fs.existsSync(path.join(repo, "dir", "new name.txt")), true);
   assert.equal(fs.existsSync(path.join(repo, "dir", "old.txt")), false);
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: "../up.txt" })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: ".." })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/missing.txt", name: "x.txt" })).status, 404);
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: "NEW NAME.txt" })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/new name.txt", name: "../up.txt" } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/new name.txt", name: ".." } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/missing.txt", name: "x.txt" } })).status, 404);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/new name.txt", name: "NEW NAME.txt" } })).status, 200);
   fs.writeFileSync(path.join(repo, "dir", "other.txt"), "y\n");
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/other.txt", name: "NEW NAME.txt" })).status, 409);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir/other.txt", name: "NEW NAME.txt" } })).status, 409);
   // フォルダの名前も変えられる
-  const dir = await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir", name: "dir2" });
+  const dir = await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "dir", name: "dir2" } });
   assert.deepEqual(dir.body, { path: "dir2" });
-  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "../outside.txt", name: "x.txt" })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/file/rename", { params: { projectId: project.id }, body: { path: "../outside.txt", name: "x.txt" } })).status, 400);
 
   // 新しいファイル・フォルダ: 途中のフォルダも作る。同じ名前は 409、使えない名前・外は 400
-  const made = await call("POST", `/api/projects/${project.id}/files`, { path: "dir2/sub/new.ts" });
+  const made = await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "dir2/sub/new.ts" } });
   assert.deepEqual([made.status, made.body], [201, { path: "dir2/sub/new.ts" }]);
   assert.equal(fs.readFileSync(path.join(repo, "dir2", "sub", "new.ts"), "utf8"), "");
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "dir2/sub/new.ts" })).status, 409);
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "empty", dir: true })).status, 201);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "dir2/sub/new.ts" } })).status, 409);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "empty", dir: true } })).status, 201);
   assert.equal(fs.statSync(path.join(repo, "empty")).isDirectory(), true);
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "empty/../x.ts" })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "../outside.ts" })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "a//b.ts" })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "empty/../x.ts" } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "../outside.ts" } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "a//b.ts" } })).status, 400);
   // リンクで外を指すフォルダの中には作らない
   const outside = tempDir();
   fs.symlinkSync(outside, path.join(repo, "out-link"));
-  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "out-link/deep/x.ts" })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/files", { params: { projectId: project.id }, body: { path: "out-link/deep/x.ts" } })).status, 400);
   assert.equal(fs.existsSync(path.join(outside, "deep")), false);
   fs.unlinkSync(path.join(repo, "out-link"));
   // 空のフォルダも一覧に出す（中の空のフォルダも）
   fs.mkdirSync(path.join(repo, "empty", "inner"));
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, ["empty", "empty/inner"]);
+  assert.deepEqual((await api("GET /api/projects/:projectId/files", { params: { projectId: project.id } })).body.empty_dirs, ["empty", "empty/inner"]);
 
   // Kickoff のゴミ箱へ入れる（入れたゴミ箱の ID を返す）。ないものは 404、外は 400
-  const trashed = await call("DELETE", `/api/projects/${project.id}/file?path=empty`);
+  const trashed = await api("DELETE /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "empty" } });
   assert.equal(trashed.status, 200);
   assert.equal(ctx.store.trash.get(trashed.body.trash_id)?.origin, path.join(fs.realpathSync(repo), "empty"));
   assert.equal(ctx.store.trash.get(trashed.body.trash_id)?.project_id, project.id);
-  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=empty`)).status, 404);
-  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, []);
+  assert.equal((await api("DELETE /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "empty" } })).status, 404);
+  assert.equal((await api("DELETE /api/projects/:projectId/file", { params: { projectId: project.id }, query: { path: "../outside.txt" } })).status, 400);
+  assert.deepEqual((await api("GET /api/projects/:projectId/files", { params: { projectId: project.id } })).body.empty_dirs, []);
 
   // ファイルの中を探す（大文字・小文字・単語単位・正規表現。無視しているフォルダは探さない）
   fs.writeFileSync(path.join(repo, "c.txt"), "Hello world\nhello-there\nshell\n");
@@ -271,21 +271,21 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await post("discard", ["../outside.txt"])).status, 400);
 
   // コミット・プッシュ（プッシュ先は手元に作った空のリポジトリ）
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/commit`, { message: " " })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/commit", { params: { projectId: project.id }, body: { message: " " } })).status, 400);
   await post("stage", ["b.txt"]);
-  st = (await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す" })).body;
+  st = (await api("POST /api/projects/:projectId/git/commit", { params: { projectId: project.id }, body: { message: "b を直す" } })).body;
   assert.deepEqual(st.staged, []);
   // コミット (修正): メッセージが空なら前のメッセージのまま、書けばそのメッセージに書き直す（コミットは増えない）
   const commitCount = () => execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: repo }).toString().trim();
   const before = commitCount();
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/commit`, { message: "", amend: true })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/git/commit", { params: { projectId: project.id }, body: { message: "", amend: true } })).status, 200);
   assert.match(execFileSync("git", ["log", "--format=%s", "-1"], { cwd: repo }).toString(), /b を直す/);
-  st = (await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す（修正）", amend: true })).body;
+  st = (await api("POST /api/projects/:projectId/git/commit", { params: { projectId: project.id }, body: { message: "b を直す（修正）", amend: true } })).body;
   assert.deepEqual(st.staged, []);
   assert.equal(commitCount(), before);
   assert.match(execFileSync("git", ["log", "--format=%s", "-1"], { cwd: repo }).toString(), /b を直す（修正）/);
   // 下の履歴の確かめのため、もとのメッセージに戻す
-  await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す", amend: true });
+  await api("POST /api/projects/:projectId/git/commit", { params: { projectId: project.id }, body: { message: "b を直す", amend: true } });
 
   // 行ごとの変更の記録: コミットした行はそのコミット、書き足してまだコミットしていない行は uncommitted。Git で管理していないファイルは null
   fs.appendFileSync(path.join(repo, "b.txt"), "more\n");
@@ -295,13 +295,13 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(blame.commits[blame.lines[1]].uncommitted, true);
   fs.writeFileSync(path.join(repo, "b.txt"), "bee!\n");
   fs.writeFileSync(path.join(repo, "untracked.txt"), "x\n");
-  assert.equal((await call("GET", `/api/projects/${project.id}/git/blame?path=untracked.txt`)).body, null);
+  assert.equal((await api("GET /api/projects/:projectId/git/blame", { params: { projectId: project.id }, query: { path: "untracked.txt" } })).body, null);
   fs.rmSync(path.join(repo, "untracked.txt"));
-  assert.equal((await call("GET", `/api/projects/${project.id}/git/blame?path=../outside.txt`)).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/push`)).status, 400);
+  assert.equal((await api("GET /api/projects/:projectId/git/blame", { params: { projectId: project.id }, query: { path: "../outside.txt" } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/push", { params: { projectId: project.id } })).status, 400);
   const remote = bareRemote();
   git("remote", "add", "origin", remote);
-  st = (await call("POST", `/api/projects/${project.id}/git/push`)).body;
+  st = (await api("POST /api/projects/:projectId/git/push", { params: { projectId: project.id } })).body;
   assert.equal(st.has_origin, true);
   assert.equal(st.upstream, "origin/main");
   assert.equal(st.ahead, 0);
@@ -313,20 +313,20 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.deepEqual(log.commits[1].parents, []);
   assert.equal(log.more, false);
   assert.equal((await gitLog(repo, 0, 1)).more, true); // API は 200 ずつ（取り決めに数の指定はない）
-  const detail = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[0].hash}`)).body;
+  const detail = (await api("GET /api/projects/:projectId/git/commits/:hash", { params: { projectId: project.id, hash: log.commits[0].hash } })).body;
   assert.deepEqual(detail.files, [{ path: "b.txt", kind: "M" }]);
-  const first = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[1].hash}`)).body;
+  const first = (await api("GET /api/projects/:projectId/git/commits/:hash", { params: { projectId: project.id, hash: log.commits[1].hash } })).body;
   assert.deepEqual(first.files.map((f: { path: string }) => f.path), ["a.txt", "b.txt"]);
-  const commitDiff = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[0].hash}/diff?path=b.txt`)).body;
+  const commitDiff = (await api("GET /api/projects/:projectId/git/commits/:hash/diff", { params: { projectId: project.id, hash: log.commits[0].hash }, query: { path: "b.txt" } })).body;
   assert.match(commitDiff.diff, /^\+bee!$/m);
-  assert.equal((await call("GET", `/api/projects/${project.id}/git/commits/zzz`)).status, 400);
+  assert.equal((await api("GET /api/projects/:projectId/git/commits/:hash", { params: { projectId: project.id, hash: "zzz" } })).status, 400);
 
   // ブランチ・リモート・タグ
   git("tag", "v1", log.commits[1].hash);
   // GitHub を指す remote は github: true（札に GitHub のマークを出す）
   git("remote", "add", "gh", "https://github.com/o/r.git");
   git("update-ref", "refs/remotes/gh/main", log.commits[1].hash);
-  const refs = (await call("GET", `/api/projects/${project.id}/git/refs`)).body;
+  const refs = (await api("GET /api/projects/:projectId/git/refs", { params: { projectId: project.id } })).body;
   // worktree は取り出している作業場所（本体のフォルダ。リンクを解いたパス）
   assert.deepEqual(refs.branches, [{ name: "main", hash: log.commits[0].hash, current: true, upstream: "origin/main", ahead: 0, behind: 0, worktree: fs.realpathSync(repo) }]);
   assert.deepEqual(refs.remotes, [
@@ -339,8 +339,8 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
 
   // ワークツリー: 作る（リポジトリの隣のフォルダ）・一覧・変更があれば force でないと消せない
   const wtUrl = `/api/projects/${project.id}/git/worktrees`;
-  assert.equal((await call("GET", wtUrl)).body.length, 1);
-  assert.equal((await call("POST", wtUrl, { branch: "bad name" })).status, 400);
+  assert.equal((await api("GET /api/projects/:projectId/git/worktrees", { params: { projectId: project.id } })).body.length, 1);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "bad name" } })).status, 400);
   const created = await call("POST", wtUrl, { branch: "feature/x" });
   assert.equal(created.status, 201);
   const wt = created.body.find((w: { branch: string }) => w.branch === "feature/x");
@@ -348,7 +348,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(created.body[0].main, true);
   fs.writeFileSync(path.join(wt.path, "wip.txt"), "wip\n");
   assert.equal((await call("POST", `${wtUrl}/remove`, { path: wt.path })).status, 400);
-  assert.equal((await call("POST", `${wtUrl}/remove`, { path: created.body[0].path })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: created.body[0].path } })).status, 400);
   const removed = (await call("POST", `${wtUrl}/remove`, { path: wt.path, force: true })).body;
   assert.equal(removed.length, 1);
   assert.equal(fs.existsSync(wt.path), false);
@@ -367,11 +367,11 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
 
 test("チャットの作業場所: 新しいワークツリーを作って、その中でエージェントを動かす。Git の操作も作業場所ごと", async () => {
   const ctx = setup({ features: ["git", "files", "worktrees"] });
-  const { call, project, provider } = ctx;
+  const { call, api, project, provider } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
 
   // 本体（指定なし）
-  const main = (await call("POST", `/api/projects/${project.id}/chats`, { text: "本体で" })).body;
+  const main = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "本体で" } })).body;
   assert.equal(main.worktree_path, null);
   await until(async () => (await chatOf(ctx, main.id)).status === "completed");
   assert.equal(provider.lastCwd, repo);
@@ -398,8 +398,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   // 片付け（PR がマージされたあと）: ブランチも消す「消す」で、ワークツリーと手元のブランチを消す（本体は消せない。ワークツリーでないフォルダは 404）
   const removeUrl = `/api/projects/${project.id}/git/worktrees/remove`;
   fs.rmSync(path.join(worktree, "b.txt"));
-  assert.deepEqual(await call("POST", removeUrl, { path: fs.realpathSync(repo), delete_branch: true }), { status: 400, body: { error: "本体のフォルダは消せません" } });
-  assert.deepEqual(await call("POST", removeUrl, { path: "/no/such/worktree", delete_branch: true }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
+  assert.deepEqual(await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: fs.realpathSync(repo), delete_branch: true } }), { status: 400, body: { error: "本体のフォルダは消せません" } });
+  assert.deepEqual(await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: "/no/such/worktree", delete_branch: true } }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
   const finished = await call("POST", removeUrl, { path: worktree, delete_branch: true });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);
@@ -417,16 +417,16 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   gitIn(wt)("add", "d.txt");
   gitIn(wt)("commit", "-q", "-m", "d");
   fs.writeFileSync(path.join(wt, "e.txt"), "e\n");
-  const info = await call("GET", `/api/projects/${project.id}/git/worktrees/info?path=${encodeURIComponent(wt)}`);
+  const info = await api("GET /api/projects/:projectId/git/worktrees/info", { params: { projectId: project.id }, query: { path: wt } });
   assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false, db_connections: [] });
   // 変更があると force なしでは消せない。force とブランチを消す指定で、フォルダもブランチも消える
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt })).status, 400);
-  assert.equal((await call("POST", removeUrl, { path: wt, force: true, delete_branch: true })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: wt } })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: project.id }, body: { path: wt, force: true, delete_branch: true } })).status, 200);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/d"], { cwd: repo }).toString().trim(), "");
 
   // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
-  const other = (await call("POST", `/api/projects/${project.id}/chats`, { text: "別の作業", new_worktree_branch: "feat/b" })).body;
+  const other = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "別の作業", new_worktree_branch: "feat/b" } })).body;
   await until(async () => (await chatOf(ctx, other.id)).status === "completed");
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: other.worktree_path })).status, 200);
   assert.deepEqual(await chatOf(ctx, other.id).then((c) => [c.worktree_path, c.branch]), [null, "feat/b"]);
@@ -437,7 +437,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   fs.rmSync(gone.worktree_path, { recursive: true, force: true });
   // フォルダが消えた作業場所の Git の操作は 404（「Git で管理されていません」と紛らわしく出さない）
   assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent(gone.worktree_path)}`)).status, 404);
-  assert.equal((await call("POST", `/api/chats/${gone.id}/messages`, { text: "続き" })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/messages", { params: { chatId: gone.id }, body: { text: "続き" } })).status, 200);
   await until(async () => (await chatOf(ctx, gone.id)).status === "failed");
   assert.match((await chatOf(ctx, gone.id)).error ?? "", /作業場所のフォルダが見つかりません/);
   assert.equal((await call("POST", removeUrl, { path: gone.worktree_path, delete_branch: true })).status, 200);
@@ -445,12 +445,11 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
 });
 
 test("ブランチ名の案: やりたいことの概要から AI に 1 回だけ聞き、使える形にそろえ、いまあるブランチと同じものを除く（概要がない・案がなければ 400）", async () => {
-  const { call, project, provider } = setup({ features: ["git", "files", "worktrees"] });
+  const { api, project, provider } = setup({ features: ["git", "files", "worktrees"] });
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   gitIn(repo)("branch", "feature/login");
-  const url = `/api/projects/${project.id}/git/branch-suggestions`;
   provider.askReply = "1. feature/login\n2. `Feature/Login Page`\n- fix/session-timeout";
-  const res = await call("POST", url, { summary: "ログイン画面を作る" });
+  const res = await api("POST /api/projects/:projectId/git/branch-suggestions", { params: { projectId: project.id }, body: { summary: "ログイン画面を作る" } });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { branches: ["feature/login-page", "fix/session-timeout"] });
   // 軽いモデルに、概要といまあるブランチを見せて聞く
@@ -458,7 +457,7 @@ test("ブランチ名の案: やりたいことの概要から AI に 1 回だ�
   assert.equal(asked?.model, "light");
   assert.match(asked?.prompt ?? "", /feature\/login/);
   assert.match(asked?.prompt ?? "", /<やりたいこと>\nログイン画面を作る\n<\/やりたいこと>/);
-  assert.equal((await call("POST", url, { summary: "  " })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/branch-suggestions", { params: { projectId: project.id }, body: { summary: "  " } })).status, 400);
   provider.askReply = "ログイン画面";
-  assert.equal((await call("POST", url, { summary: "ログイン画面を作る" })).status, 400);
+  assert.equal((await api("POST /api/projects/:projectId/git/branch-suggestions", { params: { projectId: project.id }, body: { summary: "ログイン画面を作る" } })).status, 400);
 });

@@ -12,7 +12,7 @@ import { canWatchDirectory } from "@/foundation/core/testing/canWatchDirectory";
 
 type Ctx = ReturnType<typeof setup>;
 
-const list = async (ctx: Ctx) => (await ctx.call("GET", `/api/projects/${ctx.project.id}/git/worktrees`)).body as GitWorktree[];
+const list = async (ctx: Ctx) => (await ctx.api("GET /api/projects/:projectId/git/worktrees", { params: { projectId: ctx.project.id } })).body;
 const hueOf = (worktrees: GitWorktree[], where: string) => worktrees.find((w) => w.path === where)?.hue;
 
 test("作業場所の色: 本体はプロジェクトの色、ワークツリーは互いに被らない色を覚え、ブランチを替えても・ほかを足しても・作り直しても変わらない", async () => {

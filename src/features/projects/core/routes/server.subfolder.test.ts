@@ -60,7 +60,7 @@ test("リポジトリの中のフォルダ: 状態・差分・履歴・コミッ
 });
 
 test("リポジトリの中のフォルダ: ワークツリーは一番上の隣に置き、中の同じ位置で作業する。まだコミットしていないフォルダは断る", async () => {
-  const { call, store, provider, top, git, url } = subfolderSetup();
+  const { call, api, store, provider, top, git, url } = subfolderSetup();
   const worktreeRoot = path.join(path.dirname(top), `${path.basename(top)}-worktrees`, "feat-a");
 
   const list = (await call("GET", url("/git/worktrees"))).body;
@@ -79,7 +79,7 @@ test("リポジトリの中のフォルダ: ワークツリーは一番上の隣
 
   // 同じリポジトリの別のフォルダのプロジェクトも、同じブランチなら同じワークツリーを使う
   const other = store.projects.create({ name: "other", repo_path: path.join(top, "other"), provider: "claude" });
-  const otherChat = await call("POST", `/api/projects/${other.id}/chats`, { text: "同じブランチ", new_worktree_branch: "feat/a" });
+  const otherChat = await api("POST /api/projects/:projectId/chats", { params: { projectId: other.id }, body: { text: "同じブランチ", new_worktree_branch: "feat/a" } });
   assert.equal(otherChat.status, 201);
   assert.equal(otherChat.body.worktree_path, path.join(worktreeRoot, "other"));
   await until(() => store.chats.get(otherChat.body.id)?.status === "completed");
@@ -101,18 +101,18 @@ test("リポジトリの中のフォルダ: ワークツリーは一番上の隣
   assert.match(refused.body.error, /コミット/);
   git("add", "-A");
   git("commit", "-q", "-m", "fresh");
-  assert.equal((await call("POST", `/api/projects/${fresh.id}/git/worktrees`, { branch: "feat/b" })).status, 201);
+  assert.equal((await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: fresh.id }, body: { branch: "feat/b" } })).status, 201);
 });
 
 test("リポジトリの中のフォルダ: 取り込み・フォルダの変更は選んだフォルダのまま。ワークツリーのチャットは、同じリポジトリなら中の新しいフォルダへ、別なら本体へ付け替える", async () => {
-  const { call, store, top, project, url } = subfolderSetup();
+  const { call, api, store, top, project, url } = subfolderSetup();
   // 一番上を本体にしたプロジェクトがあっても、中のフォルダは別に登録できる
-  const whole = await call("POST", "/api/projects/import", { path: top, name: "whole" });
+  const whole = await api("POST /api/projects/import", { body: { path: top, name: "whole" } });
   assert.equal(whole.status, 201);
-  const inspected = (await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(path.join(top, "other"))}`)).body;
+  const inspected = (await api("GET /api/workspace/inspect", { query: { path: path.join(top, "other") } })).body;
   assert.equal(inspected.registered_project_id, null);
   assert.equal(inspected.git_root, top);
-  assert.equal((await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(path.join(top, "app"))}`)).body.registered_project_id, project.id);
+  assert.equal((await api("GET /api/workspace/inspect", { query: { path: path.join(top, "app") } })).body.registered_project_id, project.id);
 
   const wt = path.join(path.dirname(top), `${path.basename(top)}-worktrees`, "feat-c");
   const chat = (await call("POST", url("/chats"), { text: "wt", new_worktree_branch: "feat/c" })).body;

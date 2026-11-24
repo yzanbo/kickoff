@@ -29,7 +29,7 @@ function withRepo(s: ReturnType<typeof setup>, files: Record<string, string> = {
 }
 
 const create = async (s: ReturnType<typeof setup>, branch: string) => {
-  const res = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees`, { branch });
+  const res = await s.api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: s.project.id }, body: { branch } });
   assert.equal(res.status, 201);
   return (res.body as GitWorktree[]).find((w) => w.branch === branch)!;
 };
@@ -74,7 +74,7 @@ test("ワークツリーを作ると、空いている帯を割り当てて .env
   assert.equal(gitIn(wt.path)("status", "--porcelain").trim(), "");
 
   // 一覧にも付く。2 つ目は次の帯
-  const list = (await s.call("GET", `/api/projects/${s.project.id}/git/worktrees`)).body as GitWorktree[];
+  const list = (await s.api("GET /api/projects/:projectId/git/worktrees", { params: { projectId: s.project.id } })).body;
   assert.equal(list.find((w) => w.main)?.env, null);
   assert.equal(list.find((w) => w.branch === "feat/x")?.env?.band, 20200);
   assert.equal((await create(s, "fix/y")).env?.band, 20300);
@@ -88,7 +88,7 @@ test("消すとき: 選ばれたら組の名前で docker compose down -v を流
   const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   const wt = await create(s, "feat/x");
-  const removed = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: wt.path, down_volumes: true });
+  const removed = await s.api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: s.project.id }, body: { path: wt.path, down_volumes: true } });
   assert.equal(removed.status, 200);
   assert.ok(s.dockerFake.calls().some((c) => c.args.join(" ") === "compose -p myapp-feat-x down -v --remove-orphans"));
   assert.equal(s.store.worktreeEnvs.get(wt.path), undefined);
@@ -139,7 +139,7 @@ test("［AI で整える］: 覚えのないワークツリーは先に手順を
   const wt = await create(s, "feat/old");
   // 覚えのないワークツリー（Kickoff の外で作ったものなど）にする
   s.store.worktreeEnvs.remove(wt.path);
-  const res = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: wt.path });
+  const res = await s.api("POST /api/projects/:projectId/git/worktrees/env-setup", { params: { projectId: s.project.id }, body: { path: wt.path } });
   assert.equal(res.status, 201);
   const { chat, worktrees } = res.body as WorktreeEnvSetupResult;
   assert.equal(worktrees.find((w) => w.path === wt.path)?.env?.band, 20100);
@@ -157,9 +157,9 @@ test("［AI で整える］: 覚えのないワークツリーは先に手順を
   assert.match(prompt, /NEXTAUTH_URL/);
   assert.match(prompt, /docker compose config/);
   // 本体・知らないフォルダは断る
-  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: s.project.repo_path })).status, 400);
+  assert.equal((await s.api("POST /api/projects/:projectId/git/worktrees/env-setup", { params: { projectId: s.project.id }, body: { path: s.project.repo_path } })).status, 400);
   // ふつうのチャットは書き込みを守らない
-  const plain = await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "hi", worktree_path: wt.path });
+  const plain = await s.api("POST /api/projects/:projectId/chats", { params: { projectId: s.project.id }, body: { text: "hi", worktree_path: wt.path } });
   await until(async () => (await chatOf(s, plain.body.id)).status === "completed");
   assert.equal(await s.provider.lastGate?.deny(writeTracked), null);
 });
@@ -174,9 +174,9 @@ test("消すとき: drop_db_connections なら、このワークツリーの DB 
   const connB = s.store.dbConnections.create(s.project.id, { ...body, port: 20201 }, b.path);
   const other = s.store.dbConnections.create(s.project.id, { ...body, port: 5432 });
   assert.equal(connA.worktree_path, a.path);
-  await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: a.path, drop_db_connections: true });
+  await s.api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: s.project.id }, body: { path: a.path, drop_db_connections: true } });
   assert.equal(s.store.dbConnections.get(connA.id), undefined);
-  await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: b.path });
+  await s.api("POST /api/projects/:projectId/git/worktrees/remove", { params: { projectId: s.project.id }, body: { path: b.path } });
   assert.equal(s.store.dbConnections.get(connB.id)?.worktree_path, null);
   assert.equal(s.store.dbConnections.get(other.id)?.worktree_path, null);
 });

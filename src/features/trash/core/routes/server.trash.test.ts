@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashItem } from "@shared/trash/types";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS} from "@shared/trash/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -18,7 +18,7 @@ import { deferred } from "@shared/foundation/testing/async";
 const execFileAsync = promisify(execFile);
 
 test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻せる。入れた・戻したら知らせる", async () => {
-  const { call, project, trashBin, bus } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, bus } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const dir = tempDir();
@@ -31,10 +31,10 @@ test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻
   assert.equal(put.origin, file);
   assert.ok(events.some((e) => e.type === "trash" && e.project_id === project.id));
 
-  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  const list = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.equal(list.length, 1);
   assert.equal(list[0].label, "a.txt");
-  assert.equal((await call("GET", `/api/trash/${put.id}`)).body.label, "a.txt");
+  assert.equal((await api("GET /api/trash/:itemId", { params: { itemId: put.id } })).body.label, "a.txt");
   assert.equal(list[0].kind, "file");
   assert.equal(list[0].by_chat_id, null);
   assert.equal(Date.parse(list[0].expires_at) - Date.parse(list[0].trashed_at), TRASH_KEEP_MS);
@@ -42,17 +42,17 @@ test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻
 
   // 途中のフォルダも消えていれば作って戻す
   fs.rmSync(path.join(dir, "sub"), { recursive: true });
-  const restored = await call("POST", `/api/trash/${put.id}/restore`, {});
+  const restored = await api("POST /api/trash/:itemId/restore", { params: { itemId: put.id }, body: {} });
   assert.equal(restored.status, 200);
   assert.equal(restored.body.path, file);
   assert.equal(fs.readFileSync(file, "utf8"), "中身");
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/trash`)).body, []);
-  assert.equal((await call("POST", `/api/trash/${put.id}/restore`, {})).status, 404);
-  assert.equal((await call("GET", `/api/trash/${put.id}`)).status, 404);
+  assert.deepEqual((await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body, []);
+  assert.equal((await api("POST /api/trash/:itemId/restore", { params: { itemId: put.id }, body: {} })).status, 404);
+  assert.equal((await api("GET /api/trash/:itemId", { params: { itemId: put.id } })).status, 404);
 });
 
 test("ゴミ箱: 元の場所に同じ名前があれば上書きせずに断り、rename なら「名前 2」で戻す", async () => {
-  const { call, project, trashBin } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { call, api, project, trashBin } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "古い");
@@ -64,7 +64,7 @@ test("ゴミ箱: 元の場所に同じ名前があれば上書きせずに断り
   assert.equal(refused.body.code, TRASH_RESTORE_EXISTS);
   assert.equal(fs.readFileSync(file, "utf8"), "新しい");
 
-  const renamed = await call("POST", `/api/trash/${put.id}/restore`, { rename: true });
+  const renamed = await api("POST /api/trash/:itemId/restore", { params: { itemId: put.id }, body: { rename: true } });
   assert.equal(renamed.body.path, path.join(dir, "a 2.txt"));
   assert.equal(fs.readFileSync(path.join(dir, "a 2.txt"), "utf8"), "古い");
   assert.equal(fs.readFileSync(file, "utf8"), "新しい");
@@ -85,7 +85,7 @@ test("ゴミ箱: フォルダも入れて戻せ、大きさを数える", async 
 });
 
 test("ゴミ箱: AI の kickoff-trash が置いたもの（origin・chat・at と item/）を、一覧を読むときに取り込む。途中で止まったものは古くなったら消す", async () => {
-  const { call, project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const chat = store.chats.create({ project_id: project.id, title: "掃除", provider: "claude", status: "completed" });
   const id = "0b7f6a2e-1c3d-4e5f-8a9b-0c1d2e3f4a5b";
   const folder = path.join(trashBin.dir, id);
@@ -98,7 +98,7 @@ test("ゴミ箱: AI の kickoff-trash が置いたもの（origin・chat・at �
   const broken = "1b7f6a2e-1c3d-4e5f-8a9b-0c1d2e3f4a5b";
   fs.mkdirSync(path.join(trashBin.dir, broken, "item"), { recursive: true });
 
-  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  const list = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.equal(list.length, 1);
   assert.equal(list[0].id, id);
   assert.equal(list[0].by_chat_id, chat.id);
@@ -137,7 +137,7 @@ test("ゴミ箱: 3 日たったものは片付けで本当に消え、種類ご�
 });
 
 test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、消したチャットのプロジェクトのゴミ箱に出て、元に戻せる", async () => {
-  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const chat = store.chats.create({ project_id: project.id, title: "片付け", provider: "claude", status: "completed" });
   const bin = await installTrashCommand(tempDir());
   // 中身が同じなら書き直さない
@@ -157,7 +157,7 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
   const early = await run(["early.txt"]);
   const [mark] = trashMarksIn(early.stdout);
   assert.equal(mark.origin, path.join(fs.realpathSync(work), "early.txt"));
-  const restored = await call("POST", `/api/trash/${mark.id}/restore`, {});
+  const restored = await api("POST /api/trash/:itemId/restore", { params: { itemId: mark.id }, body: {} });
   assert.equal(restored.status, 200);
   assert.equal(fs.readFileSync(path.join(work, "early.txt"), "utf8"), "0");
   fs.rmSync(path.join(work, "early.txt"));
@@ -173,7 +173,7 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
   assert.equal(missing.code, 1);
   assert.match(missing.stderr, /ありません/);
 
-  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  const list = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.deepEqual(list.map((i) => i.label).sort(), ["-odd.txt", "dist"]);
   const dist = list.find((i) => i.label === "dist")!;
   assert.equal(dist.is_dir, true);
@@ -184,67 +184,66 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
 });
 
 test("ゴミ箱: AI が kickoff-trash でノートを消したら、ノートのチャットも同じ行に入り、戻すと一緒に戻る", async () => {
-  const { call, project, trashBin, store, runner } = setup({ features: ["trash", "chat", "projects", "notes"] });
-  const base = `/api/projects/${project.id}`;
-  await call("POST", `${base}/notes`, { path: "案.md", content: "# 案" });
-  const noteDir = (await call("GET", `${base}/notes`)).body.dir as string;
+  const { api, project, trashBin, store, runner } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  await api("POST /api/projects/:projectId/notes", { params: { projectId: project.id }, body: { path: "案.md", content: "# 案" } });
+  const noteDir = (await api("GET /api/projects/:projectId/notes", { params: { projectId: project.id } })).body.dir as string;
   const noteChat = store.chats.create({ project_id: project.id, provider: "claude", title: "案のチャット", status: "completed", note_path: "案.md" });
   const worker = store.chats.create({ project_id: project.id, provider: "claude", title: "片付け", status: "completed" });
   const bin = await installTrashCommand(tempDir());
   await execFileAsync("sh", ["-c", `kickoff-trash "${path.join(noteDir, "案.md")}"`], { env: { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, worker.id) } });
 
-  const list = (await call("GET", `${base}/trash`)).body as TrashItem[];
+  const list = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.equal(list.length, 1);
   assert.equal(store.chats.get(noteChat.id), undefined);
   assert.equal(runner.isBusy(noteChat.id), false);
-  await call("POST", `/api/trash/${list[0].id}/restore`, {});
+  await api("POST /api/trash/:itemId/restore", { params: { itemId: list[0].id }, body: {} });
   assert.equal(store.chats.get(noteChat.id)?.note_path, "案.md");
   assert.ok(fs.existsSync(path.join(noteDir, "案.md")));
 });
 
 test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外れ、同じフォルダの登録は戻すよう断る。戻すとチャットも戻り、3 日たてば本当に消える", async () => {
-  const { call, store, trashBin, trashClock, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { call, api, store, trashBin, trashClock, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const repo = tempDir();
-  const project = (await call("POST", "/api/projects/import", { path: repo, name: "消す", provider: "claude" })).body;
+  const project = (await api("POST /api/projects/import", { body: { path: repo, name: "消す", provider: "claude" } })).body;
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "中のチャット", status: "completed" });
   store.events.add(chat.id, { type: "init", session_id: "sess-p" });
   const snippet = store.snippets.create({ project_id: project.id, label: "このプロジェクトだけ", text: "本文" });
   const noteFolder = store.projects.update(project.id, { note_folder: "消す" }).note_folder;
 
-  const removed = await call("DELETE", `/api/projects/${project.id}`);
+  const removed = await api("DELETE /api/projects/:projectId", { params: { projectId: project.id } });
   assert.equal(removed.status, 200);
   // ゴミ箱にある間は、そのプロジェクトだけの定型文も一覧から外れる
-  assert.ok(!((await call("GET", "/api/snippets")).body as { id: number }[]).some((s) => s.id === snippet.id));
+  assert.ok(!((await api("GET /api/snippets")).body as { id: number }[]).some((s) => s.id === snippet.id));
   // 新しいプロジェクトのノートのフォルダは、ゴミ箱のプロジェクトのフォルダ名と重ねない（戻したときに同じフォルダを指さないように）
-  const other = (await call("POST", "/api/projects/import", { path: tempDir(), name: "消す", provider: "claude", note_folder: "消す" })).body;
+  const other = (await api("POST /api/projects/import", { body: { path: tempDir(), name: "消す", provider: "claude", note_folder: "消す" } })).body;
   assert.notEqual(store.projects.get(other.id)?.note_folder, noteFolder);
   assert.equal(store.projects.get(project.id), undefined);
   assert.equal(store.chats.get(chat.id), undefined);
-  assert.ok(!((await call("GET", "/api/projects")).body as { id: number }[]).some((p) => p.id === project.id));
-  const listed = (await call("GET", "/api/trash/projects")).body as TrashItem[];
+  assert.ok(!((await api("GET /api/projects")).body as { id: number }[]).some((p) => p.id === project.id));
+  const listed = (await api("GET /api/trash/projects")).body;
   assert.deepEqual(listed.map((i) => [i.id, i.label]), [[removed.body.trash_id, "消す"]]);
   // 同じフォルダをもう一度取り込もうとしたら、ゴミ箱から戻すよう断る
   const again = await call("POST", "/api/projects/import", { path: repo, name: "もう一度", provider: "claude" });
   assert.equal(again.status, 409);
   assert.match(again.body.error, /ゴミ箱/);
 
-  await call("POST", `/api/trash/${removed.body.trash_id}/restore`, {});
+  await api("POST /api/trash/:itemId/restore", { params: { itemId: removed.body.trash_id }, body: {} });
   assert.equal(store.projects.get(project.id)?.name, "消す");
   assert.equal(store.chats.get(chat.id)?.title, "中のチャット");
-  assert.ok(((await call("GET", "/api/snippets")).body as { id: number }[]).some((s) => s.id === snippet.id));
+  assert.ok(((await api("GET /api/snippets")).body as { id: number }[]).some((s) => s.id === snippet.id));
 
-  await call("DELETE", `/api/projects/${project.id}`);
+  await api("DELETE /api/projects/:projectId", { params: { projectId: project.id } });
   trashClock.now += TRASH_KEEP_MS + 60_000;
   await trashBin.sweep();
   assert.equal(store.projects.trashed().length, 0);
   assert.deepEqual(provider.discarded.at(-1)?.sessionIds, ["sess-p"]);
-  assert.deepEqual((await call("GET", "/api/trash/projects")).body, []);
+  assert.deepEqual((await api("GET /api/trash/projects")).body, []);
   // 本当に消えたら、同じフォルダをまた取り込める
-  assert.equal((await call("POST", "/api/projects/import", { path: repo, name: "新しく", provider: "claude" })).status, 201);
+  assert.equal((await api("POST /api/projects/import", { body: { path: repo, name: "新しく", provider: "claude" } })).status, 201);
 });
 
 test("アーカイブ済みのチャットの整理: 日数より前から動いていないものの数と、まとめてゴミ箱へ入れる（子チャットも一緒。新しいもの・アーカイブしていないものは残す）", async () => {
-  const { call, project, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { call, api, project, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const make = (title: string, parent: number | null = null) => store.chats.create({ project_id: project.id, title, provider: "claude", status: "completed", parent_chat_id: parent });
   const old = make("古い");
   const child = make("古い子", old.id);
@@ -260,19 +259,19 @@ test("アーカイブ済みのチャットの整理: 日数より前から動い
   assert.equal(preview.body.count, 2);
   assert.equal((await call("GET", "/api/archive-cleanup?days=0")).status, 400);
 
-  const done = await call("POST", "/api/archive-cleanup", { days: 30 });
+  const done = await api("POST /api/archive-cleanup", { body: { days: 30 } });
   assert.deepEqual(done.body, { trashed: 2 });
   assert.equal(store.chats.get(old.id), undefined);
   assert.equal(store.chats.get(child.id), undefined);
   assert.ok(store.chats.get(fresh.id));
   assert.ok(store.chats.get(kept.id));
-  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  const list = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.deepEqual(list.map((i) => i.label), ["古い"]);
   assert.equal((await call("GET", "/api/archive-cleanup?days=30")).body.count, 0);
 });
 
 test("どのチャットも使っていない会話記録: 一覧（チャットが使うもの・Kickoff が覚えたものは除く）と、選んだものをゴミ箱へ（作業フォルダのプロジェクトに出る。外のものはプロジェクトのない一覧へ）", async () => {
-  const { call, project, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = (id: string) => {
     const p = path.join(dir, `${id}.jsonl`);
@@ -286,7 +285,7 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
   const info = (id: string, cwd: string) => ({ sessionId: id, file: file(id), size: 3, modifiedAt: new Date().toISOString(), cwd, firstPrompt: "前のチャット" });
   provider.sessionFiles = [info(ids.used, project.repo_path), info(ids.mine, project.repo_path), info(ids.orphan, project.repo_path), info(ids.outside, "/somewhere/else")];
 
-  const list = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; project_id: number | null; kickoff_ask: boolean }[];
+  const list = (await api("GET /api/orphan-sessions")).body as { session_id: string; project_id: number | null; kickoff_ask: boolean }[];
   assert.ok(list.every((s) => s.kickoff_ask === false));
   assert.deepEqual(
     list.map((s) => [s.session_id, s.project_id]),
@@ -298,22 +297,22 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
   // Kickoff の 1 回だけの問い合わせ（OS の一時フォルダで動かしたもの）には印を付ける
   const askId = "55555555-5555-4555-8555-555555555555";
   provider.sessionFiles = [...provider.sessionFiles, info(askId, os.tmpdir())];
-  const withAsk = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; kickoff_ask: boolean }[];
+  const withAsk = (await api("GET /api/orphan-sessions")).body as { session_id: string; kickoff_ask: boolean }[];
   assert.equal(withAsk.find((s) => s.session_id === askId)?.kickoff_ask, true);
   provider.sessionFiles = provider.sessionFiles.filter((f) => f.sessionId !== askId);
-  const done = await call("POST", "/api/orphan-sessions/trash", { session_ids: [ids.orphan, ids.outside, ids.used] });
+  const done = await api("POST /api/orphan-sessions/trash", { body: { session_ids: [ids.orphan, ids.outside, ids.used] } });
   assert.deepEqual(done.body, { trashed: 2 });
   assert.equal(fs.existsSync(path.join(dir, `${ids.orphan}.jsonl`)), false);
   assert.ok(fs.existsSync(path.join(dir, `${ids.used}.jsonl`)));
-  const inProject = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  const inProject = (await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body;
   assert.deepEqual(inProject.map((i) => [i.kind, i.label]), [["session", "会話記録「前のチャット」"]]);
-  const unassigned = (await call("GET", "/api/trash/unassigned")).body as TrashItem[];
+  const unassigned = (await api("GET /api/trash/unassigned")).body;
   assert.equal(unassigned.length, 1);
   assert.equal(unassigned[0].origin, path.join(dir, `${ids.outside}.jsonl`));
 });
 
 test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォルダ）も置き場へ移し、大きさに数え、戻すと元の場所へ戻る", async () => {
-  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = path.join(dir, "s.jsonl");
   const companion = path.join(dir, "s");
@@ -323,7 +322,7 @@ test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォ
   const put = await trashBin.putPath(file, { projectId: project.id, kind: "session", companions: [companion, path.join(dir, "none")] });
   assert.equal(fs.existsSync(companion), false);
   await until(() => (store.trash.get(put.id)?.size ?? 0) >= 15);
-  assert.equal((await call("POST", `/api/trash/${put.id}/restore`, {})).status, 200);
+  assert.equal((await api("POST /api/trash/:itemId/restore", { params: { itemId: put.id }, body: {} })).status, 200);
   assert.equal(fs.readFileSync(path.join(companion, "subagents", "a.jsonl"), "utf8"), "1234567890");
   assert.equal(fs.readFileSync(file, "utf8"), "12345");
 });
@@ -371,31 +370,31 @@ test("ゴミ箱: 入れた時刻は片付けと同じ時計で付ける（本物
 });
 
 test("ゴミ箱: 3 日を待たずに 1 件を完全に消せる（置き場の中身も消え、チャットは会話記録ごと消える。もうないものは 404）", async () => {
-  const { call, project, trashBin, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const file = path.join(tempDir(), "a.txt");
   fs.writeFileSync(file, "x");
   const put = await trashBin.putPath(file, { projectId: project.id });
 
-  const removed = await call("DELETE", `/api/trash/${put.id}`);
+  const removed = await api("DELETE /api/trash/:itemId", { params: { itemId: put.id } });
   assert.equal(removed.status, 204);
   assert.equal(store.trash.get(put.id), null);
   assert.equal(fs.existsSync(path.join(trashBin.dir, put.id)), false);
   assert.equal(fs.existsSync(file), false);
-  assert.equal((await call("DELETE", `/api/trash/${put.id}`)).status, 404);
-  assert.equal((await call("POST", `/api/trash/${put.id}/restore`, {})).status, 404);
+  assert.equal((await api("DELETE /api/trash/:itemId", { params: { itemId: put.id } })).status, 404);
+  assert.equal((await api("POST /api/trash/:itemId/restore", { params: { itemId: put.id }, body: {} })).status, 404);
 
   // チャット: 種類ごとの扱い（会話記録のファイル・行を消す）も流す
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "消すチャット", status: "completed" });
   store.events.add(chat.id, { type: "init", session_id: "sess-now" });
-  const trashed = (await call("DELETE", `/api/chats/${chat.id}`)).body as { trash_id: string };
-  assert.equal((await call("DELETE", `/api/trash/${trashed.trash_id}`)).status, 204);
+  const trashed = (await api("DELETE /api/chats/:chatId", { params: { chatId: chat.id } })).body as { trash_id: string };
+  assert.equal((await api("DELETE /api/trash/:itemId", { params: { itemId: trashed.trash_id } })).status, 204);
   assert.equal(store.trash.get(trashed.trash_id), null);
   assert.deepEqual(provider.discarded.at(-1)?.sessionIds, ["sess-now"]);
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/trash`)).body, []);
+  assert.deepEqual((await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body, []);
 });
 
 test("ゴミ箱: まとめて完全に消す（渡した ID だけ。もうないものは飛ばして消した数を返す）", async () => {
-  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
+  const { api, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const puts = [];
   for (const name of ["a.txt", "b.txt", "c.txt"]) {
@@ -404,19 +403,19 @@ test("ゴミ箱: まとめて完全に消す（渡した ID だけ。もうな�
   }
   const [a, b, c] = puts;
   // b は先に戻しておく（画面の一覧が古かったとき）
-  await call("POST", `/api/trash/${b.id}/restore`, {});
+  await api("POST /api/trash/:itemId/restore", { params: { itemId: b.id }, body: {} });
 
-  const res = await call("POST", "/api/trash/purge", { ids: [a.id, b.id, a.id] });
+  const res = await api("POST /api/trash/purge", { body: { ids: [a.id, b.id, a.id] } });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { purged: 1 });
   assert.equal(store.trash.get(a.id), null);
   assert.equal(fs.existsSync(path.join(trashBin.dir, a.id)), false);
   // 渡していない c は残る
   assert.ok(store.trash.get(c.id));
-  assert.deepEqual(((await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[]).map((i) => i.id), [c.id]);
+  assert.deepEqual(((await api("GET /api/projects/:projectId/trash", { params: { projectId: project.id } })).body).map((i) => i.id), [c.id]);
   // 形の違う本文は 400
-  assert.equal((await call("POST", "/api/trash/purge", { ids: [] })).status, 400);
-  assert.equal((await call("POST", "/api/trash/purge", { ids: ["../x"] })).status, 400);
+  assert.equal((await api("POST /api/trash/purge", { body: { ids: [] } })).status, 400);
+  assert.equal((await api("POST /api/trash/purge", { body: { ids: ["../x"] } })).status, 400);
 });
 
 test("ゴミ箱: 片付けと「完全に消す」が重なっても、種類ごとの扱いは 1 回だけ流す", async () => {
