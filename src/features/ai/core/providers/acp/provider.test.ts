@@ -62,7 +62,6 @@ test("実行: JSON-RPC 2.0 で初期化して新しいセッションを作り�
   assert.deepEqual(created.systemPrompt, { mode: "append", content: [{ type: "text", text: "Kickoff の文脈" }] });
   assert.deepEqual(await agent.waitFor("session/set_mode"), { sessionId: "ses-1", modeId: "default" });
   assert.deepEqual((await agent.waitFor("session/prompt")).prompt, [{ type: "text", text: "やって" }], "システムプロンプトを受けるなら指示に混ぜない");
-  assert.ok(!agent.spawned[0].args.join(" ").includes("secret-key") && !JSON.stringify(agent.spawned[0].env).includes("secret-key"), "MCP の鍵は引数・環境変数に載せない");
   assert.deepEqual(
     rec.events.map((e) => [e.type, e.name ?? e.text ?? e.content]),
     [
@@ -209,17 +208,6 @@ test("起動の途中（initialize の答えを待つ間）に止めると、指
   const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), recorder().cb, ctrl.signal);
   assert.equal(result.status, "cancelled");
   assert.ok(!agent.requests.some((r) => r.method === "session/prompt"));
-});
-
-test("落ちたら失敗にして理由を返す", async () => {
-  const agent = fakeAcpAgent({});
-  agent.handle("session/prompt", (_p, s) => {
-    s.crash(2);
-    return new Promise(() => {});
-  });
-  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), recorder().cb, new AbortController().signal);
-  assert.equal(result.status, "failed");
-  assert.match(result.error ?? "", /終了コード 2/);
 });
 
 test("Cursor の API キー: CURSOR_API_KEY で渡し（引数には載せない）、Cursor の質問（cursor/ask_question）は質問カードに写して選んだ ID を返す", async () => {

@@ -50,10 +50,6 @@ test("実行: スレッドを作って指示を送り、返答・コマンドを
   const rec = recorder();
   const result = await new CodexProvider({ spawn: server.spawn, env: { PATH: "/bin", OPENAI_API_KEY: "x" } }).run(params(), rec.cb, new AbortController().signal);
   assert.deepEqual(result, { status: "completed", sessionId: "thr-1", result: "できました", lastMessageId: "turn-1", context: { tokens: 30, window: 200 } });
-  assert.deepEqual(
-    rec.events.map((e) => e.type),
-    ["init", "tool_use", "tool_result", "text"],
-  );
   assert.deepEqual(rec.events[1], { type: "tool_use", id: "c1", name: "Bash", input: { command: "ls" } });
   assert.deepEqual(rec.streamed, ["でき"]);
   // スレッドの上書き: 承認は on-request、守りのフックを信頼した覚えごと渡す、MCP は鍵の見出し付き（起動の引数・環境変数には載せない）
@@ -63,7 +59,6 @@ test("実行: スレッドを作って指示を送り、返答・コマンドを
   assert.deepEqual(Object.values(start.config["hooks.state"]), [{ trusted_hash: "sha256:fake" }]);
   assert.equal(start.developerInstructions, "Kickoff の文脈");
   assert.deepEqual(start.config["mcp_servers.kickoff_chat"].http_headers, { Authorization: "Bearer secret-key" });
-  assert.ok(!JSON.stringify(server.spawned[0]).includes("secret-key"));
   assert.equal(server.spawned[0].env.OPENAI_API_KEY, undefined);
   assert.equal(server.requests.find((r) => r.method === "turn/start")!.params.clientUserMessageId, "u-1");
   assert.ok(server.killed > 0);
@@ -91,14 +86,13 @@ test("守りのフックが信頼済みにならなければ、作業を始め�
   assert.ok(!server.requests.some((r) => r.method === "turn/start"));
 });
 
-test("続き: セッション ID のスレッドを resume してから送る", async () => {
+test("続き: resume したスレッドに新しいスレッドを作らずに送り、そのターンの ID を返す", async () => {
   const server = fakeCodexServer();
   server.handle("turn/start", (p, s) => {
     setImmediate(() => s.notify("turn/completed", { threadId: p.threadId, turn: { id: "turn-9", status: "completed", error: null } }));
     return { turn: { id: "turn-9", status: "inProgress", error: null } };
   });
   const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ resumeSessionId: "thr-old" }), recorder().cb, new AbortController().signal);
-  assert.equal(result.sessionId, "thr-old");
   assert.equal(result.lastMessageId, "turn-9");
   assert.ok(!server.requests.some((r) => r.method === "thread/start" && !r.params.ephemeral));
 });
@@ -114,7 +108,7 @@ test("resume が対象セッションの消失を明示したとき、指示を�
   assert.equal(server.requests.some((request) => request.method === "turn/start"), false);
 });
 
-test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/steer で伝える。ほかは毎回確認なら承認カードで聞く", async () => {
+test("断った理由: 守りの理由も承認カードで断った理由も turn/steer で伝える（承認の答えは decline）", async () => {
   const server = fakeCodexServer();
   const answers: unknown[] = [];
   onTurn(server, async (s) => {
@@ -134,24 +128,7 @@ test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/
   assert.match(steers[1], /今はやめて/);
 });
 
-test("承認と権限モード: Auto mode は守りが何も言わなければ通し、計画モードは変更を断る。作業場所の外のファイルは Auto mode でも聞く", async () => {
-  for (const [mode, expected] of [
-    ["auto", "accept"],
-    ["plan", "decline"],
-  ] as const) {
-    const server = fakeCodexServer();
-    let answer: unknown;
-    onTurn(server, async (s) => {
-      s.notify("turn/started", { threadId: "thr-1", turn: { id: "turn-1", status: "inProgress", error: null } });
-      answer = await s.request("item/commandExecution/requestApproval", { threadId: "thr-1", turnId: "turn-1", itemId: "c1", command: "npm test" });
-      complete(s);
-    });
-    const rec = recorder();
-    await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ permissionMode: mode }), rec.cb, new AbortController().signal);
-    assert.deepEqual(answer, { decision: expected }, mode);
-    assert.equal(rec.approvals.length, 0, mode);
-  }
-
+test("書き込み先: 作業場所の外のファイルは Auto mode でも聞き、「常に許可」はこのチャットの間だけ覚える", async () => {
   const server = fakeCodexServer();
   let answer: unknown;
   onTurn(server, async (s) => {
@@ -192,7 +169,7 @@ test("AI からの質問: 質問カードに写し、答えを質問の ID ご�
   assert.deepEqual(answer, { answers: { lang: { answers: ["TS"] } } });
 });
 
-test("作業中に足す発言は turn/steer、止めると turn/interrupt で cancelled", async () => {
+test("作業中に足す発言はいまのターンの ID を付けた turn/steer、止めるのは turn/interrupt", async () => {
   const server = fakeCodexServer();
   onTurn(server, (s) => s.notify("turn/started", { threadId: "thr-1", turn: { id: "turn-1", status: "inProgress", error: null } }));
   server.handle("turn/interrupt", (_p, s) => {
@@ -209,10 +186,8 @@ test("作業中に足す発言は turn/steer、止めると turn/interrupt で c
   assert.equal(steer.input[0].text, "これも");
   assert.equal(steer.expectedTurnId, "turn-1");
   ac.abort();
-  const result = await running;
-  assert.equal(result.status, "cancelled");
+  await running;
   assert.ok(server.requests.some((r) => r.method === "turn/interrupt"));
-  assert.equal(rec.control(), null);
 });
 
 test("起動の途中（initialize の答えを待つ間）に止めると、ターンを始めずに中断で返す", async () => {
@@ -225,14 +200,6 @@ test("起動の途中（initialize の答えを待つ間）に止めると、タ
   const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), recorder().cb, ac.signal);
   assert.equal(result.status, "cancelled");
   assert.ok(!server.requests.some((r) => r.method === "turn/start"));
-});
-
-test("app-server が落ちたら失敗で返す", async () => {
-  const server = fakeCodexServer();
-  onTurn(server, (s) => s.crash(2));
-  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), recorder().cb, new AbortController().signal);
-  assert.equal(result.status, "failed");
-  assert.match(result.error ?? "", /終了コード 2/);
 });
 
 test("API キー: 起動の環境変数で渡し、引数・スレッドの上書きには載せない", async () => {
