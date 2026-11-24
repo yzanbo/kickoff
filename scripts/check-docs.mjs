@@ -1,6 +1,6 @@
 // 文書の検査（0018 の作り直しの間は「減らすだけ」の基準線つき）。決まりは scripts/docs.config.mjs、基準線は scripts/docs-baseline.json。
 // 見るもの: 大きさの上限・祖先の CLAUDE.md との合計・長い行・書かない言葉・切れた参照・置かない CLAUDE.md・docs/features.md の形・
-// docs/architecture.md の語彙の名前がコードにあるか・コードのコメントの書かない言葉
+// docs/architecture.md の語彙の名前がコードにあるか・機能の表の並びが FEATURES と同じか・コードのコメントの書かない言葉
 // node scripts/check-docs.mjs                 … 確かめる（基準線にない違反・増えた違反・直ったのに基準線に残る違反があれば終了コード 1）
 // node scripts/check-docs.mjs --count         … 種類ごとの数と合計を JSON で出す（終了コード 0）
 // node scripts/check-docs.mjs --report        … いまの違反を 1 つずつ出す（終了コード 0。数えるだけ）
@@ -14,7 +14,7 @@ import { matchesAny } from "./structure/parse.mjs";
 import { baselineFrom, compareWithBaseline, measureDocs, summarize } from "./docs/measure.mjs";
 
 export { countForbidden, countLongLines, headingRefsIn, headingsOf, pathRefsIn, refExists, resolveRef, tablesIn, vocabularyNames } from "./docs/markdown.mjs";
-export { ancestorDocs, checkFeatures, commentViolations, limitFor, missingNames } from "./docs/rules.mjs";
+export { ancestorDocs, checkFeatures, commentViolations, limitFor, missingNames, orderErrors } from "./docs/rules.mjs";
 export { baselineFrom, compareWithBaseline, measureDocs, summarize } from "./docs/measure.mjs";
 
 /** コメントと語彙の名前を探すファイル（文字のファイルだけ。CLAUDE.md などの文書は語彙の名前の実在に数えない） */

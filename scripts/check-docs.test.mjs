@@ -13,6 +13,7 @@ import {
   limitFor,
   measureDocs,
   missingNames,
+  orderErrors,
   pathRefsIn,
   refExists,
   summarize,
@@ -213,6 +214,14 @@ test("語彙: 語として出てこない名前だけを返す（長い名前の
     ["src/b.ts", "openChat()"],
   ]);
   assert.deepEqual(missingNames(["ChatEvent", "chat_id", "openChat", "Queue"], sources), ["ChatEvent", "Queue"]);
+});
+
+test("機能の並び: 見出しの下の表の名前が並びと同じなら空、違えば最初に食い違った所を返す", () => {
+  const markdown = ["## 3. 機能の一覧と向き", "| # | 機能 | 中身 |", "|---|---|---|", "| 1 | `settings` | 設定 |", "| 2 | `chat` | チャット |"].join("\n");
+  const order = (names) => orderErrors(markdown, { file: "docs/a.md", heading: "機能の一覧", column: 2, names });
+  assert.deepEqual(order(["settings", "chat"]), []);
+  assert.deepEqual(order(["chat", "settings"]), ["docs/a.md: 「機能の一覧」の表の 1 番目が settings（並びは chat）"]);
+  assert.deepEqual(order(["settings", "chat", "board"]), ["docs/a.md: 「機能の一覧」の表の 3 番目が （ない）（並びは board）"]);
 });
 
 /** 比べる・書き直すための小さな数 */

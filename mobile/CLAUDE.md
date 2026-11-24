@@ -1,6 +1,6 @@
 # スマホのアプリ（`mobile/`。Android）
 
-Android から Tailscale 経由で本体（Mac の Kickoff）のチャットを使うアプリ。Expo（React Native）・TypeScript で、本体と同じ `@shared` を使う。配り方は `README.md`、変えないもの（パッケージ名・EAS の置き場所）は `docs/architecture.md` の「0. 決めたこと」。受け入れの一覧: `docs/features.md` の `MOB-`。
+Android から Tailscale 経由で本体（Mac の Kickoff）のチャットを使うアプリ。Expo（React Native）・TypeScript で、本体と同じ `@shared` を使う。配り方は `README.md`、変えないもの（パッケージ名・EAS の置き場所）は `docs/architecture.md` の「決めたこと」。受け入れの一覧: `docs/features.md` の `MOB-`。
 
 ## 地図
 - `src/app/`: 画面（Expo Router。1 ファイル = 1 画面。画面でないものは外へ）

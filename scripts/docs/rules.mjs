@@ -2,7 +2,7 @@
 // どれも入出力をしない純粋な関数（テストは scripts/check-docs.test.mjs）
 import path from "node:path";
 import { matchesAny, parseCode } from "../structure/parse.mjs";
-import { matchesInLine, tablesIn } from "./markdown.mjs";
+import { matchesInLine, tablesIn, vocabularyNames } from "./markdown.mjs";
 
 /** ファイルの上限（バイト）。上から最初に合ったもの（{ glob, bytes } か、差し替えの { path | glob, max }）。合うものがなければ null */
 export function limitFor(file, limits) {
@@ -85,6 +85,17 @@ export function checkFeatures(text, files) {
     }
   }
   return errors;
+}
+
+/**
+ * 文書の見出しの下の表の column 列目の名前の並びが names（scripts/structure.config.mjs の FEATURES など）と同じか。
+ * 違えば最初に食い違った所を 1 つ返す
+ */
+export function orderErrors(markdown, { file, heading, column, names }) {
+  const found = vocabularyNames(markdown, heading, column);
+  const at = Array.from({ length: Math.max(found.length, names.length) }, (_, i) => i).find((i) => found[i] !== names[i]);
+  if (at === undefined) return [];
+  return [`${file}: 「${heading}」の表の ${at + 1} 番目が ${found[at] ?? "（ない）"}（並びは ${names[at] ?? "（ない）"}）`];
 }
 
 /** 位置（文字の番号）→ 行の番号（1 から）を引く関数 */

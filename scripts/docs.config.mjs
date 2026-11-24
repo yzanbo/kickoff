@@ -3,7 +3,7 @@
 // docs/requirements.md は消すまで features.md と同じ上限。いまの大きさと言葉の数は基準線（scripts/docs-baseline.json）で見逃し、増やさない。
 // 上限を一時に緩めるときは scripts/docs-limits.mjs の DOC_LIMITS（{ path | glob, max } の並び）に書く（limits より先に当てる）
 
-import structure from "./structure.config.mjs";
+import structure, { FEATURES } from "./structure.config.mjs";
 
 export default {
   /** 見る文書（git ls-files に当てる glob） */
@@ -46,6 +46,8 @@ export default {
   forbiddenFiles: ["src/features/CLAUDE.md", "src/foundation/CLAUDE.md", "src/shared/CLAUDE.md"],
   /** 受け入れの一覧（ID と確かめ方の形を見る） */
   features: "docs/features.md",
+  /** 設計書の機能の表（見出しの下の表の column 列目）の並びが、構造の検査の機能の並びと同じか */
+  featureOrder: { file: "docs/architecture.md", heading: "機能の一覧", column: 2, names: FEATURES },
   /** 語彙の表（見出しの下の表の column 列目に ` で囲んで書いた名前が、search のコードにあるか） */
   vocabulary: { file: "docs/architecture.md", heading: "語彙", column: 2, search: ["src", "mobile/src"] },
 };

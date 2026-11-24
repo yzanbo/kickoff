@@ -2,7 +2,7 @@
 // 入出力をしない純粋な関数（テストは scripts/check-docs.test.mjs）
 import { matchesAny } from "../structure/parse.mjs";
 import { countForbidden, headingRefsIn, headingsOf, longLinesIn, pathRefsIn, refExists, resolveRef, vocabularyNames } from "./markdown.mjs";
-import { ancestorDocs, checkFeatures, commentViolations, limitFor, missingNames } from "./rules.mjs";
+import { ancestorDocs, checkFeatures, commentViolations, limitFor, missingNames, orderErrors } from "./rules.mjs";
 
 /** ファイルごとの数（この順で基準線に載せる） */
 const FILE_METRICS = ["bytes", "ancestors", "longLines", "forbidden", "brokenRefs"];
@@ -67,6 +67,13 @@ export function measureDocs({ docs, markdown = docs, code = new Map(), files, co
   if (config.features && markdown.has(config.features)) {
     measured.features = checkFeatures(markdown.get(config.features), files);
     for (const message of measured.features) detail("features", config.features, message);
+  }
+  // 設計書の機能の表の並び（誤りは機能の一覧の誤りに数える）
+  const order = config.featureOrder;
+  if (order && markdown.has(order.file)) {
+    const errors = orderErrors(markdown.get(order.file), order);
+    measured.features.push(...errors);
+    for (const message of errors) detail("features", order.file, message);
   }
 
   const vocab = config.vocabulary;
