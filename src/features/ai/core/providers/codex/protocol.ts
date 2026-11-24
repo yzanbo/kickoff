@@ -1,11 +1,11 @@
 /**
  * Codex の app-server（`codex app-server`。改行区切りの JSON-RPC。"jsonrpc" の欄は付けない）のやり取りのうち、Kickoff が使う分だけの型。
- * 確かめた版: codex-cli 0.169.0（`codex app-server generate-ts` の出力の v2 から手で写した。生成物はリポジトリに入れない）。
+ * 確かめた版: codex-cli 0.172.0（`codex app-server generate-ts` の出力の v2 から手で写した。生成物はリポジトリに入れない）。
  * 版が上がって形が変わったら、生成し直して見比べ、ここを直す
  */
 
 /** 確かめた codex-cli の版（上の型を写した版） */
-export const TESTED_VERSION = "0.169.0";
+export const TESTED_VERSION = "0.172.0";
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
