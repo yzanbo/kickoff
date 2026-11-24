@@ -5,16 +5,16 @@ import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("AI の切り替え前には巻き戻し・分岐・ファイル復元を許可しない", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の発言" })).body.id;
+  const { call, api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "前の発言" } })).body.id;
   await until(() => !runner.isBusy(chatId));
   const before = store.events.list(chatId);
   const user = before.find((e) => e.type === "user")!;
   const result = before.find((e) => e.type === "result")!;
   store.events.add(chatId, { type: "provider_switched", from: "claude", to: "codex" });
   const count = store.events.list(chatId).length;
-  const rewind = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "やり直し" });
-  const fork = await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id });
+  const rewind = await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: user.id, text: "やり直し" } });
+  const fork = await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: result.id } });
   const files = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true });
   for (const response of [rewind, fork, files]) {
     assert.equal(response.status, 400);
@@ -26,16 +26,16 @@ test("AI の切り替え前には巻き戻し・分岐・ファイル復元を�
 });
 
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
   const events = store.events.list(chatId);
   const first = events.find((e) => e.type === "result")!;
   assert.deepEqual([(first.data as { session_id?: string }).session_id, (first.data as { message_id?: string }).message_id], ["s1", "m1"]);
 
-  const forked = await call("POST", `/api/chats/${chatId}/fork`, { event_id: first.id });
+  const forked = await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: first.id } });
   assert.equal(forked.status, 201);
   assert.equal(forked.body.title, `${store.chats.get(chatId)!.title}（分岐）`);
   assert.equal(forked.body.session_id, "fork-1");
@@ -48,35 +48,35 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
 
   // 分岐できない時点・見つからないチャット
   const user = events.find((e) => e.type === "user")!;
-  assert.deepEqual(await call("POST", `/api/chats/${chatId}/fork`, { event_id: user.id }), { status: 400, body: { error: "この時点からは分岐できません" } });
-  assert.equal((await call("POST", "/api/chats/999/fork", { event_id: first.id })).status, 404);
+  assert.deepEqual(await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: user.id } }), { status: 400, body: { error: "この時点からは分岐できません" } });
+  assert.equal((await api("POST /api/chats/:chatId/fork", { params: { chatId: 999 }, body: { event_id: first.id } })).status, 404);
   // 作業中は分岐できない
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3" });
-  assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: first.id })).status, 409);
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3" } });
+  assert.equal((await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: first.id } })).status, 409);
   release();
   await until(() => !runner.isBusy(chatId));
 });
 
 test("巻き戻し・分岐は、止めた作業の終わりを起点にしない（その時点のメッセージはセッションに残らないことがある）", async () => {
-  const { call, project, store, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const completed = store.events.list(chatId).find((e) => e.type === "result")!;
   // 以前の記録の形: 止めた作業の終わりにも message_id が付いている
   store.events.add(chatId, { type: "user", text: "2" , message_uuid: "u1" });
   const cancelled = store.events.add(chatId, { type: "result", status: "cancelled", session_id: "s9", message_id: "m9" });
   const third = store.events.add(chatId, { type: "user", text: "3" , message_uuid: "u2" });
-  assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: cancelled.id })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: third.id, text: "3 を書き直し" })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: cancelled.id } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: third.id, text: "3 を書き直し" } })).status, 200);
   const data = completed.data as { session_id: string; message_id: string };
   assert.deepEqual(provider.forks.at(-1), [data.session_id, data.message_id, project.repo_path]);
 });
 
 test("巻き戻しの API: 自分の発言の手前まで戻し、書き直した文で送り直す（添付は引き継ぐ）", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const { call, api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const attachment = { kind: "file", id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2", attachments: [attachment] });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
@@ -85,7 +85,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const firstResult = before.find((e) => e.type === "result")!;
 
   // 2 回目の発言を巻き戻す: 1 回目の終わりの時点から分岐し、その後ろの記録を消して、書き直した文を送る
-  const rewound = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "2 を書き直し", options: { model: "m-x" } });
+  const rewound = await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: secondUser.id, text: "2 を書き直し", options: { model: "m-x" } } });
   assert.equal(rewound.status, 200);
   assert.equal(rewound.body.id, chatId);
   assert.equal(rewound.body.model, "m-x");
@@ -106,7 +106,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
 
   // 最初の発言を巻き戻す: 分岐せず、セッションを空にして最初から
   const forks = provider.forks.length;
-  const resent = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "やり直し" });
+  const resent = await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: firstUser.id, text: "やり直し" } });
   assert.equal(resent.status, 200);
   assert.equal(resent.body.session_id, null);
   await until(() => !runner.isBusy(chatId) && provider.prompts.length === 4);
@@ -119,23 +119,23 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const events = store.events.list(chatId);
   const result = events.find((e) => e.type === "result")!;
   const user = events.find((e) => e.type === "user")!;
-  const notMine = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: result.id, text: "x" });
+  const notMine = await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: result.id, text: "x" } });
   assert.deepEqual(notMine, { status: 400, body: { error: "自分の発言のところからだけ巻き戻せます" } });
-  const otherId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "別" })).body.id;
+  const otherId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "別" } })).body.id;
   await until(() => !runner.isBusy(otherId));
   const otherUser = store.events.list(otherId).find((e) => e.type === "user")!;
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: otherUser.id, text: "x" })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: otherUser.id, text: "x" } })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { text: "x" })).status, 400);
-  assert.equal((await call("POST", "/api/chats/999/rewind", { event_id: user.id, text: "x" })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: 999 }, body: { event_id: user.id, text: "x" } })).status, 404);
   // 文も添付もなければ送れない
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "  " })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: user.id, text: "  " } })).status, 400);
 
   // 作業中は断り、記録も待ちの列も変えない
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3" });
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "待ち", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3" } });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "待ち", when: "later" } });
   const busyEvents = store.events.list(chatId).length;
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "x" })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: user.id, text: "x" } })).status, 409);
   assert.equal(store.events.list(chatId).length, busyEvents);
   assert.equal(runner.live(chatId).queue.messages.length, 1);
   release();
@@ -145,34 +145,34 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
 });
 
 test("巻き戻すと、消した記録の頭（巻き戻した発言の ID）を SSE の chat_events_deleted で 1 回だけ知らせる", async () => {
-  const { call, project, store, runner, provider, bus } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, runner, provider, bus } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
   const secondUser = store.events.list(chatId).filter((e) => e.type === "user")[1];
   const deleted: unknown[] = [];
   bus.subscribe((e) => e.type === "chat_events_deleted" && deleted.push(e));
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "2 を書き直し" })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: secondUser.id, text: "2 を書き直し" } })).status, 200);
   await until(() => !runner.isBusy(chatId) && provider.prompts.length === 3);
   assert.deepEqual(deleted, [{ type: "chat_events_deleted", project_id: project.id, chat_id: chatId, from_event_id: secondUser.id }]);
 });
 
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。戻せない・作業中は断る", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const [user] = store.events.list(chatId).filter((e) => e.type === "user");
   const messageId = user.type === "user" ? user.data.message_uuid : "";
   assert.equal(messageId, provider.promptIds[0]);
 
   // 量だけを見る（戻さない・お知らせも残さない）
-  const dry = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true });
+  const dry = await api("POST /api/chats/:chatId/rewind-files", { params: { chatId: chatId }, body: { event_id: user.id, dry_run: true } });
   assert.deepEqual(dry.body, provider.rewindResult);
   assert.deepEqual(provider.rewinds, [["s1", messageId, project.repo_path, true]]);
   const events = store.events.list(chatId).length;
   // 戻す: お知らせを残し、会話の記録は消さない
-  const done = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id });
+  const done = await api("POST /api/chats/:chatId/rewind-files", { params: { chatId: chatId }, body: { event_id: user.id } });
   // 応答は dry_run と同じ形（キーは files_changed。本当に戻したときの結果には変わったファイルが付かないので、先に量を測ってから戻す）
   assert.deepEqual(done.body, provider.rewindResult);
   assert.deepEqual(provider.rewinds.slice(1).map((r) => r[3]), [true, false]);
@@ -182,25 +182,25 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
 
   // 戻せない（Claude Code が断った）・作業中
   provider.rewindResult = { can_rewind: false, error: "No file checkpoint found" };
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/rewind-files", { params: { chatId: chatId }, body: { event_id: user.id, dry_run: true } })).status, 400);
   provider.rewindResult = { can_rewind: true, files_changed: [] };
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => runner.isBusy(chatId));
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/rewind-files", { params: { chatId: chatId }, body: { event_id: user.id } })).status, 409);
   release();
   await until(() => !runner.isBusy(chatId));
 });
 
 test("巻き戻しの API: restore_files なら、分岐する前にファイルも戻す（ファイルの記録は元のセッションにあるため）", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
   const second = store.events.list(chatId).filter((e) => e.type === "user")[1];
   const messageId = (second.data as { message_uuid: string }).message_uuid;
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: second.id, text: "2'", restore_files: true })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: second.id, text: "2'", restore_files: true } })).status, 200);
   // 元のセッション（s1）で（量を測って）戻してから、分岐する
   assert.deepEqual(provider.rewinds, [
     ["s1", messageId, project.repo_path, true],
@@ -213,21 +213,21 @@ test("巻き戻しの API: restore_files なら、分岐する前にファイル
   provider.rewindResult = { can_rewind: false };
   const count = store.events.list(chatId).length;
   const third = store.events.list(chatId).filter((e) => e.type === "user")[1];
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: third.id, text: "x", restore_files: true })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: third.id, text: "x", restore_files: true } })).status, 400);
   assert.equal(store.events.list(chatId).length, count);
 });
 
 test("巻き戻しの API: 分岐に対応していないプロバイダーなら 400（最初の発言なら分岐しないので送れる）", async () => {
-  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { api, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => !runner.isBusy(chatId));
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
   const [firstUser, secondUser] = store.events.list(chatId).filter((e) => e.type === "user");
   Object.assign(provider, { fork: undefined });
-  const res = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "x" });
+  const res = await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: secondUser.id, text: "x" } });
   assert.deepEqual(res, { status: 400, body: { error: "Fake のチャットでは分岐・巻き戻しは使えません" } });
   assert.equal(store.events.list(chatId).length, 4);
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "y" })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/rewind", { params: { chatId: chatId }, body: { event_id: firstUser.id, text: "y" } })).status, 200);
   await until(() => !runner.isBusy(chatId));
 });

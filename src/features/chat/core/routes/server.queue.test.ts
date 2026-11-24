@@ -10,39 +10,39 @@ import { setup, until } from "@/app/core/testing/testServer";
 import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
 test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] }), release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] }), release = provider.hold();
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { when: "later" })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { when: "later" } })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" })).body.result, "queued");
   const third = (await call("POST", `/api/chats/${chatId}/messages`, { text: "3", when: "later" })).body;
   // 応答は、入れた結果と、入れたあとの送信待ち
   assert.deepEqual([third.result, third.queue.messages.map((m: { text: string }) => m.text)], ["queued", ["2", "3"]]);
-  const queue = (await call("GET", `/api/chats/${chatId}`)).body.live.queue.messages as { id: string; text: string }[];
+  const queue = (await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue.messages as { id: string; text: string }[];
   assert.deepEqual(queue.map((m) => m.text), ["2", "3"]);
 
-  const moved = await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [queue[1].id], to: { index: 0 } }] });
+  const moved = await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [queue[1].id], to: { index: 0 } }] } });
   assert.deepEqual(moved.body.messages.map((m: { text: string }) => m.text), ["3", "2"]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: ["nope"], to: { index: 0 } }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: ["nope"], to: { index: 0 } }] } })).status, 404);
   // 書き換え（空にはできない）
   const edited = await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: " 3 を直した " }] });
   assert.equal(edited.body.messages.find((m: { id: string }) => m.id === queue[1].id).text, "3 を直した");
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: "  " }] })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: "nope", text: "x" }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: queue[1].id, text: "  " }] } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: "nope", text: "x" }] } })).status, 404);
   // 添付も置き換えられる（足す・外す）。添付があれば文は空にでき、文も添付もなくなるなら断る
   const image = { kind: "file", id: randomUUID(), name: "a.png", mime: "image/png", size: 10 };
   const withImage = await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: "", attachments: [image] }] });
   assert.deepEqual(withImage.body.messages.find((m: { id: string }) => m.id === queue[1].id).attachments, [image]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: "", attachments: [] }] })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: queue[1].id, text: "", attachments: [] }] } })).status, 400);
   // 添付を省けば今のまま（文だけ直す）。外して元に戻す
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: "3 を直した" }] })).body.messages[0].attachments, [image]);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: queue[1].id, text: "3 を直した", attachments: [] }] })).body.messages[0].attachments, []);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: [queue[0].id] }] })).body, { ...EMPTY_QUEUE_STATE, messages: [{ ...moved.body.messages[0], text: "3 を直した" }], waiting: "busy" });
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: ["nope"] }] })).status, 404);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: ["nope"] })).status, 404);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: queue[1].id, text: "3 を直した" }] } })).body.messages[0].attachments, [image]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: queue[1].id, text: "3 を直した", attachments: [] }] } })).body.messages[0].attachments, []);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "remove", ids: [queue[0].id] }] } })).body, { ...EMPTY_QUEUE_STATE, messages: [{ ...moved.body.messages[0], text: "3 を直した" }], waiting: "busy" });
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "remove", ids: ["nope"] }] } })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: ["nope"] } })).status, 404);
 
   // すぐ送る: 作業中なら止めずに伝える（作業は止めない）
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [queue[1].id] })).body.messages, []);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [queue[1].id] } })).body.messages, []);
   assert.deepEqual(provider.told, ["3 を直した"]);
   assert.deepEqual(runner.live(chatId).queue.messages, []);
   assert.equal(runner.isBusy(chatId), true);
@@ -62,12 +62,12 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
 });
 
 test("待ちの列は再起動しても残る: 自動で送るのまま読み戻し、起動したときの確かめに並べる（答えるまで送らない）", async () => {
-  const { call, project, runner, provider, store } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider, store } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" });
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2", when: "later" } });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3", when: "later" } });
   // アプリを終えて起動し直したことにして、同じデータベースで作り直す
   const restarted = createChatRunner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
   assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
@@ -81,17 +81,17 @@ test("待ちの列は再起動しても残る: 自動で送るのまま読み戻
 });
 
 test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   // 列が空なら止めない
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] })).body, EMPTY_QUEUE_STATE);
-  assert.equal((await call("POST", "/api/chats/999/queue", { commands: [{ op: "set_paused", paused: true }] })).status, 404);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" });
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3", when: "later" });
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] })).body.paused, true);
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.queue.paused, true);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } })).body, EMPTY_QUEUE_STATE);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: 999 }, body: { commands: [{ op: "set_paused", paused: true }] } })).status, 404);
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2", when: "later" } });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3", when: "later" } });
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } })).body.paused, true);
+  assert.equal((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue.paused, true);
 
   // 終わっても送らない
   release();
@@ -102,49 +102,49 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
 
   // すぐ送るで 1 件だけ送り、終わってもまた止まる
   const [first] = runner.live(chatId).queue.messages;
-  await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [first.id] });
+  await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [first.id] } });
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
   await settle();
   assert.equal(provider.prompts.length, 2);
   assert.equal(runner.live(chatId).queue.paused, true);
 
   // 自動で送るに戻すと、作業中でなければ先頭をすぐ送り、列が空になったら止めない状態に戻る
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: false }] })).body, EMPTY_QUEUE_STATE);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: false }] } })).body, EMPTY_QUEUE_STATE);
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
   assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("待ちの列の書き直し: 次に送る指示を書き直している間は送らず、終わったら送る。ほかの指示の書き直し・知らせが途絶えたときは止めない", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  for (const text of ["2", "3"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
+  for (const text of ["2", "3"]) await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text, when: "later" } });
   const [first] = runner.live(chatId).queue.messages;
-  assert.equal((await call("PUT", "/api/chats/999/queue/editing", { ids: [] })).status, 404);
+  assert.equal((await api("PUT /api/chats/:chatId/queue/editing", { params: { chatId: 999 }, body: { ids: [] } })).status, 404);
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/editing`, {})).status, 400);
 
   // 次に送る指示（先頭）を書き直している: 終わっても送らない
-  assert.equal((await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [first.id] })).status, 200);
+  assert.equal((await api("PUT /api/chats/:chatId/queue/editing", { params: { chatId: chatId }, body: { ids: [first.id] } })).status, 200);
   release();
   await until(() => !runner.isBusy(chatId));
   await settle();
   assert.equal(provider.prompts.length, 1);
   // 送信の準備ができて、書き直しが終わるのを待っている（画面の案内に使う）
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.queue.waiting_edit, true);
+  assert.equal((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue.waiting_edit, true);
 
   // 書き直して保存し、欄を閉じた: 書き直した文をすぐ送る
   const release2 = provider.hold();
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: first.id, text: "2'" }] });
-  await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: first.id, text: "2'" }] } });
+  await api("PUT /api/chats/:chatId/queue/editing", { params: { chatId: chatId }, body: { ids: [] } });
   await until(() => provider.prompts.length === 2);
   assert.equal(provider.prompts[1], "2'");
   assert.equal(runner.live(chatId).queue.waiting_edit, false);
 
   // 先頭でない指示を書き直していても止めない（その指示は、先頭になってから書き直しが終わるのを待つ）
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "4", when: "later" });
-  await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [runner.live(chatId).queue.messages[1].id] });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "4", when: "later" } });
+  await api("PUT /api/chats/:chatId/queue/editing", { params: { chatId: chatId }, body: { ids: [runner.live(chatId).queue.messages[1].id] } });
   release2();
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
@@ -155,17 +155,17 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
 });
 
 test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件にし（列の順に空行でつなぐ）、選んだうちのいちばん上の位置に残す", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  for (const text of ["a", "b", "c", "d"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
+  for (const text of ["a", "b", "c", "d"]) await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text, when: "later" } });
   const ids = runner.live(chatId).queue.messages.map((m) => m.id);
   // 2 件以上選ばないとまとめない
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "merge", ids: [ids[0]] }] })).status, 400);
-  assert.equal((await call("POST", "/api/chats/999/queue", { commands: [{ op: "merge", ids }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "merge", ids: [ids[0]] }] } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: 999 }, body: { commands: [{ op: "merge", ids }] } })).status, 404);
   // 選んだ順ではなく、列の順につなぐ
-  const merged = await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "merge", ids: [ids[3], ids[1]] }] });
+  const merged = await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "merge", ids: [ids[3], ids[1]] }] } });
   assert.equal(merged.status, 200);
   assert.equal(merged.body.messages[1].id, ids[1]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["a", "b\n\nd", "c"]);
@@ -175,20 +175,20 @@ test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件に�
 });
 
 test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発言として順に送り、止めておく・「ここまで」の印があっても最後まで送る", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   // 送るものがなければ 409（状態による失敗）、チャットがなければ 404
-  assert.deepEqual(await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "in_order" }), { status: 409, body: { error: "送信待ちの指示がありません" } });
-  assert.equal((await call("POST", "/api/chats/999/queue/send", { mode: "in_order" })).status, 404);
-  for (const text of ["2", "3", "4"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [1] }] });
+  assert.deepEqual(await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "in_order" } }), { status: 409, body: { error: "送信待ちの指示がありません" } });
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: 999 }, body: { mode: "in_order" } })).status, 404);
+  for (const text of ["2", "3", "4"]) await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text, when: "later" } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [1] }] } });
   release();
   await until(() => !runner.isBusy(chatId));
 
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "in_order" })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "in_order" } })).status, 200);
   assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(runner.live(chatId).queue.stops, []);
   await until(() => provider.prompts.length === 4 && runner.live(chatId).queue.messages.length === 0 && !runner.isBusy(chatId));
@@ -197,20 +197,20 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
 });
 
 test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送ったら線の所で待ち（止めておくにはしない）、その線を消すと次の印まで送る", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  for (const text of ["2", "3", "4", "5"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
+  for (const text of ["2", "3", "4", "5"]) await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text, when: "later" } });
   const [, third] = runner.live(chatId).queue.messages;
   // 列にない指示には付けられない
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "stop_after", id: "nope", stop: true }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "stop_after", id: "nope", stop: true }] } })).status, 404);
   // 「3」のあと（2 件目のあと）に付け、位置をまとめて置き換える（ドラッグ）こともできる
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "stop_after", id: third.id, stop: true }] })).body.stops, [2]);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [3, 2, 99] }] })).body.stops, [2, 3, 4]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [-1] }] })).status, 400);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [2, 3] }] })).body.stops, [2, 3]);
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.queue.stops, [2, 3]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "stop_after", id: third.id, stop: true }] } })).body.stops, [2]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [3, 2, 99] }] } })).body.stops, [2, 3, 4]);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [-1] }] } })).status, 400);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [2, 3] }] } })).body.stops, [2, 3]);
+  assert.deepEqual((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue.stops, [2, 3]);
 
   // 「3」まで送ったら、残りは送らずに線の所で待つ（印は「4」の上に残り、止めておくにはしない）
   release();
@@ -222,36 +222,36 @@ test("「ここまで送ったら止めます」: 印は列の中の位置で持
 
   // 待っている線を × で消すと、そのまま次の印（「4」のあと）まで送って、また線の所で待つ
   // 応答は「4」を送り出したあとの列（「5」の上に印）
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [1] }] })).body.stops, [0]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [1] }] } })).body.stops, [0]);
   await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["5"]);
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
 
   // 止めておくにしてから線を消しても送らない。自動に戻すと送る
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [] }] })).body.stops, []);
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } });
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [] }] } })).body.stops, []);
   await settle();
   assert.equal(provider.prompts.length, 4);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: false }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: false }] } });
   await until(() => provider.prompts.length === 5 && !runner.isBusy(chatId));
   assert.deepEqual(runner.live(chatId).queue.messages, []);
 });
 
 test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めずに伝える）", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   // 送るものがなければ 409（状態による失敗）
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "all" })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "all" } })).status, 409);
   // すべて消す
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "消す", when: "later" });
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "clear" }] })).body, EMPTY_QUEUE_STATE);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "clear" }] })).body.messages, []);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "A", when: "later" });
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "B", when: "later" });
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "all" })).body.messages, []);
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "消す", when: "later" } });
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "clear" }] } })).body, EMPTY_QUEUE_STATE);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "clear" }] } })).body.messages, []);
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "A", when: "later" } });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "B", when: "later" } });
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "all" } })).body.messages, []);
   assert.deepEqual(provider.told, ["A\n\nB"]);
   assert.deepEqual(runner.live(chatId).queue.messages, []);
   release();
@@ -259,94 +259,94 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
 });
 
 test("待ちの列の API: 選んだものだけ、まとめて送る・消す・いちばん上か下へ移す（ほかは並びを保つ）", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   const ids: string[] = [];
   for (const text of ["A", "B", "C", "D", "E"]) ids.push((await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" })).body.queue.messages.at(-1).id);
   const texts = () => runner.live(chatId).queue.messages.map((m) => m.text);
   // B と D をいちばん上へ、C をいちばん下へ
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[3], ids[1]], to: "top" }] })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[3], ids[1]], to: "top" }] } })).status, 200);
   assert.deepEqual(texts(), ["B", "D", "A", "C", "E"]);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[2]], to: "bottom" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[2]], to: "bottom" }] } });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[0]], to: "middle" }] })).status, 400);
   // ドラッグで落とした位置へまとめて移す: B と A を E の前へ（並びは列の順のまま）、null ならいちばん下
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[0], ids[1]], to: { before: ids[4] } }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[0], ids[1]], to: { before: ids[4] } }] } });
   assert.deepEqual(texts(), ["D", "B", "A", "E", "C"]);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[3]], to: { before: null } }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[3]], to: { before: null } }] } });
   assert.deepEqual(texts(), ["B", "A", "E", "C", "D"]);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[3], ids[2]], to: { before: ids[1] } }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[3], ids[2]], to: { before: ids[1] } }] } });
   assert.deepEqual(texts(), ["C", "D", "B", "A", "E"]);
   // 元の並び（B D A E C）に戻す
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[2]], to: "bottom" }] });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[1]], to: "top" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[2]], to: "bottom" }] } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[1]], to: "top" }] } });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   // 止める線のある位置へ落とす: below_stop: false なら線の上（B D | A E C の C を A の前・線の上へ → B D C | A E）。ほかの指示は線の同じ側に残る
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [2] }] });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[2]], to: { before: ids[0], below_stop: false } }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [2] }] } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[2]], to: { before: ids[0], below_stop: false } }] } });
   assert.deepEqual(texts(), ["B", "D", "C", "A", "E"]);
   assert.deepEqual(runner.live(chatId).queue.stops, [3]);
   // いちばん上へ移しても、線の上の B・D は線の上のまま（E が線を越えて上へ）
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[4]], to: "top" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[4]], to: "top" }] } });
   assert.deepEqual(texts(), ["E", "B", "D", "C", "A"]);
   assert.deepEqual(runner.live(chatId).queue.stops, [4]);
   // 元に戻す（線を外し、B D A E C に）
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [] }] });
-  for (const i of [1, 3, 0, 4, 2]) await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[i]], to: "bottom" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [] }] } });
+  for (const i of [1, 3, 0, 4, 2]) await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "move", ids: [ids[i]], to: "bottom" }] } });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   // A と E を消す
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: [ids[0], ids[4], "nai"] }] })).body.messages.map((m: { text: string }) => m.text), ["B", "D", "C"]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "remove", ids: [ids[0], ids[4], "nai"] }] } })).body.messages.map((m: { text: string }) => m.text), ["B", "D", "C"]);
   assert.deepEqual(texts(), ["B", "D", "C"]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: [] }] })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "remove", ids: [] }] } })).status, 400);
   // C と B だけをまとめて送る（列の順につなぐ）。D は残る
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send`, { ids: [ids[2], ids[1]], mode: "all" })).body.messages.map((m: { text: string }) => m.text), ["D"]);
+  assert.deepEqual((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { ids: [ids[2], ids[1]], mode: "all" } })).body.messages.map((m: { text: string }) => m.text), ["D"]);
   assert.deepEqual(provider.told, ["B\n\nC"]);
   assert.deepEqual(texts(), ["D"]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send`, { ids: ["nai"], mode: "all" })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { ids: ["nai"], mode: "all" } })).status, 404);
   // 残った D が止めたあとに送られないよう、列を空にしてから止める
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "clear" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "clear" }] } });
   runner.cancel(chatId);
   await until(() => !runner.isBusy(chatId));
   release();
 });
 
 test("質問として送る（pause_after）: その指示の作業が終わったら送信待ちを自動で送らずに一時停止する。来なければ印は外れる", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   let release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
 
   // あとで（送信待ちに入れる）: 入れたその指示のすぐあとに印を付ける
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2", when: "later" } });
   const asked = (await call("POST", `/api/chats/${chatId}/messages`, { text: "質問?", pause_after: true, when: "later" })).body;
   assert.deepEqual(asked.queue.stops, [2]);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "4", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "4", when: "later" } });
   release();
   // 「質問?」まで送ったら、残りは送らずに線の所で待つ（止めておくにはしない）
   await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(provider.prompts.slice(1), ["2", "質問?"]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["4"]);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "clear" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "clear" }] } });
 
   // いま（作業中に伝える）: いまの作業が終わったら、そのあいだに来た指示の前で止める
   release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "5" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "5" } });
   await until(() => provider.prompts.length === 4);
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "これは?", pause_after: true, when: "now" })).body.result, "told");
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "6", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "6", when: "later" } });
   release();
   await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(provider.prompts.length, 4);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["6"]);
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "clear" }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "clear" }] } });
 
   // すぐ送る（作業していない）: その作業のあいだに何も来なければ、終わったときに印を外す（あとで送った作業では止めない）
   release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "どう?", pause_after: true });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "どう?", pause_after: true } });
   await until(() => provider.prompts.length === 5);
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
   release();
@@ -357,39 +357,39 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "なぜ?", pause_after: true, when: "later" })).body.result, "sent");
   await until(() => provider.prompts.length === 6);
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "7", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "7", when: "later" } });
   release();
   await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(provider.prompts.length, 6);
 });
 
 test("送信待ちの圧縮の行（命令の add_action）: いちばん下・指示のすぐあとに足す。書き直せず、まとめない。すぐ送ると圧縮する", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   const two = (await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" })).body.queue.messages.at(-1).id as string;
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3", when: "later" } });
   const labels = (body: { messages: { text: string; compact?: boolean }[] }) => body.messages.map((m) => (m.compact ? "圧縮" : m.text));
-  assert.deepEqual(labels((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "compact", after: null }] })).body), ["2", "3", "圧縮"]);
+  assert.deepEqual(labels((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "compact", after: null }] } })).body), ["2", "3", "圧縮"]);
   // 2 のすぐあと（2 のあとの一時停止の線より上）
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "stop_after", id: two, stop: true }] });
-  const after = (await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "compact", after: two }] })).body;
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "stop_after", id: two, stop: true }] } });
+  const after = (await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "compact", after: two }] } })).body;
   assert.deepEqual(labels(after), ["2", "圧縮", "3", "圧縮"]);
   assert.deepEqual(after.stops, [2]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "compact", after: "nope" }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "compact", after: "nope" }] } })).status, 404);
   const compactId = after.messages[1].id as string;
   // 書き直せない。まとめるときは圧縮の行を数えず、列に残す
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: compactId, text: "x" }] })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "merge", ids: [two, compactId] }] })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: compactId, text: "x" }] } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "merge", ids: [two, compactId] }] } })).status, 400);
   const ids = after.messages.map((m: { id: string }) => m.id) as string[];
-  const merged = (await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "merge", ids: ids }] })).body;
+  const merged = (await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "merge", ids: ids }] } })).body;
   assert.deepEqual(labels(merged), ["2\n\n3", "圧縮", "圧縮"]);
   // 止めているときに、作業中の圧縮の行を「すぐ送る」と、いちばん上へ移る（いまのやり取りが終わったらすぐ圧縮する）。
   // 止めるのは 1 件目の上の線に置き換わり、圧縮だけは送ってからその線で待つ
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_stops", stops: [] }] });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
-  const moved = (await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [merged.messages[2].id] })).body;
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_stops", stops: [] }] } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } });
+  const moved = (await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [merged.messages[2].id] } })).body;
   assert.deepEqual(labels(moved), ["圧縮", "2\n\n3", "圧縮"]);
   assert.equal(moved.paused, false);
   assert.deepEqual(moved.stops, [1]);
@@ -397,48 +397,48 @@ test("送信待ちの圧縮の行（命令の add_action）: いちばん下・�
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
   assert.equal(provider.prompts[1], "/compact");
   // 作業していないときに「すぐ送る」と、すぐ圧縮する
-  const rest = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;
+  const rest = (await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue;
   assert.equal(rest.paused, false);
   assert.deepEqual(rest.stops, [0]);
-  await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [rest.messages[1].id] });
+  await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [rest.messages[1].id] } });
   await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
   assert.equal(provider.prompts[2], "/compact");
-  assert.deepEqual(labels((await call("GET", `/api/chats/${chatId}`)).body.live.queue), ["2\n\n3"]);
+  assert.deepEqual(labels((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.queue), ["2\n\n3"]);
 });
 
 test("送信待ちのコンテキスト消去の行（命令の add_action）: 足して、書き直せず、作業していないときにすぐ送ると消去して記録に残す", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   const two = (await call("POST", `/api/chats/${chatId}/messages`, { text: "2", when: "later" })).body.queue.messages.at(-1).id as string;
   const labels = (body: { messages: { text: string; clear?: boolean }[] }) => body.messages.map((m) => (m.clear ? "消去" : m.text));
-  const added = (await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "clear", after: two }] })).body;
+  const added = (await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "clear", after: two }] } })).body;
   assert.deepEqual(labels(added), ["2", "消去"]);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "clear", after: "nope" }] })).status, 404);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "clear", after: "nope" }] } })).status, 404);
   const clearId = added.messages[1].id as string;
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: clearId, text: "x" }] })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "edit", id: clearId, text: "x" }] } })).status, 400);
   // 止めておいて作業を終え、消去の行だけを「すぐ送る」
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } });
   release();
   await until(() => !runner.isBusy(chatId));
-  assert.ok((await call("GET", `/api/chats/${chatId}`)).body.chat.session_id);
-  const sent = (await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [clearId] })).body;
+  assert.ok((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.chat.session_id);
+  const sent = (await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [clearId] } })).body;
   assert.deepEqual(labels(sent), ["2"]);
   const detail = (await call("GET", `/api/chats/${chatId}`)).body;
   assert.equal(detail.chat.session_id, null);
   assert.equal(detail.events.at(-1).type, "context_cleared");
   // 会話がないので、もう一度足して「すぐ送る」と 409
-  const again = (await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "add_action", action: "clear", after: null }] })).body.messages[1].id as string;
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [again] })).status, 409);
+  const again = (await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "add_action", action: "clear", after: null }] } })).body.messages[1].id as string;
+  assert.equal((await api("POST /api/chats/:chatId/queue/send", { params: { chatId: chatId }, body: { mode: "now", ids: [again] } })).status, 409);
 });
 
 test("チャット欄の /clear: Claude Code に送らず、作業していなければその場で消去（区切りを残す）、作業中なら終わったらすぐ消去する予約、あとで送るなら消去の行", async () => {
-  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const { call, api, project, runner, provider } = setup({ features: ["chat", "queue"] });
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => !runner.isBusy(chatId));
   const labels = (body: { messages: { text: string; clear?: boolean }[] }) => body.messages.map((m) => (m.clear ? "消去" : m.text));
-  const types = async () => ((await call("GET", `/api/chats/${chatId}`)).body.events as { type: string }[]).map((e) => e.type);
+  const types = async () => ((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.events as { type: string }[]).map((e) => e.type);
   // 作業していない: 送ると、その場で消去する（発言も実行も残さず、記録には区切り）
   const sent = await call("POST", `/api/chats/${chatId}/messages`, { text: " /clear " });
   assert.equal(sent.status, 200);
@@ -446,12 +446,12 @@ test("チャット欄の /clear: Claude Code に送らず、作業していな�
   assert.equal((await types()).at(-1), "context_cleared");
   assert.deepEqual(provider.prompts, ["1"]);
   // もう会話がないので、もう一度は 409
-  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "/clear" })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "/clear" } })).status, 409);
   // 作業中の「いま」: 終わったらすぐ消去する予約（送信待ちのいちばん上に消去の行）
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => provider.prompts.length === 2);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "3", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "3", when: "later" } });
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "/clear", when: "now" })).body.result, "queued");
   // 作業中の「あとで」: いちばん下に消去の行
   const queued = (await call("POST", `/api/chats/${chatId}/messages`, { text: "/clear", when: "later" })).body;
@@ -465,19 +465,19 @@ test("チャット欄の /clear: Claude Code に送らず、作業していな�
 });
 
 test("起動したときの再開の確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
-  const { call } = setup({ features: ["chat", "queue"] });
-  assert.deepEqual((await call("GET", "/api/restart-resumes")).body, []);
+  const { call, api } = setup({ features: ["chat", "queue"] });
+  assert.deepEqual((await api("GET /api/restart-resumes")).body, []);
   assert.equal((await call("POST", "/api/restart-resumes", {})).status, 400);
   assert.equal((await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 1, action: "later" }] })).status, 400);
   // 確かめを待っていないチャットへの答えは飛ばす
-  const answered = await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 999, action: "send" }] });
+  const answered = await api("POST /api/restart-resumes", { body: { decisions: [{ chat_id: 999, action: "send" }] } });
   assert.deepEqual([answered.status, answered.body], [200, []]);
 });
 
 test("起動したときの再開の確かめの API: 途中で止まったチャットを送信待ちがなくても一覧に出し、送信待ちのないチャットへの「送る」は 400（どれも変えない）", async () => {
   const ids: Record<string, number> = {};
   // 前回の起動: 作業中のまま落ちたチャットが 2 つと、自動で送るまま送信待ちが残ったチャット
-  const { call, store, runner, provider } = setup({
+  const { call, api, store, runner, provider } = setup({
     features: ["chat", "queue"],
     beforeStart: (store, project) => {
       const make = (title: string, status: "running" | "completed") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null }).id;
@@ -488,7 +488,7 @@ test("起動したときの再開の確かめの API: 途中で止まったチ�
     },
   });
   type Listed = { chat_id: number; interrupted: boolean; queued: boolean; messages: unknown[]; last_prompt: { text: string } | null };
-  const listed = (await call("GET", "/api/restart-resumes")).body as Listed[];
+  const listed = (await api("GET /api/restart-resumes")).body;
   assert.deepEqual(
     listed.map((r) => [r.chat_id, r.interrupted, r.queued, r.messages.length]),
     [
@@ -498,7 +498,7 @@ test("起動したときの再開の確かめの API: 途中で止まったチ�
     ],
   );
   assert.equal(listed[0].last_prompt?.text, "調べて");
-  assert.deepEqual((await call("GET", `/api/chats/${ids.crashed}`)).body.live.restart_resume, { interrupted: true, queued: false });
+  assert.deepEqual((await api("GET /api/chats/:chatId", { params: { chatId: ids.crashed } })).body.live.restart_resume, { interrupted: true, queued: false });
 
   // 送信待ちのないチャットに「送る」は 400。一緒に送ったほかの答えも変えない
   const refused = await call("POST", "/api/restart-resumes", {
@@ -509,16 +509,16 @@ test("起動したときの再開の確かめの API: 途中で止まったチ�
   });
   assert.equal(refused.status, 400);
   assert.match(refused.body.error, /送信待ちのないチャットには/);
-  assert.equal((await call("GET", "/api/restart-resumes")).body.length, 3);
+  assert.equal((await api("GET /api/restart-resumes")).body.length, 3);
   assert.equal(runner.live(ids.queued).queue.paused, false);
 
   // 続ける / 送る: 答えたチャットは外れ、答えなかった（あとで）チャットだけが残る
-  const answered = await call("POST", "/api/restart-resumes", {
+  const answered = await api("POST /api/restart-resumes", { body: {
     decisions: [
       { chat_id: ids.crashed, action: "continue" },
       { chat_id: ids.queued, action: "send" },
     ],
-  });
+  } });
   assert.equal(answered.status, 200);
   assert.deepEqual(
     (answered.body as Listed[]).map((r) => r.chat_id),

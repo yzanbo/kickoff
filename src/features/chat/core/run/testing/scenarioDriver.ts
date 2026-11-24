@@ -3,7 +3,6 @@
 import path from "node:path";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { ChatDetail } from "@shared/chat/detail";
-import type { RestartResume } from "@shared/chat/chatLive";
 import { tick } from "@/foundation/core/testing/until";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
@@ -105,7 +104,7 @@ export class Driver {
 
   /** チャットの詳細（回答待ちのカードの ID は、答えたあとも同じカードを指せるように覚える） */
   async detail(alias: ChatAlias): Promise<ChatDetail> {
-    const detail = (await this.core.call("GET", `/api/chats/${this.id(alias)}`)).body as ChatDetail;
+    const detail = (await this.core.api("GET /api/chats/:chatId", { params: { chatId: this.id(alias) } })).body;
     for (const a of detail.approvals) this.approvals.set(`${alias}:${a.kind}`, a.id);
     return detail;
   }
@@ -177,7 +176,7 @@ export class Driver {
   async observe(want: ScenarioExpect): Promise<Observed> {
     const alias = want.chat ?? "a";
     const runs = await this.runsOf(alias);
-    const restartResumes = "restartResumes" in want ? ((await this.core.call("GET", "/api/restart-resumes")).body as RestartResume[]) : undefined;
+    const restartResumes = "restartResumes" in want ? ((await this.core.api("GET /api/restart-resumes")).body) : undefined;
     return {
       detail: await this.detail(alias),
       texts: this.texts,
@@ -245,7 +244,7 @@ export class Driver {
     this.clock.now += ms;
     if (ms >= EDIT_HOLD_TTL_MS) {
       for (const lane of ["now", "later"] as const) {
-        for (const alias of this.editing[lane]) await this.core.call("PUT", `/api/chats/${this.id(alias)}/queue/editing`, { lane, ids: [] });
+        for (const alias of this.editing[lane]) await this.core.api("PUT /api/chats/:chatId/queue/editing", { params: { chatId: this.id(alias) }, body: { lane, ids: [] } });
         this.editing[lane].clear();
       }
     }

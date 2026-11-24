@@ -35,6 +35,8 @@ import { ALL_SETTINGS } from "@/app/shared/settings";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform, type TestEnvOptions, type TestFakes } from "./testEnv";
 import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
 import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
+import { testClient } from "@/foundation/core/testing/testClient";
+import { ALL_CONTRACTS } from "./contracts";
 
 export { until } from "@/foundation/core/testing/until";
 
@@ -104,6 +106,8 @@ export function createTestCore(opts: { features?: readonly FeatureName[]; static
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
+  /** 取り決めどおりに呼ぶ口（呼び出し(キー, { params, query, body })。取り決めにない・わざと形を違えた呼び出しは call） */
+  const api = testClient({ call }, ALL_CONTRACTS);
   const built = (name: FeatureName) => assembled.features.some((f) => f.name === name);
   const { apis } = assembled;
   // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
@@ -129,7 +133,7 @@ export function createTestCore(opts: { features?: readonly FeatureName[]; static
   });
   // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）。chat を組み立てないときは組み立てる前の店
   const featureStore = built("chat") ? withFeatureStores(apis.chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)) : store;
-  return Object.assign(parts, { ...fakes, store: featureStore, bus: k.bus, k, app, routes, project, call, browserLogin, close, codexCalls: () => fakes.counts.codex });
+  return Object.assign(parts, { ...fakes, store: featureStore, bus: k.bus, k, app, routes, project, call, api, browserLogin, close, codexCalls: () => fakes.counts.codex });
 }
 
 /**

@@ -18,32 +18,32 @@ const imageUrl = (chatId: number, url: string) => `/api/chats/${chatId}/remote-i
 
 test("表示を許可したホスト: 許可・一覧・取り消し（小文字にそろえ、変わるたびに chat_image_hosts を知らせる）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
-  const { call, bus } = ctx;
+  const { api, bus } = ctx;
   const chatId = await doneChat(ctx);
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
 
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}/image-hosts`)).body, { hosts: [] });
-  const allowed = await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "Example.COM" });
+  assert.deepEqual((await api("GET /api/chats/:chatId/image-hosts", { params: { chatId: chatId } })).body, { hosts: [] });
+  const allowed = await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "Example.COM" } });
   assert.equal(allowed.status, 200);
   assert.deepEqual(allowed.body.hosts.map((h: { host: string }) => h.host), ["example.com"]);
   // 2 回押しても 1 つ
-  await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "example.com" });
-  assert.equal((await call("GET", `/api/chats/${chatId}/image-hosts`)).body.hosts.length, 1);
+  await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "example.com" } });
+  assert.equal((await api("GET /api/chats/:chatId/image-hosts", { params: { chatId: chatId } })).body.hosts.length, 1);
   const changed = events.filter((e) => e.type === "chat_image_hosts");
   assert.equal(changed.length, 2);
   assert.equal(changed[0].type === "chat_image_hosts" && changed[0].chat_id, chatId);
 
-  const revoked = await call("DELETE", `/api/chats/${chatId}/image-hosts?host=example.com`);
+  const revoked = await api("DELETE /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, query: { host: "example.com" } });
   assert.deepEqual(revoked.body, { hosts: [] });
   // 使えないホストの名前・ないチャット
-  assert.equal((await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "a b" })).status, 400);
-  assert.equal((await call("GET", "/api/chats/999/image-hosts")).status, 404);
+  assert.equal((await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "a b" } })).status, 400);
+  assert.equal((await api("GET /api/chats/:chatId/image-hosts", { params: { chatId: 999 } })).status, 404);
 });
 
 test("許可したホストの画像だけを返し、2 回目からは覚えた画像を返す（取り消すと覚えも消える）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
-  const { app, call, imageFake } = ctx;
+  const { app, api, imageFake } = ctx;
   const chatId = await doneChat(ctx);
   const url = "https://images.example.com/a.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
@@ -54,7 +54,7 @@ test("許可したホストの画像だけを返し、2 回目からは覚えた
   assert.match((await denied.json()).error, /images\.example\.com の画像の表示を許可していません/);
   assert.deepEqual(imageFake.fetched, []);
 
-  await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
+  await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "images.example.com" } });
   const first = await app.request(imageUrl(chatId, url), { headers: AUTH });
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("content-type"), "image/png");
@@ -72,7 +72,7 @@ test("許可したホストの画像だけを返し、2 回目からは覚えた
   assert.equal(missing.status, 400);
 
   // 取り消すと許可も覚えも消え、もう返さない
-  await call("DELETE", `/api/chats/${chatId}/image-hosts?host=images.example.com`);
+  await api("DELETE /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, query: { host: "images.example.com" } });
   assert.equal(ctx.store.chatImages.cached(chatId, "x"), undefined);
   assert.equal(ctx.store.chatImages.totalSize(), 0);
   assert.equal((await app.request(imageUrl(chatId, url), { headers: AUTH })).status, 400);
@@ -80,17 +80,17 @@ test("許可したホストの画像だけを返し、2 回目からは覚えた
 
 test("分岐すると、表示の許可と覚えた画像を新しいチャットに写す（取りに行き直さない）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
-  const { app, call, imageFake } = ctx;
+  const { app, api, imageFake } = ctx;
   const chatId = await doneChat(ctx);
   const url = "https://images.example.com/b.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
-  await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
+  await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "images.example.com" } });
   await app.request(imageUrl(chatId, url), { headers: AUTH });
 
   const result = (await eventsOf(ctx, chatId)).find((e) => e.type === "result")!;
-  const forked = await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id });
+  const forked = await api("POST /api/chats/:chatId/fork", { params: { chatId: chatId }, body: { event_id: result.id } });
   assert.equal(forked.status, 201);
-  assert.deepEqual((await call("GET", `/api/chats/${forked.body.id}/image-hosts`)).body.hosts.map((h: { host: string }) => h.host), ["images.example.com"]);
+  assert.deepEqual((await api("GET /api/chats/:chatId/image-hosts", { params: { chatId: forked.body.id } })).body.hosts.map((h: { host: string }) => h.host), ["images.example.com"]);
   const copied = await app.request(imageUrl(forked.body.id, url), { headers: AUTH });
   assert.deepEqual(Buffer.from(await copied.arrayBuffer()), PNG);
   assert.deepEqual(imageFake.fetched, [url]);
@@ -98,16 +98,16 @@ test("分岐すると、表示の許可と覚えた画像を新しいチャッ�
 
 test("チャットを本当に消すと、表示の許可と覚えた画像のフォルダも消える", async () => {
   const ctx = setup({ features: ["remoteImages"] });
-  const { app, call, store, imageFake, trashBin, trashClock, k } = ctx;
+  const { app, api, store, imageFake, trashBin, trashClock, k } = ctx;
   const chatId = await doneChat(ctx);
   const url = "https://images.example.com/c.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
-  await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
+  await api("PUT /api/chats/:chatId/image-hosts", { params: { chatId: chatId }, body: { host: "images.example.com" } });
   await app.request(imageUrl(chatId, url), { headers: AUTH });
   const folder = path.join(remoteImageCacheDir(k.paths.dataDir), String(chatId));
   assert.equal(fs.existsSync(folder), true);
 
-  assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 200);
+  assert.equal((await api("DELETE /api/chats/:chatId", { params: { chatId: chatId } })).status, 200);
   trashClock.now += 4 * 24 * 60 * 60 * 1000;
   await trashBin.sweep();
   assert.equal(fs.existsSync(folder), false);

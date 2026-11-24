@@ -97,7 +97,7 @@ async function queueCommand(d: Driver, alias: ChatAlias, c: ScenarioQueueCommand
         return c;
     }
   };
-  return d.core.call("POST", `/api/chats/${d.id(alias)}/queue`, { commands: [await command()] });
+  return d.core.api("POST /api/chats/:chatId/queue", { params: { chatId: d.id(alias) }, body: { commands: [await command()] } });
 }
 
 /** 偽のプロバイダーの出来事を、そのチャットのいま動いている実行に起こす */

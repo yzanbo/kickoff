@@ -18,7 +18,7 @@ export async function busyTurn(ctx: Ctx, chatId: number, text = "移って作っ
   const watch = watchTools(ctx, ctx.mcpTools);
   const before = watch.lastTools();
   const release = ctx.provider.hold();
-  await ctx.call("POST", `/api/chats/${chatId}/messages`, { text });
+  await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text } });
   await until(async () => watch.lastTools() !== before && watch.lastTools().length > 0 && (await isBusy(ctx, chatId)));
   const servers = watch.lastTools();
   const tools = {

@@ -21,7 +21,7 @@ const boundaryOf = async (ctx: Ctx, chatId: number) => {
 
 test("新しいワークツリーへ移す: いまのコミットから作り、変更を持っていく（ステージしたかも保つ・まだ Git にないファイルも）。区切りは利用者が移した印で、移した先のブランチを書く", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project } = ctx;
+  const { api, project } = ctx;
   const chatId = await mainChat(ctx);
   const git = gitIn(project.repo_path);
   fs.writeFileSync(path.join(project.repo_path, "a.txt"), "a changed\n");
@@ -29,11 +29,11 @@ test("新しいワークツリーへ移す: いまのコミットから作り、
   fs.writeFileSync(path.join(project.repo_path, "b.txt"), "b changed\n");
   fs.writeFileSync(path.join(project.repo_path, "new.txt"), "new\n");
 
-  const check: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chatId}/workplace`)).body;
+  const check: WorkplaceMoveCheck = (await api("GET /api/chats/:chatId/workplace", { params: { chatId: chatId } })).body;
   assert.deepEqual([...check.changes].sort(), ["a.txt", "b.txt", "new.txt"]);
   assert.equal(check.blocked, null);
 
-  const res = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null, new_worktree_branch: "feat/move", carry: true });
+  const res = await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: null, new_worktree_branch: "feat/move", carry: true } });
   assert.equal(res.status, 200);
   const wt = res.body.worktree_path as string;
   assert.ok(wt.endsWith("feat-move"));
@@ -52,28 +52,28 @@ test("新しいワークツリーへ移す: いまのコミットから作り、
 
 test("いまあるワークツリー・本体へ移す: 変更は持っていかず元の場所に残る。同じ場所・持っていく指定・作業中・実行環境を整えるチャットは断る", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project, store } = ctx;
+  const { call, api, project, store } = ctx;
   const chatId = await mainChat(ctx);
-  const list = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/x" })).body as { path: string; main: boolean }[];
+  const list = (await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feat/x" } })).body as { path: string; main: boolean }[];
   const wt = list.find((w) => !w.main)!.path;
   fs.writeFileSync(path.join(project.repo_path, "a.txt"), "dirty\n");
 
-  assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt, carry: true })).status, 400);
-  const moved = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt });
+  assert.equal((await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: null } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: wt, carry: true } })).status, 400);
+  const moved = await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: wt } });
   assert.equal(moved.body.worktree_path, wt);
   assert.equal(fs.readFileSync(path.join(project.repo_path, "a.txt"), "utf8"), "dirty\n");
   assert.equal((await boundaryOf(ctx, chatId))?.carried, undefined);
   // 本体へ戻す
-  const back = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null });
+  const back = await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: null } });
   assert.equal(back.body.worktree_path, null);
   assert.equal((await eventsOf(ctx, chatId)).filter((e) => e.type === "workplace_moved").length, 2);
 
   // 作業中は 409
   const release = ctx.provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "続き" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "続き" } });
   await until(() => isBusy(ctx, chatId));
-  assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: wt } })).status, 409);
   release();
   await untilIdle(ctx, chatId);
 
@@ -104,15 +104,15 @@ test("会話を写せなければ移さない（G6）: 作ったワークツリ�
 
 test("Git でないプロジェクトは移せない（I4）。移す前の確かめは、元の場所で動いているターミナルを知らせる（Q5）", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project, store } = ctx;
+  const { call, api, project, store } = ctx;
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed" });
-  const check: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chat.id}/workplace`)).body;
+  const check: WorkplaceMoveCheck = (await api("GET /api/chats/:chatId/workplace", { params: { chatId: chat.id } })).body;
   assert.match(check.blocked ?? "", /Git で管理していない/);
-  assert.equal((await call("POST", `/api/chats/${chat.id}/workplace`, { worktree_path: null, new_worktree_branch: "feat/a" })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/workplace", { params: { chatId: chat.id }, body: { worktree_path: null, new_worktree_branch: "feat/a" } })).status, 400);
 
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   await call("POST", "/api/terminals", { key: "t1", cwd: project.repo_path, cols: 80, rows: 24, owner: "wc:1", start: { command: "npm run dev", env: null }, meta: { project_id: project.id, title: "dev" } });
-  const after: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chat.id}/workplace`)).body;
+  const after: WorkplaceMoveCheck = (await api("GET /api/chats/:chatId/workplace", { params: { chatId: chat.id } })).body;
   assert.equal(after.blocked, null);
   assert.deepEqual(after.terminals, [{ title: "dev", command: "npm run dev" }]);
 });

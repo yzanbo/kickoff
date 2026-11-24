@@ -12,13 +12,13 @@ import { chatOf, eventsOf, isBusy, liveOf, noticesOf, untilIdle } from "@/featur
 
 test("予約は作業中の様子に出し、作業が終わったら新しいワークツリーへ移して続きを送る。続きは送信待ちより先", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
   const answer = await tools.move({ to: "new_worktree", branch: "feat/ai", continuation: "feat/ai で a.txt を直す" }, allow);
   assert.match(answer, /予約しました。この作業が最後まで終わったら、Kickoff がこのチャットを新しいワークツリー（feat\/ai）へ移し、続きの指示を送ります/);
   assert.deepEqual((await liveOf(ctx, chatId)).workplace_move, { label: "新しいワークツリー（feat/ai）", carry: false, continuation: true });
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "利用者の次の指示", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "利用者の次の指示", when: "later" } });
   release();
   await until(async () => (await continuations(ctx, chatId)).length === 1 && !(await isBusy(ctx, chatId)) && (await chatOf(ctx, chatId)).status === "completed" && provider.prompts.at(-1) === "利用者の次の指示");
   const chat = await chatOf(ctx, chatId);
@@ -33,9 +33,9 @@ test("予約は作業中の様子に出し、作業が終わったら新しい�
 
 test("同じ作業で頼み直すと最後のものだけ残す。画面から取り消すと移さず、お知らせを残す（予約がなければ 409）。AI も取り消せる", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call } = ctx;
+  const { api } = ctx;
   const chatId = await mainChat(ctx);
-  const wt = ((await call("POST", `/api/projects/${ctx.project.id}/git/worktrees`, { branch: "feat/x" })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
+  const wt = ((await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: ctx.project.id }, body: { branch: "feat/x" } })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
   const { tools, release } = await busyTurn(ctx, chatId);
   await tools.move({ to: "new_worktree", branch: "feat/first" }, allow);
   assert.match(await tools.move({ to: "worktree", worktree: "feat/x" }, allow), /前の予約を置き換えて、予約しました/);
@@ -43,8 +43,8 @@ test("同じ作業で頼み直すと最後のものだけ残す。画面から�
   assert.equal(await tools.cancel(), "作業場所を移す予約を取り消しました。");
   assert.match(await tools.cancel(), /取り消す予約はありません/);
   await tools.move({ to: "worktree", worktree: wt }, allow);
-  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
-  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 409);
+  assert.equal((await api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId: chatId } })).status, 204);
+  assert.equal((await api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId: chatId } })).status, 409);
   assert.ok((await noticesOf(ctx, chatId)).some((m) => m === "AI が予約した「ワークツリー（feat/x）へ移る」を取り消しました"));
   release();
   await untilIdle(ctx, chatId);
@@ -66,12 +66,12 @@ test("止めた作業では移さず、予約を消して知らせる", async ()
 
 test("送信待ちを止めていれば、移すが続きは送らずに送信待ちの先頭に入れる（G5）", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
   await tools.move({ to: "new_worktree", branch: "feat/paused", continuation: "続きの指示" }, allow);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "待っている指示", when: "later" });
-  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "待っている指示", when: "later" } });
+  await api("POST /api/chats/:chatId/queue", { params: { chatId: chatId }, body: { commands: [{ op: "set_paused", paused: true }] } });
   const sent = provider.prompts.length;
   release();
   await until(async () => !(await isBusy(ctx, chatId)) && (await chatOf(ctx, chatId)).worktree_path !== null && (await noticesOf(ctx, chatId)).some((m) => m.includes("送信待ちの先頭")));
@@ -102,9 +102,9 @@ test("移せなければ元のまま、知らせて続きは送らない（G6）
 
 test("ツールの確かめ: 持っていくのは新しいワークツリーだけ・同じ場所は断る。持っていくときだけファイルの一覧で承認を聞き、断られたら予約しない", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call, project } = ctx;
+  const { api, project } = ctx;
   const chatId = await mainChat(ctx);
-  await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/y" });
+  await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feat/y" } });
   const { tools, release } = await busyTurn(ctx, chatId);
   await assert.rejects(tools.move({ to: "worktree", worktree: "feat/y", carry: true }, allow), /新しいワークツリーへ移すときだけ/);
   await assert.rejects(tools.move({ to: "main" }, allow), /いまと同じ作業場所です/);
@@ -125,16 +125,16 @@ test("ツールの確かめ: 持っていくのは新しいワークツリーだ
 
 test("利用者が取り消したことは AI にも伝える: 作業中で足せればその場で、足せなければ次の指示に一度だけ添える", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const chatId = await mainChat(ctx);
   // 足せる: いまの作業にその場で足す（次の指示には添えない）
   const first = await busyTurn(ctx, chatId);
   await first.tools.move({ to: "new_worktree", branch: "feat/told" }, allow);
-  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
+  assert.equal((await api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId: chatId } })).status, 204);
   assert.ok(provider.told.some((t) => t.includes("利用者が、あなたが予約した作業場所の移動（新しいワークツリー（feat/told）へ）を取り消しました")));
   first.release();
   await untilIdle(ctx, chatId);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "次" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "次" } });
   await until(async () => !(await isBusy(ctx, chatId)) && provider.prompts.at(-1) === "次");
   assert.doesNotMatch(provider.lastTurnContext ?? "", /取り消しました/);
 
@@ -143,27 +143,27 @@ test("利用者が取り消したことは AI にも伝える: 作業中で足�
   await second.tools.move({ to: "new_worktree", branch: "feat/later" }, allow);
   provider.acceptTell = false;
   const told = provider.told.length;
-  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
+  assert.equal((await api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId: chatId } })).status, 204);
   assert.equal(provider.told.length, told);
   second.release();
   await untilIdle(ctx, chatId);
   const sent = provider.prompts.length;
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "その次" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "その次" } });
   await until(async () => !(await isBusy(ctx, chatId)) && provider.prompts.length === sent + 1);
   assert.match(provider.lastTurnContext ?? "", /新しいワークツリー（feat\/later）へ）を取り消しました/);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "さらに次" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "さらに次" } });
   await until(async () => !(await isBusy(ctx, chatId)) && provider.prompts.at(-1) === "さらに次");
   assert.doesNotMatch(provider.lastTurnContext ?? "", /取り消しました/);
 });
 
 test("足せなかった取り消しの知らせは、次に伝えた発言の頭にも一度だけ添える", async () => {
   const ctx = setup({ features: ["workplaceMove", "worktrees"] });
-  const { call, provider } = ctx;
+  const { call, api, provider } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
   await tools.move({ to: "new_worktree", branch: "feat/tell" }, allow);
   provider.acceptTell = false;
-  await call("DELETE", `/api/chats/${chatId}/workplace-move`);
+  await api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId: chatId } });
   // 入力がまた受け付けるようになってから、利用者が伝えた発言に添わる
   provider.acceptTell = true;
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "ついでに", when: "now" })).body.result, "told");

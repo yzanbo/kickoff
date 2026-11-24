@@ -2,7 +2,6 @@
   "version": 1,
   "violations": {
     "import": [
-      "feature-core-tests:attachments:src/features/attachments/core/routes/server.attachments.test.ts -> src/shared/notes/types.ts",
       "feature-core-tests:chat:src/features/chat/core/runner.test.ts -> src/features/guard/core/guard/writeScope.ts",
       "feature-core:groups:src/features/groups/core/db/groups.ts -> src/shared/chat/types.ts",
       "feature-core:trash:src/features/trash/core/index.ts -> src/shared/projects/types.ts",

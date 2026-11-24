@@ -11,13 +11,13 @@ const finishedChat = (ctx: ReturnType<typeof setup>, text = "親の質問") => s
 
 test("子チャット: 親の会話を引き継ぐと、親の最後まで終わった作業の時点から会話を写して始める（親が作業中でも）", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider, project } = ctx;
+  const { api, provider, project } = ctx;
   const parentId = await finishedChat(ctx);
   const answer = (await eventsOf(ctx, parentId)).find((e) => e.type === "result")!;
   // 親を作業中にしたまま子チャットで聞ける
   const release = provider.hold();
-  await call("POST", `/api/chats/${parentId}/messages`, { text: "続き" });
-  const created = await call("POST", `/api/chats/${parentId}/children`, { text: "これはどういう意味？", quote: "Hono の middleware", inherit: true, event_id: answer.id });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: parentId }, body: { text: "続き" } });
+  const created = await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "これはどういう意味？", quote: "Hono の middleware", inherit: true, event_id: answer.id } });
   assert.equal(created.status, 201);
   const child = created.body;
   assert.equal(child.parent_chat_id, parentId);
@@ -38,10 +38,10 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
 
 test("子チャット: 親の会話を写すのを待たずに作って最初の発言を残し、写している間は作業中（送る準備の理由が inherit）。写し終えたらそのセッションで動かす", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { call, api, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const release = provider.holdFork();
-  const created = await call("POST", `/api/chats/${parentId}/children`, { text: "長い親から聞く", inherit: true });
+  const created = await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "長い親から聞く", inherit: true } });
   assert.equal(created.status, 201);
   const child = created.body;
   // まだ写している: 発言は残り、作業中で、引き継ぎ中の様子を配る。プロバイダーはまだ動かさない
@@ -66,12 +66,12 @@ test("子チャット: 親の会話を写すのを待たずに作って最初の
 
 test("子チャット: 親の会話を写している間に止めると、写し終えたところでプロバイダーを動かさずに中断で終える", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const release = provider.holdFork();
-  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "やっぱりやめる", inherit: true })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "やっぱりやめる", inherit: true } })).body;
   const turnsBefore = provider.resumes.length;
-  assert.equal((await call("POST", `/api/chats/${child.id}/cancel`)).status, 204);
+  assert.equal((await api("POST /api/chats/:chatId/cancel", { params: { chatId: child.id } })).status, 204);
   assert.equal((await liveOf(ctx, child.id)).stopping, true);
   release();
   await untilIdle(ctx, child.id);
@@ -82,10 +82,10 @@ test("子チャット: 親の会話を写している間に止めると、写し
 
 test("子チャット: 親の会話を写せなければ、お知らせを残して引き継がずに動かす", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const parentId = await finishedChat(ctx);
   provider.forkError = "ENOSPC: no space left on device";
-  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "聞きたい", inherit: true })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "聞きたい", inherit: true } })).body;
   assert.equal(child.status === "running" || (await isBusy(ctx, child.id)), true);
   await until(async () => !(await isBusy(ctx, child.id)) && (await chatOf(ctx, child.id)).status === "completed");
   const notices = (await eventsOf(ctx, child.id)).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
@@ -97,7 +97,7 @@ test("子チャット: 親の会話を写せなければ、お知らせを残し
 test("子チャット: 文の頭に引用を入れて送ると、引用はそのまま指示に入り、名前は引用のあとの文から付ける", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const parentId = await finishedChat(ctx);
-  const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "> 選んだ文\n>\n> 2 行目\n\nここを直したい", quote: null, inherit: false })).body;
+  const child = (await ctx.api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "> 選んだ文\n>\n> 2 行目\n\nここを直したい", quote: null, inherit: false } })).body;
   assert.equal(child.title, "ここを直したい");
   const user = (await eventsOf(ctx, child.id)).find((e) => e.type === "user");
   assert.equal(user?.type === "user" && user.data.text, "> 選んだ文\n>\n> 2 行目\n\nここを直したい");
@@ -106,7 +106,7 @@ test("子チャット: 文の頭に引用を入れて送ると、引用はその
   const parent = await chatOf(ctx, parentId);
   assert.ok(ctx.provider.lastTurnContext?.includes(`Kickoff のチャット ID: ${child.id}`));
   assert.ok(ctx.provider.lastTurnContext?.includes(`- 親チャット: 「${parent.title}」（Kickoff のチャット ID: ${parentId}、Claude Code のセッション ID: ${parent.session_id}）`));
-  await ctx.call("POST", `/api/chats/${parentId}/messages`, { text: "親の続き" });
+  await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId: parentId }, body: { text: "親の続き" } });
   await untilIdle(ctx, parentId);
   // 親チャットには、親の行はなく、子チャットの名前・ID・セッション ID を添える（「子チャットはどれ？」に答えられるように）
   const sent = await chatOf(ctx, child.id);
@@ -116,9 +116,9 @@ test("子チャット: 文の頭に引用を入れて送ると、引用はその
 
 test("子チャット: 引き継がない・引き継げる会話がないときは、選んだ文と質問だけで始める", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { api, provider } = ctx;
   const parentId = await finishedChat(ctx);
-  const fresh = (await call("POST", `/api/chats/${parentId}/children`, { text: "質問", inherit: false })).body;
+  const fresh = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "質問", inherit: false } })).body;
   assert.equal(provider.forks.length, 0);
   const first = (await eventsOf(ctx, fresh.id))[0];
   assert.match(first.type === "notice" ? first.data.message : "", /引き継がずに/);
@@ -126,22 +126,22 @@ test("子チャット: 引き継がない・引き継げる会話がないとき
 
   // まだ終わった作業のない親（作業中のまま）からは、引き継げないことを知らせて始める
   const release = provider.hold();
-  const busyParent: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "長い作業" })).body.id;
-  const child = (await call("POST", `/api/chats/${busyParent}/children`, { text: "横で質問", inherit: true })).body;
+  const busyParent: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text: "長い作業" } })).body.id;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: busyParent }, body: { text: "横で質問", inherit: true } })).body;
   const notice = (await eventsOf(ctx, child.id))[0];
   assert.match(notice.type === "notice" ? notice.data.message : "", /引き継げる会話がまだない/);
   release();
   await until(async () => !(await isBusy(ctx, busyParent)) && !(await isBusy(ctx, child.id)));
   // 引き継がないなら、文がないと 400
-  assert.equal((await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: false })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "", inherit: false } })).status, 400);
 });
 
 test("子チャット: 聞くことなしで会話を引き継ぐと、親の会話を写した子チャットを作るだけで動かさず、最初に送った文から名前を付ける", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { call, api, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const answer = (await eventsOf(ctx, parentId)).find((e) => e.type === "result")!;
-  const created = await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: true, event_id: answer.id });
+  const created = await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "", inherit: true, event_id: answer.id } });
   assert.equal(created.status, 201);
   const child = created.body;
   assert.equal(child.parent_chat_id, parentId);
@@ -154,18 +154,18 @@ test("子チャット: 聞くことなしで会話を引き継ぐと、親の会
   assert.deepEqual((await eventsOf(ctx, child.id)).map((e) => e.type), ["notice"]);
   assert.ok(!provider.resumes.includes("fork-1"));
   // 最初に送ると、写したセッションの続きから動き、その文が名前になる
-  await call("POST", `/api/chats/${child.id}/messages`, { text: "これはどういう意味？\n2 行目" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: child.id }, body: { text: "これはどういう意味？\n2 行目" } });
   await until(() => provider.resumes.includes("fork-1"));
   assert.equal((await chatOf(ctx, child.id)).title, "これはどういう意味？");
   await untilIdle(ctx, child.id);
   // 2 回目からは名前を変えない
-  await call("POST", `/api/chats/${child.id}/messages`, { text: "別の話" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: child.id }, body: { text: "別の話" } });
   await untilIdle(ctx, child.id);
   assert.equal((await chatOf(ctx, child.id)).title, "これはどういう意味？");
 
   // まだ引き継げる会話のない親（作業中のまま）からは、聞くことなしでは開けない
   const release = provider.hold();
-  const busyParent: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "長い作業" })).body.id;
+  const busyParent: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text: "長い作業" } })).body.id;
   const refused = await call("POST", `/api/chats/${busyParent}/children`, { text: "", inherit: true });
   assert.equal(refused.status, 400);
   assert.match(refused.body.error, /引き継げる会話がまだありません/);
@@ -175,10 +175,10 @@ test("子チャット: 聞くことなしで会話を引き継ぐと、親の会
 
 test("子チャット: チャット欄から送るときは添付も渡せ（文が空でも添付があれば作れる）、指示に添付のパスが添えられる", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, provider } = ctx;
+  const { call, api, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const file = (await call("POST", `/api/chats/${parentId}/transcript`)).body;
-  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "", attachments: [file], inherit: false })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "", attachments: [file], inherit: false } })).body;
   await untilIdle(ctx, child.id);
   const user = (await eventsOf(ctx, child.id)).find((e) => e.type === "user");
   assert.deepEqual(user?.type === "user" ? user.data.attachments?.map((a) => a.id) : null, [file.id]);
@@ -187,32 +187,32 @@ test("子チャット: チャット欄から送るときは添付も渡せ（文
 
 test("子チャット: 親をアーカイブ・移動・削除すると、子孫（子・孫）も一緒に扱う", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, store } = ctx;
+  const { api, store } = ctx;
   const parentId = await finishedChat(ctx);
-  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "子", inherit: false })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "子", inherit: false } })).body;
   await untilIdle(ctx, child.id);
-  const grandchild = (await call("POST", `/api/chats/${child.id}/children`, { text: "孫", inherit: false })).body;
+  const grandchild = (await api("POST /api/chats/:chatId/children", { params: { chatId: child.id }, body: { text: "孫", inherit: false } })).body;
   await untilIdle(ctx, grandchild.id);
   assert.deepEqual(store.chats.descendants(parentId).map((c) => c.id), [grandchild.id, child.id]);
 
-  await call("PATCH", `/api/chats/${parentId}`, { archived: true });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: parentId }, body: { archived: true } });
   assert.ok((await chatOf(ctx, child.id)).archived_at && (await chatOf(ctx, grandchild.id)).archived_at);
-  await call("PATCH", `/api/chats/${parentId}`, { archived: false });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: parentId }, body: { archived: false } });
   assert.equal((await chatOf(ctx, grandchild.id)).archived_at, null);
   // 子だけをしまっても親はそのまま。親をしまって戻しても、子だけでしまっていた子（とその下）はしまったまま
-  await call("PATCH", `/api/chats/${child.id}`, { archived: true });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: child.id }, body: { archived: true } });
   assert.equal((await chatOf(ctx, parentId)).archived_at, null);
-  await call("PATCH", `/api/chats/${parentId}`, { archived: true });
-  await call("PATCH", `/api/chats/${parentId}`, { archived: false });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: parentId }, body: { archived: true } });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: parentId }, body: { archived: false } });
   assert.deepEqual((await Promise.all([parentId, child.id, grandchild.id].map((id) => chatOf(ctx, id)))).map((c) => c.archived_at !== null), [false, true, true]);
-  await call("PATCH", `/api/chats/${child.id}`, { archived: false });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: child.id }, body: { archived: false } });
 
   const other = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
-  await call("POST", `/api/chats/${parentId}/move`, { project_id: other.id });
+  await api("POST /api/chats/:chatId/move", { params: { chatId: parentId }, body: { project_id: other.id } });
   assert.deepEqual((await Promise.all([child.id, grandchild.id].map((id) => chatOf(ctx, id)))).map((c) => c.project_id), [other.id, other.id]);
 
   // 削除は子孫ごとゴミ箱へ（ふだんの読み取りからは消える）
-  assert.equal((await call("DELETE", `/api/chats/${parentId}`)).status, 200);
+  assert.equal((await api("DELETE /api/chats/:chatId", { params: { chatId: parentId } })).status, 200);
   assert.deepEqual([parentId, child.id, grandchild.id].map((id) => store.chats.get(id)), [undefined, undefined, undefined]);
 });
 
@@ -246,7 +246,7 @@ test("サブエージェントに子チャットで聞く: 会話の記録を Cl
     { kind: "tool", name: "Bash", input: { command: "ls src" }, result: "core\nrenderer", isError: false },
     { kind: "user", text: "テストも見て" },
   ];
-  const created = await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "core には何がある？" });
+  const created = await ctx.api("POST /api/chats/:chatId/subagents/:agentId/children", { params: { chatId: parentId, agentId: "a1" }, body: { text: "core には何がある？" } });
   assert.equal(created.status, 201);
   const child = created.body;
   const call = (await eventsOf(ctx, parentId)).find((e) => e.type === "tool_use" && e.data.id === "tu1")!;
@@ -271,15 +271,15 @@ test("サブエージェントに子チャットで聞く: 会話の記録を Cl
 test("サブエージェントに子チャットで聞く: Claude Code から記録が読めなければ Kickoff に残っている分（依頼・報告）を添える。知らないサブエージェントは 400", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const parentId = await chatWithSubagent(ctx);
-  const child = (await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "どうだった？" })).body;
+  const child = (await ctx.api("POST /api/chats/:chatId/subagents/:agentId/children", { params: { chatId: parentId, agentId: "a1" }, body: { text: "どうだった？" } })).body;
   const { markdown } = await firstMessage(ctx, child.id);
   assert.ok(markdown.includes("## 依頼（メインエージェントから）\n\nsrc の構成を調べて"));
   assert.ok(markdown.includes("## 親への報告\n\n見つけたのは 3 件"));
   const notice = (await eventsOf(ctx, child.id)).find((e) => e.type === "notice");
   assert.ok(notice?.type === "notice" && notice.data.message.includes("読めなかったので"));
   await untilIdle(ctx, child.id);
-  assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/zz/children`, { text: "?" })).status, 400);
-  assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "" })).status, 400);
+  assert.equal((await ctx.api("POST /api/chats/:chatId/subagents/:agentId/children", { params: { chatId: parentId, agentId: "zz" }, body: { text: "?" } })).status, 400);
+  assert.equal((await ctx.api("POST /api/chats/:chatId/subagents/:agentId/children", { params: { chatId: parentId, agentId: "a1" }, body: { text: "" } })).status, 400);
 });
 
 /** 依頼文を返して終わった子チャットを作る（最後の返答は「依頼文の本文」。途中の「確認します」は最後の返答ではない） */
@@ -298,19 +298,19 @@ async function childWithReply(ctx: ReturnType<typeof setup>, parentId: number) {
 
 test("親チャットに渡す: 作業の最後の返答を、引用・見出しなしで親に送る・送信待ちに足す・入力欄用に返し、親の発言には出どころ、子には渡した記録を残す", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call } = ctx;
+  const { api } = ctx;
   const parentId = await finishedChat(ctx);
   const { child, end } = await childWithReply(ctx, parentId);
   const reply = "子チャット「依頼」で検討した結果、次をお願いします。";
   const from = { chat_id: child.id, title: child.title };
 
   // 入力欄: 親には何も送らず、渡す文を返す
-  const composer = await call("POST", `/api/chats/${child.id}/handoff`, { via: "composer", turn_event_id: end.id });
+  const composer = await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "composer", turn_event_id: end.id } });
   assert.equal(composer.status, 200);
   assert.deepEqual(composer.body, { text: reply, parent_chat_id: parentId, sent: null });
 
   // 今すぐ送る: 親が作業していなければそのまま送り、発言に出どころ
-  const sent = await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: end.id });
+  const sent = await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "send", turn_event_id: end.id } });
   assert.equal(sent.body.sent, "sent");
   const user = (await eventsOf(ctx, parentId)).findLast((e) => e.type === "user");
   assert.ok(user?.type === "user");
@@ -319,7 +319,7 @@ test("親チャットに渡す: 作業の最後の返答を、引用・見出し
   await untilIdle(ctx, parentId);
 
   // 送信待ち: 作業していなくても送らずに列の最後へ（出どころ付き）
-  const queued = await call("POST", `/api/chats/${child.id}/handoff`, { via: "queue", turn_event_id: end.id });
+  const queued = await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "queue", turn_event_id: end.id } });
   assert.equal(queued.body.sent, "queued");
   const message = (await liveOf(ctx, parentId)).queue.messages.at(-1);
   assert.equal(message?.text, reply);
@@ -333,50 +333,50 @@ test("親チャットに渡す: 作業の最後の返答を、引用・見出し
 
 test("親チャットに渡す: 親のないチャット・作業の終わりでない記録・止めた作業は 400、親がアーカイブ済みなら 409", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, store } = ctx;
+  const { call, api, store } = ctx;
   const parentId = await finishedChat(ctx);
   const { child, end } = await childWithReply(ctx, parentId);
   const parentEnd = (await eventsOf(ctx, parentId)).find((e) => e.type === "result")!;
-  assert.equal((await call("POST", `/api/chats/${parentId}/handoff`, { via: "send", turn_event_id: parentEnd.id })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/handoff", { params: { chatId: parentId }, body: { via: "send", turn_event_id: parentEnd.id } })).status, 400);
   const user = (await eventsOf(ctx, child.id)).find((e) => e.type === "user")!;
-  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: user.id })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "send", turn_event_id: user.id } })).status, 400);
   const cancelled = store.events.add(child.id, { type: "result", status: "cancelled" });
-  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: cancelled.id })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "send", turn_event_id: cancelled.id } })).status, 400);
   assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "elsewhere", turn_event_id: end.id })).status, 400);
   store.chats.archive(parentId, true);
-  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: end.id })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via: "send", turn_event_id: end.id } })).status, 409);
   // 渡せなかったものは記録しない
   assert.equal((await eventsOf(ctx, child.id)).filter((e) => e.type === "handoff").length, 0);
 });
 
 /** 親 → 子 → 孫 → ひ孫 の家系を作る（どれも 1 回送って終わったもの。子は親の最後の返答から聞いた形） */
 async function family(ctx: ReturnType<typeof setup>) {
-  const { call } = ctx;
+  const { api } = ctx;
   const root = await finishedChat(ctx);
   const event = (await eventsOf(ctx, root)).find((e) => e.type === "result")!;
-  const child = (await call("POST", `/api/chats/${root}/children`, { text: "子", inherit: false, event_id: event.id })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: root }, body: { text: "子", inherit: false, event_id: event.id } })).body;
   await untilIdle(ctx, child.id);
-  const grandchild = (await call("POST", `/api/chats/${child.id}/children`, { text: "孫", inherit: false })).body;
+  const grandchild = (await api("POST /api/chats/:chatId/children", { params: { chatId: child.id }, body: { text: "孫", inherit: false } })).body;
   await untilIdle(ctx, grandchild.id);
-  const great = (await call("POST", `/api/chats/${grandchild.id}/children`, { text: "ひ孫", inherit: false })).body;
+  const great = (await api("POST /api/chats/:chatId/children", { params: { chatId: grandchild.id }, body: { text: "ひ孫", inherit: false } })).body;
   await untilIdle(ctx, great.id);
   return { root, child: child.id as number, grandchild: grandchild.id as number, great: great.id as number };
 }
 
 test("親から外す: 親のないチャットにしてグループへ入れる。聞いた発言・一緒にアーカイブした印を消し、お知らせを残す。子孫はついていく", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, store, project } = ctx;
+  const { api, store, project } = ctx;
   const { root, child, grandchild, great } = await family(ctx);
   const group = store.groups.create(project.id, "本筋");
   // 親と一緒にアーカイブしたあとで外すと、アーカイブ済みのまま親のないチャットになり、親を戻しても一緒には戻らない
-  await call("PATCH", `/api/chats/${root}`, { archived: true });
-  const res = await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null, group_id: group.id });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: root }, body: { archived: true } });
+  const res = await api("POST /api/chats/:chatId/detach", { params: { chatId: child }, body: { parent_chat_id: null, group_id: group.id } });
   assert.equal(res.status, 200);
   assert.equal(res.body.parent_chat_id, null);
   assert.equal(res.body.parent_event_id, null);
   assert.equal(res.body.group_id, group.id);
   assert.ok(res.body.archived_at);
-  await call("PATCH", `/api/chats/${root}`, { archived: false });
+  await api("PATCH /api/chats/:chatId", { params: { chatId: root }, body: { archived: false } });
   assert.ok((await chatOf(ctx, child)).archived_at, "親を戻しても、外したチャットは戻らない");
   assert.deepEqual(store.chats.descendants(root), []);
   assert.deepEqual(store.chats.descendants(child).map((c) => c.id), [great, grandchild]);
@@ -387,44 +387,44 @@ test("親から外す: 親のないチャットにしてグループへ入れる
 
 test("親から外す: 孫・ひ孫は自分の先祖の子に上げられる（いまの親・先祖でないチャット・親のないチャットは 400）", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, store } = ctx;
+  const { api, store } = ctx;
   const { root, child, grandchild, great } = await family(ctx);
   const other = await finishedChat(ctx, "ほか");
   // ひ孫を、いちばん上の親の子に上げる（孫の下にいたひ孫はついていかず、ひ孫自身の子孫だけがついていく）
-  const raised = await call("POST", `/api/chats/${great}/detach`, { parent_chat_id: root });
+  const raised = await api("POST /api/chats/:chatId/detach", { params: { chatId: great }, body: { parent_chat_id: root } });
   assert.equal(raised.status, 200);
   assert.equal(raised.body.parent_chat_id, root);
   assert.equal(raised.body.group_id, null);
   const notice = (await eventsOf(ctx, great)).at(-1);
   assert.equal(notice?.type === "notice" && notice.data.message, `「${(await chatOf(ctx, grandchild)).title}」から「${(await chatOf(ctx, root)).title}」の子にしました`);
   // いまの親・自分の子孫・関係のないチャット・グループを付けての上げ・親のないチャットは断る
-  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: child })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: other })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: grandchild })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: grandchild }, body: { parent_chat_id: child } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: grandchild }, body: { parent_chat_id: other } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: grandchild }, body: { parent_chat_id: grandchild } })).status, 400);
   const group = store.groups.create(ctx.project.id, "g");
-  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: root, group_id: group.id })).status, 400);
-  assert.equal((await call("POST", `/api/chats/${root}/detach`, { parent_chat_id: null })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: grandchild }, body: { parent_chat_id: root, group_id: group.id } })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: root }, body: { parent_chat_id: null } })).status, 400);
   assert.equal((await chatOf(ctx, grandchild)).parent_chat_id, child);
 });
 
 test("親から外す: 作業中なら 409（その下の孫が作業中でも、外すのは子だけなので外せる）。ほかのプロジェクトのグループは 400", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call, store, provider } = ctx;
+  const { api, store, provider } = ctx;
   const { child, grandchild } = await family(ctx);
   const elsewhere = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
   const foreignGroup = store.groups.create(elsewhere.id, "よそ");
-  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null, group_id: foreignGroup.id })).status, 400);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: child }, body: { parent_chat_id: null, group_id: foreignGroup.id } })).status, 400);
   const release = provider.hold();
-  await call("POST", `/api/chats/${child}/messages`, { text: "続き" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: child }, body: { text: "続き" } });
   await until(() => isBusy(ctx, child));
-  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null })).status, 409);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: child }, body: { parent_chat_id: null } })).status, 409);
   release();
   await untilIdle(ctx, child);
   // 孫を作業中にしても、子は外せる
   const release2 = provider.hold();
-  await call("POST", `/api/chats/${grandchild}/messages`, { text: "続き" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: grandchild }, body: { text: "続き" } });
   await until(() => isBusy(ctx, grandchild));
-  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null })).status, 200);
+  assert.equal((await api("POST /api/chats/:chatId/detach", { params: { chatId: child }, body: { parent_chat_id: null } })).status, 200);
   release2();
   await untilIdle(ctx, grandchild);
 });
@@ -452,10 +452,10 @@ test("AI が作る子チャット: 親の会話を引き継げたら、親の最
 
 test("子チャット: 聞かずに開く子チャットは、プロジェクトの AI ではなく親と同じ AI で作る（親の会話を写すため。メモの仕様書「0028」の G5）", async () => {
   const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
-  const { call } = ctx;
-  const parentId: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "親の質問", provider: "codex" })).body.id;
+  const { api } = ctx;
+  const parentId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text: "親の質問", provider: "codex" } })).body.id;
   await until(async () => (await chatOf(ctx, parentId)).status === "completed");
-  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: true })).body;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: parentId }, body: { text: "", inherit: true } })).body;
   assert.equal(ctx.project.provider, "claude");
   assert.equal(child.provider, "codex");
   assert.equal(child.model, null);

@@ -7,11 +7,11 @@ import { settle } from "@shared/foundation/testing/async";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {
-  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "次", when: "later" } });
   // 作業中に通信が切れて失敗する
   provider.networkFailures = 1;
   network.online = false;
@@ -20,7 +20,7 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   assert.equal(store.chats.get(chatId)?.status, "failed");
   assert.equal(runner.live(chatId).queue.paused, true);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["次"]);
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
+  assert.deepEqual((await api("GET /api/chats/:chatId", { params: { chatId: chatId } })).body.live.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
   // つながらない間は何も送らない（送信待ちも送らない）。見張りが 2 回確かめても送っていない
   const checked = network.checks.online;
@@ -36,9 +36,9 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
 });
 
 test("通信の切断: つながるのを待っている間にアプリを終えたら、起動したときの再開の確かめの印を付ける（使用枠の上限を待つものは付けない）", async () => {
-  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
   provider.networkFailures = 1;
   network.online = false;
@@ -49,7 +49,7 @@ test("通信の切断: つながるのを待っている間にアプリを終え
 });
 
 test("通信の切断: 通信で止まったサブエージェントは、自動で再開するときに名前と ID を添えて続きから再開を頼む（自分で止めたものは頼まない）", async () => {
-  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
+  const { call, api, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   network.online = false;
   provider.networkFailures = 1;
   // 裏で動かした 2 件: 調査は通信で親ごと止まり、レビューは自分で止めた
@@ -61,7 +61,7 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
     { type: "tool_result", tool_use_id: "tu2", content: "Async agent launched successfully.\nagentId: a2", is_error: false },
     { type: "subagent", task_id: "a2", tool_use_id: "tu2", description: "レビュー", status: "stopped" },
   ];
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => runner.live(chatId).reconnect !== null);
   provider.emits = [];
   // つながるのを待っている間は、続きから再開を頼むサブエージェントの名前も返す（画面の待っている行に添える）
@@ -82,11 +82,11 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
 });
 
 test("通信の切断: 続けて何度も止まったら、再開するかを聞き（回答待ち）、再開するで数え直して送る", async () => {
-  const { call, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
   network.online = true;
   // 最初の作業と、自動の再開の 3 回がすべて通信で失敗する
   provider.networkFailures = 1 + MAX_AUTO_RESUMES;
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => approvals.list({ chatId }).length === 1);
   const [ask] = approvals.list({ chatId });
   assert.equal(ask.kind, "reconnect");
@@ -94,17 +94,17 @@ test("通信の切断: 続けて何度も止まったら、再開するかを聞
   assert.equal(runner.live(chatId).reconnect, null);
 
   // 再開する: すぐ「続けて」を送る（こんどは続く）
-  assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 204);
+  assert.equal((await api("POST /api/approvals/:approvalId", { params: { approvalId: ask.id }, body: { action: "allow" } })).status, 204);
   await until(() => provider.prompts.filter((p) => p === RESUME_PROMPT).length === MAX_AUTO_RESUMES + 1 && !runner.isBusy(chatId));
   assert.equal(approvals.list({ chatId }).length, 0);
 });
 
 test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるかを聞く（勝手に再開しない）。続けるで再開し、終わったら送信待ちを戻す", async () => {
-  const { call, project, runner, provider, approvals, store } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, approvals, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "次の指示", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "次の指示", when: "later" } });
   // 枠が戻る時刻はもう過ぎている（すぐ聞く）
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();
@@ -118,35 +118,35 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /使用枠の上限に達したため止まりました/.test(JSON.stringify(e.data))));
 
   // 続ける: 「続けて」を送り、終わったら送信待ちを戻して送る
-  assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 204);
+  assert.equal((await api("POST /api/approvals/:approvalId", { params: { approvalId: ask.id }, body: { action: "allow" } })).status, 204);
   await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), [USAGE_RESUME_PROMPT, "次の指示"]);
   assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("使用枠の上限: 戻る前は聞かず、その間に自分で送ったら聞くのをやめる。やめるを選んだら送信待ちは止めたまま", async () => {
-  const { call, project, runner, provider, approvals, network } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, approvals, network } = setup({ features: ["chat", "settings"] });
   // 枠が戻るのはまだ先
   provider.usageLimits = [new Date(Date.now() + 3_600_000).toISOString()];
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => !runner.isBusy(chatId));
   // 見張りが 2 回時刻を確かめても、まだ戻らないので聞かない
   const checked = network.checks.clock;
   await until(() => network.checks.clock >= checked + 2);
   assert.equal(approvals.list({ chatId }).length, 0);
   // 自分で送った: 待つのをやめる（送ったものは普通に動く）
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "自分で続ける" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "自分で続ける" } });
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
 
   // やめる: 送信待ちは止めたまま（自分で戻す）
   const release = provider.hold();
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "2" } });
   await until(() => provider.prompts.length === 3);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "あとで", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "あとで", when: "later" } });
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();
   await until(() => approvals.list({ chatId }).length === 1);
-  await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "deny" });
+  await api("POST /api/approvals/:approvalId", { params: { approvalId: approvals.list({ chatId })[0].id }, body: { action: "deny" } });
   await settle();
   assert.equal(provider.prompts.length, 3);
   assert.equal(runner.live(chatId).queue.paused, true);
@@ -154,22 +154,22 @@ test("使用枠の上限: 戻る前は聞かず、その間に自分で送った
 });
 
 test("通信の切断: 自動で再開しない設定・「自動で再開しない」・自分で送ったときは待たない", async () => {
-  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
+  const { call, api, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   network.online = false;
   // 設定で切ると、止まったことだけを知らせて待たない
   await call("PUT", "/api/settings", { auto_resume_on_reconnect: false });
   provider.networkFailures = 1;
-  const a = (await call("POST", `/api/projects/${project.id}/chats`, { text: "a" })).body.id;
+  const a = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "a" } })).body.id;
   await until(() => store.chats.get(a)?.status === "failed");
   assert.equal(runner.live(a).reconnect, null);
-  assert.equal((await call("DELETE", `/api/chats/${a}/reconnect`)).status, 409);
+  assert.equal((await api("DELETE /api/chats/:chatId/reconnect", { params: { chatId: a } })).status, 409);
 
   // 待っている間に「自動で再開しない」を押すと、つながっても送らない
   await call("PUT", "/api/settings", { auto_resume_on_reconnect: true });
   provider.networkFailures = 1;
-  const b = (await call("POST", `/api/projects/${project.id}/chats`, { text: "b" })).body.id;
+  const b = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "b" } })).body.id;
   await until(() => runner.live(b).reconnect !== null);
-  assert.equal((await call("DELETE", `/api/chats/${b}/reconnect`)).status, 204);
+  assert.equal((await api("DELETE /api/chats/:chatId/reconnect", { params: { chatId: b } })).status, 204);
   network.online = true;
   // 待つのをやめたので見張りは止まっている（つながっても送らない）
   await settle();
@@ -178,9 +178,9 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   // 自分で送ったら、待つのをやめてそのまま送る
   network.online = false;
   provider.networkFailures = 1;
-  const c = (await call("POST", `/api/projects/${project.id}/chats`, { text: "c" })).body.id;
+  const c = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "c" } })).body.id;
   await until(() => runner.live(c).reconnect !== null);
-  await call("POST", `/api/chats/${c}/messages`, { text: "自分で続き" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: c }, body: { text: "自分で続き" } });
   assert.equal(runner.live(c).reconnect, null);
   await until(() => !runner.isBusy(c));
   network.online = true;
@@ -189,11 +189,11 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
 });
 
 test("通信の切断のあとに使用枠の上限で止まっても、止めた送信待ちは再開した作業が最後まで終わったら戻して送る", async () => {
-  const { call, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "次", when: "later" } });
   // 通信が切れて止まる: 送信待ちを止めて、つながるのを待つ
   provider.networkFailures = 1;
   network.online = false;
@@ -212,18 +212,18 @@ test("通信の切断のあとに使用枠の上限で止まっても、止め�
   assert.match(ask.description ?? "", /送信待ちは、再開した作業が終わってから送ります/);
 
   // 続ける: 最後まで終わったら、止めておいた送信待ちを戻して送る
-  await call("POST", `/api/approvals/${ask.id}`, { action: "allow" });
+  await api("POST /api/approvals/:approvalId", { params: { approvalId: ask.id }, body: { action: "allow" } });
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), [RESUME_PROMPT, USAGE_RESUME_PROMPT, "次"]);
   assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("使用枠の上限のあとに通信の切断で止まっても、止めた送信待ちを自分で止めたものとみなさず、つながったら自動で再開する", async () => {
-  const { call, project, runner, provider, network, approvals, store } = setup({ features: ["chat", "settings"] });
+  const { api, project, runner, provider, network, approvals, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  const chatId = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "1" } })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
+  await api("POST /api/chats/:chatId/messages", { params: { chatId: chatId }, body: { text: "次", when: "later" } });
   // 使用枠の上限で止まる: 送信待ちを止めて、続けるかを聞く
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();
@@ -232,7 +232,7 @@ test("使用枠の上限のあとに通信の切断で止まっても、止め�
   // 続けると答えたら、こんどは通信が切れて止まる
   provider.networkFailures = 1;
   network.online = false;
-  await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "allow" });
+  await api("POST /api/approvals/:approvalId", { params: { approvalId: approvals.list({ chatId })[0].id }, body: { action: "allow" } });
   await until(() => runner.live(chatId).reconnect !== null);
   assert.equal(runner.live(chatId).queue.paused, true);
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /つながったら自動で再開します/.test(JSON.stringify(e.data))));

@@ -66,9 +66,9 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## テスト
 
-- コアのテストの DB はメモリ（`testing/memoryDb.ts`）で、外のネットワーク・本物の AI は呼ばない。
-- 作ったもの（見張り・サーバー・子プロセス・DB ワーカー）は必ず止める（`setup()` の分は `afterTest` で機能の `stop`）。
-- API のルートを変えたら、その機能の `core/routes/server.<領域>.test.ts` に足す（認証・SSE・配信は `@/app/core/server.test.ts`、端末は `server.devices.test.ts`）。
-- 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup({ features })`（要る機能だけ組む。偽物は `testEnv.ts`）、殻は `setupCore` と `ScriptedProvider`（ai の `testing/fakeProvider.ts`）。前回のデータは `beforeStart`。
-- 条件は `testing/until.ts` の `until(cond)` で待つ（2 秒。遅れうるものは `until(cond, ms)`）。決め打ちの時間で待たない。時計は `testing/manualClock.ts`。
-- `testing/` の補助: `quietShell`（ログインシェルを流すテストの頭で）・`tempDir`・`gitRepo`（裸のリモートも）・`sse`。データは `@shared/<機能>/testing`。
+- コアのテストの DB はメモリ（`testing/memoryDb.ts`）。外のネットワーク・本物の AI は呼ばない。
+- 作ったもの（見張り・サーバー・子プロセス・DB ワーカー）は必ず止める（`setup()` の分は `afterTest` が止める）。
+- API のルートを変えたら、その機能の `core/routes/server.<領域>.test.ts` に足す（認証・SSE・配信は `@/app/core/server.test.ts`）。
+- 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup({ features })`（要る機能だけ組む。偽物は `testEnv.ts`。呼ぶのは取り決めの `api`。形を違えるなら `call`）、殻は `setupCore` と `ScriptedProvider`（ai の `testing/fakeProvider.ts`）。前回のデータは `beforeStart`。
+- 条件は `testing/until.ts` の `until(cond)` で待つ（2 秒。`until(cond, ms)` も）。決め打ちの時間で待たない。時計は `testing/manualClock.ts`。
+- `testing/` の補助: `quietShell`（ログインシェルを流すとき）・`tempDir`・`gitRepo`（裸のリモートも）・`sse`。データは `@shared/<機能>/testing`。

@@ -55,17 +55,17 @@ test("通知: 作業中から終わった・失敗・回答待ち・CI の失敗
 });
 
 test("通知: 見ている人には送らず、見ていない人にだけ送る（この Mac で見ていれば Mac の通知は出さず、見ていない端末にはプッシュ。端末で見ていれば、その端末には送らない）", async () => {
-  const { app, call, chat, finish, bus, project, notifyFake, store } = withChat();
+  const { app, api, chat, finish, bus, project, notifyFake, store } = withChat();
   const token = "d".repeat(40);
   const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[p]" });
   // この Mac で見ている: Mac の通知は出さず、見ていない端末にはプッシュ
-  assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: project.id })).status, 204);
+  assert.equal((await api("PUT /api/viewing", { body: { chat_id: chat.id, ci_project_id: project.id } })).status, 204);
   finish();
   bus.publish({ type: "ci_failed", failure: { project_id: project.id, run_id: 1, workflow: "w", number: 1, branch: "b", title: "t", url: "u" } });
   assert.equal(notifyFake.notified.length, 0);
   assert.deepEqual(notifyFake.pushed.map((p) => p.body), ["終わりました"]);
-  await call("PUT", "/api/viewing", { chat_id: null, ci_project_id: null });
+  await api("PUT /api/viewing", { body: { chat_id: null, ci_project_id: null } });
 
   // 端末で見ている: その端末には送らず、この Mac には出す
   const put = await app.request("/api/viewing", { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat.id, ci_project_id: null }) });
@@ -119,7 +119,7 @@ function notifyIn(group: ReturnType<typeof notifyToolGroup>, chatId: number) {
 
 test("AI からの知らせ（notify_user）: 見ていなければ Mac の通知に本文を出し、スマホのプッシュには本文を載せない。流れに記録を残し、1 回の作業で 3 回まで", async () => {
   const ctx = withChat();
-  const { chat, bus, store, notifyFake, call } = ctx;
+  const { chat, bus, store, notifyFake, api } = ctx;
   const token = "e".repeat(40);
   const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
@@ -134,7 +134,7 @@ test("AI からの知らせ（notify_user）: 見ていなければ Mac の通�
   assert.deepEqual([notifyFake.pushed[0].title, notifyFake.pushed[0].body], ["調査", "AI からの知らせ"]);
   assert.deepEqual(await noticesOf(ctx, chat.id), ["AI からの知らせ: 移行の 1 段目が済みました"]);
   // この Mac でそのチャットを見ていれば、Mac の通知は出さない
-  assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
+  assert.equal((await api("PUT /api/viewing", { body: { chat_id: chat.id, ci_project_id: null } })).status, 204);
   await notify("2 回目");
   assert.equal(notifyFake.notified.length, 1);
   await notify("3 回目");
@@ -148,7 +148,7 @@ test("AI からの知らせ（notify_user）: 見ていなければ Mac の通�
 test("AI からの知らせ（notify_user）: 組み立てが通知の組を集め、チャットの実行に kickoff_chat のツールとして渡す", async () => {
   const ctx = setup({ features: ["notifications", "chat", "devices", "settings", "worktrees", "userView"] });
   const tools = watchTools(ctx, ctx.mcpTools);
-  const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "調べて" })).body.id;
+  const id: number = (await ctx.api("POST /api/projects/:projectId/chats", { params: { projectId: ctx.project.id }, body: { text: "調べて" } })).body.id;
   await until(async () => (await chatOf(ctx, id)).status === "completed");
   const names = tools.names();
   assert.ok(names.includes("notify_user"));
