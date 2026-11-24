@@ -1,4 +1,4 @@
-# 音声入力・音声モード・読み上げ（`src/features/voice`）
+# 音声入力・音声モード・読み上げ（`features/voice`）
 
 ## 地図
 
@@ -10,6 +10,7 @@
 ## 決まり
 
 - `local` の一時フォルダは必ず消す。
+- 取り消したあとに届いた文字起こしは入れない（`useDictation` の試みの番号で古い結果を捨てる）。
 - 送る前のチャットから音声モードを続けるときは `voiceHandoff.ts` で渡す（StrictMode の描き直しでも戻す）。
 - 音量は描き直さずに CSS 変数に入れる（`useLevelVar`。マイクは `--mic-level`、音声モードの丸は `--voice-level`）。
 

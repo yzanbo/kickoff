@@ -1,4 +1,4 @@
-# チャット欄の外の画像とリンク（`src/features/remoteImages`）
+# チャット欄の外の画像とリンク（`features/remoteImages`）
 
 ## 地図
 

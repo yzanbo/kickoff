@@ -1,4 +1,4 @@
-# GitHub と CI（`src/features/github`）
+# GitHub と CI（`features/github`）
 
 プロジェクトの「GitHub」タブ（issue・PR）と右の欄の GitHub のタブ、「CI」タブ、PR の知らせ。
 
@@ -9,13 +9,13 @@
 | `core/index.ts` | チャットの実行の環境変数（order 20。選んだアカウント） |
 | `core/gh.ts`・`account.ts` | gh を動かす唯一の口（トークン・失敗の文 `ghFailureMessage`）・アカウントの文脈 `runAsGitHubAccount` |
 | `core/service.ts`・`core/ghApi.ts` | `GitHubService`（`gh api`。書き込みは `write`）・CI の `CiService`（`ci.ts`） |
-| `core/pulls.ts`・`routes/pulls.ts` | ブランチの PR（取り決め `@shared/github/contract.ts`）。履歴の「プッシュして PR を作る」は `ui/pushPrItem.ts`（git の `branchMenuItems`） |
+| `core/pulls.ts`・`routes/pulls.ts` | ブランチの PR（`@shared/github/contract.ts`）。「プッシュして PR を作る」は `ui/pushPrItem.ts` |
 | `core/prWatch.ts` | PR の見張り `WorktreePrWatch`（CI の失敗も見る） |
 | `ui/GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文は `@shared/github/searchQuery`） |
 | `ui/useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges`・`GitHubHtml` | 中身・PR の変更（git の `DiffStack`・`ChangedFiles`）・本文 |
 | `ui/githubHandoff.ts`・`githubPrompt.ts` | AI に渡す |
 | `ui/MergeDialog`・`githubCheckout.ts`・`GitHubReview.tsx` | 書く（マージ・チェックアウト・レビュー） |
-| `ui/githubRefresh.ts` | 取り直しの間隔（CI も） |
+| `ui/githubRefresh.ts` | 取り直しの間隔 |
 | `ui/ci/`・`ui/prNotice/` | CI のタブ・PR の知らせ。ほかの機能が開くのは行き先 `githubItem`・`ciRun`（`ui/openTargets.ts`） |
 
 ## 決まり
@@ -35,6 +35,6 @@
 - 本文の HTML は `GitHubHtml` が DOMPurify で整える。画像は CSP の `img-src` のホストだけ（GitHub Enterprise はそのホストも足す）。非公開の画像はコアの口から読む。
 - 覚えた中身（`api.githubCachedDetail`）は、頼みの番号でなく、まだ何も出していない同じものかで受ける。
 - 動いている実行がある間は短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。失敗を知らせるかは `src/features/notifications/CLAUDE.md`。
-- PR の状態の名前は `@shared/git/prState` の `PR_STATE_LABELS`（帯・知らせ・印で同じ。gh の大文字は `prStateOf`）。
+- PR の状態の名前は `PR_STATE_LABELS`（gh の大文字は `prStateOf`）、チェックの状態は `CiState` 1 つ（`@shared/github/ciTypes`。画面で文字列を分類しない）。
 - レビューの行は `reviewLines.ts` が差分の表の `DIFF_ROW_ATTRS` で読む。
 - テストは `setup()` の `ghFake`（`routes.github.test.ts`・`routes.ci.test.ts`）と `ciView.test.ts`。

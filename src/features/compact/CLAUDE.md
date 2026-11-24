@@ -1,4 +1,4 @@
-# 圧縮と、圧縮前・圧縮後の指示（`src/features/compact`）
+# 圧縮と、圧縮前・圧縮後の指示（`features/compact`）
 
 ## 地図
 

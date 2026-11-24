@@ -1,4 +1,4 @@
-# ゴミ箱（`src/features/trash`）
+# ゴミ箱（`features/trash`）
 
 Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる。OS のゴミ箱とは別）。
 

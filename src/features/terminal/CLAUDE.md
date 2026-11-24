@@ -1,4 +1,4 @@
-# ターミナル（`src/features/terminal`）
+# ターミナル（`features/terminal`）
 
 内蔵ターミナル（パネルのタブ）。メインプロセスの側は `src/foundation/desktop/CLAUDE.md`。
 

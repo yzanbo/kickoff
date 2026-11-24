@@ -1,4 +1,4 @@
-# Git（`src/features/git`）
+# Git（`features/git`）
 
 ## 地図
 

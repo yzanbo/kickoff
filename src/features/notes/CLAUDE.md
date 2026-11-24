@@ -1,4 +1,4 @@
-# ノート（`src/features/notes`）
+# ノート（`features/notes`）
 
 プロジェクトの「ノート」タブと、チャットからノートを作る・開く・足す口。ノートはプロジェクトの外のフォルダの Markdown と HTML（種類は拡張子 `noteKindOf`。DB に入れない）。
 

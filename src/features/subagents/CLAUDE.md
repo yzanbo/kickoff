@@ -1,4 +1,4 @@
-# サブエージェント（`src/features/subagents`）
+# サブエージェント（`features/subagents`）
 
 ## 地図
 

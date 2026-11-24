@@ -1,4 +1,4 @@
-# 埋め込みブラウザ（`src/features/browser`）
+# 埋め込みブラウザ（`features/browser`）
 
 ## 地図
 

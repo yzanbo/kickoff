@@ -1,4 +1,4 @@
-# ワークツリー（`src/features/worktrees`）
+# ワークツリー（`features/worktrees`）
 
 チャットごとの作業場所（`chats.worktree_path`。`null` なら本体）のうち、ワークツリーを作る・片付ける・実行環境。作業場所の型・一覧の店・選ぶ部品・色は `@/foundation/ui/workplace/`（コアは `@/foundation/core/workplace/`）、ファイル・変更は `src/features/files/CLAUDE.md`。
 

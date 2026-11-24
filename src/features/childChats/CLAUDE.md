@@ -1,4 +1,4 @@
-# 子チャット（`src/features/childChats`）
+# 子チャット（`features/childChats`）
 
 ## 地図
 

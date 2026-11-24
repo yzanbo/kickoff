@@ -1,4 +1,4 @@
-# Docker（`src/features/docker`）
+# Docker（`features/docker`）
 
 プロジェクトの「Docker」タブ。compose のサービスの一覧・操作・ログ・シェル。
 

@@ -1,4 +1,4 @@
-# 添付と「AI に渡す」（`src/features/attachments`）
+# 添付と「AI に渡す」（`features/attachments`）
 
 ## 地図
 

@@ -1,4 +1,4 @@
-# ポートを使っているプロセス（`src/features/ports`）
+# ポートを使っているプロセス（`features/ports`）
 
 ## 地図
 
