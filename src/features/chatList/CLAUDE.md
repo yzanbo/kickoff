@@ -32,7 +32,7 @@
 
 ## 落とし穴
 
-- パネルの一覧のペインのタブも `useChatOrder` で同じ並びにする（変えたら `src/features/chatPanel/CLAUDE.md` の「サイドバーとの連動」も見る）。
+- パネルの一覧のペインのタブも `useChatOrder` で同じ並びにする（変えたら `src/features/chatPanel/CLAUDE.md`も見る）。
 - 範囲の選択・↑↓・ドラッグは先に `ensureAllRows` で残りを描く。
 - 色は画面に出ているまとまりでなく、なりうるものすべてから決める（`projectBucketHues`。サイドバーとタブで同じ色にする）。
 - `useFolds` の開閉は購読した snapshot から読む（保存先を直接読むと React Compiler が描画を使い回す）。

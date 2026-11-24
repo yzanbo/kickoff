@@ -1,6 +1,11 @@
-# プロジェクト（`src/features/projects`）
+# プロジェクト（`features/projects`）
 
-プロジェクトの印・色・タグ・並び・メニュー、プロジェクトの画面（`ui/page/`）、編集のダイアログ（`ui/settings/`。節は settings の `settingsSections`）、新しいプロジェクト（`ui/new/`）、右サイドバー（`ui/rightSidebar/`）。サイドバーの見出しは `src/features/sidebar/CLAUDE.md`、ボードは `src/features/board/CLAUDE.md`。
+プロジェクトの印・色・タグ・並び・メニュー、プロジェクトの画面（`ui/page/`）、編集のダイアログ（`ui/settings/`。節は settings の `settingsSections`）、新しいプロジェクト（`ui/new/`）、右サイドバー（`ui/rightSidebar/`）。サイドバーの見出しは `src/features/sidebar/CLAUDE.md`、ボードは `src/features/board/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `PRJ-`。
+
+## 地図
+- `core/service.ts`（HTTP を知らない手順）・`core/routes.ts`（取り決め `@shared/projects/contract.ts`）・上の機能の口 `ProjectsApi`
+- `ui/page/`（プロジェクトの画面・`tabOrder.ts`）・`ui/projectViews.ts`（拡張点 `projectViews`・`ProjectViewHost`）・`ui/settings/`・`ui/new/`・`ui/rightSidebar/`
+- `ProjectMark`・`useVisibleProjects`・`projectOrder.ts`・`tagActions.ts`・`folderOverlaps.ts`
 
 ## 決まり
 
@@ -11,7 +16,7 @@
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`（付いているすべてのプロジェクトに効く）。
 - フォルダの被りは、どこでも `folderOverlaps.ts`（ノートは `NoteOverlapNotice`）の判定と文で知らせる。
 - 部品からは `openNewProject(request)` で開く（作ったあとの処理は値で渡す。理由は `NewProjectAfter`）。プロジェクトがなければ先に `NoProjectsGuide`。
-- コアの手順は `core/service.ts`（HTTP を知らない）、受け口は `core/routes.ts`（取り決め `@shared/projects/contract.ts`）。上の機能の力は `ProjectsApi` に口を足して登録してもらう（作業中か・ゴミ箱は chat、フォルダを変えたあとは workplaceMove、設定を変えたあとは github）。GitHub の連携のルートは github、Git の様子は口 `projectGit`。
+- 上の機能の力は `ProjectsApi` に口を足して登録してもらう（作業中か・ゴミ箱は chat、フォルダを変えたあとは workplaceMove、設定を変えたあとは github）。GitHub の連携のルートは github、Git の様子は口 `projectGit`。
 
 ## 落とし穴
 

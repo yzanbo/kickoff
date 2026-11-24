@@ -1,15 +1,18 @@
-# 定型文（`src/features/snippets`）
+# 定型文（`features/snippets`）
 
-よく送る指示を、チャット欄の上の帯（`SnippetBar`。入力欄の差し込み `composerSlots` の `band`・`menu` に `ui/contributes.ts` が登録）から入力欄に入れる・送る。
+よく送る指示を定型文として持ち、入力欄の上の帯から入れる・送る。受け入れの一覧: `docs/features.md` の `CHT-`。
 
-| ファイル | 中身 |
-|---|---|
-| `ui/store.ts`・`snippetActions.ts` | 店（すべてを 1 つで読む）・作る / 直す / 並べ替える / 消す |
-| `ui/api.ts` | 呼び手 `client(snippetContract)`（画面を取り決めに乗せ替えた見本） |
-| `ui/SnippetManager`・`SnippetForm` | 管理（帯のダイアログ・設定・プロジェクトの設定で同じ部品） |
-| `core/routes.ts`・`schemas.ts` | 受け口（取り決め `@shared/snippets/contract.ts` の見本。プロジェクトは `projects.api.require`） |
-| `core/tools.ts` | AI の `add_snippet`（足すだけ） |
+## 地図
+- `@shared/snippets/contract.ts`: ルート（一覧・作る・直す・並べ替える・消す）と SSE。`snippetsFor`（そのプロジェクト＋共通）
+- `core/routes.ts`・`schemas.ts`（プロジェクトは `projects.api.require`）・`core/tools.ts`（AI の `add_snippet`。足すだけ）
+- `ui/store.ts`（全部を 1 つで読む）・`snippetActions.ts`・`api.ts`（`client(snippetContract)`）
+- `ui/SnippetBar`（`composerSlots` の `band`・`menu` に `contributes.ts` が登録）・`SnippetManager`・`SnippetForm`（帯・設定・プロジェクトの設定で同じ部品）・`storage.ts`
 
-- 範囲は行ごと（`project_id` が `null` なら共通）。チャットの一覧は `snippetsFor`（そのプロジェクト ＋ 共通）。
+## 決まり
+- 範囲は行ごと（`project_id` が `null` なら共通）。圧縮の前後に自動で送る指示は `features/compact`（ここに置かない）。
 - 操作の応答は店に入れ、知らせを待たない。並べ替えは見えている行だけを動かす（`moveWithin`）。
-- 帯を出すかは `snippets:bar-hidden` 1 つ（どこで切り替えても同じ値）。ダイアログは背景を押しても閉じない。
+- 帯を出すかは `snippets:bar-hidden` 1 つ（どこで切り替えても同じ値）。ダイアログは背景を押しても閉じない（書きかけを消さない）。
+
+## 落とし穴
+- 「すぐ送る」は入力欄の文を残し、定型文だけを composer の送る口で送る（作業中なら送信待ち）。
+- テスト: `core/routes.test.ts`・`core/tools.test.ts`・`ui/store.test.ts`。

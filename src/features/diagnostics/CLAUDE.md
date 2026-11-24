@@ -1,4 +1,6 @@
-# 診断（`src/features/diagnostics`）
+# 診断（`features/diagnostics`）
+
+性能・詰まり・起動の記録と、設定の「診断」のまとめ・コアの帯。
 
 ## 地図
 

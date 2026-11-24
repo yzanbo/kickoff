@@ -1,4 +1,4 @@
-# 利用者が見ているもの（`src/features/userView`）
+# 利用者が見ているもの（`features/userView`）
 
 AI の `get_user_view` が読む、この Mac の画面のウィンドウごとの「見えているペインごとの前のタブ・右の欄・選んでいる範囲」と、発言を送った時点の同じ様子。
 
