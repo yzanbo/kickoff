@@ -1,5 +1,5 @@
 import "./NoteFolderField.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -30,9 +30,34 @@ export function NoteFolderField({
 }) {
   const [typed, setTyped] = useState(value ?? "");
   const save = useAction<"save">();
-  // ほかで変わったら（保存したあとの知らせ・ほかのウィンドウ）、入力欄もそろえる
-  useEffect(() => setTyped(value ?? ""), [value]);
+  /** 断られた保存の、打った値と戻る先の値（saveSettings は先に店へ入れ、断られると読み直して戻すので、戻ったときに入力欄を空にしない） */
+  const rejected = useRef<{ typed: string; revertTo: string | null } | null>(null);
+  const latest = useRef(value);
+  // ほかで変わったら（保存したあとの知らせ・ほかのウィンドウ）、入力欄もそろえる。断られて前の値へ戻っただけなら、打った値を残す
+  useEffect(() => {
+    latest.current = value;
+    const kept = rejected.current;
+    rejected.current = null;
+    setTyped(kept && kept.revertTo === value ? kept.typed : (value ?? ""));
+  }, [value]);
   const next = typed.trim() || null;
+  const submit = (target: string | null) =>
+    save.run(
+      "save",
+      async () => {
+        const attempt = typed;
+        const before = value;
+        try {
+          await onSave(target);
+        } catch (e) {
+          setTyped(attempt);
+          // まだ戻っていなければ、戻ったときにも打った値を残す
+          if (latest.current !== before) rejected.current = { typed: attempt, revertTo: before };
+          throw e;
+        }
+      },
+      { done: "保存しました" },
+    );
 
   return (
     <Field as="div" label={label} help={help}>
@@ -53,11 +78,11 @@ export function NoteFolderField({
       </div>
       {overlapExcept !== undefined && <NoteOverlapNotice dir={typed.trim() || fallback} except={overlapExcept} />}
       <div className="note-folder-actions">
-        <button className="btn btn-primary" data-size="sm" disabled={next === value || save.busy !== null} onClick={() => void save.run("save", () => onSave(next), { done: "保存しました" })}>
+        <button className="btn btn-primary" data-size="sm" disabled={next === value || save.busy !== null} onClick={() => void submit(next)}>
           {save.busy !== null ? "保存中…" : "保存"}
         </button>
         {value !== null && (
-          <button className="btn" data-size="sm" disabled={save.busy !== null} onClick={() => void save.run("save", () => onSave(null), { done: "保存しました" })}>
+          <button className="btn" data-size="sm" disabled={save.busy !== null} onClick={() => void submit(null)}>
             既定に戻す
           </button>
         )}
