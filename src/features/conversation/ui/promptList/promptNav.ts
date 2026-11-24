@@ -21,7 +21,7 @@ export function promptTops(ids: number[], locate: (id: number) => number | undef
 /**
  * 前（dir = -1）・次（dir = 1）の指示（なければ undefined）。
  * anchor（前に移った先で、まだ画面に見えているもの）があれば、その前後。なければ位置で決める:
- * 前は、流れの上端より上から始まるもののうちいちばん下（読んでいる返答の元の指示）、次は、上端より下から始まるもののうちいちばん上。
+ * 前へは、流れの上端より上から始まるもののうちいちばん下（読んでいる返答の元の指示）、次へは、上端より下から始まるもののうちいちばん上。
  * 位置の分からない指示（tops にない）は選ばない
  */
 export function adjacentPrompt(ids: number[], tops: Map<number, number>, dir: -1 | 1, anchor?: number): number | undefined {

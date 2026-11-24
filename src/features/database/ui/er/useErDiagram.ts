@@ -49,7 +49,7 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
   const failed = er.error ?? around.error;
   const error = failed ? errorMessage(failed) : null;
 
-  // 残す: 下の useMemo・useCallback を外すと、ErView の箱を作り直す effect が止まらなくなる（Maximum update depth。2026-11-23 に確かめた）
+  // 残す: 下の useMemo・useCallback を外すと、ErView の箱を作り直す effect が止まらなくなる（Maximum update depth）
   const tables = useMemo(() => schema?.tables ?? [], [schema]);
   const relations = useMemo(() => erRelations(tables, { inferred }), [tables, inferred]);
 

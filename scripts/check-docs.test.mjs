@@ -193,6 +193,17 @@ test("コメントの書かない言葉: コメントの中だけを数え、行
   assert.deepEqual(commentViolations("b.ts", "const x = 1; // ふつうのコメント", COMMENT_RULES), []);
 });
 
+test("コメントの決まり（docs.config.mjs）: 経緯・外の文書の番号・道具の指示を見つけ、時の条件と書式の例は見逃す", async () => {
+  const { commentForbidden } = (await import("./docs.config.mjs")).default;
+  const flagged = (comment) => commentViolations("a.ts", `${comment}\nconst x = 1;`, commentForbidden).map((v) => v.label);
+  for (const comment of ["// 前は別の形だった", "// 速くした（前は 2 回読んだ）", "// 以前は残した", "// 2026-11-23 に確かめた", "// Q3 で決めた", "// 分冊 04 の表", "// eslint-disable-next-line", "// 利用者の指摘で直した"]) {
+    assert.equal(flagged(comment).length, 1, comment);
+  }
+  for (const comment of ["// 送る前は null", "// それより前は日付", "// 次は最初・前は最後", "// 日付の頭（「2026-11-09 」）", "// 名前は変えない"]) {
+    assert.deepEqual(flagged(comment), [], comment);
+  }
+});
+
 test("語彙: 見出しの下の表の決めた列から、識別子の形の名前だけを拾う（次の見出しまで）", () => {
   const markdown = [
     "## 1. 語彙",

@@ -41,7 +41,7 @@ function blankHtmlComments(text) {
 
 /**
  * 1 行の中の、パターンに合う所（重なるものは先に見つけた 1 つだけ）。
- * 「以前は」が「以前は」と「前は」の両方に合っても 1 つに数えるため
+ * 「以前は」が「以前は」と「前は」の両方に合っても 1 つに数えるため（comment-rules-ignore: 決まりの言葉を例に書く）
  */
 export function matchesInLine(line, patterns) {
   const found = [];

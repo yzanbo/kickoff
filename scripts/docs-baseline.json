@@ -8,25 +8,7 @@
       "brokenRefs": 0
     }
   },
-  "comments": {
-    "src/features/browser/ui/BrowserPane.tsx": 1,
-    "src/features/chat/core/routes/chats.ts": 1,
-    "src/features/chat/ui/open/openChat.ts": 1,
-    "src/features/chat/ui/store/chatLog.ts": 2,
-    "src/features/chat/ui/store/chatStore.ts": 2,
-    "src/features/childChats/ui/ChildChatBar.tsx": 1,
-    "src/features/conversation/ui/activity/ActivityView.tsx": 1,
-    "src/features/conversation/ui/messages/UserMessage.tsx": 1,
-    "src/features/conversation/ui/promptList/promptNav.ts": 1,
-    "src/features/database/ui/connection/ConnectionNoteField.tsx": 1,
-    "src/features/docker/ui/useDockerLogs.ts": 2,
-    "src/features/projects/ui/stores/projects.ts": 1,
-    "src/features/voice/ui/capture/recorder.ts": 1,
-    "src/foundation/ui/lib/progressive.ts": 2,
-    "src/foundation/ui/lib/textFind.ts": 1,
-    "src/foundation/ui/lib/time.ts": 3,
-    "src/shared/chat/chatIndex.ts": 1
-  },
+  "comments": {},
   "vocabulary": 0,
   "forbiddenFiles": []
 }

@@ -208,7 +208,7 @@ export default {
       files: ["renderer"],
       allow: [
         "src/foundation/ui/store/**",
-        // まだ乗せ替えていない機能の手書きの店（持ち主の段で乗せ替えて、ここから外す。分冊 04 の P4-1b の表）
+        // まだ乗せ替えていない機能の手書きの店（乗せ替えたら、ここから外す）
         ...["panel/ui/state/panelStore.ts", "projects/ui/rightSidebar/useSideWorktree.ts"].map((f) => `src/features/${f}`),
       ],
       forbid: [{ new: "Set", typeArgs: "() => void" }],
@@ -230,12 +230,12 @@ export default {
   singleUse: {
     files: ["src/foundation/ui/**"],
     keep: [
-      "src/foundation/ui/hooks/useBusyBadge.ts", // 汎用の hook（分冊 04 の 2.10）
-      "src/foundation/ui/diff/**", // 差分の土台（git も使うようにするのは分冊 08 の P8-1）
-      "src/foundation/ui/kit/drag/**", // ドラッグの仕組み（分冊 04 の kit/drag。種類と中身は機能が宣言する）
-      "src/foundation/ui/kit/list/TreeView.tsx", // 木の部品（ノートの木・DB の木も分冊 09 の P8-4・P8-5 で乗せる）
-      "src/foundation/ui/document/useDocument.ts", // 文書の土台（ノートも分冊 09 の P8-5 で乗せる）
-      "src/foundation/ui/document/HtmlFrame.tsx", // HTML の文書の iframe（HTML のノートも分冊 09 の P8-5d で乗せる）
+      "src/foundation/ui/hooks/useBusyBadge.ts", // 汎用の hook
+      "src/foundation/ui/diff/**", // 差分の土台（git・files・github・添付が同じ部品で描く）
+      "src/foundation/ui/kit/drag/**", // ドラッグの仕組み（種類と中身は機能が宣言する）
+      "src/foundation/ui/kit/list/TreeView.tsx", // 木の部品（ファイル・ノート・DB の木が同じ部品で描く）
+      "src/foundation/ui/document/useDocument.ts", // 文書の土台（ファイルとノートが同じ口で読み書きする）
+      "src/foundation/ui/document/HtmlFrame.tsx", // HTML の文書の iframe（ファイルと HTML のノートが使う）
     ],
   },
 };

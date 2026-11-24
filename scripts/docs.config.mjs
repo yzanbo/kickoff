@@ -30,15 +30,22 @@ export default {
     { pattern: "\\b20\\d\\d-\\d\\d-\\d\\d\\b", label: "日付" },
     { pattern: "メモの(仕様書|方針)", label: "外の文書の番号" },
   ],
-  /** コードのコメントに書かない言葉（「comment-rules-ignore: 理由」の行は見逃す） */
+  /**
+   * コードのコメントに書かない言葉（「comment-rules-ignore: 理由」の行は見逃す）。コメントは「なぜこの形か」と型で表せない約束を書く。
+   * 「前は」は文の頭（行の頭・空白・括弧・句読点のあと）だけを経緯とみなす（「送る前は」「それより前は」は時の条件。comment-rules-ignore: 決まりの言葉を例に書く）。
+   * 日付は「〜に直した」の形だけ（書式の例の日付は書いてよい）
+   */
   commentForbidden: [
     { pattern: "メモの(仕様書|方針)", label: "外の文書の番号" },
-    { pattern: "(?<![名手直午])前は|以前は", label: "経緯" },
-    { pattern: "利用者の依頼", label: "依頼の言葉" },
-    { pattern: "案 ?\\d+|分冊 ?\\d", label: "外の文書の番号" },
+    { pattern: "(?<![^\\s（(、。「])前は|以前は", label: "経緯" },
+    { pattern: "\\b20\\d\\d-\\d\\d-\\d\\d ?に", label: "経緯（日付）" },
+    { pattern: "利用者の(依頼|指摘)", label: "依頼の言葉" },
+    { pattern: "案 ?\\d+|分冊 ?\\d|\\bQ\\d+\\b|開発履歴/", label: "外の文書の番号" },
+    { pattern: "eslint-disable", label: "使っていない道具の指示" },
   ],
-  commentFiles: ["src/**/*.{ts,tsx}", "mobile/src/**/*.{ts,tsx}"],
-  commentExclude: ["**/*.test.{ts,tsx}", "**/*.dbtest.ts", "**/testing/**"],
+  /** コメントを見るファイル（テストとテストの補助は除く） */
+  commentFiles: ["src/**/*.{ts,tsx}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.mjs", "*.{ts,mjs}"],
+  commentExclude: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**"],
   /** 参照の `@shared/…` などを解く別名（import と同じもの） */
   aliases: structure.aliases,
   /** 置かない CLAUDE.md（中間の層。祖先の CLAUDE.md は毎回読み込まれるため） */
