@@ -1,6 +1,6 @@
 // Claude のプランの使用枠の取り方（/usage と同じもの。送らないセッションを一瞬開くだけで、使用枠を消費しない）
 import { withTimeout } from "@shared/foundation/time";
-import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/http";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/usage";
 import { planUsageOf, resolveClaudeExecutable, type SDKControlGetUsageResponse } from "./wire";
 import type { UsageWindow } from "@shared/ai/types";
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";

@@ -1,5 +1,5 @@
 // 台本どおりに振る舞う偽の Copilot SDK のクライアント（本物のランタイム・アカウントは使わない）
-import type { CopilotClientFactory, CopilotClientLike, CopilotSessionLike, ModelInfo, ResumeSessionConfig, SessionConfig, SessionEvent } from "@/features/ai/core/providers/copilot/sdk";
+import type { CopilotClientFactory, CopilotClientLike, CopilotQuota, CopilotSessionLike, ModelInfo, ResumeSessionConfig, SessionConfig, SessionEvent } from "@/features/ai/core/providers/copilot/sdk";
 
 /** 偽のセッション（届けたイベントは記録に残し、getEvents で返す） */
 export interface FakeCopilotSession extends CopilotSessionLike {
@@ -26,6 +26,8 @@ export interface FakeCopilot {
   compactResult: { success: boolean; tokensRemoved: number };
   models: ModelInfo[];
   auth: { isAuthenticated: boolean; login?: string };
+  quota: CopilotQuota;
+  quotaRequests: number;
   forks: { sessionId: string; toEventId: string | undefined }[];
   /** 前の会話の記録（resume したセッションの getEvents が最初に返すもの） */
   history: Map<string, { id: string; type: string }[]>;
@@ -47,6 +49,8 @@ export function fakeCopilotClient(): FakeCopilot {
     compactResult: { success: true, tokensRemoved: 100 },
     models: [],
     auth: { isAuthenticated: true, login: "octo" },
+    quota: { quotaSnapshots: {} },
+    quotaRequests: 0,
     forks: [],
     history: new Map(),
     runtimePid: null,
@@ -108,9 +112,11 @@ export function fakeCopilotClient(): FakeCopilot {
           record.stopped = true;
           return [];
         },
+        forceStop: async () => { record.stopped = true; },
         createSession: async (config) => open(config.sessionId ?? `s-${++seq}`, config, false),
         resumeSession: async (id, config) => open(id, config, true),
         getAuthStatus: async () => fake.auth,
+        getQuota: async () => { fake.quotaRequests++; return fake.quota; },
         listModels: async () => fake.models,
         forkSession: async (sessionId, toEventId) => {
           fake.forks.push({ sessionId, toEventId });

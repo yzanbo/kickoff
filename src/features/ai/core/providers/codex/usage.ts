@@ -1,5 +1,5 @@
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
-import { isoFromSeconds, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
+import { isoFromSeconds, usageResult, usageWindow } from "@/features/ai/core/providers/shared/usage";
 import type { Account, RateLimitSnapshot } from "./protocol";
 
 const result = usageResult("codex");

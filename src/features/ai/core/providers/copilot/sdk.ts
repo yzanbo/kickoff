@@ -8,6 +8,9 @@ import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
  * SDK の本体は使うときにだけ読み込む（読み込むと Copilot のランタイムの準備まで走るので、コアの起動を遅くしない）
  */
 
+/** 公式 SDK の account.getQuota の応答（実験的）。外の型はここだけで読む */
+export type CopilotQuota = Awaited<ReturnType<import("@github/copilot-sdk").CopilotClient["rpc"]["account"]["getQuota"]>>;
+
 export type { SessionConfig, ResumeSessionConfig, SessionEvent, ModelInfo, MCPServerConfig, ProviderConfig, SandboxConfig, PermissionRequest, PermissionRequestResult };
 
 /** 使うセッションの操作 */
@@ -28,9 +31,12 @@ export interface CopilotClientLike {
   /** ランタイムを起こす（返り値はその pid。読めなければ null） */
   start(): Promise<number | null>;
   stop(): Promise<unknown>;
+  /** 期限に間に合わなかった、このクライアント専用のランタイムを止める */
+  forceStop(): Promise<void>;
   createSession(config: SessionConfig): Promise<CopilotSessionLike>;
   resumeSession(sessionId: string, config: ResumeSessionConfig): Promise<CopilotSessionLike>;
   getAuthStatus(): Promise<GetAuthStatusResponse>;
+  getQuota(): Promise<CopilotQuota>;
   listModels(): Promise<ModelInfo[]>;
   /** 会話を分ける（sessions.fork。toEventId の手前まで） */
   forkSession(sessionId: string, toEventId: string | undefined): Promise<string>;
@@ -63,10 +69,14 @@ function wrapSession(session: CopilotSession): CopilotSessionLike {
  */
 export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
   let client: import("@github/copilot-sdk").CopilotClient | null = null;
+  let closing = false;
   const ready = async () => {
+    if (closing) throw new Error("Copilot のランタイムを閉じました");
     if (client) return client;
     const sdk = await import("@github/copilot-sdk");
-    client = new sdk.CopilotClient({ env, workingDirectory: cwd, useLoggedInUser: true, logLevel: "error", clientInfo: { applicationName: CLIENT_INFO.title, applicationVersion: CLIENT_INFO.version } });
+    // 期限切れで import 中に閉じられたら、あとからランタイムを起動しない
+    if (closing) throw new Error("Copilot のランタイムを閉じました");
+    client ??= new sdk.CopilotClient({ env, workingDirectory: cwd, useLoggedInUser: true, logLevel: "error", clientInfo: { applicationName: CLIENT_INFO.title, applicationVersion: CLIENT_INFO.version } });
     return client;
   };
   return {
@@ -76,10 +86,18 @@ export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
       // ランタイムの子をメインに知らせる（コアが落ちたら作り直す前に止める）
       return noteRuntimeProcess(c);
     },
-    stop: async () => (client ? client.stop() : []),
+    stop: async () => {
+      closing = true;
+      return client?.stop() ?? [];
+    },
+    forceStop: async () => {
+      closing = true;
+      await client?.forceStop();
+    },
     createSession: async (config) => wrapSession(await (await ready()).createSession(config)),
     resumeSession: async (id, config) => wrapSession(await (await ready()).resumeSession(id, config)),
     getAuthStatus: async () => (await ready()).getAuthStatus(),
+    getQuota: async () => (await ready()).rpc.account.getQuota({}),
     listModels: async () => (await ready()).listModels(),
     forkSession: async (sessionId, toEventId) => (await (await ready()).rpc.sessions.fork({ sessionId, ...(toEventId ? { toEventId } : {}) })).sessionId,
   };

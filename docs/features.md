@@ -963,7 +963,7 @@
 | SET-014 | 使用枠とプランを出す | ai | M |
 | SET-015 | 使用枠の詳細を開く | ai | M |
 | SET-016 | 前に出しているチャットの AI の使用状況を出す（取りやめ: 下の帯に AI ごとに並べる形に替えた。SET-026） | ai | M |
-| SET-017 | サービスごとの使用状況を見る。Cursor と Gemini（Antigravity）の枠は取得せず、公式の確認先を出す | ai | T:ai/routes.usage |
+| SET-017 | Claude・Codex・Copilot の使用枠を公式の CLI・SDK から取得する。Cursor と Gemini（Antigravity）は枠を取得せず、公式の確認先を出す | ai | T:ai/routes.usage |
 
 ### 通知
 | ID | 機能 | 持ち主 | 確かめ方 |

@@ -1,5 +1,8 @@
 import { createRequire } from "node:module";
 import os from "node:os";
+import type { ProviderUsage } from "@shared/ai/usage";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/usage";
+import { noCopilotLogin, normalizeCopilotUsage } from "./usage";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ProviderCliStatus, ModelOption } from "@shared/ai/types";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -47,9 +50,13 @@ export class CopilotProvider implements AgentProvider {
     this.baseEnv = opts.env ?? process.env;
   }
 
+  private clientFor(cwd: string): CopilotClientLike {
+    return this.factory({ env: runtimeEnv(this.baseEnv, undefined), cwd });
+  }
+
   /** 用事を 1 つ済ませる短いランタイム（Copilot のログインのまま） */
   private async withClient<T>(fn: (client: CopilotClientLike) => Promise<T>, cwd = os.homedir()): Promise<T> {
-    const client = this.factory({ env: runtimeEnv(this.baseEnv, undefined), cwd });
+    const client = this.clientFor(cwd);
     try {
       await client.start();
       return await fn(client);
@@ -74,6 +81,30 @@ export class CopilotProvider implements AgentProvider {
       };
     } catch (e) {
       return { ...base, installed: true, logged_in: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
+    }
+  }
+
+  /** チャットと同じ認証でアカウントの枠だけを問い合わせる。会話セッションは作らない */
+  async usage(): Promise<ProviderUsage> {
+    if (!this.opts.clientFactory && !bundledRuntimeInstalled()) throw new Error("Copilot SDK のランタイムが入っていません");
+    const client = this.clientFor(os.homedir());
+    const controller = new AbortController();
+    const read = async () => {
+      await client.start();
+      controller.signal.throwIfAborted();
+      const auth = await client.getAuthStatus();
+      controller.signal.throwIfAborted();
+      if (!auth.isAuthenticated) return noCopilotLogin();
+      return normalizeCopilotUsage(await client.getQuota(), auth.login ?? null);
+    };
+    try {
+      return await withTimeout(read(), USAGE_QUERY_TIMEOUT_MS, "Copilot が時間内に使用枠を返しませんでした");
+    } finally {
+      controller.abort();
+      // 起動や RPC が詰まった場合も、他のサービスの取得を終了処理で待たせ続けない
+      await withTimeout(client.stop(), 1_000, "Copilot の終了が時間内に終わりませんでした").catch(() => {
+        void client.forceStop().catch(() => {});
+      });
     }
   }
 

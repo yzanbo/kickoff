@@ -91,15 +91,6 @@ export async function listGitHubAccounts(host: string = GITHUB_DEFAULT_HOST): Pr
   }
 }
 
-/** gh で有効なアカウントのトークン（Copilot の使用状況が読む。gh がない・未ログインなら null） */
-export async function activeGhToken(): Promise<string | null> {
-  try {
-    return (await runGh(["auth", "token"], { timeout: 10_000, asAccount: false })).trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 /** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
 export async function githubStatus(): Promise<GitHubStatus> {
   try {

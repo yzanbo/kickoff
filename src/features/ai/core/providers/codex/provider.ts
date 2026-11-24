@@ -13,7 +13,7 @@ import { withSession } from "./session";
 import { runCodexTurn } from "./turn";
 import { CodexUpdateCheck } from "./update";
 import { noCodexUsage, normalizeCodexUsage } from "./usage";
-import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/http";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/usage";
 import { parseCodexVersion } from "@shared/ai/cliUpdates";
 import { withTimeout } from "@shared/foundation/time";
 import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
