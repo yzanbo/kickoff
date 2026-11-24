@@ -1,5 +1,4 @@
 // 長い一覧を段階に分けて描くとき、最初の行が見えた直後の ↓ で残りの行がそろい、最後から 2 番目の行で ↓ を押すと最後の行へ移り、最後の行の ↓ で先頭へ回り込む。
-// 移す前の perf/lists-check.mjs --fixture の値: first 45・rowsAfterKey 1009・movedDown true・reachedLast true
 import assert from "node:assert/strict";
 import { FAKE_CHATS, openLongList, sidebarCheckExpr } from "../longList.mjs";
 

@@ -1,5 +1,4 @@
 // 長い一覧を段階に分けて描くとき、ドラッグを始めたら残りの行がそろい、チャットの行をグループへ落とすとそのグループに移る（API の group_id で見る）。
-// 移す前の perf/lists-check.mjs --fixture の値: first 45・rowsDuringDragStart 46・rowsAfterDragStart 1011（落とす確かめは新しく足した）
 import assert from "node:assert/strict";
 import { FAKE_CHATS, openLongList, sidebarCheckExpr, until } from "../longList.mjs";
 

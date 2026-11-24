@@ -1,4 +1,4 @@
-// 守りの門: 守りの決まりを呼び出しに当て、断る・聞く（承認カード）・権限モードに任せるを答える（承認を聞いてくる CLI と、P5-2d から Claude のフック）
+// 守りの門: 守りの決まりを呼び出しに当て、断る・聞く（承認カード）・権限モードに任せるを答える（承認を聞いてくる CLI と、Claude のフック）
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import os from "node:os";

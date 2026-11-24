@@ -1,5 +1,4 @@
 // 長い一覧を段階に分けて描くとき、最初の行が見えた直後に ⌘ で 1 行目を選び、Shift で 30 行目までを範囲で選べる（30 行が選ばれる）。
-// 移す前の perf/lists-check.mjs --fixture の値: first 45・selected 30・rowsAfterShift 1010
 import assert from "node:assert/strict";
 import { FAKE_CHATS, openLongList, sidebarCheckExpr } from "../longList.mjs";
 

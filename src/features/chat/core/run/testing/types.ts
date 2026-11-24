@@ -1,4 +1,4 @@
-// チャットの実行の振る舞いの表（筋書き）の形。表は純粋なデータで、いまの Runner と、作り直したあとの状態機械の両方に同じ表を流す。
+// チャットの実行の振る舞いの表（筋書き）の形。表は純粋なデータで、チャットの実行（Runner）に流す。
 // 行は 01 の 8 章（保たなければならない振る舞い）の番号を持ち、外から見えるもの（AI に送った指示・記録・送信待ち・作業中の様子・API の状態コード）だけを比べる
 import type { AgentEvent } from "@shared/ai/turnEvents";
 import type { ChatStatus, QueueAction } from "@shared/chat/types";
@@ -18,7 +18,7 @@ export type Then = "turn" | "idle" | "settled";
 /** 送信待ち・預かりの行は文で指す（圧縮・消去の行は [圧縮]・[消去]） */
 export type Row = string;
 
-/** 送信待ちだけを変える操作（作り直したあとの QueueCommand と同じ名前。行は文で指す） */
+/** 送信待ちだけを変える操作（QueueCommand と同じ名前。行は文で指す） */
 export type ScenarioQueueCommand =
   | { op: "add_action"; action: QueueAction; after: Row | null }
   /** 送信待ち（later）か預かり（now）のどちらかにある行を消す */

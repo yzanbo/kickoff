@@ -1,5 +1,4 @@
 // 長い一覧を段階に分けて描くとき、ボードを開いた直後の ⌘F でチャットの名前の検索欄へ移り、探すと合うカードだけが残り、消すと戻る。
-// 移す前の perf/lists-check.mjs --fixture の値: first 184・focused true・searching 1・after 1007（found 0 は確かめの式の誤り = カードの文字に日付が続く）
 import assert from "node:assert/strict";
 import { FAKE_CHATS, openLongList, until } from "../longList.mjs";
 
