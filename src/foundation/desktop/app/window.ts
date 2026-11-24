@@ -48,8 +48,10 @@ export function openMainWindow(url: string, before?: Promise<unknown>) {
     {
       width: 1360,
       height: 880,
-      minWidth: 960,
-      minHeight: 600,
+      // 窓を並べるアプリで 4 分割にしても収まる小ささ。幅 720px 以下は縦 1 列の画面（スマホ向け。styles/layout.css の @media）になるので、
+      // その 1 つ上で止める。高さは、チャットの送信欄が欠けずに収まるところ
+      minWidth: 721,
+      minHeight: 480,
       title: app.getName(),
       titleBarStyle: "hiddenInset",
       // 信号機ボタンの位置を固定し、画面側の開閉ボタンと高さをそろえる（画面の .titlebar-toggle と対応）

@@ -22,6 +22,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 - 子の Electron のアプリを先に止める。止めるのはメインプロセスにだけ SIGTERM（シェルを先に止めると開発版の localStorage が消える）。
 - コアが落ちたら残った子を止めてから作り直す（古い子が書いている間に再開すると食い違う。`leftovers.ts`）。
 - RPC の形は `@/foundation/core/host/protocol.ts`（機能の分は `@/app/core/hostRemote.ts` が declare module で足す。時間の上限 `RPC_TIMEOUTS`）。HTTP・SSE・WebSocket は画面からコアへ直接。
+- メインのウィンドウの最小は 721×480（窓を並べるアプリの 4 分割に収める）。幅 720px 以下は縦 1 列の画面（スマホ向け）になるので、最小をそこまで下げない。
 - コンパイルキャッシュを `~/Library/Caches` に置かない（AI の砂場が書ける）。
 - 製品版の画面はコアが配る（`@/foundation/core/http/rendererCache.ts`）。`src/app/renderer/public/assets/` に置かない。
 - テスト: `app/*.test.ts`・`ipc/*.test.ts`。
