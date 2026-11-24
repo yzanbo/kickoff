@@ -47,7 +47,7 @@ export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv)
   const keys = new ProviderKeyVault(k, env.secretCipher);
   const providers = env.providers((id) => keys.authFor(id));
   let ghToken: () => Promise<string | null> = async () => null;
-  const usage = new UsageMonitor(k.bus, env.usage ?? realUsageFetchers(() => ghToken()));
+  const usage = new UsageMonitor(k.bus, env.usage ?? realUsageFetchers(providers.codex, () => ghToken()));
   const defaults = createProjectAiDefaultsStore(k.db, (e) => k.bus.publish(e));
   return {
     name: "ai",

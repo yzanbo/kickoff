@@ -188,11 +188,15 @@ export interface RateLimitSnapshot {
   primary: RateLimitWindow | null;
   secondary: RateLimitWindow | null;
   planType: string | null;
-  credits?: CreditsSnapshot | null;
+  credits: CreditsSnapshot | null;
+}
+/** 表示に使うのは互換用の単一枠だけ。追加のモデル枠・枠リセット用クレジットは表示しない */
+export interface RateLimitsResponse {
+  rateLimits: RateLimitSnapshot;
 }
 /** 実行中の使用枠の知らせ（account/rateLimits/updated。分からない項目は null で、前の値を消さない） */
 export interface RateLimitsUpdatedNotification {
-  rateLimits: RateLimitSnapshot;
+  rateLimits: Partial<RateLimitSnapshot>;
 }
 
 /** モデルの一覧（model/list） */
@@ -212,8 +216,12 @@ export interface ModelListResponse {
 }
 
 /** アカウント（account/read） */
+export type Account =
+  | { type: "apiKey" }
+  | { type: "chatgpt"; email: string | null; planType: string }
+  | { type: "amazonBedrock" | "gcp" };
 export interface AccountResponse {
-  account: { type: "apiKey" } | { type: "chatgpt"; email: string | null; planType: string } | { type: string } | null;
+  account: Account | null;
   requiresOpenaiAuth: boolean;
 }
 

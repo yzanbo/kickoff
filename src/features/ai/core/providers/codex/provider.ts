@@ -1,16 +1,19 @@
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
+import type { ProviderUsage } from "@shared/ai/usage";
 import type { ProviderCliStatus, ModelOption } from "@shared/ai/types";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderLogin, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { askModelOf, toModelOptions } from "./catalog";
 import { appServerLaunch } from "./config";
 import { startChatgptLogin } from "./login";
-import type { AccountResponse, CodexModel, ModelListResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol";
+import type { AccountResponse, CodexModel, ModelListResponse, RateLimitsResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { withSession } from "./session";
 import { runCodexTurn } from "./turn";
 import { CodexUpdateCheck } from "./update";
+import { noCodexUsage, normalizeCodexUsage } from "./usage";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/http";
 import { parseCodexVersion } from "@shared/ai/cliUpdates";
 import { withTimeout } from "@shared/foundation/time";
 import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
@@ -50,10 +53,10 @@ export class CodexProvider implements AgentProvider {
   }
 
   /** 用事を 1 つ済ませる短い app-server（サブスクのログインのまま） */
-  private session<T>(fn: Parameters<typeof withSession<T>>[1], cwd = os.homedir()): Promise<T> {
+  private session<T>(fn: Parameters<typeof withSession<T>>[1], cwd = os.homedir(), timeoutMs?: number): Promise<T> {
     if (!this.spawn) return Promise.reject(new Error("codex CLI が見つかりません"));
     const { args, env } = appServerLaunch(this.baseEnv, {});
-    return withSession({ spawn: this.spawn, args, env, cwd }, fn);
+    return withSession({ spawn: this.spawn, args, env, cwd, timeoutMs }, fn);
   }
 
   async status(): Promise<ProviderCliStatus> {
@@ -67,8 +70,8 @@ export class CodexProvider implements AgentProvider {
     try {
       const res = await this.session((rpc) => rpc.request<AccountResponse>("account/read", {}));
       const account = res.account;
-      const email = account && account.type === "chatgpt" ? ((account as { email: string | null }).email ?? undefined) : undefined;
-      const plan = account && account.type === "chatgpt" ? (account as { planType: string }).planType : undefined;
+      const email = account?.type === "chatgpt" ? (account.email ?? undefined) : undefined;
+      const plan = account?.type === "chatgpt" ? account.planType : undefined;
       return {
         ...base,
         ...(await extra()),
@@ -83,6 +86,16 @@ export class CodexProvider implements AgentProvider {
     } catch (e) {
       return { ...base, ...(await extra()), installed: true, logged_in: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
     }
+  }
+
+  /** 認証と期限切れの処理は app-server に任せ、Kickoff はアカウントと枠だけを聞く */
+  usage(): Promise<ProviderUsage> {
+    return this.session(async (rpc) => {
+      const { account } = await rpc.request<AccountResponse>("account/read", {});
+      if (account?.type !== "chatgpt") return noCodexUsage(account);
+      const { rateLimits } = await rpc.request<RateLimitsResponse>("account/rateLimits/read", undefined);
+      return normalizeCodexUsage(rateLimits, account);
+    }, os.homedir(), USAGE_QUERY_TIMEOUT_MS);
   }
 
   /** 隠すものも含めた一覧（ask のモデル選びにも使う） */

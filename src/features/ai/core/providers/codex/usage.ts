@@ -1,102 +1,52 @@
-import os from "node:os";
-import path from "node:path";
-// Codex（ChatGPT のプラン）の使用状況の取り方
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
-import { emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
+import { isoFromSeconds, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
+import type { Account, RateLimitSnapshot } from "./protocol";
 
 const result = usageResult("codex");
-const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-/** 期限が書かれていないとき、ログインを更新したとみなす日数（Codex と同じ 8 日） */
-const STALE_DAYS = 8;
 
-interface CodexAuth {
-  OPENAI_API_KEY?: string | null;
-  tokens?: { id_token?: string; access_token?: string; account_id?: string } | null;
-  last_refresh?: string;
-}
-
-interface RawWindow {
-  used_percent?: number;
-  reset_at?: number;
-  limit_window_seconds?: number;
-}
-
-export interface CodexUsageResponse {
-  plan_type?: string;
-  rate_limit?: { primary_window?: RawWindow | null; secondary_window?: RawWindow | null } | null;
-  credits?: { has_credits?: boolean; unlimited?: boolean; balance?: number | string | null } | null;
-}
-
-/** クレジットの残り（使用状況の応答は数、app-server の知らせは数の文字）。読めなければ null */
+/** クレジットの残り（app-server は数の文字で返す）。読めなければ null */
 export function creditBalanceOf(value: unknown): number | null {
-  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
+  const n = typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
   return Number.isFinite(n) ? n : null;
 }
 
-/** 枠の長さ（秒）から名前を付ける（5 時間・週・30 日。それ以外は時間か日） */
-function windowLabel(seconds: number | undefined, fallback: string): string {
-  if (!seconds) return fallback;
-  if (seconds === 18_000) return "5時間";
-  if (seconds === 604_800) return "週";
-  if (seconds === 2_592_000) return "30日";
-  return seconds % 86_400 === 0 ? `${seconds / 86_400}日` : `${Math.round(seconds / 3600)}時間`;
+/** 長さが分からない枠は、5 時間や週と決めつけない */
+function windowLabel(minutes: number | null, fallback: string): string {
+  if (!minutes || minutes < 0) return fallback;
+  if (minutes === 10_080) return "週";
+  if (minutes % 1_440 === 0) return `${minutes / 1_440}日`;
+  if (minutes % 60 === 0) return `${minutes / 60}時間`;
+  return `${minutes}分`;
 }
 
-/** Codex の使用状況の応答を Kickoff の形にする */
-export function parseCodexUsage(body: CodexUsageResponse, account: string | null, planHint: string | null): ProviderUsage {
+export function noCodexUsage(account: Exclude<Account, { type: "chatgpt" }> | null): ProviderUsage {
+  if (!account) return result.unavailable("Codex にログインしていません（設定の「接続」からログインしてください）");
+  if (account.type === "apiKey") return result.unavailable("API キーで使っているため、プランの使用枠はありません");
+  return result.unavailable("この接続方法では ChatGPT の使用枠を取得できません");
+}
+
+/** app-server の互換用単一枠だけを表示する。枠のリセット用クレジットと残高は別物 */
+export function normalizeCodexUsage(limits: RateLimitSnapshot, account: Extract<Account, { type: "chatgpt" }>): ProviderUsage {
   const windows = [
-    ["primary", body.rate_limit?.primary_window, "5時間"],
-    ["secondary", body.rate_limit?.secondary_window, "週"],
+    ["primary", limits.primary, "主枠"],
+    ["secondary", limits.secondary, "追加枠"],
   ] as const;
   const notes: string[] = [];
-  const raw = body.credits;
+  const raw = limits.credits;
   const balance = creditBalanceOf(raw?.balance);
   if (raw?.unlimited) notes.push("クレジット: 無制限");
-  else if (raw?.has_credits && balance !== null) notes.push(`クレジット残り ${balance}`);
-  // 減ったか（spending）は見張り（usage/monitor.ts）が前の値と比べて決める
+  else if (raw?.hasCredits && balance !== null) notes.push(`クレジット残り ${balance}`);
+  // 支払いの様子は実行中の知らせと取得した残高から、見張りが重ねる
   const credits: PayAsYouGo | null = raw
-    ? { enabled: raw.has_credits ?? false, unlimited: raw.unlimited ?? false, balance, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null }
+    ? { enabled: raw.hasCredits, unlimited: raw.unlimited, balance, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null }
     : null;
   return result.ok({
-    plan: body.plan_type ?? planHint,
-    account,
-    windows: windows.flatMap(([key, raw, fallback]) =>
-      raw ? [usageWindow(key, windowLabel(raw.limit_window_seconds, fallback), raw.used_percent ?? null, isoFromSeconds(raw.reset_at))] : [],
+    plan: limits.planType ?? account.planType,
+    account: account.email,
+    windows: windows.flatMap(([key, window, fallback]) =>
+      window ? [usageWindow(key, windowLabel(window.windowDurationMins, fallback), window.usedPercent, isoFromSeconds(window.resetsAt))] : [],
     ),
     notes,
     pay_as_you_go: credits,
-  });
-}
-
-/** Codex（ChatGPT のプラン）の 5 時間・週の枠。~/.codex/auth.json を読むだけで、ログインの更新は Codex に任せる */
-export async function fetchCodexUsage(): Promise<ProviderUsage> {
-  const home = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
-  const auth = readJsonFile<CodexAuth>(path.join(home, "auth.json"));
-  const tokens = auth?.tokens;
-  if (!tokens?.access_token) {
-    return result.unavailable(
-      auth?.OPENAI_API_KEY ? "API キーで使っているため、プランの使用枠はありません" : "Codex にログインしていません（ターミナルで `codex login`）",
-    );
-  }
-  const idClaims = tokens.id_token ? jwtClaims(tokens.id_token) : null;
-  const account = emailOf(idClaims);
-  const authClaim = jwtClaims(tokens.access_token)?.["https://api.openai.com/auth"] as { chatgpt_plan_type?: string } | undefined;
-  const plan = authClaim?.chatgpt_plan_type ?? null;
-
-  // 期限が切れていたら問い合わせない（更新すると Codex 側のログインが使えなくなるので、Kickoff では更新しない）
-  const expiresAt = jwtExpiry(tokens.access_token);
-  const lastRefresh = auth?.last_refresh ? Date.parse(auth.last_refresh) : NaN;
-  const stale = expiresAt !== null ? isExpired(expiresAt, 5 * 60_000) : !(Date.now() - lastRefresh < STALE_DAYS * 86_400_000);
-  const refreshHint = "Codex のログインの更新が必要です。Codex（CLI かアプリ）を一度起動すると更新され、ここにも出ます";
-  if (stale) return result.error(refreshHint, { plan, account });
-
-  const headers = {
-    Authorization: `Bearer ${tokens.access_token}`,
-    "User-Agent": "codex-cli",
-    ...(tokens.account_id ? { "ChatGPT-Account-Id": tokens.account_id } : {}),
-  };
-  // 401 はログインの期限切れ（Kickoff では更新しない）
-  return fetchJsonOr<CodexUsageResponse, ProviderUsage>(USAGE_URL, { headers }, (body) => parseCodexUsage(body, account, plan), {
-    401: () => result.error(refreshHint, { plan, account }),
   });
 }

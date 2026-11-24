@@ -20,7 +20,7 @@ AI ごとの CLI・SDK のつなぎ方。共通の口は `types.ts`、共有の�
 - 中断済みの signal は後から登録しても知らせが来ない（起動の途中の止めは `turnLifecycle.ts` が `signal.aborted` を先に見る）。
 - Claude: 入力を閉じるのは `session_state_changed` の `idle` で裏の作業がないとき（`result` だけでは閉じない）。`promptId` を渡す（巻き戻しの目印）。送るたびの文脈は `turnContextHook`。承認の待ち時間は `APPROVAL_WAIT_S`。圧縮では要約の `compact` を先に出す。
 - Claude の実行の外（使用枠・モデル・ファイルを戻す）は送らないセッション `withIdleSession`。使用枠とプラン種別は SDK の実験的な使用状況 API からのみ取得する。`askOnce` は空の一時フォルダで動かす。分岐は直近の区切りだけを写す。
-- Codex: 作業フォルダの信頼は毎回 `trusted` で伝える（入れ子で渡す）。断った理由は `turn/steer` で伝える。
+- Codex: 使用枠は短命の app-server の `account/read` と `account/rateLimits/read`。作業フォルダの信頼は毎回 `trusted` で伝える（入れ子で渡す）。断った理由は `turn/steer` で伝える。
 - Copilot: ランタイムの環境から GitHub のトークンを外す（gh で有効なアカウントで動く）。ACP: 作業中の発言・断った理由は指示が終わってから次の指示で送る。
 - `tell` は受け付けた時点で true を返す（記録も残る）。あとで断られた・送らずに終わったら `tellFailedNotice` で知らせる。
 - テスト: `contract.test.ts`・各フォルダの `*.test.ts`。

@@ -1,5 +1,4 @@
-// 使用状況の取り方の共有の小道具（HTTP・JWT・ログイン情報のファイル・結果の作り方。各 AI のフォルダの usage.ts が使う）
-import { existsSync, readFileSync } from "node:fs";
+// 公式の配布情報を読む HTTP と、各 AI の使用状況を共通の形にする小道具
 import type { UsageWindow } from "@shared/ai/types";
 import type { ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
@@ -7,31 +6,8 @@ import type { ProviderId } from "@shared/settings/types";
 /** 各サービスへの問い合わせの待ち時間 */
 const TIMEOUT_MS = 15_000;
 
-/** JWT の中身（署名は確かめない。期限とメールアドレスを見るだけ） */
-export function jwtClaims(token: string): Record<string, unknown> | null {
-  const part = token.split(".")[1];
-  if (!part) return null;
-  try {
-    return JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-/** JWT の期限（ミリ秒）。なければ null */
-export function jwtExpiry(token: string): number | null {
-  const exp = jwtClaims(token)?.exp;
-  return typeof exp === "number" ? exp * 1000 : null;
-}
-
-/** 期限が切れている（またはもうすぐ切れる）か */
-export const isExpired = (expiresAt: number | null, marginMs = 60_000) => expiresAt !== null && expiresAt - marginMs <= Date.now();
-
-/** JSON ファイルを読む（なければ null） */
-export function readJsonFile<T>(path: string): T | null {
-  if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
+/** 使用枠は下の帯でも定期的に取るので、止まった CLI・SDK を待ち続けない */
+export const USAGE_QUERY_TIMEOUT_MS = 8_000;
 
 /** HTTP の失敗（状態コードつき） */
 class HttpStatusError extends Error {
@@ -60,7 +36,11 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise
 const clampPercent = (n: number) => Math.max(0, Math.min(100, n));
 
 /** 秒（UNIX 時刻）を ISO の文字列に */
-export const isoFromSeconds = (s: unknown) => (typeof s === "number" && s > 0 ? new Date(s * 1000).toISOString() : null);
+export function isoFromSeconds(s: number | null): string | null {
+  if (s === null || s <= 0) return null;
+  const date = new Date(s * 1000);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
 
 /** 日付（"2026-12-01" や ISO）を ISO の文字列に */
 export function isoFromDate(s: unknown): string | null {
@@ -70,7 +50,7 @@ export function isoFromDate(s: unknown): string | null {
 }
 
 export function usageWindow(key: string, label: string, utilization: number | null, resets_at: string | null, detail?: string): UsageWindow {
-  return { key, label, utilization: utilization === null ? null : clampPercent(utilization), resets_at, ...(detail ? { detail } : {}) };
+  return { key, label, utilization: utilization !== null && Number.isFinite(utilization) ? clampPercent(utilization) : null, resets_at, ...(detail ? { detail } : {}) };
 }
 
 type Fields = Partial<Pick<ProviderUsage, "plan" | "account">>;
@@ -92,9 +72,6 @@ export function usageResult(provider: ProviderId): UsageResults {
     error: (message, fields = {}) => ({ ...empty(), status: "error", ...fields, message, fetched_at: new Date().toISOString() }),
   };
 }
-
-/** メールアドレス（JWT の中身などから。なければ null） */
-export const emailOf = (claims: Record<string, unknown> | null | undefined): string | null => (typeof claims?.email === "string" ? claims.email : null);
 
 /**
  * JSON を取って parse で結果にする。状態コードが onStatus にある HTTP の失敗は、その結果にする（ログイン切れ・契約なしなど）。

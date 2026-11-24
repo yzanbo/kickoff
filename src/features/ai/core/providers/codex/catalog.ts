@@ -42,7 +42,7 @@ export function askModelOf(models: CodexModel[], tier: AskModel): { model: strin
  * 実行中の使用枠の知らせ（account/rateLimits/updated）から、クレジットの様子。知らせは一部だけのことがあり、
  * 書いていない項目は null（前の値のまま）。クレジットも枠も書いていなければ null（何も知らせない）
  */
-export function creditsNoteOf(snapshot: RateLimitSnapshot | null | undefined): SpendingNote | null {
+export function creditsNoteOf(snapshot: Partial<RateLimitSnapshot> | null | undefined): SpendingNote | null {
   if (!snapshot) return null;
   const credits = snapshot.credits ?? null;
   const windows = [snapshot.primary, snapshot.secondary].filter((w): w is RateLimitWindow => w !== null && w !== undefined);

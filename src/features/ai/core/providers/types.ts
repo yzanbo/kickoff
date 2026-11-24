@@ -3,7 +3,7 @@ import type { Project } from "@shared/projects/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
-import type { SpendingNote } from "@shared/ai/usage";
+import type { ProviderUsage, SpendingNote } from "@shared/ai/usage";
 import type { ApprovalKind, ApprovalReply, RememberScope } from "@shared/ai/approvals";
 import type { AgentEvent, CommandOutput, SubagentInfo, ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
@@ -26,6 +26,8 @@ export interface AgentProvider {
   readonly implemented: boolean;
   /** CLI のインストール・ログイン状態 */
   status(): Promise<ProviderCliStatus>;
+  /** 利用者のサブスクの使用枠（公式の CLI・SDK が認証する） */
+  usage?(): Promise<ProviderUsage>;
   /** チャット欄で選べるモデルの一覧 */
   models?(): Promise<ModelOption[]>;
   /** チャット欄の / で出すコマンド（cwd のプロジェクトのコマンド・スキルも含む） */

@@ -1,4 +1,6 @@
 // Claude のプランの使用枠の取り方（/usage と同じもの。送らないセッションを一瞬開くだけで、使用枠を消費しない）
+import { withTimeout } from "@shared/foundation/time";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/http";
 import { planUsageOf, resolveClaudeExecutable, type SDKControlGetUsageResponse } from "./wire";
 import type { UsageWindow } from "@shared/ai/types";
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
@@ -54,5 +56,8 @@ function extraUsageOf(raw: RawExtraUsage): PayAsYouGo {
  * 注意: SDK 側で EXPERIMENTAL 扱いの API。形が変わったら normalizeUsage を直す
  */
 export async function fetchClaudeUsage(deps: IdleSessionDeps = { query: realClaudeSdk.query, executable: resolveClaudeExecutable() }): Promise<ProviderUsage> {
-  return withIdleSession(deps, async (q) => normalizeUsage(await planUsageOf(q)));
+  return withIdleSession(deps, async (q) => {
+    const usage = await withTimeout(planUsageOf(q), USAGE_QUERY_TIMEOUT_MS, "Claude Code が時間内に使用枠を返しませんでした");
+    return normalizeUsage(usage);
+  });
 }

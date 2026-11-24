@@ -147,7 +147,7 @@ test("超過分の知らせ: 変わったときだけ配り、取り直しても
   assert.deepEqual(published, [undefined, true, true, false]);
 });
 
-test("Codex のクレジット: 取り直して残りが減っていたら spending を重ね、枠に空きが戻ったら外す。実行中の知らせと同じ見張りで、変わったら配る", async () => {
+test("Codex のクレジット: 取り直して残りが減っていたら spending を重ね、枠に空きが戻ったら外す。実行中の知らせと同じ見張りで、結果を配る", async () => {
   let balance = 150;
   let percent = 100;
   const bus = new Bus();
@@ -160,7 +160,8 @@ test("Codex のクレジット: 取り直して残りが減っていたら spend
   const creditsOf = async () => (await monitor.refreshAll(true)).find((s) => s.provider === "codex")?.pay_as_you_go;
   assert.equal((await creditsOf())?.spending, null);
   balance = 142;
-  assert.deepEqual([(await creditsOf())?.spending?.from, (await creditsOf())?.spending?.to], [150, 142]);
+  const spent = (await creditsOf())?.spending;
+  assert.deepEqual([spent?.from, spent?.to], [150, 142]);
   // 実行中の知らせでさらに減った: 引かれ始めたとはもう返さない
   assert.equal(monitor.noteSpending("codex", { has_credits: true, unlimited: false, balance: 130, limit_reached: true }), false);
   percent = 20;
@@ -178,7 +179,7 @@ test("使い切った枠の戻る時刻: その AI の取った値から（ま�
   assert.equal(await monitor.limitResetAt("codex"), null);
 });
 
-test("「更新」（force）は、進んでいるふつうの取得に相乗りせず、Claude の枠も取り直す", async () => {
+test("「更新」は Claude の枠も取り直し、同じ AI の進行中の取得には相乗りする", async () => {
   const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let claudeCalls = 0;
   let codexCalls = 0;
@@ -200,7 +201,7 @@ test("「更新」（force）は、進んでいるふつうの取得に相乗り
   const refreshed = monitor.refreshAll(true);
   await clock.advance(5_000);
   await Promise.all([opened, refreshed]);
-  assert.deepEqual([claudeCalls, codexCalls], [2, 2]);
+  assert.deepEqual([claudeCalls, codexCalls], [2, 1]);
 });
 
 test("1 分以内の一覧でも、そのあとに取り直した・知らせを重ねた AI は最新の値を返す（SSE の usage と同じ値）", async () => {
@@ -220,4 +221,26 @@ test("1 分以内の一覧でも、そのあとに取り直した・知らせを
   monitor.noteSpending("codex", { has_credits: true, unlimited: false, balance: 140, limit_reached: true });
   const [c, x] = await monitor.all();
   assert.deepEqual([c?.windows[0]?.utilization, x?.pay_as_you_go?.balance, x?.pay_as_you_go?.spending?.to], [30, 140, 140]);
+});
+
+test("一覧の取得中でも終わった AI から結果を配り、別の AI の失敗を待たない", async () => {
+  const clock = manualClock();
+  const bus = new Bus();
+  const published: string[] = [];
+  bus.subscribe((event) => {
+    if (event.type === "usage") published.push(event.usage.provider);
+  });
+  const monitor = new UsageMonitor(bus, {
+    codex: async () => codex(),
+    copilot: async () => {
+      await clock.sleep(5_000);
+      throw new Error("遅いサービス");
+    },
+  }, clock);
+  const all = monitor.all();
+  await clock.advance(0);
+  assert.deepEqual(published, ["codex"]);
+  await clock.advance(5_000);
+  assert.deepEqual(published, ["codex", "copilot"]);
+  assert.deepEqual((await all).map((usage) => [usage.provider, usage.status]), [["codex", "ok"], ["copilot", "error"]]);
 });
