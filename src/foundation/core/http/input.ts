@@ -4,11 +4,14 @@ import { Invalid } from "@/foundation/core/errors";
 
 /**
  * 本文（JSON）を読む（形は呼ぶ側が zod で確かめる）。空の本文は {}（省ける項目だけのルートは本文なしで呼べ、必須の項目があれば検証で 400）。
- * JSON として読めなければ 400（読み取りの例外をそのまま 500 にしない）。本文はここ以外で読まない
+ * JSON として読めなければ 400（読み取りの例外をそのまま 500 にしない）。本文はここ以外で読まない。
+ * 本文があれば content-type は application/json だけ（text/plain などは、ブラウザが別のページからでも前の確かめなしに送れるため）
  */
 export async function jsonBody(c: Context): Promise<unknown> {
   const text = await c.req.text();
   if (!text.trim()) return {};
+  const type = c.req.header("content-type")?.split(";")[0]?.trim().toLowerCase();
+  if (type !== "application/json") throw new Invalid("本文は JSON（content-type: application/json）で送ってください");
   try {
     return JSON.parse(text);
   } catch {

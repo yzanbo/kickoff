@@ -1,6 +1,7 @@
 // Kickoff の HTTP API の土台。デスクトップの画面とスマホのアプリが共通で使う。認証はトークン（Cookie または Authorization: Bearer）。
 // 登録の順: 詰まりの見張りの名前付け → 版の確かめ → 認証の外の口 → /login → /mcp → 認証 → 失敗の応答 → 機能と土台のルート（状態・SSE） → API の 404 → 画面の配信
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/foundation/api/version";
 import { MCP_PATH } from "@/foundation/core/aiTools/host";
@@ -17,6 +18,28 @@ import { serverRoutes } from "./serverRoutes";
 import { serveRenderer } from "./static";
 
 const STARTED_AT = systemClock.iso();
+
+/** 本文の大きさの上限（添付の上限 30MB を何枚かまとめて送る・「AI に渡す」の長い文が入る大きさ。超えたら読まずに 413。メモリにためきらないように） */
+export const MAX_BODY_BYTES = 256 * 1024 * 1024;
+
+/** 読むだけの頼み（別のページから送られても、応答は CORS で読めず、何も変わらない） */
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * 別のページからの頼みか: 書き換える頼みと WebSocket は、ブラウザが付ける Origin が本体の出どころと違えば断る。
+ * 単体のコアを開いたブラウザの Cookie は、別のポートのページ（同じサイト）からの頼みにも付くため。Origin のない頼み（スマホ・道具）は見ない
+ */
+function crossOrigin(method: string, headers: Headers, url: string): boolean {
+  if (SAFE_METHODS.has(method) && headers.get("upgrade")?.toLowerCase() !== "websocket") return false;
+  const origin = headers.get("origin");
+  if (origin === null) return false;
+  try {
+    return new URL(origin).host !== new URL(url).host;
+  } catch {
+    // "null"（中を切り取った枠・ファイル）など、出どころが読めないものも別のページとみなす
+    return true;
+  }
+}
 const VERSION = "0.1.0";
 
 export interface HttpAppOptions {
@@ -56,6 +79,17 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workp
   });
   app.use("/api/*", checkClientVersion);
   app.use("/pairing/*", checkClientVersion);
+
+  // 別のページからの頼みと、大きすぎる本文は、認証より前に断る
+  const guardRequest = createMiddleware(async (c, next) => {
+    if (crossOrigin(c.req.method, c.req.raw.headers, c.req.url)) return c.json({ error: "別のページからの頼みは受けません" }, 403);
+    await next();
+  });
+  const limitBody = bodyLimit({ maxSize: MAX_BODY_BYTES, onError: (c) => c.json({ error: `本文が大きすぎます（上限 ${MAX_BODY_BYTES / 1024 / 1024} MB）` }, 413) });
+  for (const path of ["/api/*", "/pairing/*"]) {
+    app.use(path, guardRequest);
+    app.use(path, limitBody);
+  }
 
   // 認証の外の口（まだトークンを持たない端末のペアリング）とページ（図の枠など。中身を画面が postMessage で渡すので秘密を持たない）
   mount(app, routes, "public");

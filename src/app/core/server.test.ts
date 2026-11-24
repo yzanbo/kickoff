@@ -5,6 +5,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
+import { MAX_BODY_BYTES } from "@/foundation/core/http/app";
 import { readIndexHtml } from "@/foundation/core/http/static";
 import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
 import { openSse, sseType } from "@/foundation/core/testing/sse";
@@ -179,4 +180,32 @@ test("画面のファイル（index.html）を読めなければ、場所の分�
   assert.throws(() => readIndexHtml(path.join(dir, "ない")), /を読めません/);
   fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html>");
   assert.equal(readIndexHtml(dir), "<!doctype html>");
+});
+
+test("別のページ（Origin が本体と違う）からの書き換える頼みは、トークンがあっても 403。同じ出どころ・Origin のない頼み（スマホ・道具）は通す", async () => {
+  const { app } = setup();
+  const put = (headers: Record<string, string>) => app.request("http://127.0.0.1:4318/api/settings", { method: "PUT", headers: { ...AUTH, "content-type": "application/json", ...headers }, body: "{}" });
+  // 単体のコアを開いたブラウザの Cookie は、別のポートのページからの頼みにも付く（同じサイト）
+  const cross = await put({ origin: "http://127.0.0.1:3000" });
+  assert.equal(cross.status, 403);
+  assert.equal((await put({ origin: "null" })).status, 403);
+  assert.equal((await put({ origin: "http://127.0.0.1:4318" })).status, 200);
+  assert.equal((await put({})).status, 200);
+  // 読むだけの頼みは断らない（応答は別のページから読めない）
+  assert.equal((await app.request("http://127.0.0.1:4318/api/status", { headers: { ...AUTH, origin: "http://127.0.0.1:3000" } })).status, 200);
+});
+
+test("JSON の口は、本文があれば content-type が application/json でないと 400（別のページの text/plain の POST で呼ばせない）", async () => {
+  const { app } = setup();
+  const res = await app.request("/api/settings", { method: "PUT", headers: { ...AUTH, "content-type": "text/plain" }, body: "{}" });
+  assert.equal(res.status, 400);
+  assert.match((await res.json()).error, /application\/json/);
+  assert.equal((await app.request("/api/settings", { method: "PUT", headers: { ...AUTH, "content-type": "application/json; charset=utf-8" }, body: "{}" })).status, 200);
+});
+
+test("本文の大きさに上限があり、超えたら読まずに 413", async () => {
+  const { app } = setup();
+  const res = await app.request("/api/settings", { method: "PUT", headers: { ...AUTH, "content-type": "application/json", "content-length": String(MAX_BODY_BYTES + 1) }, body: "{}" });
+  assert.equal(res.status, 413);
+  assert.match((await res.json()).error, /大きすぎ/);
 });
