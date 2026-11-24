@@ -865,7 +865,7 @@
 ### 図
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-018 | 返答に図を描く・描き直す | visuals | T:aiVisual |
+| AIT-018 | 返答に図を描く・描き直す | visuals | T:visuals/core/aiVisual,shared/visuals/aiVisual |
 
 ## MOB スマホ連携
 
