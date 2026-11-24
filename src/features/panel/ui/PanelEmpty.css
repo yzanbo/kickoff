@@ -1,0 +1,15 @@
+/* ==== パネルが空のときの案内（PanelEmpty） ==== */
+@layer feature {
+  /* パネルを開いたが、タブがひとつもないとき */
+
+  .panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,30 @@
+/* 子チャットを作るときの「会話を引き継ぐ / 新しく始める」・サブエージェントへの送り先（メインから伝える / 子チャットで直接聞く）と、選んだ方の説明 1 行（入力欄のすぐ上） */
+
+.inherit-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+/* 新しい子チャットのタブでは入力欄との間を空ける */
+
+.inherit-choice:is(.chat-composer > *) {
+  margin-bottom: 6px;
+}
+
+.segmented.inherit-choice-switch button {
+  padding: 3px 12px;
+  font-size: var(--fs-12);
+}
+
+.inherit-choice-help {
+  min-width: 0;
+}
+
+/* 「引き継いで開く」（聞くことなしで、会話を引き継いだ子チャットを開く。引き継ぐを選んでいる間だけ、切り替えの行の右端に） */
+
+.inherit-choice-open {
+  margin-left: auto;
+}
+

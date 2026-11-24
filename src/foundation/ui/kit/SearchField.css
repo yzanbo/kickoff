@@ -1,0 +1,41 @@
+/* ==== 検索の欄（SearchField） ==== */
+@layer ui {
+  .search-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    margin: 0 0 6px;
+    padding: 0 6px 0 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+  }
+
+  .search-field:focus-within {
+    border-color: var(--border-strong);
+  }
+
+  .search-field input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    font-size: var(--fs-12);
+    background: transparent;
+  }
+
+  .search-field input[type="text"]:focus {
+    outline: none;
+  }
+
+  /* 検索欄の右端の小さなボタン（.chat-search-content は IconButton の size="xs"） */
+
+  .search-field-clear {
+    display: grid;
+    width: 18px;
+    height: 18px;
+  }
+}

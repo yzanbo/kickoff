@@ -1,0 +1,30 @@
+/* ==== 状態の点（StatusDot） ==== */
+@layer ui {
+  /* 状態の点（使える・使えない・確認中・対応予定） */
+
+  .status-dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--extra-muted);
+  }
+
+  /* チャットの状態の色（data-state。ui/status-slot.css の --state-color） */
+
+  .status-dot[data-state] {
+    background: var(--state-color);
+  }
+
+  .status-dot.tone-ok {
+    background: var(--ok);
+  }
+
+  .status-dot.tone-ng {
+    background: var(--ng);
+  }
+
+  .status-dot.tone-pending {
+    background: var(--warn);
+  }
+}

@@ -1,0 +1,65 @@
+/* ==== DB の表の中身と行の詳細の置き場所（TableData） ==== */
+@layer feature {
+  /* 表と行の詳細を横に並べる */
+
+  .db-table-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .db-row-detail {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    width: min(360px, 45%);
+    min-height: 0;
+    overflow: auto;
+    border-left: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  /* 狭い所では行の詳細を表の下に重ねる */
+
+  .db-client.narrow .db-table-body {
+    position: relative;
+  }
+
+  .db-client.narrow .db-row-detail {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    width: auto;
+    max-height: 55%;
+    border-top: 1px solid var(--border);
+    border-left: none;
+    box-shadow: 0 -6px 16px rgb(0 0 0 / 18%);
+  }
+
+  .db-row-detail-empty {
+    padding: 12px var(--gutter);
+  }
+
+  /* 読み込み・数えるの失敗の文（WHERE の誤りなど） */
+
+  .db-table-error {
+    margin: 0;
+    padding: 4px var(--gutter);
+  }
+
+  /* 下の帯: 流す SQL は行数と道具の間の残りの幅に 1 行で（入らなければ … で切り、ほかの道具を折り返させない） */
+
+  .db-table-sql {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: var(--fs-11);
+    color: var(--extra-muted);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,164 @@
+/* ==== ボードのリスト表示 ==== */
+@layer feature {
+  /* リスト表示 */
+
+  .board-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* まだ作っていない行の空の箱の 1 行分 */
+    --progressive-row: 31px;
+  }
+
+  /* リストを段に分けたときの段の中（スクロールは段の並び .board-lanes に任せる） */
+
+  .lane-list {
+    flex: none;
+    --progressive-row: 31px;
+  }
+
+  /* グループのリスト表示の並べ替えの線（styles/state.css）: グループの間の隙間に */
+
+  .list-group {
+    --drop-offset: -7px;
+    --drop-anim: none;
+
+    position: relative;
+    margin-bottom: 12px;
+    /* 強調表示（枠と背景）のときに見出しが枠にくっつかないよう、いつも内側に余白をとる */
+    padding: 6px 8px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+  }
+
+  /*
+   * 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す。
+   * ほかのチャットのカード（.board-card）と同じ色・枠にする（ほかのカードより目立たせない）
+   */
+
+  .draft-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--muted);
+    background: var(--bg-elev);
+    cursor: pointer;
+  }
+
+  .draft-card:hover,
+  .draft-card.selected:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+  }
+
+  .draft-card-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-12);
+  }
+
+  /* 全プロジェクトのボードでは、どのプロジェクトの下書きかを右端のバッジで示す（長い名前は省く） */
+
+  .draft-card-head .project-chip {
+    margin-left: auto;
+  }
+
+  /* 書いている途中の文（初めの 3 行まで） */
+
+  .draft-card-text {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px 0 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  /* 選んだ・複数選んだ行（ChatCard.css・BoardShell.css。同じ詳細度）でも乗せたときの地にする */
+  .list-row:hover,
+  .list-row.selected:hover,
+  .list-row.multi-selected:hover,
+  .list-row.multi-selected.selected:hover {
+    background: var(--bg-elev);
+  }
+
+  /* リストの行はいつも 1 行: 名前の後ろに作業場所・状態を並べ、狭ければ名前から省く */
+
+  .list-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 0;
+    color: var(--text);
+  }
+
+  .list-row .card-time {
+    flex: none;
+  }
+
+  /* 名前の左の状態の印（カードと同じ StatusSlot）。未読の点の縁は行の地の色 */
+
+  .list-row {
+    --slot-ring: var(--bg);
+  }
+
+  .list-row:hover {
+    --slot-ring: var(--bg-elev);
+  }
+
+  .list-row.selected {
+    --slot-ring: var(--bg-hover);
+  }
+
+  /* 行の右端の日時（作成日・最終更新。表示項目で出すものだけ） */
+
+  .list-times {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .list-row .card-title {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .list-row .list-meta {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* リスト表示のいちばん下の「アーカイブ済み」: 中を状態ごとに分ける（見出しはほかのまとまりと同じ ColumnHead） */
+
+  .archived-list-state {
+    display: grid;
+    gap: 2px;
+    margin-top: 6px;
+  }
+}

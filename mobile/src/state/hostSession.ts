@@ -2,8 +2,10 @@
 // 切れたら少しずつ間を空けてつなぎ直す。アプリを裏に回したら止め（Android は裏で通信を止める）、表に戻ったらつなぎ直す
 // （抜けた分は、画面が ?after= で取り直す = つながったときの onOpen）。話が通じない・取り消された・別の本体なら、つなぎ直さずに止める
 import { fetch as expoFetch } from "expo/fetch";
-import type { BusEvent, ServerHello } from "@shared/types";
-import { authHeaders, HostClient } from "../lib/client";
+import type { ServerHello } from "@shared/foundation/server";
+import type { BusEvent } from "@shared/foundation/contract";
+import { createSignal } from "@shared/foundation/signal";
+import { authHeaders, createHostApi, type HostApi } from "../lib/hostApi";
 import { failureStateOf, helloStateOf, isFinal, type SessionState } from "../lib/connection";
 import { readSse } from "../lib/sse";
 
@@ -13,38 +15,29 @@ const RETRY_MIN_MS = 1_000;
 const RETRY_MAX_MS = 30_000;
 
 export class HostSession {
-  readonly client: HostClient;
+  readonly client: HostApi;
   state: SessionState = { kind: "stopped" };
   private abort: AbortController | null = null;
   private retryMs = RETRY_MIN_MS;
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private readonly eventListeners = new Set<(e: BusEvent) => void>();
-  private readonly stateListeners = new Set<(s: SessionState) => void>();
-  private readonly openListeners = new Set<() => void>();
+  private readonly events = createSignal<BusEvent>();
+  private readonly states = createSignal<SessionState>();
+  private readonly opens = createSignal();
 
   constructor(
     readonly hostId: string,
     url: string,
     private readonly token: string,
   ) {
-    this.client = new HostClient({ url, token });
+    this.client = createHostApi({ url, token });
   }
 
-  onEvent(fn: (e: BusEvent) => void) {
-    this.eventListeners.add(fn);
-    return () => void this.eventListeners.delete(fn);
-  }
+  onEvent = (fn: (e: BusEvent) => void) => this.events.subscribe(fn);
 
-  onState(fn: (s: SessionState) => void) {
-    this.stateListeners.add(fn);
-    return () => void this.stateListeners.delete(fn);
-  }
+  onState = (fn: (s: SessionState) => void) => this.states.subscribe(fn);
 
   /** つながったとき（つなぎ直したときも。画面は抜けた分を取り直す・プッシュの宛先を知らせ直す） */
-  onOpen(fn: () => void) {
-    this.openListeners.add(fn);
-    return () => void this.openListeners.delete(fn);
-  }
+  onOpen = (fn: () => void) => this.opens.subscribe(fn);
 
   start() {
     if (this.abort || isFinal(this.state)) return;
@@ -64,7 +57,7 @@ export class HostSession {
 
   private setState(state: SessionState) {
     this.state = state;
-    for (const fn of this.stateListeners) fn(state);
+    this.states.emit(state);
   }
 
   private async connect() {
@@ -93,7 +86,7 @@ export class HostSession {
             }
             this.retryMs = RETRY_MIN_MS;
             this.setState(state);
-            for (const fn of this.openListeners) fn();
+            this.opens.emit();
             return;
           }
           if (m.event !== null || this.state.kind !== "open") return; // ping・hello の前の知らせ
@@ -103,7 +96,7 @@ export class HostSession {
           } catch {
             return;
           }
-          for (const fn of this.eventListeners) fn(event);
+          this.events.emit(event);
         });
       }
     } catch (e) {

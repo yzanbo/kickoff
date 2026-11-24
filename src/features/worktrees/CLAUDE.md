@@ -1,0 +1,29 @@
+# ワークツリー（`features/worktrees`）
+
+チャットごとの作業場所（`chats.worktree_path`。`null` なら本体）のうち、ワークツリーを作る・片付ける・実行環境。作業場所の型・一覧の店・選ぶ部品・色は `@/foundation/ui/workplace/`（コアは `@/foundation/core/workplace/`）、ファイル・変更は `src/features/files/CLAUDE.md`。
+
+## 地図
+
+- `core/service.ts`・`create.ts`: 一覧（`present` で実行環境と色を付ける）・作る・ブランチ名の案・［AI で整える］。
+- 消す `core/remove.ts`（確かめ `inspect.ts`・控え `backup.ts`・ゴミ箱から戻す `trash.ts`）・AI の後始末 `aiFinish.ts`。消した知らせ `events.ts`（`onRemoved` は database、`onChanged` は github が受ける。取り込み済みの PR は github が `mergeChecks` に登録）。`core/headWatch.ts`: Git のフォルダを見張って `worktrees_changed` を出す（その前にコアの一覧の覚えを `forgetWorktrees` で捨てる。作る・消す所も同じ）。
+- `core/env/`: 実行環境 `WorktreeEnvService`（ポートの帯 `bands.ts`・`.env` の区切り `envRewrite.ts`）。
+- `core/tools.ts`: AI のツール `finish_worktree` と、実行に足す `PORT`（AI のツールの決まりは `src/features/chat/core/CLAUDE.md`）。
+- `ui/`: 帯 `WorktreeBar`・作る / 消す・実行環境は作業場所の飾りに登録。PR の知らせの店 `prNoticeStore.ts`。消すのはどれも `removeWorktreeFlow.ts`。
+
+## 決まり
+
+- 置き場所は一番上の隣の `<名前>-worktrees/<ブランチ>`。`GitWorktree` の `root` は一番上、`path` は作業するフォルダ（チャットの `worktree_path`・`?worktree=` はこちら。一番上へ戻すのはコアの中だけ。名前を出すときは `root`）。
+- 作る道はどれも `WorktreeService.create`（ほかの機能は土台の `creator()`、github は `WorktreesApi.create`）。無視している `node_modules` を APFS の複製で写し、新しく作ったときだけ実行環境を整える。
+- 消すのは画面も AI も `WorktreeRemover`（画面は `confirmRemoveWorktree` で失うものを先に知らせる）。失うものは控えに入れてゴミ箱に残し、チャットは `workplaceMove.api.move` で本体へ移す（同じリポジトリのほかのプロジェクトも見る = `usersOf`）。
+- 「コンテナとデータも消す」は本体と同じ組の名前のワークツリーでは出さない（本体のデータが消える）。
+- 実行環境はワークツリーごとにポートの帯と Docker の組の名前を分ける。決めるのは作るときだけで、書くのは Git で管理していないファイルだけ。Git で管理している `.env` があれば何も書かずに `blocked`。
+- 色はコアが付けた `GitWorktree.hue`。一覧は店 `@/foundation/ui/workplace/worktreesStore.ts` の 1 系統だけ（操作の応答の一覧は `worktreesStore.set` で入れる）。
+
+## 落とし穴
+
+- 片付けを予約したワークツリーは移す先にできない（`reservedFolders`）。Git でないフォルダの一覧は空で返す（失敗にすると画面が取り直し続ける）。
+- `prepare` の順は `.env` を写す → 帯を選ぶ → compose に聞いて番号を並べる → `.env` の Kickoff の区切りと上書きファイル → 接続先の書き換え。途中で失敗してもワークツリーの作成は失敗させない。チャットの AI と内蔵ターミナルには `PORT` を渡す（`envFor`）。
+- ［AI で整える］は `untrackedOnly` のチャットで始める（`src/features/guard/CLAUDE.md`）。
+- 作業場所を移したら右の欄のタブを付け替える（`workplace_moved` の知らせで。自動で移ったときも）。
+- 開発版の Kickoff は保存先とポートが 1 つなので、同時に起動できるのは 1 つのワークツリーだけ。
+- テストは `core/routes.worktreeEnv.test.ts`・`@/features/guard/core/guard/scope.test.ts`。

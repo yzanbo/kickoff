@@ -1,0 +1,75 @@
+/* ==== 入力欄の候補（SuggestList） ==== */
+@layer feature {
+  /* チャット欄の / と @ の候補（入力欄のすぐ上に出す） */
+
+  .suggest-list {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: var(--z-floating);
+    display: grid;
+    max-height: 320px;
+    padding: 4px;
+    overflow-y: auto;
+    --floating-radius: var(--radius);
+  }
+
+  .suggest-head {
+    padding: 4px 8px 2px;
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+
+  .suggest-empty {
+    margin: 0;
+    padding: 8px;
+  }
+
+  .suggest-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .suggest-item svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .suggest-item.active {
+    background: var(--bg-hover);
+  }
+
+  .suggest-name {
+    flex: none;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+  }
+
+  .suggest-hint {
+    flex: none;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    color: var(--extra-muted);
+  }
+
+  .suggest-desc {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-12);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+}

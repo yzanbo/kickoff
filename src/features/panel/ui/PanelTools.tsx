@@ -1,0 +1,81 @@
+import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
+import type { HTMLAttributes, RefObject } from "react";
+import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { useCommandKeys } from "@/foundation/ui/commands";
+import { surfaceOf } from "./state/panelStore";
+import { PanelViewButton, type PanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
+import type { PanelController } from "./usePanel";
+import type { TerminalTarget } from "@/features/panel/ui/panelTypes";
+
+/** 欄の殻（大きさを持つ側）から Panel に渡すもの。大きさの変え方は欄ごとに違うので、殻に残す */
+export interface PanelFrame {
+  /** 大きさを測る欄（パネルの aside に付ける。ボードの右のパネルの幅のドラッグ） */
+  paneRef?: RefObject<HTMLElement | null>;
+  /** 左端の幅のつまみ（ボードの右のパネル） */
+  resizeHandle?: HTMLAttributes<HTMLDivElement>;
+  /** 大きくする切り替えの状態（欄の決まりの maximize で出す。disabled: 狭くて元の大きさに戻せない） */
+  maximize?: { on: boolean; disabled?: boolean; toggle: () => void };
+  /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さず、いつも開いておく（Esc でも閉じない） */
+  fixed?: boolean;
+  /** 開けるターミナルの場所（フッター。Mac のアプリでだけ。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
+  terminals?: readonly TerminalTarget[];
+}
+
+/** 欄の閉じるボタン（欄の決まりの closeButton。欄が画面そのもののときは出さない） */
+export function PanelCloseButton({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
+  const { closeButton } = surfaceOf(panel.surface)!;
+  const commandKeys = useCommandKeys(closeButton?.command ?? "", { all: true });
+  if (!closeButton || frame?.fixed) return null;
+  return <IconButton type="button" icon={closeButton.icon} iconSize={15} className="panel-control" label={closeButton.label} keys={commandKeys ?? closeButton.keys} onClick={panel.close} />;
+}
+
+/**
+ * 横幅いっぱいに広げる ⇔ 元の幅に戻す（欄の決まりの maximize が width の欄のタブの列と、右サイドバーの中身の見出し）。
+ * 横にだけ広がるので、横向きの矢印。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
+ * ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない）
+ */
+export function MaximizeButton({ state }: { state: NonNullable<PanelFrame["maximize"]> }) {
+  return (
+    <IconButton
+      type="button"
+      icon={state.on ? FoldHorizontal : UnfoldHorizontal}
+      iconSize={15}
+      className="panel-control"
+      label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+      title={state.on ? `元の幅に戻す${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}` : "横幅いっぱいに広げる"}
+      aria-pressed={state.on}
+      disabled={state.disabled}
+      onClick={state.toggle}
+    />
+  );
+}
+
+/**
+ * タブの列の左の道具（左上のペインにだけ置く）: 左から、閉じる（欄の決まりで先頭か最後。右端に置く欄（サブエージェントの欄）は PaneTabBar の endControls、
+ * チャット欄は右上のレイアウトの開閉で閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（チャットのまとめ方・
+ * アーカイブ済み・チャットの画面。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
+ * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
+ */
+export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
+  const { closeButton, maximize } = surfaceOf(panel.surface)!;
+  const close = <PanelCloseButton panel={panel} frame={frame} />;
+  const state = frame?.maximize;
+  return (
+    <div className="panel-controls">
+      {closeButton?.at === "start" && close}
+      {maximize === "width" && state && <MaximizeButton state={state} />}
+      {maximize === "height" && state && (
+        <IconButton
+          type="button"
+          icon={state.on ? Minimize2 : Maximize2}
+          className="panel-control"
+          label={state.on ? "元の高さに戻す" : "フッターを最大化"}
+          aria-pressed={state.on}
+          onClick={state.toggle}
+        />
+      )}
+      <PanelViewButton view={view} />
+      {closeButton?.at === "end" && close}
+    </div>
+  );
+}

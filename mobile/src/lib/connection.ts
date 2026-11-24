@@ -1,8 +1,8 @@
 // 本体とのつながりの様子と、その決め方（純粋な関数でテストする = connection.test.ts）。
 // アプリと本体は別々に更新されるので、話が通じない・つなぐ先が違うときは、つなぎ直しを繰り返さずに理由を出して止める（壊れずに断る）
-import type { ServerHello } from "@shared/types";
-import { MOBILE_OFF } from "@shared/types";
-import type { ApiMismatch } from "@shared/api/version";
+import type { ServerHello } from "@shared/foundation/server";
+import { MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
+import type { ApiMismatch } from "@shared/foundation/api/version";
 import { hostMismatch } from "./version";
 
 /** つながりの様子 */
@@ -27,13 +27,13 @@ export const isFinal = (s: SessionState) => s.kind === "mismatch" || s.kind === 
 /** SSE の頼みを断られたときの様子（応答の状態と本文の印から） */
 export function failureStateOf(status: number, body: { code?: string; error?: string } | null): SessionState {
   if (status === 401) return { kind: "revoked" };
-  if (status === 403 && body?.code === MOBILE_OFF) return { kind: "mobile_off" };
+  if (status === 403 && body?.code === MOBILE_DISABLED) return { kind: "mobile_off" };
   if (status === 426) return { kind: "mismatch", mismatch: "client_too_old" };
   return { kind: "retrying", reason: body?.error ?? `本体が ${status} を返しました` };
 }
 
 /**
- * SSE の最初の行 hello から、つながってよいか: 版が合わない・版を知らせない古い本体なら mismatch、
+ * SSE の最初の行 hello から、つながってよいか: 版が合わない・版の読めない hello なら mismatch、
  * 本体の ID がつないだときと違えば other_host、通じれば open
  */
 export function helloStateOf(hello: Partial<ServerHello> | null, hostId: string): SessionState {

@@ -1,0 +1,98 @@
+/* ==== コンテキストを空ける選び方（FreeContextActions） ==== */
+@layer feature {
+  /*
+   * コンテキストを空ける（FreeContextActions。いちばん下のまとまり）: 見出し、AI の作業中はその下に案内、その下に「会話を圧縮」「コンテキストを消去」を
+   * 違いの一言を添えた 2 つのボタンで縦に並べる。アイコンの色は送信待ちの挟む行と同じ（圧縮 = アクセント・消去 = 青。QueuedHeadActions.css の --queued-tone）
+   */
+
+  .context-free {
+    padding-top: 12px;
+  }
+
+  /* AI の作業中の案内（どちらも、いまの作業が終わってから行う）。作業中の色の砂時計と、少し目立つ地 */
+
+  .context-free-when {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    background: var(--bg-hover);
+    font-size: var(--fs-12);
+    color: var(--text);
+  }
+
+  .context-free-when svg {
+    flex: none;
+    color: var(--dot-running);
+  }
+
+  /* 2 つを縦に並べる（詳細の幅では横に並べると名前が入らない）。左にアイコン、右に名前と、その下に違いの一言 */
+
+  .context-free-choices {
+    display: grid;
+    gap: 6px;
+  }
+
+  .context-choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1px 10px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .context-choice:hover:not(:disabled) {
+    border-color: var(--queued-tone-line);
+    background: var(--bg-hover);
+  }
+
+  .context-choice:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .context-choice-icon {
+    grid-row: span 2;
+    color: var(--queued-tone);
+  }
+
+  .context-choice-label {
+    font-size: var(--fs-13);
+    font-weight: 600;
+  }
+
+  .context-choice-hint {
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+
+  /* 予約しているとき: 文と「取り消す」を横に */
+
+  .context-free-reserved {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+  }
+
+  .context-free-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--fs-12);
+    color: var(--queued-tone);
+  }
+
+  .context-free > .error {
+    margin: 0;
+  }
+}

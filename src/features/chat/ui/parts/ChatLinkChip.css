@@ -1,0 +1,69 @@
+/* ==== 子チャットの札（ChatLinkChip） ==== */
+@layer feature {
+  /* 発言・返答から聞いた子チャットの札（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。様子: 作業中・回答待ち・未読・失敗・既読） */
+
+  .child-chat-marks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 8px;
+  }
+
+  .child-chat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 10px;
+    --pill-bg: var(--bg-elev);
+    font: inherit;
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .child-chat-chip:hover {
+    --pill-fg: var(--text);
+    --pill-border: var(--border-strong);
+  }
+
+  .child-chat-chip-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .child-chat-chip-state {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* 札の中の状態の印（サイドバーの行と同じ StatusSlot を、札の高さに収める。リングの右上の緑の点・回答待ちの！の縁は札の地の色） */
+
+  .child-chat-chip .status-slot {
+    width: 12px;
+    height: 14px;
+  }
+
+  .child-chat-chip {
+    --slot-ring: var(--bg-elev);
+  }
+
+  .child-chat-chip.child-unread {
+    --pill-border: color-mix(in srgb, var(--state-unread) 60%, var(--border));
+  }
+
+  .child-chat-chip.child-unread .child-chat-chip-state {
+    color: var(--state-unread);
+  }
+
+  .child-chat-chip.child-needs_input .child-chat-chip-state {
+    color: var(--state-needs-input);
+  }
+
+  .child-chat-chip.child-failed .child-chat-chip-state {
+    color: var(--state-failed);
+  }
+}

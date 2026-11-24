@@ -1,0 +1,69 @@
+/* ==== compose のまとまり（DockerComposeBlock） ==== */
+@layer feature {
+  .docker-composes {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .docker-compose {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .docker-compose-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    align-items: center;
+    padding: 6px 8px 6px 10px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* 見出しの操作（すべて起動・すべて停止・⋯）は 1 つのまとまりで折り返す（⋯ だけが次の行に落ちないように） */
+
+  .docker-compose-actions {
+    display: inline-flex;
+    flex: none;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .docker-compose-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .docker-compose-file {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* 乗せたら色で見せる（下線は使わない） */
+  .docker-compose-file:hover:not(:disabled) {
+    color: var(--accent-fg);
+  }
+
+  .docker-compose-file:disabled {
+    cursor: default;
+  }
+
+  .docker-compose-busy {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--warn);
+  }
+}

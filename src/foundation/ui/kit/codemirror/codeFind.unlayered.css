@@ -1,0 +1,26 @@
+/*
+ * CodeMirror のエディタ（ノート・SQL。kit/codemirror/baseExtensions の .code-find-editor）の ⌘F の検索の欄（kit/codemirror/codeFindPanel。中は ui/FindField で、ほかの検索の欄と同じ見た目）:
+ * CodeMirror の上の帯にせず、ページの検索の欄と同じく本文の右上に浮かせる（帯の地・線は消す。本文はずれない）。見つかった文字の印はチャットの検索と同じ色。
+ * CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く
+ */
+.code-find-editor .cm-panels.cm-panels-top {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  left: auto;
+  z-index: 5;
+  width: min(400px, calc(100% - 24px));
+  border: 0;
+  color: var(--text);
+  background: transparent;
+}
+
+.code-find-editor .cm-searchMatch {
+  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.code-find-editor .cm-searchMatch-selected {
+  color: #000;
+  background-color: var(--warn);
+}
+

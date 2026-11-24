@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/api/version";
+import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 import { failureStateOf, helloStateOf, isFinal } from "./connection";
 
 const hello = (patch: Record<string, unknown> = {}) => ({ core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: "h1", ...patch });
@@ -9,10 +9,10 @@ test("helloStateOf: 版が通じて本体の ID が同じならつながる。�
   assert.deepEqual(helloStateOf(hello(), "h1"), { kind: "open" });
 });
 
-test("helloStateOf: 壊れずに断る — 本体が新しすぎればアプリの更新、古すぎる・版を知らせない本体なら Mac の Kickoff の更新、ほかの本体なら other_host", () => {
+test("helloStateOf: 壊れずに断る — 本体が新しすぎればアプリの更新、古すぎる本体・版の読めない hello なら Mac の Kickoff の更新、ほかの本体なら other_host", () => {
   assert.deepEqual(helloStateOf(hello({ api_version: 99, min_client_api_version: 99 }), "h1"), { kind: "mismatch", mismatch: "client_too_old" });
   assert.deepEqual(helloStateOf(hello({ api_version: 0, min_client_api_version: 0 }), "h1"), { kind: "mismatch", mismatch: "host_too_old" });
-  assert.deepEqual(helloStateOf({ core_version: "0.0.1", host_id: "h1" }, "h1"), { kind: "mismatch", mismatch: "host_too_old" });
+  assert.deepEqual(helloStateOf({ core_version: "0.1.0", host_id: "h1" }, "h1"), { kind: "mismatch", mismatch: "host_too_old" });
   assert.deepEqual(helloStateOf(null, "h1"), { kind: "mismatch", mismatch: "host_too_old" });
   assert.deepEqual(helloStateOf(hello({ host_id: "other" }), "h1"), { kind: "other_host" });
 });

@@ -1,0 +1,67 @@
+/* ==== コミットのブランチ・タグの札（CommitRefBadges） ==== */
+@layer feature {
+  /* ブランチ・タグの札（その行の線の色 --ref-color で塗り、件名より目立たせる。いまのブランチは濃く塗って太字、リモートだけの札は薄く） */
+
+  .ref-badge {
+    --ref-color: var(--info);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    max-width: 220px;
+    margin-right: 5px;
+    --tag-color: var(--ref-color);
+    --tag-edge: 70%;
+    --tag-bg: color-mix(in srgb, var(--ref-color) 32%, transparent);
+    --tag-fg: var(--text);
+    --tag-radius: var(--radius-sm);
+    font-size: var(--fs-11);
+    font-weight: 600;
+    line-height: 16px;
+    vertical-align: 1px;
+  }
+
+  .ref-badge svg {
+    flex: none;
+  }
+
+  .ref-badge-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ref-badge.head {
+    --tag-bg: color-mix(in srgb, var(--ref-color) 58%, transparent);
+    --tag-border: var(--ref-color);
+    font-weight: 700;
+  }
+
+  .ref-badge.remote {
+    --tag-bg: color-mix(in srgb, var(--ref-color) 14%, transparent);
+    --tag-edge: 45%;
+    font-weight: 500;
+  }
+
+  /* 同じコミットにある手元のブランチとリモートのブランチ: リモートはマークだけの札にして、手元の札の前に詰めて並べる */
+
+  .ref-badge-group {
+    display: inline-flex;
+    gap: 2px;
+    margin-right: 5px;
+    vertical-align: 1px;
+  }
+
+  .ref-badge-group > .ref-badge {
+    margin-right: 0;
+    vertical-align: 0;
+  }
+
+  .ref-badge-group > .ref-badge.remote {
+    --tag-pad: 0 4px;
+  }
+
+  .ref-badge.git-tag {
+    --tag-border: color-mix(in srgb, var(--warn) 60%, transparent);
+    --tag-bg: color-mix(in srgb, var(--warn) 14%, transparent);
+    font-weight: 500;
+  }
+}

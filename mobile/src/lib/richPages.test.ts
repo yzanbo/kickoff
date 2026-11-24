@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { VISUAL_FRAME_CSP } from "@shared/chat/visualDocument";
+import { VISUAL_FRAME_CSP } from "@shared/visuals/visualDocument";
 import { hasMath, mathPage, mermaidPage, visualPage } from "./richPages";
 
 test("hasMath: パソコンと同じ決まりで、数式があるときだけ WebView にする", () => {

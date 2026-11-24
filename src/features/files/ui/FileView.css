@@ -1,0 +1,75 @@
+/* ==== ファイル・差分の見出しと中身（FileView。git の DiffView・GitHub の PR の差分も同じ枠） ==== */
+@layer feature {
+  .changes-diff,
+  .diff-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* ページの ⌘F（ChatFind.css の .page-find）を右上に浮かせる（ファイル・検索・変更の右側。履歴の詳細は git の HistoryMain.css） */
+
+  .changes-diff {
+    position: relative;
+  }
+
+  .diff-head {
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: var(--fs-12);
+  }
+
+  .diff-path {
+    overflow: hidden;
+    font-family: var(--mono);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .diff-state {
+    flex: none;
+    color: var(--muted);
+  }
+
+  /* 差分から編集しているときは見出しにボタンが増えるので、ボタンの文字を折り返さず、パスの方を省略する */
+
+  .diff-head .btn,
+  .diff-head .view-toggle button {
+    white-space: nowrap;
+  }
+
+  .diff-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* ファイルの編集（Monaco）。差分・中身の表示と同じ枠いっぱいに広げる */
+
+  .diff-body.editing {
+    overflow: hidden;
+  }
+
+  .diff-state.error {
+    color: var(--ng);
+  }
+
+  /* 保存していない変更がある（● 未保存） */
+
+  .diff-state.unsaved {
+    color: var(--warn);
+  }
+
+  /* FileView のコードの部分（SVG をプレビューしている間は隠す。編集の部品は残す） */
+
+  .file-code {
+    display: contents;
+  }
+
+  .file-code[hidden] {
+    display: none;
+  }
+}

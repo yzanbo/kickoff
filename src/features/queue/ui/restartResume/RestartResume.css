@@ -1,0 +1,271 @@
+/* ==== 作業を止めたチャットの再開のダイアログ（RestartResumeDialog） ==== */
+@layer feature {
+  /* 起動したときの再開の確かめ（RestartResumeDialog）: チャットごとのカードに、見出し・送信待ちの 1 行（開くと止まったところ・止まったサブエージェントと送信待ちのすべて）・選ぶ切り替え */
+
+  .restart-resume-dialog {
+    --dialog-w: 640px;
+  }
+
+  .restart-resume-dialog .app-dialog-body {
+    max-height: calc(100vh - 64px);
+  }
+
+  .restart-resume-intro {
+    display: grid;
+    gap: 6px;
+  }
+
+  .restart-resume-list {
+    display: grid;
+    gap: 10px;
+    min-height: 0;
+    max-height: min(62vh, 560px);
+    margin: 0;
+    padding: 0 2px 0 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .restart-resume-row {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    --card-radius: var(--radius-sm);
+    --card-bg: var(--bg);
+    transition: opacity 0.15s;
+  }
+
+  /* 「あとで」を選んだカードは少し薄く（決めずに残る） */
+
+  .restart-resume-row.later {
+    opacity: 0.7;
+  }
+
+  .restart-resume-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .restart-resume-title {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-14);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .restart-resume-time {
+    flex: none;
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .restart-resume-note {
+    color: var(--warn);
+  }
+
+  /* 送信待ちの 1 行（押すと詳しく見る）。送信待ちの畳んだ 1 行と同じ並び */
+
+  .restart-resume-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    color: var(--text);
+    background: var(--bg-elev);
+    cursor: pointer;
+  }
+
+  .restart-resume-toggle:hover {
+    background: var(--bg-hover);
+  }
+
+  .restart-resume-chevron {
+    flex: none;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+
+  .restart-resume-toggle[aria-expanded="true"] .restart-resume-chevron {
+    transform: rotate(90deg);
+  }
+
+  .restart-resume-count {
+    flex: none;
+    font-weight: 600;
+  }
+
+  .restart-resume-next {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .restart-resume-toggle-label {
+    flex: none;
+    margin-left: auto;
+  }
+
+  .restart-resume-details {
+    display: grid;
+    gap: 10px;
+    padding: 4px 2px 2px;
+  }
+
+  .restart-resume-section {
+    display: grid;
+    gap: 6px;
+  }
+
+  .restart-resume-section-title {
+    margin: 0;
+    font-size: var(--fs-11);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+
+  .restart-resume-moments {
+    display: grid;
+    gap: 2px 0;
+    margin: 0;
+  }
+
+  .restart-resume-moments dt {
+    margin-top: 4px;
+  }
+
+  .restart-resume-moment-time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .restart-resume-moment {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    font-size: 12.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  /* 最後の指示は自分の発言と同じ地、最後のツールはコードの書体 */
+
+  .restart-resume-moment.prompt {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+  }
+
+  .restart-resume-moment.tool {
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    -webkit-line-clamp: 2;
+  }
+
+  /* 途中で止まったサブエージェント（説明を 1 行ずつ） */
+
+  .restart-resume-subagents {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .restart-resume-queue {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .restart-resume-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+  }
+
+  .restart-resume-index {
+    flex: none;
+    min-width: 1.2em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .restart-resume-item-text {
+    display: -webkit-box;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .restart-resume-item-text.action {
+    color: var(--muted);
+  }
+
+  /* 一時停止の線（送信待ちの線と同じ注意の色） */
+
+  .restart-resume-stop {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--warn);
+  }
+
+  .restart-resume-stop::after {
+    flex: 1;
+    border-top: 1px dashed currentColor;
+    opacity: 0.6;
+    content: "";
+  }
+
+  .restart-resume-foot {
+    display: flex;
+    margin-top: 2px;
+  }
+
+  .restart-resume-choice.segmented button {
+    padding: 3px 12px;
+    font-size: var(--fs-12);
+  }
+
+  .restart-resume-open {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .restart-resume-actions {
+    align-items: center;
+  }
+
+  /* 選んだ内訳は左に寄せ、ボタンは右に */
+
+  .restart-resume-summary {
+    margin-right: auto;
+  }
+}

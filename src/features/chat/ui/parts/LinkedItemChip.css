@@ -1,0 +1,25 @@
+/* ==== チャットにつないだ Issue・PR の札（LinkedItemChip） ==== */
+@layer feature {
+  /*
+   * チャットが結び付いた issue・PR の札（チャットの見出し・ボードのカードの「#12」。features/github の GitHubLinkChip）。
+   * 形はブランチの印・グループの札と同じ小さなピルで、色は GitHub の印の灰色。押すと GitHub タブでその issue・PR を開く
+   */
+
+  .github-link-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    --tag-border: var(--border-strong);
+    font: inherit;
+    font-size: var(--fs-11);
+    line-height: 17px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .github-link-chip:hover {
+    --tag-border: var(--accent);
+    --tag-fg: var(--text);
+  }
+}

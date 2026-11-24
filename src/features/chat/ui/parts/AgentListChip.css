@@ -1,0 +1,140 @@
+/* ==== 入力欄の上の一覧のピルの中身（AgentListChip。行・印・空の文） ==== */
+@layer feature {
+  .agent-list-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    /* 入れ子は親のすぐ下に字下げして並べる（--depth は AgentListChip が深さで入れる） */
+    padding: 8px 10px 8px var(--tree-left);
+    --tree-pad: 10px;
+    --tree-indent: 18px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .agent-list-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .agent-list-row.archived {
+    opacity: 0.55;
+  }
+
+  /* 一覧の行（サブエージェント・子チャット。AgentListChip）の右端のアーカイブ・戻す（いつも薄い色で出し、乗せたら濃くする） */
+
+  .agent-list-row-action {
+    flex: none;
+    align-self: center;
+    margin-left: auto;
+  }
+
+  /* 操作が続けて並ぶとき（アーカイブ・削除）は、右へ寄せるのを最初の 1 つだけに */
+
+  .agent-list-row-action + .agent-list-row-action {
+    margin-left: 0;
+  }
+
+  .agent-list-row-action:not(:hover) {
+    color: var(--extra-muted);
+  }
+
+  /* 一覧の上: 完了したものをまとめてアーカイブ */
+
+  .agent-list-archive-all {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 4px;
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 2px solid var(--accent);
+    border-radius: var(--radius) var(--radius) 0 0;
+    font: inherit;
+    font-size: var(--chat-fs-14);
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .agent-list-archive-all:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .agent-list-archive-all:disabled {
+    color: var(--muted);
+    cursor: default;
+  }
+
+  /* 一覧のいちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバーと同じ見出しを、一覧の行の左右の余白にそろえて置く。中の行は一覧の行と同じ幅） */
+
+  .composer-archived {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+
+  .composer-archived > .custom-group-head {
+    margin: 0 8px;
+    font-size: var(--chat-fs-12);
+  }
+
+  .agent-list-empty {
+    margin: 8px 12px;
+  }
+
+  .agent-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    margin-top: 2px;
+    color: var(--muted);
+  }
+
+  /* 動いている間は作業中の色で回す（ほかの回る印と同じ色） */
+
+  .agent-icon.spinning {
+    color: var(--dot-running);
+    animation: spin 2.4s linear infinite;
+  }
+
+  .agent-list-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .agent-list-title {
+    overflow: hidden;
+    font-size: var(--chat-fs-14);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .agent-list-meta {
+    overflow: hidden;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ToDo のピルと一覧（TodoChip） */
+
+  .chip-icon {
+    color: var(--muted);
+  }
+
+  /* 狭い所でアイコンと数だけにするときの、サブエージェント・子チャットの印（ふだんは出さない。ノートの下の入力欄の .short-chips で出す） */
+
+  .chip-short-icon {
+    display: none;
+  }
+}

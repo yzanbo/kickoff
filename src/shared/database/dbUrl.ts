@@ -1,17 +1,11 @@
-import { DB_DEFAULT_PORTS, type DbEngine, type DbSsl } from "../types/database";
+import { DB_DEFAULT_PORTS, type DbEndpoint, type DbEngine, type DbSsl } from "./types";
+import { isFileDb } from "./connectionShape";
 
 // 接続の URL（postgres://user:pass@host:5432/db?sslmode=require など）を読んで、接続の登録の欄を埋める
 
 /** URL から読んだ接続の欄（書いていないものは null） */
-export interface ParsedDbUrl {
-  engine: DbEngine;
-  host: string | null;
-  port: number | null;
-  database: string | null;
-  username: string | null;
+export interface ParsedDbUrl extends DbEndpoint {
   password: string | null;
-  file_path: string | null;
-  ssl: DbSsl | null;
 }
 
 const SCHEMES: Record<string, DbEngine> = {
@@ -48,7 +42,7 @@ export function parseDbUrl(input: string): ParsedDbUrl | null {
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(text)?.[1]?.toLowerCase();
   const engine = scheme ? SCHEMES[scheme.split("+")[0]] : undefined;
   if (!scheme || !engine) return null;
-  if (engine === "sqlite") {
+  if (isFileDb(engine)) {
     // sqlite:///abs/path → /abs/path、sqlite://rel → rel、sqlite:rel → rel（? 以降は捨てる）
     let rest = text.slice(scheme.length + 1).split("?")[0];
     if (rest.startsWith("//")) rest = rest.slice(2);

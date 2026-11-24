@@ -1,0 +1,41 @@
+/* ==== 接続を写す（CopyConnectionDialog） ==== */
+@layer feature {
+  /* ほかのプロジェクトの接続を写すダイアログ */
+
+  .db-copy-dialog {
+    --dialog-w: 520px;
+  }
+
+  .db-copy-list {
+    display: grid;
+    gap: 8px;
+    max-height: 50vh;
+    overflow: auto;
+  }
+
+  .db-copy-group {
+    margin: 0;
+    padding: 4px 8px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .db-copy-group legend {
+    padding: 0 4px;
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  .db-copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .db-copy-name {
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,65 @@
+/* ==== 変更の一覧の行と操作（ChangedFiles・ChangeGroup・RefList） ==== */
+@layer feature {
+  /* 「ステージされている変更」「変更」を包む要素（選んだものを Esc・行の外を押して外すための入れ物。並びは変えない） */
+
+  .change-groups {
+    display: contents;
+  }
+
+  /* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
+
+  .change-group-row {
+    display: flex;
+    align-items: center;
+    padding-right: 10px;
+  }
+
+  .change-group-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .change-group-row .change-group-head {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /* 一覧・木の 1 行（行のボタンと、右の操作のボタン） */
+
+  .change-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .change-item .change-file {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /*
+   * 変更の一覧の行の操作（ステージ・元に戻すなど）は、VS Code と同じく、乗せた行・選んだ行・ピントのある行だけに出す
+   * （いつも出すと、狭い一覧でファイルの名前が隠れるため。木では、乗せたいちばん内側の行だけ）
+   */
+
+  .change-group .row-actions {
+    display: none;
+  }
+
+  .change-group-row:is(:hover, :focus-within) > .row-actions,
+  .change-item:is(:hover, :focus-within, :has(> .change-file.selected)) > .row-actions,
+  .change-group .tree-row:is(:hover, .selected, :has(> .row-actions:focus-within)) > .row-actions,
+  .change-group .tree-view:focus-visible .tree-row.focused > .row-actions {
+    display: flex;
+  }
+
+  /* 乗せた行は、操作のボタンの所まで行の地を伸ばす（ボタンに乗せている間も行を乗せた色のまま。選んだ行は選んだ色） */
+
+  .change-item:hover > :is(.change-file:not(.selected), .row-actions) {
+    background: var(--bg-hover);
+  }
+
+  .change-item:has(> .change-file.selected) > .row-actions {
+    background: var(--bg-active);
+  }
+}

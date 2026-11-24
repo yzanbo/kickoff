@@ -1,0 +1,2 @@
+/* @xyflow/react の CSS を vendor の層に入れる（機能の CSS の上書きが詳細度によらず勝つように） */
+@import "@xyflow/react/dist/style.css" layer(vendor);

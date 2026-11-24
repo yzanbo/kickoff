@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { collectSubagents, networkStoppedSubagents } from "./subagents";
 import { textSimilarity } from "./subagentSupersede";
-
 
 const PROMPT = "日本語で報告してください。読むだけの調査です。Mac に入っているアプリ A のチャット画面の機能を洗い出し、Kickoff にないものを挙げてください。";
 // 裏で動かして、終わりの知らせで結果を受け取る

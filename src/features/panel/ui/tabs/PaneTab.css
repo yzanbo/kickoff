@@ -1,0 +1,153 @@
+@layer feature {
+  /*
+   * 保存していない変更のあるタブ（ファイルのタブ。PanelTab の dirty）: 閉じるを「●」にし、乗せたときだけ × に戻す（VS Code と同じ）。
+   * どのタブに未保存があるか見えるよう、表示中でない・細いタブでも出す（PanelTab.css の、乗せていないときに閉じるを隠す決まりに詳細度で勝つ）
+   */
+
+  .panel-tab.dirty .panel-tab-close,
+  .panel-tab.dirty:not(.active, :hover) .panel-tab-close {
+    display: grid;
+    opacity: 1;
+  }
+
+  .panel-tab-close.dirty:not(:hover) svg {
+    display: none;
+  }
+
+  .panel-tab-close.dirty:not(:hover)::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /*
+   * 色のあるタブ: グループ別にまとめたときのまとまりの中のタブ（まとまりの色）と、右の欄のノート・サブエージェント・子チャット（新しい子チャットも同じ色）のタブ（種類の色）。
+   * どちらも色は --tab-color 1 つで、表示中のタブの上の端の線に使う（PanelTab.css の .panel-tab.active::before。上の端へは TabBar.css）。
+   * まとまりの頭の札と種類の札は、同じ「薄い地に色の文字」の丸い札
+   * （TabClusterHead.css の .panel-tab-cluster-pill と、下の .panel-tab-kind）
+   */
+
+  /* 種類の色（右の欄のタブ。タブを見ただけで種類が分かるように、種類ごとに決まった色） */
+
+  .panel-tab.tab-kind-note {
+    --tab-color: hsl(36 70% 62%);
+  }
+
+  .panel-tab.tab-kind-subagent {
+    --tab-color: hsl(265 65% 72%);
+  }
+
+  .panel-tab.tab-kind-child,
+  .panel-tab.tab-kind-newChild {
+    --tab-color: var(--child-depth-1);
+  }
+
+  /* 孫より深い子チャットのタブは、札（「孫」「ひ孫」。ChildTabBadge）と上の端の線を深さの色にする（同じ欄に子と並ぶので見分ける） */
+
+  /* まとまりの中のタブ（ChatTabStrip.css の .panel-tab-group:not(.plain) .panel-tab。同じ詳細度）でも、深さの色にする */
+  .panel-tab.tab-kind-child:has(.child-depth-mark-2),
+  .panel-tab.tab-kind-child:has(.child-depth-mark-2):is(.panel-tab-group:not(.plain) *) {
+    --tab-color: var(--child-depth-2);
+  }
+
+  .panel-tab.tab-kind-child:has(.child-depth-mark-3),
+  .panel-tab.tab-kind-child:has(.child-depth-mark-3):is(.panel-tab-group:not(.plain) *) {
+    --tab-color: var(--child-depth-3);
+  }
+
+  :root[data-theme="light"] .panel-tab.tab-kind-note {
+    --tab-color: hsl(32 70% 38%);
+  }
+
+  :root[data-theme="light"] .panel-tab.tab-kind-subagent {
+    --tab-color: hsl(265 50% 48%);
+  }
+
+  /* 名前の前の種類の札（まとまりの頭の札と同じ、薄い地に色の文字の丸い札。名前より先に省かない） */
+
+  .panel-tab-label .panel-tab-kind {
+    flex: none;
+    --tag-color: var(--tab-color);
+    --tag-tint: 18%;
+    font-size: var(--fs-10);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  /* 未読のタブの名前の色（.panel-tab.unread .panel-tab-label span）に札の色を上書きさせない */
+
+  .panel-tab.unread .panel-tab-label .panel-tab-kind {
+    color: var(--tab-color);
+  }
+
+  /*
+   * 子チャットの動きの印（ChildActivityMark。チャットのタブの名前の後ろ）: 子孫の子チャットが作業中なら、子チャットのマークと作業中のリング（と件数）を
+   * 作業中の色の薄い地の丸い札に、回答待ちがあれば回答待ちの色の「!」にする。どれも動いていなければ子チャットのマークと数だけを薄く。親のタブを見るだけで、子チャットがあること・裏で動いていることが分かるように
+   */
+
+  .panel-tab-label .tab-child-activity {
+    --activity-color: var(--dot-running);
+
+    display: inline-flex;
+    flex: none;
+    gap: 3px;
+    align-items: center;
+    height: 16px;
+    padding: 0 5px;
+    overflow: visible;
+    --tag-color: var(--activity-color);
+    font-size: var(--fs-10);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  /* 押すと子チャットの一覧を開く（ChildActivityMark → TabChildChatsPopover）。乗せたら地を濃くして押せると分かるように */
+
+  .panel-tab-label .tab-child-activity[role="button"] {
+    cursor: pointer;
+  }
+
+  .panel-tab-label .tab-child-activity[role="button"]:hover,
+  .panel-tab-label .tab-child-activity[aria-expanded="true"] {
+    --tag-tint: 30%;
+  }
+
+  .panel-tab-label .tab-child-activity.state-needs_input {
+    --activity-color: var(--dot-needs-input);
+  }
+
+  /* 動いている子孫がないときは、子チャットがあることだけを薄く（色の札にせず、名前より控えめな文字の色で。タブに出す項目の「子チャット」） */
+
+  .panel-tab-label .tab-child-activity.state-idle {
+    --activity-color: var(--muted);
+    --tag-bg: none;
+    padding: 0 2px;
+    font-weight: 500;
+  }
+
+  .panel-tab-label .tab-child-activity .status-ring {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    overflow: visible;
+    border-width: 1.5px;
+  }
+
+  .panel-tab-label .tab-child-activity-alert {
+    overflow: visible;
+    font-weight: 700;
+  }
+
+  /* チャットのタブの名前を変えている途中の入力欄（ui の .inline-name を同じ詳細度で上書きする。タブの列はウィンドウのドラッグ領域なので no-drag） */
+
+  input[type="text"].panel-tab-input {
+    flex: 1;
+    min-width: 0;
+    height: 22px;
+    padding: 0 4px;
+    font-size: var(--fs-12);
+    -webkit-app-region: no-drag;
+  }
+}

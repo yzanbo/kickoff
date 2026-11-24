@@ -1,0 +1,47 @@
+/* ==== CI の実行の行（CiRunRow） ==== */
+@layer feature {
+  .ci-branch {
+    padding: 0 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    font-size: var(--fs-11);
+  }
+
+  /* 作業場所のブランチ・既定のブランチ（落ちたら知らせる）はアクセントの色 */
+
+  .ci-branch.watched {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-fg);
+  }
+
+  /* 一覧の行（.github-item）の上書き。読む順に頼らないよう組で書く */
+  .ci-external-row.github-item {
+    cursor: default;
+  }
+
+  .ci-external-row.github-item:hover {
+    background: transparent;
+  }
+
+  .ci-external-desc {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ci-external-link,
+  .ci-job-link {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    color: var(--muted);
+  }
+
+  .ci-external-link:hover,
+  .ci-job-link:hover {
+    color: var(--text);
+  }
+}

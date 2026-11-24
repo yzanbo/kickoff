@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/foundation/desktop/preload/**/*.ts", "src/app/desktop/preload.ts", "src/shared/*/ipc.ts"],
+  "exclude": ["**/*.test.ts"]
+}

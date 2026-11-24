@@ -1,0 +1,25 @@
+/* ==== 右の欄・別ウィンドウの子チャット（SideChildChat・NewChildPane） ==== */
+@layer feature {
+  /* 右の欄に開いた子チャット（上の帯と、その下にチャットの画面） */
+
+  .side-child-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .side-child-chat-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .side-child-chat-body > * {
+    flex: 1;
+    min-height: 0;
+  }
+}

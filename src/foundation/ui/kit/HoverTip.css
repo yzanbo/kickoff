@@ -1,0 +1,47 @@
+/* ==== 乗せたときの説明（HoverTip） ==== */
+@layer ui {
+  /* マウスを乗せたときの説明（HoverTip。popover で top layer に出すので、ダイアログの上にも出る。位置は画面が style で与える） */
+
+  .hover-tip {
+    position: fixed;
+    inset: auto;
+    max-width: 280px;
+    margin: 0;
+    padding: 6px 9px;
+    --floating-radius: var(--radius);
+    --floating-shadow: var(--shadow-1);
+    font-size: var(--fs-12);
+    line-height: 1.5;
+    color: var(--text);
+    pointer-events: none;
+  }
+
+  .hover-tip:popover-open {
+    display: grid;
+    gap: 2px;
+  }
+
+  .hover-tip-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .hover-tip-title {
+    font-weight: 600;
+  }
+
+  /* ショートカットのキー（見出しの右。見た目は kbd の基底のまま） */
+
+  .hover-tip-keys {
+    flex: none;
+  }
+
+  .hover-tip-text {
+    color: var(--muted);
+    white-space: pre-line;
+    /* 長い URL（画像の URL の一覧など）も幅の中で折り返す */
+    overflow-wrap: anywhere;
+  }
+}

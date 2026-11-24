@@ -1,0 +1,66 @@
+// チャットの画面の置き場所の値 ChatHost（パネルのタブ・右の欄の子チャット・別ウィンドウ・ノートのチャットの違いを 1 つの値に）と、チャットの種類
+import type { ComponentType, MutableRefObject, ReactNode } from "react";
+import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
+import type { ChipsPortal } from "./chipsPortal";
+
+/** 新しいチャットを始める先（どのプロジェクト・グループ・作業場所で始めるか。なければグループなし・本体） */
+export interface NewChatPlace {
+  projectId: number;
+  group?: number;
+  /** 始める作業場所のワークツリーのフォルダ（作業場所別のまとまりの「新しいチャット」から。なければ本体） */
+  worktree?: string;
+}
+
+/** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示・GitHub の issue から始めるとき） */
+export interface NewChatSeed {
+  text: string;
+  attachments: Attachment[];
+  /** 作るチャットに結び付ける GitHub の issue・PR（GitHub タブの「新しいチャット」） */
+  github?: GitHubLink;
+  /** 初めの作業場所を新しいワークツリーにするときのブランチ名（GitHub タブで「新しいワークツリー」を選んだとき） */
+  newWorktreeBranch?: string;
+}
+
+/** 右の欄の殻を外から動かす口（右の欄の殻が handleRef に入れる） */
+export interface SidePanelHandle {
+  /** メインの会話を覆っていれば、並べる形に戻す（流れの中のカードへ移るとき） */
+  uncover: () => void;
+}
+
+/** 右の欄（チャットのパネルが作る殻）を、チャットの画面が読む口 */
+export interface SidePanelPort {
+  /** 会話の欄（children）と右の欄を横に並べる殻 */
+  Frame: ComponentType<{ scope: number; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }>;
+  /** 見出しの右の欄の開閉ボタン */
+  Toggle: ComponentType<{ chatId: number }>;
+}
+
+/**
+ * 置き場所ごとの違い（置く側が作って ChatScreen に渡す）。
+ * 渡すたびに作り直してよい（中の関数は呼ぶときに読む）
+ */
+export interface ChatHost {
+  /** 置き場所の名前 */
+  readonly surface: "tab" | "side" | "window" | "note";
+  /** 裏に回したら会話の欄を止めてよいか（パネルのタブ・右の欄の子チャット。ノートのチャット・別ウィンドウは止めない） */
+  readonly pausable: boolean;
+  /** 右の欄を置ける場所なら、その口（パネルのタブのチャットだけ。右の欄の子チャット・ノートのチャット・別ウィンドウは null） */
+  readonly side: SidePanelPort | null;
+  /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
+  readonly openNewChat?: (place: NewChatPlace, seed?: NewChatSeed) => void;
+  /** この画面のあるタブを表に出す（パネルのタブの中だけ。隠れた画面で「移る」を受けたとき） */
+  readonly bringToFront?: () => void;
+  /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
+  readonly slot?: string;
+  /** 送る前にすること（ノートのチャットで、書きかけのノートを保存してから送る） */
+  readonly beforeSend?: () => Promise<void>;
+  /** ピルの列と送信待ちを画面の外に描く先（ノートのチャット） */
+  readonly chipsPortal?: ChipsPortal | null;
+  /** 足す先のチャット（右の欄・別ウィンドウの中ならその右の欄を持つ / 開いたチャット。ほかは null で、外の MainChatContext を使う） */
+  readonly mainChatId: number | null;
+}
+
+/** チャットの種類（ふつう・子チャット・ノートのチャット） */
+export type ChatRole = "chat" | "child" | "note";
+
+export const chatRoleOf = (chat: Pick<Chat, "parent_chat_id" | "note_path">): ChatRole => (chat.note_path ? "note" : chat.parent_chat_id !== null ? "child" : "chat");

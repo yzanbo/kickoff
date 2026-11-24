@@ -1,0 +1,28 @@
+/* ==== 一度だけのコンテナ（DockerOneoffs） ==== */
+@layer feature {
+  .docker-oneoffs {
+    padding: 0 8px 4px 34px;
+  }
+
+  .docker-oneoffs-toggle {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .docker-oneoff {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 2px 0 2px 12px;
+  }
+
+  .docker-oneoff-name {
+    font-family: var(--mono);
+  }
+}

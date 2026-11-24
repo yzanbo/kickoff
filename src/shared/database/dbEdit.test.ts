@@ -1,17 +1,10 @@
 // テーブルの行の変更を SQL にする: 場所つきの名前・値は params・キーの NULL・変えない更新は飛ばす・既定値だけの追加・行を指す列の選び方
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbTableColumn } from "../types/database";
-import { editKeyColumns, editStatements, qualifiedTable } from "./dbEdit";
+import type { DbTableColumn } from "./types";
+import { editKeyColumns, editStatements } from "./dbEdit";
 
 const col = (name: string, patch: Partial<DbTableColumn> = {}): DbTableColumn => ({ name, type: "text", nullable: true, default: null, primary_key: false, comment: null, ...patch });
-
-test("qualifiedTable: PostgreSQL はスキーマ、MySQL は DB、SQLite は付け足した DB の名前で。囲みの文字は 2 つに", () => {
-  assert.equal(qualifiedTable("postgres", { database: "app", schema: "public" }, "users"), `"public"."users"`);
-  assert.equal(qualifiedTable("mysql", { database: "shop", schema: null }, "a`b"), "`shop`.`a``b`");
-  assert.equal(qualifiedTable("sqlite", { database: "main", schema: null }, 'x"y'), `"main"."x""y"`);
-  assert.equal(qualifiedTable("postgres", { database: "app", schema: null }, "t"), `"t"`);
-});
 
 test("editStatements: 更新・削除・追加。値は params で、見せる文には埋める", () => {
   const path = { database: "app", schema: "public" };

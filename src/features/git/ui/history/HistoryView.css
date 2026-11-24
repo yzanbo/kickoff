@@ -1,0 +1,47 @@
+/* ==== 履歴の左の一覧の見出し・すべての行・同期（HistoryView） ==== */
+@layer feature {
+  /* 履歴の左の一覧（すべてのコミット・ブランチ・リモート・タグ・stash） */
+
+  .ref-all {
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: var(--fs-13);
+  }
+
+  /* 追いかけているリモートとの進み・遅れ（「13↑」。数は読みやすく文字の色で） */
+
+  .ref-sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    font-size: var(--fs-12);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .ref-item .ref-sync svg {
+    color: var(--text);
+  }
+
+  /* リモートの名前の行（押して開閉。GitHub のマーク・雲） */
+
+  .ref-remote-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 3px 10px 3px 8px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .ref-remote-name:hover {
+    background: var(--bg-hover);
+  }
+}

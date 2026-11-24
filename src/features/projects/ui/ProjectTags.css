@@ -1,0 +1,38 @@
+/* ==== プロジェクトのタグ（チップ ProjectTags・編集の欄 TagEditor・絞り込みの印 TagFilterNotice・見出しの「タグ」） ==== */
+@layer feature {
+  /* タグのチップの列（サイドバーのカードの 2 行目では文の続きに並べ、はみ出したら行ごと省略する） */
+
+  .project-tags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+    vertical-align: middle;
+  }
+
+  .project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 100%;
+    --tag-border: var(--border-strong);
+    --tag-bg: var(--bg-elev);
+    font-size: var(--fs-10);
+    line-height: 16px;
+  }
+
+  .project-tag-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* チップの外すボタン（.icon-button を上書きして小さくする） */
+
+  .project-tag-remove {
+    width: 14px;
+    height: 14px;
+    margin-right: -4px;
+    border-radius: 999px;
+  }
+}

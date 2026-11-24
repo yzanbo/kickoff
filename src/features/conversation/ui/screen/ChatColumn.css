@@ -1,0 +1,190 @@
+/* ==== チャットの画面の枠・見出し・チャット欄の置き場所（ChatColumn・DraftChatPage・SubagentScreen） ==== */
+@layer feature {
+  .chat-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100%;
+  }
+
+  /*
+   * 見出しの行（36px）。いつもパネルのタブの列の下にあり、ウィンドウの上端ではないので、ウィンドウのドラッグ領域にしない
+   * （ドラッグ領域では右クリックが画面に届かない）。浮かせた検索欄（.chat-find.detached）の置き場所の基準にする
+   */
+
+  .chat-header {
+    position: relative;
+    padding: 4px var(--gutter) 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* 見出しの行を隠したとき（タブの列の「表示」）: 高さを持たず、浮かせた検索欄の基準だけに残す */
+
+  .chat-header.collapsed {
+    height: 0;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .chat-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    container-type: inline-size;
+  }
+
+  /* 見出しの行のプロジェクト・作業場所のバッジ（狭いときは縮めて省略） */
+
+  .chat-sub {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* 見出しの右の、作業場所の道具（ターミナル・外部のターミナル） */
+
+  .chat-tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .chat-tools:empty {
+    display: none;
+  }
+
+  /* 見出しの行の、指示の帯の表示・非表示（出しているときはアクセントの色。右端の右の欄の開閉はアイコンの向きで分かるので色を変えない） */
+
+  .chat-sticky-toggle.on {
+    color: var(--accent-bright);
+  }
+
+  /* 見出しの右端の右の欄の開閉は、狭い見出しでも縮めない（道具と同じく flex: none の入れ物に入っていないため） */
+
+  .chat-agents-toggle {
+    flex: none;
+  }
+
+  /* 状態の前のターン数・費用 */
+
+  .chat-meta {
+    display: flex;
+    flex: none;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  /* 見出しが狭いとき（右のパネル・チャット欄）は、ターン数・費用を隠して名前とバッジに幅を回す */
+
+  @container (max-width: 560px) {
+    .chat-meta {
+      display: none;
+    }
+  }
+
+  .chat-sub a {
+    color: var(--muted);
+  }
+
+  .chat-sub a:hover {
+    color: var(--text);
+  }
+
+  .chat-composer {
+    max-width: 852px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 4px var(--gutter) 10px;
+  }
+
+  /* 預かった指示を書き直している間（compact の HeldEditComposer）は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま） */
+
+  .chat-composer:has(> .held-edit) > .composer {
+    display: none;
+  }
+
+  /* 発言の流れの中身の幅（Timeline の中） */
+  .timeline-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: var(--chat-column);
+    margin: 0 auto;
+    padding: 20px var(--gutter) 24px;
+    font-size: var(--chat-fs-15);
+  }
+
+  /* 幅 720px 以下の画面では、左右の余白を広げる */
+
+  @media (max-width: 720px) {
+    .chat-header,
+    .timeline-inner,
+    .chat-composer {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .chat-header {
+      padding-top: 12px;
+    }
+  }
+
+  /* 横幅いっぱいに広げたチャット（チャットの見出しの ↔・設定の「表示」）: 発言の流れ・チャット欄の幅の上限を外す（上に貼り付ける指示は StickyPrompt.css） */
+
+  .chat-page.wide .timeline-inner,
+  .chat-page.wide .chat-composer {
+    max-width: none;
+  }
+
+  /* チャットのパネルの中で重ねて出すもの（下へ戻るボタンなど）の基準 */
+
+  .chat-panel {
+    position: relative;
+  }
+
+  /* ==== チャットの画面の置き場所・表示の設定ごとの見た目（パネル・右の欄・ノートの .chat-panel、見出しの色なしのバッジ） ==== */
+
+  /* 余白を詰め、長いタイトルや本文で置き場所の幅を広げない */
+
+  .chat-panel {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .chat-panel .chat-title-row,
+  .chat-panel .chat-sub {
+    min-width: 0;
+  }
+
+  .chat-panel .bubble.user {
+    overflow-wrap: anywhere;
+  }
+
+  .chat-panel .composer-tools {
+    min-width: 0;
+  }
+
+  .chat-panel .timeline-inner {
+    padding: 16px var(--gutter) 20px;
+  }
+
+  .chat-panel .chat-composer {
+    padding: 4px var(--gutter) var(--gutter);
+  }
+
+  /*
+   * チャットの見出しのバッジを色なしで表示するとき（「バッジを色付きで表示」を外した .plain-badges）: グループの札・ブランチの印・選べる札を、
+   * 色相の代わりに控えめな灰色の枠と文字にする（形はそのまま）
+   */
+
+  .chat-sub.plain-badges :is(.worktree-chip, .chat-group-chip) {
+    --chip-color: var(--muted);
+    --group-color: var(--muted);
+  }
+}

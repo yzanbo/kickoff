@@ -1,0 +1,11 @@
+/* ==== CI のタブ（CiTab。一覧と詳細の枠は GitHub と同じ） ==== */
+@layer feature {
+  /* CI のタブ（features/ci）: 一覧と中身の枠は土台の list-detail と GitHub タブの github-item / github-detail を使い、ここは CI だけの部分（外の CI の行・ブランチの札・ジョブとステップの開閉・ログ） */
+
+  .ci-list-heading {
+    margin: 0;
+    padding: 8px var(--gutter) 4px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+}

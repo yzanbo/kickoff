@@ -1,0 +1,100 @@
+/* ==== サービスの行（DockerServiceRow・DockerPorts） ==== */
+@layer feature {
+  .docker-services {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .docker-service + .docker-service {
+    border-top: 1px solid var(--border);
+  }
+
+  .docker-service.is-optional .docker-service-row > :not(.docker-service-actions) {
+    opacity: 0.55;
+  }
+
+  .docker-service-row {
+    display: grid;
+    grid-template-columns: 16px minmax(80px, 160px) minmax(0, 1fr) auto auto auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 32px;
+    padding: 2px 8px 2px 10px;
+  }
+
+  .docker-service-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .docker-mark {
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .docker-mark.mark-running {
+    color: var(--ok);
+  }
+
+  .docker-mark.mark-failed {
+    color: var(--ng);
+  }
+
+  .docker-mark.mark-starting,
+  .docker-mark.mark-paused {
+    color: var(--warn);
+  }
+
+  .docker-service-name {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .docker-service-image {
+    overflow: hidden;
+    font-family: var(--mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .docker-service-status {
+    white-space: nowrap;
+  }
+
+  .docker-service-status.is-failed {
+    color: var(--ng);
+  }
+
+  .docker-ports {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .docker-port {
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: none;
+    color: var(--accent-fg);
+    font-family: var(--mono);
+    cursor: pointer;
+  }
+
+  .docker-port:hover {
+    background: var(--bg-hover);
+  }
+
+  .docker-service-actions {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 120px;
+  }
+
+  .docker-others {
+    margin-top: 12px;
+    cursor: default;
+  }
+}

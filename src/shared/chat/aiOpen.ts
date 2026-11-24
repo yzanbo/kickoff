@@ -1,29 +1,17 @@
-// チャットの AI がメモ・家系のチャットを開くツール（kickoff_chat の open_memo・open_chat）の、コアと画面で共有する名前と、記録の行に出す文
-import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/types";
+// チャットの AI がノート・家系のチャットを開くツール（kickoff_chat の open_note・open_chat）の、コアと画面で共有する名前と、記録の行に出す文
+import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/chat/openView";
 
-/** メモを開くツールの名前 */
-export const AI_OPEN_MEMO_TOOL = "mcp__kickoff_chat__open_memo";
+/** ノートを開くツールの名前 */
+export const AI_OPEN_NOTE_TOOL = "mcp__kickoff_chat__open_note";
 
 /** 家系のチャットを開くツールの名前 */
 export const AI_OPEN_CHAT_TOOL = "mcp__kickoff_chat__open_chat";
-
-/** open_memo の引数（path はメモのフォルダからの相対パスか、メモのフォルダの中の絶対パス。place を省くと画面の設定の開き方） */
-export interface OpenMemoInput {
-  path: string;
-  place?: OpenPlace;
-}
-
-/** open_chat の引数（place を省くと画面の設定の開き方。いちばん上の親チャットはチャットのパネルで開くので place は効かない） */
-export interface OpenChatInput {
-  chat_id: number;
-  place?: OpenPlace;
-}
 
 /** 引数の place の言葉（なければ null） */
 const placeLabel = (place: unknown): string | null => (OPEN_PLACES.includes(place as OpenPlace) ? OPEN_PLACE_LABELS[place as OpenPlace] : null);
 
 /** 記録の行に出す文（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら場所は付けない） */
-export function describeOpenMemo(input: Record<string, unknown>): string {
+export function describeOpenNote(input: Record<string, unknown>): string {
   const target = typeof input.path === "string" ? input.path : "";
   const place = placeLabel(input.place);
   return place ? `${target}（${place}）` : target;
@@ -47,31 +35,6 @@ export const AI_OPEN_SQL_TOOL = "mcp__kickoff_chat__open_sql";
 
 /** 家系のチャットの入力欄に下書きを入れるツールの名前 */
 export const AI_ADD_DRAFT_TOOL = "mcp__kickoff_chat__add_draft";
-
-/** open_file の引数（path は作業場所からの相対パスか、作業場所の中の絶対パス。line は目立たせる行） */
-export interface OpenFileInput {
-  path: string;
-  line?: number;
-  place?: OpenPlace;
-}
-
-/** open_diff の引数（path を省くと変更の全体） */
-export interface OpenDiffInput {
-  path?: string;
-  place?: OpenPlace;
-}
-
-/** open_sql の引数（connection は接続の名前。AI に見せる接続が 1 つだけなら省ける） */
-export interface OpenSqlInput {
-  sql: string;
-  connection?: string;
-}
-
-/** add_draft の引数 */
-export interface AddDraftInput {
-  chat_id: number;
-  text: string;
-}
 
 /** 記録の行に出す文（「src/a.ts:12（別ウィンドウ）」） */
 export function describeOpenFile(input: Record<string, unknown>): string {

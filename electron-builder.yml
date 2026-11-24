@@ -5,9 +5,9 @@ directories:
 # Electron は npm で入れた node_modules/electron/dist（package.json の版と同じ）をそのまま使う。
 # 指定しないと electron-builder がビルドのたびに GitHub から取り直し（確かめの SHASUMS も）、GitHub が 504 などを返すと入れ替えが止まる
 electronDist: node_modules/electron/dist
-# Electron の fuses（作った製品版の実行ファイルにだけ効き、開発版の node_modules の Electron には効かない）。
+# Electron の fuses（作った製品版の実行ファイルにだけ効き、開発版の node_modules の Electron には効かない。確かめは node node_modules/@electron/fuses/dist/bin.js read --app <作った .app>）。
 # DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化しているので、AI が Bash から Kickoff 本人として
-# 自分の JavaScript を動かして鍵を受け取る道をふさぐ（要件 5.12）。DB ワーカーは utilityProcess で起動するので RunAsNode は要らない
+# 自分の JavaScript を動かして鍵を受け取る道をふさぐ。DB ワーカーは utilityProcess で起動するので RunAsNode は要らない
 electronFuses:
   # ELECTRON_RUN_AS_NODE=1 で製品版の実行ファイルを Node として動かす
   runAsNode: false
@@ -27,7 +27,7 @@ asarUnpack:
   # Agent SDK が起動する Claude Code のネイティブバイナリは asar の外に置く必要がある
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
   # Copilot SDK に同梱の Copilot のランタイム（起動する実行ファイルと runtime.node）と、SDK が読む FFI の koffi も asar の外に置く
-  # （製品版で動くかは、Copilot を使い始める前に確かめる。メモの仕様書「0021」）
+  # （製品版で動くかは、Copilot を使い始める前に確かめる）
   - node_modules/@github/copilot-sdk-*/**
   - node_modules/koffi/**
   # 内蔵ターミナルの node-pty（ネイティブのモジュールと spawn-helper）
@@ -40,7 +40,7 @@ mac:
   # 手元用の署名（ad-hoc）でアプリ全体に署名する。配り方は「使う人が clone して npm run install-app で自分の Mac に作って入れる」なので、
   # Apple の証明書（Developer ID）と公証は要らない。署名しないと、本体だけの中途半端な署名になり、開けない・同梱の実行ファイルが動かないことがある。
   # 自分用の証明書は作らない（codesign が黙って使える鍵を置くと、AI が自作のプログラムに Kickoff の署名を付けてキーチェーンの鍵を取り出せるため。
-  # 仮の署名はキーチェーンの許可を中身に結びつけるので、入れ替えたあと最初に DB のパスワードを読むときに 1 回だけ許可を聞かれる。要件 5.12）
+  # 仮の署名はキーチェーンの許可を中身に結びつけるので、入れ替えたあと最初に DB のパスワードを読むときに 1 回だけ許可を聞かれる）
   identity: "-"
   # ad-hoc の署名では、ライブラリの検証で読み込みを断られないよう、hardened runtime を使わない
   hardenedRuntime: false

@@ -1,0 +1,128 @@
+/* ==== 入力欄の上のノートの札と木（NoteChip・NoteChipTree） ==== */
+@layer feature {
+  .note-chip-item.drop-target {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .note-chip-item.drop-target::before {
+    position: absolute;
+    z-index: var(--z-hidden);
+    inset: 0 4px;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+    pointer-events: none;
+    content: "";
+  }
+
+  .note-chip-item.drop-target > .note-chip-row {
+    background: transparent;
+  }
+
+  .note-chip-item.drop-target > .note-chip-row .note-chip-title {
+    font-weight: 600;
+    color: var(--accent-fg);
+  }
+
+  /* 入力欄の上の「ノート」の一覧（ノートのタブと同じフォルダの木。NoteChipTree） */
+
+  .note-chip-popover {
+    display: grid;
+    min-width: 260px;
+    max-width: 380px;
+    padding: 4px;
+  }
+
+  .note-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-12);
+    text-align: left;
+    color: var(--text);
+    background: none;
+    cursor: pointer;
+  }
+
+  .note-chip-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .note-chip-row svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  /* 木の段ごとに字下げする（--depth は NoteChipTree の段） */
+
+  .note-chip-tree {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .note-chip-tree .note-chip-row {
+    gap: 4px;
+    width: 100%;
+    min-height: 28px;
+    padding: 2px 8px 2px var(--tree-left);
+    --tree-indent: 14px;
+  }
+
+  /* ノートの行の、フォルダの開閉の矢印の分の空き（名前の頭をフォルダの行とそろえる） */
+
+  .note-chip-indent {
+    flex: none;
+    width: 12px;
+  }
+
+  .note-chip-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 入力欄の上の「ノート」の木の入れ物（空いている所へ落とすと直下へ。落とす先のときは一覧ごと囲む） */
+
+  /* 一覧の上の行: 左に「行を押したとき」の切り替え、右端にフォルダをすべて開く・すべて閉じる */
+
+  .note-chip-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .note-chip-folds {
+    display: inline-flex;
+    flex: none;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .note-chip-list {
+    border-radius: var(--radius-sm);
+  }
+
+  .note-chip-row.more {
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    color: var(--muted);
+  }
+
+  /* 行の「このチャットに追加」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
+  .note-chip-attach + .open-place-buttons {
+    margin-left: 0;
+  }
+}

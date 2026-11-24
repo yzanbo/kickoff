@@ -1,0 +1,35 @@
+/* ==== SSH のホストの鍵の確認（SshHostKeyDialog） ==== */
+@layer feature {
+  /* 踏み台のサーバーの鍵を確かめるダイアログ */
+
+  .db-ssh-key-dialog {
+    --dialog-w: 520px;
+  }
+
+  .db-ssh-key-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .db-ssh-key-list li {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: var(--fs-12);
+  }
+
+  .db-ssh-key-type {
+    flex: none;
+    width: 150px;
+    color: var(--muted);
+  }
+
+  .db-ssh-key-list code {
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+}

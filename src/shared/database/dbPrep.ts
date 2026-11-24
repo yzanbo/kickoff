@@ -1,6 +1,6 @@
-import type { DbPrep } from "../types/database";
+import type { DbPrep } from "./types";
 
-// つなぐ前の準備のコマンド（要件 5.12 の段階 2）: 中の {名前} の埋め方・確かめた中身の写し・次に確かめる日
+// つなぐ前の準備のコマンド: 中の {名前} の埋め方・確かめた中身の写し・次に確かめる日
 
 /** コマンドの中で使える名前 */
 export const DB_PREP_PLACEHOLDERS = ["local_port", "my_ip", "host", "port", "database", "user"] as const;

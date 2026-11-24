@@ -1,0 +1,12 @@
+/* ==== ノートのチャットの切り替え（NoteChatToggle） ==== */
+@layer feature {
+  /*
+   * 見出しのチャットの見え方（NoteChatToggle。吹き出しと ▾ を 1 つに見せる .panel-split-button。吹き出しは 非表示 → チャット表示のみ → 会話を開く と回し、▾ は直に選ぶメニュー）。
+   * 開いているときは吹き出しをアクセントの色（組に乗せたときの文字の色より勝たせる）
+   */
+
+  .note-chat-toggle.on,
+  .note-chat-split:hover .note-chat-toggle.on {
+    color: var(--accent-fg);
+  }
+}

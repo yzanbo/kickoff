@@ -1,4 +1,4 @@
-// git のフック（.githooks/pre-commit・pre-push）で共通に使う補助（メモの方針「0022_テストを軽くする」）
+// git のフック（.githooks/pre-commit・pre-push）で共通に使う補助
 import { spawnSync } from "node:child_process";
 
 /** 型・knip・テストに関係するファイル（これを 1 つもコミットしないなら、コミット時の確かめは流さない） */
@@ -6,6 +6,25 @@ const CODE_FILE = /\.(ts|tsx|mts|cts|js|mjs|cjs|json)$/;
 
 export function isCodeFile(file) {
   return CODE_FILE.test(file);
+}
+
+/**
+ * コミット時に流す確かめ（この順に流す）。文書の検査はどのコミットでも流す（.md だけのコミットや、名前を変えただけのコミットでも
+ * 文書の参照が切れるため）。構造の検査から先は、コードを 1 つでもコミットするときだけ。スマホのアプリの型は、依存を入れてあるときだけ
+ * （入れていない作業場所でも、ほかのコミットを止めない）
+ */
+export function preCommitChecks(staged, { mobileDeps }) {
+  const checks = [["文書", "node", ["scripts/check-docs.mjs"]]];
+  if (!staged.some(isCodeFile)) return checks;
+  checks.push(
+    ["構造", "node", ["scripts/check-structure.mjs"]],
+    ["型", "npm", ["run", "typecheck", "--silent"]],
+    ["使っていない export・ファイル・依存（knip）", "npm", ["run", "knip", "--silent"]],
+    ["テストの書き方", "node", ["scripts/check-test-rules.mjs", ...staged]],
+  );
+  if (mobileDeps && staged.some((f) => f.startsWith("mobile/"))) checks.push(["スマホのアプリの型", "npm", ["run", "mobile:typecheck", "--silent"]]);
+  checks.push(["関係するテスト（ファイルごと）", "npm", ["run", "test:changed:isolated", "--silent", "--", ...staged]]);
+  return checks;
 }
 
 /**

@@ -1,0 +1,11 @@
+@layer tokens, base, vendor, ui, feature, state;
+@import "@/foundation/ui/styles/tokens.css" layer(tokens);
+@import "@/foundation/ui/styles/reset.css" layer(base);
+@import "@/foundation/ui/styles/layout.css" layer(feature);
+@import "@/foundation/ui/styles/scrollbar.css" layer(base);
+@import "@/foundation/ui/styles/focus.css" layer(base);
+@import "@/foundation/ui/styles/motion.css" layer(base);
+@import "@/foundation/ui/styles/types/index.css" layer(ui);
+@import "@/foundation/ui/styles/types/manage-list.css" layer(feature);
+@import "@/foundation/ui/styles/state.css" layer(state);
+/* 機能の CSS は各部品が import する（この順に頼らない） */

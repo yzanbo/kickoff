@@ -1,0 +1,295 @@
+/* ==== 右のパネルのタブの列（タブの並び・タブ 1 つ・閉じる・新しいタブ・パネルの閉じる） ==== */
+@layer feature {
+  /*
+   * タブの並び。タブが増えたら Chrome と同じくタブを細くして収め（名前を省き、狭くなったら閉じるを表示中のタブだけに、さらに狭ければアイコンだけに）、
+   * いちばん細くしても入らないときだけ、ここを横にスクロールする（すぐ右の新しいタブのボタンは隠さない）
+   */
+
+  .panel-tab-strip {
+    display: flex;
+    flex: 0 1 auto;
+    gap: 2px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .panel-tab {
+    position: relative;
+    display: flex;
+    flex: 0 1 180px;
+    align-items: center;
+    min-width: 36px;
+    height: 30px;
+    color: var(--muted);
+  }
+
+  .panel-tab:hover {
+    color: var(--text);
+    background: var(--bg-elev);
+  }
+
+  /*
+   * 表示中のタブは、印の線（タブの色 --tab-color。まとまり・右の欄の種類の色。なければアクセントの色）と太字の名前で示す（線はここでは下の端。TabBar.css でどのパネルも上の端に移し、地を画面と同じにする）。
+   * タブにはほかに線も枠も引かず（上の線・左右の枠・タブとタブの間の縦線もなし）、角も丸めない（にぎやかにしない）。
+   * 隣のタブ・タブの列の線より上に重ねる（z-index）
+   */
+
+  .panel-tab.active {
+    z-index: 1;
+    color: var(--text);
+  }
+
+  /* 印の線（::after は名前のボタンの押せる範囲に使っているので、タブの ::before。ドラッグの落とす位置の線は box-shadow なので重ならない） */
+
+  .panel-tab.active::before {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background: var(--tab-color, var(--accent-bright));
+    content: "";
+    pointer-events: none;
+  }
+
+  /* 札（グループ・作業場所）の中の文字は札の色のまま（札の中の span まで太字・文字の色にすると「| main」だけ白くなった） */
+
+  .panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name, .panel-tab-group-name *) {
+    font-weight: 600;
+  }
+
+  .panel-tab-label {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    height: 100%;
+    padding: 0 4px 0 8px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-12);
+    text-align: left;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* 名前の前のアイコンは、細いタブでも縮めない（札と名前が並ぶノートのタブで、アイコンだけ 5px ほどに潰れていた） */
+
+  .panel-tab-label > svg {
+    flex: none;
+  }
+
+  /* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」・プロジェクトの見出しのピンとそろえ、まっすぐのピンをプロジェクトの色で塗る。色は要素の --hue） */
+
+  .panel-tab-label > .panel-tab-pin {
+    margin-right: -1px;
+    color: hsl(var(--hue, 150) var(--hue-fg-pin));
+    fill: currentColor;
+  }
+
+  /* キーボードのピントは外の枠ではなくタブの地で示す（枠の上下が切り取られ、両側に縦線だけが出ていた） */
+
+  :where(:root:not([data-modality="pointer"])) .panel-tab-label:focus-visible {
+    outline: none;
+  }
+
+  :where(:root:not([data-modality="pointer"])) .panel-tab:not(.active):has(.panel-tab-label:focus-visible) {
+    color: var(--text);
+    background: var(--bg-elev);
+  }
+
+  /*
+   * 名前のボタンの押せる範囲をタブ全体（枠・閉じるの周りの余白も）に広げる。閉じるはこの上に重ねる。
+   * 名前の部分だけだと、閉じるの上下・右の余白や枠を押しても表示が変わらない
+   */
+
+  .panel-tab-label::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+  }
+
+  .panel-tab-label span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /*
+   * チャットのグループ（タブをまとめないとき、名前の後ろに添える札。グループの色の薄い地に色の文字で、まとめたときの頭の札・右の欄の種類の札と同じ形。
+   * 色が分からない（送る前の新しいチャットで、グループの一覧がまだ届いていない）ときは灰色。タブは幅が決まっているので、名前の方を省いて札は残す。長い名前だけタブの半分で省く）
+   */
+
+  .panel-tab-label .panel-tab-group-name {
+    --group-color: var(--muted);
+
+    flex: none;
+    max-width: 50%;
+    --tag-color: var(--group-color);
+    --tag-tint: 18%;
+    font-size: var(--fs-10);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  .panel-tab-label .panel-tab-group-name[style] {
+    --group-color: hsl(var(--hue) var(--hue-fg-group));
+  }
+
+  /*
+   * 2 行のタブ（「表示」のメニューの「2 行で表示」のときの、チャットを出す欄。Panel の twoLine）: タブを高くし、名前の下の行にグループ・作業場所の札を並べる。
+   * 札のない種類のタブ（ブラウザ・ターミナル）は 1 行のまま真ん中に。分けたペインのタブの中身を下げる高さは --tab-lines-extra だけ足す（Panel.css）
+   */
+
+  .panel-tab.two-line {
+    height: 40px;
+  }
+
+  .panel-tab-lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .panel-tab-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .panel-tab-tags {
+    gap: 4px;
+  }
+
+  /*
+   * 作業場所の札は省かずに出す（グループの札のようにタブの半分で省くと「本体 | m…」と切れるため）。
+   * タブの幅に入らないときの詰め方は下（PanelTab が測る）
+   */
+
+  .panel-tab-label .panel-tab-workplace {
+    max-width: none;
+  }
+
+  /*
+   * タブの幅に入らないとき（PanelTab が測る）: 本体は「本体」だけ、ワークツリーは「WT | 」を隠してブランチ名だけにし、
+   * それでも入らなければ「…」で省く（「WT」だけではどのワークツリーか分からないため）
+   */
+
+  .panel-tab.place-short .panel-tab-workplace.main :is(.panel-tab-workplace-sep, .panel-tab-workplace-branch),
+  .panel-tab.place-short .panel-tab-workplace.worktree :is(.panel-tab-workplace-kind, .panel-tab-workplace-sep) {
+    display: none;
+  }
+
+  .panel-tab.place-short .panel-tab-label .panel-tab-workplace.worktree {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
+
+  .panel-tab.unread .panel-tab-label span:not(.panel-tab-group-name, .panel-tab-group-name *) {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .panel-tab-close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+  }
+
+  .panel-tab:hover .panel-tab-close,
+  .panel-tab.active .panel-tab-close,
+  :where(:root:not([data-modality="pointer"])) .panel-tab-close:focus-visible {
+    opacity: 1;
+  }
+
+  .panel-tab-close:hover {
+    color: var(--text);
+    background: var(--bg-active);
+  }
+
+  /* 右のパネルのタブは 1 つずつを入れ物にして、細くなった幅で中身を決める（下のパネルのタブは名前の長さに合わせるので入れない） */
+
+  .panel-tab-strip .panel-tab {
+    container: panel-tab / inline-size;
+    /* 入れ物にすると中身の幅を数えなくなるので、並びの幅を決めるときのタブの幅を、ふだんの幅（flex-basis と同じ 180px）として数えさせる */
+    contain-intrinsic-inline-size: 180px;
+  }
+
+  /* 少し細いタブ: 添えたグループ名・作業場所を隠し、名前を残す（2 行のタブは札に下の行があるので、もっと細くなるまで残す） */
+
+  @container panel-tab (max-width: 130px) {
+    .panel-tab:not(.two-line) .panel-tab-label .panel-tab-group-name {
+      display: none;
+    }
+  }
+
+  @container panel-tab (max-width: 84px) {
+    .panel-tab.two-line .panel-tab-label .panel-tab-group-name {
+      display: none;
+    }
+  }
+
+  /*
+   * 細いタブ: 表示中のタブ以外は、ふだんは閉じるを出さない（名前を押せる幅を残す）。マウスを乗せたときは、どのタブでも閉じるを出す（Chrome と同じ。
+   * 細いときに乗せても出さないと、チャットのタブがサイドバーと連動して増えたとき、表示中のタブにしないと閉じられない）
+   */
+
+  @container panel-tab (max-width: 96px) {
+    .panel-tab:not(.active, :hover) .panel-tab-close {
+      display: none;
+    }
+  }
+
+  /* とても細いタブ: 名前を隠してアイコン（状態の印）だけを真ん中に。表示中・マウスを乗せたタブは閉じるだけにする */
+
+  @container panel-tab (max-width: 60px) {
+    .panel-tab-label > span:not(.status-slot),
+    .panel-tab-label > .panel-tab-pin {
+      display: none;
+    }
+
+    .panel-tab-label {
+      justify-content: center;
+      padding: 0;
+    }
+
+    /*
+     * 表示中のタブと、マウスを乗せたタブは、アイコンの代わりに閉じるだけを真ん中に出す（Chrome と同じ）。
+     * 名前のボタンは幅をなくすだけで残し、閉じるの周りを押せば表示できるようにする
+     */
+    .panel-tab:is(.active, :hover) .panel-tab-label {
+      flex: none;
+    }
+
+    .panel-tab:is(.active, :hover) .panel-tab-label > * {
+      display: none;
+    }
+
+    .panel-tab:is(.active, :hover) .panel-tab-close {
+      margin: 0 auto;
+    }
+  }
+}

@@ -1,64 +1,12 @@
-// 長くなる一覧（サイドバー・ボード・全プロジェクトの画面）を描く時間を、JS（React）とレイアウト・スタイルに分けて測る（メモの仕様書「0023_表示を軽くする」の案 23）。
+// 長くなる一覧（サイドバー・ボード・全プロジェクトの画面）を描く時間を、JS（React）とレイアウト・スタイルに分けて測る。
 // チャットは DB に足さない: 画面の fetch を差し替えて、GET /api/chats に偽のチャットを足して返す（API で作ると AI に送るため）。
 // 測り終えたら差し替えを外し、localStorage を元に戻して読み込み直す。
-// node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json]
+// node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 import { parseArgs } from "node:util";
-import { api, connectPage, metrics, metricsDelta, sleep } from "./cdp.mjs";
+import { STORAGE_IMPORTS, api, connectPage, metrics, metricsDelta, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
+import { perfDefaults } from "../devtools/fixture.mjs";
+import { shimSource } from "../devtools/listShim.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
-
-/** 偽のチャットとグループを足す fetch の差し替え（読み込む前の画面で動く文） */
-export function shimSource({ template, projectId, count, groups }) {
-  return `(() => {
-  const template = ${JSON.stringify(template)};
-  const projectId = ${projectId}, count = ${count}, groupCount = ${groups};
-  const groups = Array.from({ length: groupCount }, (_, i) => ({ id: 990001 + i, project_id: projectId, name: "測るグループ " + (i + 1), hue: (i * 47) % 360, position: 100 + i, created_at: "2026-11-01T00:00:00.000Z" }));
-  const base = Date.parse("2026-11-10T00:00:00.000Z");
-  const chats = Array.from({ length: count }, (_, i) => ({
-    ...template,
-    id: 900001 + i,
-    project_id: projectId,
-    title: "測るチャット " + (i + 1) + (i % 3 === 0 ? " の少し長めの名前（折り返さない幅を確かめる）" : ""),
-    group_id: groupCount && i % 10 < 7 ? groups[i % groupCount].id : null,
-    worktree_path: i % 2 ? "/tmp/perf-worktree-" + (i % 5) : null,
-    branch: i % 2 ? "perf-" + (i % 5) : "main",
-    status: i % 17 === 0 ? "failed" : "completed",
-    error: null,
-    unread: i % 4 === 0,
-    pinned: false,
-    session_id: null,
-    position: null,
-    active_at: new Date(base - i * 60000).toISOString(),
-    created_at: new Date(base - i * 60000 - 3600000).toISOString(),
-    turn_started_at: new Date(base - i * 60000 - 60000).toISOString(),
-  }));
-  window.__perfFake = { chats: count, groups: groupCount };
-  const orig = window.fetch.bind(window);
-  window.fetch = async (input, init) => {
-    const url = typeof input === "string" ? input : input.url;
-    const method = (init?.method ?? "GET").toUpperCase();
-    const res = await orig(input, init);
-    if (method !== "GET" || !res.ok) return res;
-    const path = new URL(url, location.href).pathname + new URL(url, location.href).search;
-    let extra = null;
-    if (/^\\/api\\/chats$/.test(path)) extra = chats;
-    else if (path === "/api/projects/" + projectId + "/groups") extra = groups;
-    if (!extra) return res;
-    const body = await res.json();
-    return new Response(JSON.stringify([...body, ...extra]), { status: 200, headers: { "content-type": "application/json" } });
-  };
-})();`;
-}
-
-/** 画面を読み込み直し、サイドバーが描かれるまで待つ */
-export async function reload(page) {
-  await page.send("Page.reload", { ignoreCache: false });
-  await sleep(800);
-  for (let i = 0; i < 150; i++) {
-    if (await page.evaluate(`!!document.querySelector(".sidebar .workspace-page")`).catch(() => false)) return;
-    await sleep(200);
-  }
-  throw new Error("読み込み直したあとサイドバーが出ません");
-}
 
 /**
  * action のあと rAF ごとに数（count の式）を見て、first 以上になった（最初に見えた）時刻と all 以上になった（すべて描いた）時刻（ms）。
@@ -156,26 +104,26 @@ async function measure(page, { action, count, first, all }) {
 
 const ROWS = (projectId) => `document.querySelectorAll('.workspace-page[data-project-id="${projectId}"] a.chat-row[data-chat-id]').length`;
 const CARDS = `document.querySelectorAll(".board-main [data-chat-id]").length`;
-const imports = `const s = await import("/src/lib/storage.ts"); const k = await import("/src/lib/storageKeys.ts"); const f = await import("/src/hooks/useFold.ts");`;
+const imports = STORAGE_IMPORTS;
 
 /** 測る場面（setup で前の状態にしてから、action で開く） */
 function scenarios(projectId, count) {
   const sidebarOpen = (grouping) => ({
     name: `サイドバー: プロジェクトの一覧を開く（${grouping}）`,
-    setup: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/memos";`,
+    setup: `${imports} s.writeSetting(k.chatList.sections, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/notes";`,
     action: `${imports} f.foldAll("sidebar", false);`,
     count: ROWS(projectId),
   });
   const sidebarSwitch = (from, to) => ({
     name: `サイドバー: まとめ方を切り替える（${from} → ${to}）`,
-    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${from}"); location.hash = "#/projects/${projectId}/memos";`,
-    action: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${to}");`,
+    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.chatList.sections, "${from}"); location.hash = "#/projects/${projectId}/notes";`,
+    action: `${imports} s.writeSetting(k.chatList.sections, "${to}");`,
     count: ROWS(projectId),
   });
   const board = (name, view, columns, hash) => ({
     name,
     // 先にボードを閉じる（開いたボードは見え方を覚え直すので、開いたまま書くと戻される）
-    setup: `${imports} location.hash = "#/projects/${projectId}/memos"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}); s.writeSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}, { ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/memos";`,
+    setup: `${imports} location.hash = "#/projects/${projectId}/notes"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.board.${hash === "#/" ? "layoutAll" : "layoutProject"}); s.writeSetting(k.board.${hash === "#/" ? "layoutAll" : "layoutProject"}, { sort: { key: "active", dir: "desc" }, ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/notes";`,
     action: `location.hash = "${hash}";`,
     count: CARDS,
   });
@@ -198,50 +146,51 @@ export async function measureLists({ count = 1000, projectId = 21, groups = 8, r
   const template = (await api("GET", `/api/projects/${projectId}/chats`))[0];
   if (!template) throw new Error(`プロジェクト ${projectId} にチャットがありません（偽のチャットの型に使う）`);
   const page = await connectPage();
-  const saved = await page.evaluate(`JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`);
-  const savedHash = await page.evaluate(`location.hash`);
-  let scriptId = null;
   const results = [];
   try {
-    await page.send("Page.enable");
-    await page.send("Performance.enable");
-    await page.send("Profiler.enable");
-    if (count > 0) ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups }) }));
-    // 要対応だけ・アーカイブ済みを隠す（測るチャットがすべて並ぶように）。設定はあとで元に戻す
-    await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
-    await reload(page);
-    await sleep(1500);
-    for (const sc of scenarios(projectId, count)) {
-      if (only && !sc.name.includes(only)) continue;
-      const list = [];
-      for (let i = 0; i < runs; i++) {
-        await page.evaluate(`(async () => { ${sc.setup} })()`);
-        await sleep(1200);
-        list.push(await measure(page, sc));
+    // 測り終えたら localStorage とハッシュを元に戻して読み込み直す
+    await withSavedStorage(page, async () => {
+      let scriptId = null;
+      try {
+        await page.send("Page.enable");
+        await page.send("Performance.enable");
+        await page.send("Profiler.enable");
+        if (count > 0) ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups }) }));
+        // 要対応だけ・アーカイブ済みを隠す（測るチャットがすべて並ぶように）
+        await page.evaluate(`(localStorage.setItem("kickoff:sidebar:waiting-only", "0"), 1)`);
+        await reload(page);
+        await sleep(1500);
+        for (const sc of scenarios(projectId, count)) {
+          if (only && !sc.name.includes(only)) continue;
+          const list = [];
+          for (let i = 0; i < runs; i++) {
+            await page.evaluate(`(async () => { ${sc.setup} })()`);
+            await sleep(1200);
+            list.push(await measure(page, sc));
+          }
+          // トレースは別の 1 回で取る（プロファイルと重ねると、どちらの時間も伸びるため）
+          let traced = null;
+          if (trace) {
+            await page.evaluate(`(async () => { ${sc.setup} })()`);
+            await sleep(1200);
+            traced = await measureTrace(page, sc);
+          }
+          const pick = (k) => summarize(list.map((r) => r[k] ?? 0)).median;
+          results.push({ name: sc.name, firstMs: pick("firstMs"), longest: pick("longest"), paintMs: pick("paintMs"), scriptMs: pick("scriptMs"), layoutMs: pick("layoutMs"), styleMs: pick("styleMs"), taskMs: pick("taskMs"), react: pick("react"), app: pick("app"), nodes: pick("nodes"), trace: traced, runs: list });
+        }
+      } finally {
+        // 差し替えを外してから戻す（戻したあとの読み込み直しに偽のチャットを入れない）
+        if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
       }
-      // トレースは別の 1 回で取る（プロファイルと重ねると、どちらの時間も伸びるため）
-      let traced = null;
-      if (trace) {
-        await page.evaluate(`(async () => { ${sc.setup} })()`);
-        await sleep(1200);
-        traced = await measureTrace(page, sc);
-      }
-      const pick = (k) => summarize(list.map((r) => r[k] ?? 0)).median;
-      results.push({ name: sc.name, firstMs: pick("firstMs"), longest: pick("longest"), paintMs: pick("paintMs"), scriptMs: pick("scriptMs"), layoutMs: pick("layoutMs"), styleMs: pick("styleMs"), taskMs: pick("taskMs"), react: pick("react"), app: pick("app"), nodes: pick("nodes"), trace: traced, runs: list });
-    }
+    });
   } finally {
-    if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
-    // 元の設定に戻して読み込み直す（setItem だけだと画面の覚えた値で上書きされるので、同じ式で読み込み直す）
-    await page
-      .evaluate(`(() => { const saved = ${JSON.stringify(saved)}; const v = JSON.parse(saved); localStorage.clear(); for (const [k, x] of Object.entries(v)) localStorage.setItem(k, x); location.hash = ${JSON.stringify(savedHash)}; location.reload(); return 1; })()`)
-      .catch(() => {});
     page.close();
   }
   return { count, projectId, groups, results };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: "21" }, groups: { type: "string", default: "8" }, runs: { type: "string", default: "3" }, only: { type: "string" }, trace: { type: "boolean" }, json: { type: "boolean" } } });
+  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: perfDefaults().project }, fixture: { type: "boolean" }, groups: { type: "string", default: "8" }, runs: { type: "string", default: "3" }, only: { type: "string" }, trace: { type: "boolean" }, json: { type: "boolean" } } });
   const r = await measureLists({ count: Number(values.count), projectId: Number(values.project), groups: Number(values.groups), runs: Number(values.runs), only: values.only, trace: values.trace });
   if (values.json) console.log(JSON.stringify(r, null, 1));
   else {

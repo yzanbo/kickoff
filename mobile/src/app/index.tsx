@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { DEVICE_ACCESS_LABELS } from "@shared/types";
+import { DEVICE_ACCESS_LABELS } from "@shared/devices/types";
 import type { HostRecord } from "../lib/hosts";
 import { useHosts, useHostSession } from "../state/hosts";
 import { Button } from "../ui/Button";
@@ -19,7 +19,7 @@ export default function HostsScreen() {
         style: "destructive",
         onPress: async () => {
           // 外した本体から通知が届かないよう、届くうちにプッシュの宛先を消してもらう（届かなくても外す）
-          await session(h.host_id)?.client.setPush(null).catch(() => {});
+          await session(h.host_id)?.client.api("PUT /api/devices/self/push", { body: { push: null } }).catch(() => {});
           await registry.remove(h.host_id);
           await reload();
         },

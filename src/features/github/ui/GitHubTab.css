@@ -1,0 +1,49 @@
+/* ==== GitHub の一覧の枠（GitHubTab。CI のタブも同じ） ==== */
+@layer feature {
+  /* GitHub タブ（features/github）: 枠・左の一覧と絞り込み・一覧の行・状態の印とラベル */
+
+  .github-list-repo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px var(--gutter) 0;
+  }
+
+  .github-repo-link {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .github-repo-link:hover {
+    color: var(--text);
+  }
+
+  /* 一覧 */
+
+  .github-items {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .github-items.stale .github-item {
+    opacity: 0.6;
+  }
+
+  .github-updating-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 2px var(--gutter);
+    background: var(--bg-sidebar);
+  }
+
+  .github-items-note {
+    padding: 12px var(--gutter);
+  }
+}

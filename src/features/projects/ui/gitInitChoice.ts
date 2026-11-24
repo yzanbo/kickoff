@@ -1,0 +1,80 @@
+import type { FolderInspection } from "@shared/projects/types";
+import { GIT_FEATURES } from "./GitInitNotice";
+
+/** git の管理を始めるかのチェックの文（label）、ボタンの組の短い名前（on = 始める / off = 始めない）と、選んだ方ごとの説明（help） */
+export interface GitInitChoice {
+  label: string;
+  on: string;
+  off: string;
+  help: (checked: boolean) => string;
+}
+
+/** フォルダ内のファイルをすべて最初のコミットにするときの注意 */
+const COMMIT_ALL = "フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。";
+
+/**
+ * 既存のフォルダを取り込む・プロジェクトのフォルダを変えるときに、git の管理を始めるかのチェック（出さないなら null。初めはオフ）。
+ * - git でない・コミットがない（リポジトリの一番上）: 初期化して最初のコミットを作るか
+ * - git のリポジトリの中のフォルダ: 親のリポジトリの中のフォルダとして使うか、このフォルダで別のリポジトリとして始めるか
+ *   （親がこの中のファイルを管理していれば、二重に管理することになるので出さない）
+ * - もうコミットのあるリポジトリの一番上: 出さない
+ */
+export function gitInitChoice(info: FolderInspection): GitInitChoice | null {
+  if (!info.exists || !info.is_directory) return null;
+  if (info.is_git && info.git_root !== info.path) {
+    if (info.parent_tracked) return null;
+    return {
+      label: "このフォルダで新しく git の管理を始める（親のリポジトリとは別のリポジトリにする）",
+      on: "このフォルダで新しく始める",
+      off: "親のリポジトリの中で使う",
+      help: (checked) =>
+        checked
+          ? `このフォルダをリポジトリとして初期化し、最初のコミットを作ります。親のリポジトリ（${info.git_root}）からは、このフォルダが別のリポジトリに見えます。${COMMIT_ALL}`
+          : `親のリポジトリ（${info.git_root}）の中のフォルダとして使います。変更・履歴・ワークツリーは、このフォルダの中だけを扱います。`,
+    };
+  }
+  if (info.is_git && info.has_commits) return null;
+  return {
+    label: info.is_git ? "git の管理を始める（既存のファイルで最初のコミットを作成する）" : "git の管理を始める（リポジトリとして初期化し、既存のファイルで最初のコミットを作成する）",
+    on: "git の管理を始める",
+    off: "始めない",
+    help: (checked) => (checked ? COMMIT_ALL : `始めないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。チャットは使えます。`),
+  };
+}
+
+/**
+ * 新しいプロジェクトのフォルダを git で管理するかの組（いつも出す。初めは、保存先が git のリポジトリの中でなければ管理する）。
+ * parentRepo: 保存先が git のリポジトリの中ならその一番上（中に作ると、親のリポジトリの中のフォルダとして使うか、別のリポジトリとして始めるか）
+ */
+export function newProjectGitChoice(parentRepo: string | null): Omit<GitInitChoice, "label"> {
+  if (parentRepo) {
+    return {
+      on: "このフォルダで新しく始める",
+      off: "親のリポジトリの中で使う",
+      help: (checked) =>
+        checked
+          ? `保存先は git のリポジトリ（${parentRepo}）の中です。新しいフォルダを別のリポジトリとして初期化します（親のリポジトリからは、別のリポジトリに見えます）。`
+          : `保存先は git のリポジトリ（${parentRepo}）の中です。親のリポジトリの中のフォルダとして使います（変更・履歴・ワークツリーは、このフォルダの中だけ。コミットするまでワークツリーは作れません）。`,
+    };
+  }
+  return {
+    on: "git で管理する",
+    off: "管理しない",
+    help: (checked) =>
+      checked ? `リポジトリとして初期化し、README で最初のコミットを作ります。${GIT_FEATURES}が使えます。` : `git で管理しないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。`,
+  };
+}
+
+/**
+ * もう git で管理されていて、始めるかを選ばないフォルダの案内（gitInitChoice が null のときの、git の欄に出す文。どちらでもなければ null）。
+ * コミットのあるリポジトリの一番上・親のリポジトリがこの中のファイルを管理しているフォルダ
+ */
+export function gitManagedNote(info: FolderInspection): string | null {
+  if (!info.exists || !info.is_directory || !info.is_git) return null;
+  if (info.git_root !== info.path) {
+    return info.parent_tracked
+      ? `親のリポジトリ（${info.git_root}）で git の管理をしています。そのまま、このフォルダの中だけを扱います（別のリポジトリにはできません）。`
+      : null;
+  }
+  return info.has_commits ? `すでに git で管理されています（ブランチ: ${info.branch ?? "不明"}）。そのまま使います。` : null;
+}

@@ -1,0 +1,89 @@
+/* ==== Git のコマンドのパレット（GitCommandPalette） ==== */
+@layer feature {
+  /* Git の操作の窓 */
+
+  .git-palette {
+    display: flex;
+    flex-direction: column;
+    width: min(420px, calc(100vw - 32px));
+    max-height: min(440px, 70vh);
+    padding: 6px;
+  }
+
+  .git-palette-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    background: var(--bg);
+  }
+
+  .git-palette-search:focus-within {
+    border-color: var(--accent);
+  }
+
+  .git-palette-search input {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    outline: none;
+    font-size: var(--fs-13);
+    color: var(--text);
+    background: none;
+  }
+
+  .git-palette-list {
+    margin: 6px 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .git-palette-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--text);
+    background: none;
+    cursor: pointer;
+  }
+
+  .git-palette-item.active {
+    background: var(--bg-hover);
+  }
+
+  [aria-disabled="true"] > .git-palette-item {
+    color: var(--muted);
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .git-palette-label {
+    flex: none;
+  }
+
+  .git-palette-hint {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-11);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+
+  .git-palette-empty {
+    padding: 10px 8px;
+  }
+}

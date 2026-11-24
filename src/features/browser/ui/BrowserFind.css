@@ -1,0 +1,11 @@
+/* ==== ページの中を探す欄（BrowserFind） ==== */
+@layer feature {
+  /* ページ内検索はアドレス欄と分けて、ページの文字に重ねない */
+
+  .browser-find {
+    flex: none;
+    align-self: flex-end;
+    width: min(360px, calc(100% - 2 * var(--gutter)));
+    margin: 4px var(--gutter);
+  }
+}

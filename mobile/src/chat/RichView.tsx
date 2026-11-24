@@ -4,8 +4,8 @@
 import { useRef, useState } from "react";
 import { Linking, Text, View, useWindowDimensions } from "react-native";
 import { WebView } from "react-native-webview";
-import { VISUAL_KIND_LABELS, type ChatVisual } from "@shared/chat/aiVisual";
-import { VISUAL_MESSAGES } from "@shared/chat/visualDocument";
+import { VISUAL_KIND_LABELS, type ChatVisual } from "@shared/visuals/aiVisual";
+import { VISUAL_MESSAGES } from "@shared/visuals/visualDocument";
 import { mathPage, mermaidPage, visualPage } from "../lib/richPages";
 import { colors, ui } from "../ui/theme";
 

@@ -1,0 +1,65 @@
+/* ==== サブエージェントの状態の文字と、やり直しの案内（SubagentStatusText・SubagentActions） ==== */
+@layer feature {
+  .subagent-status.status-failed {
+    color: var(--state-failed);
+  }
+
+  .subagent-status.status-running {
+    color: var(--state-running);
+  }
+
+  /* 回答待ちの依頼（承認・質問）を出している（チャットの回答待ちと同じ色） */
+
+  .subagent-status.status-needs-input,
+  .chip-needs-input {
+    color: var(--state-needs-input);
+  }
+
+  /* 通信の切断で中断・報告が親に届いていない（作業の失敗ではないので、赤でなく注意の色） */
+
+  .subagent-status.status-network,
+  .subagent-status.status-undelivered {
+    color: var(--warn);
+  }
+
+  /* 報告を送り、親の受け取りを待っている */
+
+  /* 止まったが、親がもうやり直したもの（手を打たなくてよい） */
+
+  .subagent-status.status-superseded {
+    color: var(--muted);
+  }
+
+  .subagent-status.status-awaiting,
+  .chip-awaiting {
+    color: var(--info);
+  }
+
+  /* 止まったサブエージェントを戻すボタン（再開・やり直す。SubagentRecovery。一覧の行の下段・タブの見出しの右） */
+
+  .subagent-recovery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* 小さな操作のボタン（サブエージェントの再開など。失敗した作業の直す操作 FailedTurnActions も同じ大きさ = ToolGroup.css の .turn-retry .btn） */
+
+  .subagent-recovery .btn {
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: var(--chat-fs-12);
+  }
+
+  .subagent-recovery:is(.agent-list-text *) {
+    margin-top: 6px;
+  }
+
+  /* 届かなかった報告は、次に送る指示に自動で添える（reportHandover.ts）という添え書き */
+
+  .subagent-recovery-note {
+    align-self: center;
+    font-size: var(--chat-fs-12);
+    color: var(--extra-muted);
+  }
+}

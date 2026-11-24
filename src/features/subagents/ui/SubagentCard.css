@@ -1,0 +1,174 @@
+/* 裏で動いている作業の一覧（作業中の行の下。BackgroundTasks）。1 件ずつ止めるボタン付き */
+@layer feature {
+  /* ==== 流れの中のサブエージェントのカード（SubagentCard）。入れ子のカードは、開いた中身の中にさらにカードとして入る ==== */
+
+  .subagent-card {
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* 実行中は、回る印と同じ作業中の色で枠を染める */
+
+  .subagent-card.running {
+    --card-tone: color-mix(in srgb, var(--dot-running) 45%, var(--border));
+  }
+
+  /* 入れ子のカードは地の色を交互にして、どこまでが 1 つかを分かりやすくする */
+
+  .subagent-card .subagent-card {
+    --card-bg: var(--bg);
+  }
+
+  .subagent-card .subagent-card .subagent-card {
+    --card-bg: var(--bg-elev);
+  }
+
+  .subagent-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 10px 2px 6px;
+    font-size: var(--chat-fs-13);
+  }
+
+  /* 上の 2 行（見出し・いまの動き / まとめ）はどこを押しても開く（SubagentCard の onTopClick）。乗せると 2 行まとめて地の色で示す（下線は使わない） */
+
+  .subagent-card-top {
+    /* カードの枠の内側の角に合わせる（枠の 1px 分小さく） */
+    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+    cursor: pointer;
+  }
+
+  /* 地の色がカードの左の端の帯（subagent-window.css の inset の影）を覆うので、同じ帯を上にも引く */
+
+  .subagent-card-top:hover {
+    background: var(--bg-hover);
+    box-shadow: inset 3px 0 0 var(--agent-color);
+  }
+
+  /* 閉じたカードは下の角も丸める（中で起動したサブエージェントの行・入力欄がなければ、上の 2 行がカードの全体） */
+
+  .subagent-card-top:last-child {
+    border-radius: calc(var(--radius) - 1px);
+  }
+
+  /* 左の ＞（流れの中での開閉。見出しの何もないところとは別に押せる） */
+
+  .subagent-card-chevron {
+    flex: none;
+  }
+
+  .subagent-card-head.static {
+    padding: 6px 10px;
+  }
+
+  .subagent-card.open > .subagent-card-top .subagent-card-chevron .tool-chevron {
+    transform: rotate(90deg);
+  }
+
+  .subagent-card-head .agent-icon {
+    margin-top: 0;
+  }
+
+  .subagent-card-title {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .subagent-card-name {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+  }
+
+  .subagent-card-type,
+  .subagent-card-path {
+    flex: none;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  /* 深い入れ子の、外側からの道筋（「調査 › 洗い出し ›」）。狭ければ先に省く */
+
+  .subagent-card-path {
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 2 行目: いまの動き（実行中）かまとめ（終わったもの）と、操作。名前の位置にそろえる */
+
+  .subagent-card-now {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 22px;
+    padding: 0 10px 6px 56px;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  .subagent-card-what {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .subagent-card-label {
+    flex: none;
+    --tag-fg: var(--text);
+    --tag-bg: var(--bg-hover);
+    font-size: var(--chat-fs-11);
+  }
+
+  .subagent-card-activity {
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--mono);
+    text-overflow: ellipsis;
+  }
+
+  .subagent-card-count {
+    flex: none;
+  }
+
+  .subagent-card-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  /* カードの 2 行目は狭いので、再開などの添え書きはボタンの title に任せる */
+
+  .subagent-card-actions .subagent-recovery-note {
+    display: none;
+  }
+
+  .subagent-tell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--chat-fs-12);
+  }
+
+  /* カードの下の子チャットの札（chat の ChatLinkChip）: カードの枠・左の帯にかぶせず、2 行目（まとめ・いまの動き。.subagent-card-now）の文の頭にそろえる */
+
+  .subagent-card > .child-chat-marks {
+    margin: 0 10px 8px 56px;
+  }
+}

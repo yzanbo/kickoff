@@ -1,0 +1,40 @@
+/* ==== Issue を作る（NewIssueDialog） ==== */
+@layer feature {
+  /* 新しい issue */
+
+  .github-new-issue {
+    --dialog-w: 720px;
+  }
+
+  .github-new-issue-pickers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .github-picked-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px 1px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: var(--fs-12);
+  }
+
+  .github-picked-remove {
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .github-picked-remove:hover {
+    background: var(--bg-hover);
+    color: inherit;
+  }
+}

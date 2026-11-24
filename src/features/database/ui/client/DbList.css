@@ -1,0 +1,76 @@
+/* ==== DB の接続の一覧の枠（DbList） ==== */
+@layer feature {
+  /* 左の接続の一覧と木 */
+
+  .db-list {
+    position: relative;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg-sidebar);
+  }
+
+  /* 狭い所では一覧を重ねて出す */
+
+  .db-list.overlay {
+    position: absolute;
+    z-index: 5;
+    inset: 0 auto 0 0;
+    width: min(300px, 85%);
+    box-shadow: var(--shadow-2);
+  }
+
+  .db-list-head {
+    flex: none;
+    gap: 2px;
+    height: 34px;
+    padding: 0 4px 0 var(--gutter);
+  }
+
+  .db-list-title {
+    flex: 1;
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .db-list-empty {
+    display: grid;
+    justify-items: start;
+    gap: 8px;
+    padding: 12px var(--gutter);
+  }
+
+  .db-list-empty p {
+    margin: 0;
+  }
+
+  /* 一覧の右の端に重ねる幅のつまみ */
+
+  .db-list-resizer {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    margin: 0;
+  }
+
+  .db-list-foot {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 var(--gutter);
+    border-top: 1px solid var(--border);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .db-find-note {
+    margin: 0;
+    padding: 6px 16px 10px;
+  }
+}

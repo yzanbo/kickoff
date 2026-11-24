@@ -1,0 +1,166 @@
+/*
+ * ==== 右の欄のサブエージェントの画面（SubagentScreen）: 見出し（階層・名前と状態と時刻・いまの動きと操作）→ 手順（画面いっぱいにスクロール）→
+ * そのサブエージェントに伝える入力欄。見出しの左に、そのサブエージェントの色の帯（カードの帯と同じ色） ====
+ */
+@layer feature {
+  .subagent-screen {
+    --agent-color: hsl(var(--hue, 25) var(--hue-fg));
+
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100%;
+    min-width: 0;
+  }
+
+  .subagent-screen.missing {
+    grid-template-rows: minmax(0, 1fr);
+    place-items: center;
+  }
+
+  /* 見出しは、左に太めの帯をそのサブエージェントの色で付ける（メインの見出しと見分け、どのサブエージェントかも色で分かるように。地は画面と同じで染めない） */
+
+  .subagent-screen-head {
+    display: grid;
+    gap: 2px;
+    padding: 6px var(--gutter) 6px calc(var(--gutter) + 6px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: inset 4px 0 0 var(--agent-color);
+    font-size: var(--chat-fs-13);
+    background: var(--bg);
+    /* 札を隠すかを見出しの幅で決める（SubagentHead.css の @container subagent-head） */
+    container: subagent-head / inline-size;
+  }
+
+  /* 見出しの 1 行目: 階層と、右の欄のタブのときだけ右端の「別ウィンドウで開く」 */
+
+  .subagent-screen-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .subagent-screen-top .subagent-screen-path {
+    flex: 1;
+  }
+
+  /* 階層（メイン › 調査 › 洗い出し）。押せる階層は控えめなリンク、いまのサブエージェントは押せない文字 */
+
+  .subagent-screen-path {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .subagent-screen-path .link-button {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--chat-fs-12);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subagent-screen-sep {
+    flex: none;
+    color: var(--extra-muted);
+  }
+
+  .subagent-screen-current {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .subagent-screen-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .subagent-screen-title .agent-icon {
+    margin-top: 0;
+  }
+
+  .subagent-screen-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--chat-fs-14);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 時刻は右端へ（狭ければ種類・状態より先に縮める） */
+
+  .subagent-screen-title .tool-time {
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 狭いときは名前より先に縮める（カードの見出しの時間 SubagentHead.css の .subagent-card-head > .tool-time と同じ） */
+
+  .subagent-screen-title > .tool-time {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  /* いまの動き（終わったものはまとめ）と操作。狭ければ操作を次の行へ折り返す */
+
+  .subagent-screen-now {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    min-height: 22px;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  .subagent-screen-now .subagent-card-actions {
+    margin-left: auto;
+  }
+
+  /* 手順: 画面いっぱいにスクロールする（実行中は最新に付いていく）。中身はメインの流れと同じ並べ方（横ははみ出させない。メインの .timeline と同じ） */
+
+  .subagent-screen-scroll {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: none;
+  }
+
+  .subagent-screen-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px var(--gutter) 16px;
+  }
+
+  /*
+   * この画面の主役はそのサブエージェントなので、その返答はメインの返答と同じ見た目にする（メインの流れの中では、サブエージェントの返答に
+   * 左の線と薄い文字を付けて見分けている。UserMessage.css の .assistant.sub）
+   */
+
+  .subagent-screen-content > .timeline-row > .assistant.sub {
+    padding-left: 0;
+    border-left: none;
+    color: var(--text);
+  }
+
+  /* 送れないときの案内（Claude Code がサブエージェントの ID を知らせていない） */
+
+  .subagent-screen-composer > p {
+    margin: 0;
+    padding: 4px 0;
+  }
+}

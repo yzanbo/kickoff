@@ -1,0 +1,137 @@
+/* ==== CI のジョブのログ（CiJobLog） ==== */
+@layer feature {
+  .ci-log-note {
+    margin: 0;
+    padding: 8px 12px 8px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ci-job {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+  }
+
+  .ci-job + .ci-job {
+    margin-top: 8px;
+  }
+
+  .ci-job-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 6px;
+  }
+
+  .ci-job-toggle,
+  .ci-step-toggle {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 7px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .ci-job-toggle:hover,
+  .ci-step-toggle:not(:disabled):hover {
+    background: var(--bg-hover);
+  }
+
+  .ci-step-toggle:disabled {
+    cursor: default;
+    color: var(--muted);
+  }
+
+  .ci-job-name {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ci-steps {
+    border-top: 1px solid var(--border);
+  }
+
+  .ci-step + .ci-step {
+    border-top: 1px solid var(--border);
+  }
+
+  .ci-step-toggle {
+    padding: 5px 8px 5px 24px;
+    font-size: var(--fs-13);
+  }
+
+  .ci-step-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ci-state-space {
+    flex: none;
+    width: 13px;
+  }
+
+  /* ログ（色はアプリが付けたまま。ansi/AnsiText.css の ansi-*） */
+
+  .ci-log {
+    max-height: 70vh;
+    overflow: auto;
+    padding: 4px 0;
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    line-height: 1.5;
+  }
+
+  .ci-log-line {
+    display: flex;
+    gap: 12px;
+    padding: 0 12px 0 0;
+  }
+
+  .ci-log-no {
+    flex: none;
+    width: 48px;
+    color: var(--extra-muted);
+    text-align: right;
+    user-select: none;
+  }
+
+  .ci-log-text {
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .ci-log-group .ci-log-text {
+    font-weight: 600;
+  }
+
+  .ci-log-error {
+    background: color-mix(in srgb, var(--ng) 12%, transparent);
+  }
+
+  .ci-log-error .ci-log-text {
+    color: var(--ng);
+  }
+
+  .ci-log-warning .ci-log-text {
+    color: var(--warn);
+  }
+
+  .ci-log-notice .ci-log-text {
+    color: var(--info);
+  }
+}

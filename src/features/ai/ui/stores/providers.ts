@@ -1,0 +1,23 @@
+// 外部 CLI（Claude などのプロバイダー・GitHub の gh）の状態と、チャット欄のモデルの一覧。
+// ログインはアプリの外で変わるので、プロバイダーと GitHub の状態は使い始めるたびに取り直す（届くまでは前の値を出す）。
+// モデルの一覧はアプリ全体で 1 回だけ取る（失敗したら、次に使うときに取り直す）
+import type { ProviderStatus, ModelOption } from "@shared/ai/types";
+import type { GitHubStatus } from "@shared/foundation/server";
+import type { ProviderId } from "@shared/settings/types";
+import { providersApi } from "@/features/ai/ui/api/providers";
+import { createStore } from "@/foundation/ui/store/createStore";
+import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
+import { useKeyedStore, useStore } from "@/foundation/ui/store/useStore";
+
+export const providersStore = createStore<ProviderStatus[]>({ load: () => providersApi.providers(), maxAge: 0 });
+export const githubStore = createStore<GitHubStatus>({ load: () => providersApi.github(), maxAge: 0 });
+const modelsStore = createKeyedStore<ProviderId, ModelOption[]>({ load: (provider) => providersApi.models(provider) });
+
+export const NO_MODELS: ModelOption[] = Object.freeze([]) as unknown as ModelOption[];
+
+/** プロバイダーの状態（active: false の間は取り直さない。閉じているポップオーバーなど） */
+export const useProviders = (options?: { active?: boolean }) => useStore(providersStore, options);
+export const useGitHubStatus = () => useStore(githubStore);
+/** チャット欄で選べるモデル（読み込み中・読めなかったときは空） */
+export const useModelsState = (provider: ProviderId = "claude") => useKeyedStore(modelsStore, provider);
+export const useModels = (provider: ProviderId = "claude"): ModelOption[] => useModelsState(provider).data ?? NO_MODELS;

@@ -1,0 +1,158 @@
+/* ==== 一覧の行（GitHubItemRow。CI の行も同じ） ==== */
+@layer feature {
+  /* 行の入れ物（行のボタンと、結び付いたチャットの印のボタンを重ねる。ボタンの中にボタンを置かないため） */
+
+  .github-item-wrap {
+    position: relative;
+  }
+
+  /* 結び付いたチャットの印（右上。押すといちばん最近動いたチャットを開く） */
+
+  .github-item-chats {
+    position: absolute;
+    top: 6px;
+    right: var(--gutter);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    --tag-color: var(--accent);
+    --tag-edge: 45%;
+    --tag-bg: var(--bg);
+    --tag-fg: var(--accent-fg);
+    font: inherit;
+    font-size: var(--fs-11);
+    line-height: 17px;
+    cursor: pointer;
+  }
+
+  .github-item-wrap:has(> .github-item-chats) > .github-item {
+    padding-right: calc(var(--gutter) + 76px);
+  }
+
+  .github-item-chats:hover {
+    --tag-bg: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  }
+
+  .github-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 7px var(--gutter);
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .github-item:hover {
+    background: var(--bg-hover);
+  }
+
+  .github-item.selected {
+    background: var(--bg-active);
+  }
+
+  /* 取り直しで新しくなった行（更新された・新しく入った）。少しの間だけアクセントの色で塗って薄れさせる（長さは githubFresh.ts の GITHUB_FRESH_MS と同じ） */
+
+  .github-item.fresh:not(.selected) {
+    animation: github-item-fresh 4s ease-out;
+  }
+
+  @keyframes github-item-fresh {
+    0%,
+    40% {
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .github-item.fresh:not(.selected) {
+      animation: none;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+  }
+
+  .github-item > .github-state {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .github-item-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .github-item-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    font-size: var(--fs-13);
+    line-height: 1.35;
+  }
+
+  .github-item-title-text {
+    overflow-wrap: anywhere;
+    font-weight: 600;
+  }
+
+  .github-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    color: var(--muted);
+    font-size: var(--fs-11);
+  }
+
+  .github-item-comments {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .github-more {
+    display: block;
+    margin: 10px auto 14px;
+  }
+
+  /* ラベル（GitHub の色を薄い地と点に） */
+
+  .github-labels {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .github-label {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 7px;
+    --tag-color: var(--label-color, #888);
+    --tag-edge: 55%;
+    --tag-bg: color-mix(in srgb, var(--label-color, #888) 18%, transparent);
+    --tag-fg: var(--text);
+    font-size: var(--fs-11);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .github-review-approved {
+    color: var(--ok);
+  }
+
+  .github-review-changes_requested {
+    color: var(--ng);
+  }
+}

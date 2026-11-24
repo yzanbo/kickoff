@@ -1,0 +1,169 @@
+import "./WorktreeBar.css";
+import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
+import type { PullRequestInfo } from "@shared/git/types";
+import { PR_STATE_LABELS, prStateOf } from "@shared/git/prState";
+import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
+import { pullRequestSource } from "./pullRequests";
+import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
+import { useAction } from "@/foundation/ui/hooks/useAction";
+import { errorText, useQuery } from "@/foundation/ui/query";
+import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
+import { baseName } from "@/foundation/ui/lib/format";
+import { confirmRemoveWorktree, removalNotes, removeWorktreeAndRefresh } from "./removeWorktreeFlow";
+import { useGitStatus } from "@/features/git/ui";
+import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import type { WorkplaceBarProps } from "@/foundation/ui/workplace/workplaceDecor";
+import { useWorktreeEnv } from "./envStore";
+import { appAddress, removalChecks } from "./worktreeEnvText";
+import { openPrNotice, useWorktreePrLookup } from "./prNoticeStore";
+import { open } from "@/foundation/ui/navigation/open";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+import { addChat } from "@/features/chat/ui";
+
+/**
+ * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。
+ * プッシュして GitHub に PR を作る → GitHub でマージ → 「片付ける」でワークツリーとブランチを消し、本体を最新にする。
+ * 右端のごみ箱で、PR の状態にかかわらずワークツリーを消せる（ブランチも消すかを選ぶ）。
+ * ワークツリーの実行環境（ポートの帯）があれば［アプリを開く］（埋め込みブラウザで <ブランチ名>.localhost:<帯+00>）と、
+ * 分けられない理由・整えきれていない所を出す（押すと中身）。［AI で整える］は、手順で直せなかった所を、このワークツリーの新しいチャット
+ * 「実行環境を整える（ブランチ）」の AI に Git で管理していないファイルだけで直してもらう（覚えのないワークツリー（Kickoff の外で作ったものなど）は、先にコアが手順を流す）
+ */
+export function WorktreeBar({ projectId, path: worktree, onFinished }: WorkplaceBarProps) {
+  const target = { projectId, worktree };
+  const git = useGitStatus(target);
+  const env = useWorktreeEnv(projectId, worktree);
+  const status = git.status?.repo ? git.status : undefined;
+
+  // PR の状態は GitHub に聞くので、開いたとき・ウィンドウに戻ったとき・押したときだけ取り直す（null は PR がまだない）
+  const pr = useQuery<PullRequestInfo | null>(
+    ["WorktreeBar.pr", projectId, worktree],
+    () =>
+      pullRequestSource().get(target).catch((e: unknown) => {
+        // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
+        worktreesStore.invalidate(projectId);
+        throw e;
+      }),
+    { keepPrevious: true },
+  );
+  useWindowEvent("focus", pr.reload);
+  // PR を作る・片付ける・消すの実行中と失敗（PR の状態を取り直している間も押せなくする。届いた状態で作った PR を上書きしないため）
+  const action = useAction<"create" | "finish" | "remove" | "setup">();
+  const busy = action.busy !== null || pr.loading;
+
+  const create = () =>
+    action.run("create", async () => {
+      pr.setData(await pullRequestSource().create(target));
+      void git.refresh();
+    });
+
+  // 見張りの知らせがあれば、「片付ける」はその確認（チャットの扱いも一緒に選ぶ）を開く
+  const prNotice = useWorktreePrLookup()(worktree);
+  const finish = async () => {
+    if (prNotice) return openPrNotice(prNotice);
+    // 消す前に失うもの（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット）を調べて知らせる
+    // Kickoff が組の名前を割り当てたワークツリーならコンテナとデータも、このワークツリーの DB から作った接続があればそれも消すかを一緒に選ぶ
+    const info = await worktreesApi.worktreeRemovalInfo(projectId, worktree).catch(() => null);
+    const notes = info ? removalNotes(info, { deleteBranch: true }).map((note) => `・${note}`) : [];
+    const confirm = {
+      title: "ワークツリーを片付けますか？",
+      message: [
+        `PR がマージされたので、${worktree} のフォルダと、手元のブランチ「${status?.branch ?? ""}」を消します。そのあと本体を最新にします。このワークツリーで作業していたチャットは、続きを本体で進めます。`,
+        ...(notes.length > 0 ? ["", "注意:", ...notes] : []),
+      ].join("\n"),
+      confirmLabel: "片付ける",
+      danger: true,
+    };
+    const { checks, read } = removalChecks(env, info?.db_connections ?? []);
+    const answer = checks.length ? await askConfirm({ ...confirm, checks }) : (await askConfirm(confirm)) && { checked: [] };
+    if (!answer) return;
+    await action.run("finish", async () => {
+      // 片付け = ブランチも消す「消す」（コミットしていない変更は、上で知らせたうえで消すので force で消す）。そのあと本体を最新にする（手元に変更があってできなければ、そう伝える）
+      const { pullError } = await removeWorktreeAndRefresh(projectId, worktree, { force: (info?.changes ?? 0) > 0, deleteBranch: true, ...read(answer.checked), pullMain: true });
+      if (pullError) void alert("本体を最新にできませんでした", pullError);
+      onFinished();
+    });
+  };
+
+  // ［AI で整える］: チャットを作って開く（手順を流したあとの一覧も入れる）
+  const setup = () =>
+    action.run("setup", async () => {
+      const { chat, worktrees } = await worktreesApi.setupWorktreeEnv(projectId, worktree);
+      worktreesStore.set(projectId, worktrees);
+      addChat(chat);
+      open({ kind: "chat", projectId: projectId, chatId: chat.id });
+    });
+
+  // ワークツリーを消す（変更・プッシュしていないコミットを知らせ、ブランチも消すかを選んでもらう）
+  const remove = () =>
+    action.run("remove", async () => {
+      if (await confirmRemoveWorktree(projectId, { path: worktree, branch: status?.branch ?? null }, status?.branch ?? baseName(worktree))) onFinished();
+    });
+
+  if (!status) return null;
+  const value = pr.data;
+  return (
+    <div className="worktree-bar">
+      {!status.has_origin ? (
+        <span className="muted">プッシュ先（origin）がないので、PR は作れません</span>
+      ) : value ? (
+        <>
+          <span className="pr-chip tag" data-look="outline" data-pr-state={value.state.toLowerCase()} title={value.title}>
+            <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{PR_STATE_LABELS[prStateOf(value.state, value.is_draft)]}
+          </span>
+          <button className="btn" data-size="sm" onClick={() => openInDefaultBrowser(value.url)}>
+            <ExternalLink size={12} aria-hidden /> PR を開く
+          </button>
+          {value.state === "MERGED" && (
+            <button className="btn btn-primary" data-size="sm" disabled={busy} onClick={() => void finish()}>
+              <Sparkles size={12} aria-hidden /> {action.busy === "finish" ? "片付け中…" : "片付ける"}
+            </button>
+          )}
+        </>
+      ) : (
+        value === null && (
+          <button className="btn" data-size="sm" disabled={busy} title="まだプッシュしていなければ、先にプッシュします" onClick={() => void create()}>
+            <GitPullRequestArrow size={12} aria-hidden /> {action.busy === "create" ? "PR を作っています…" : "PR を作る"}
+          </button>
+        )
+      )}
+      {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={pr.loading} onClick={pr.reload} />}
+      {env?.app_url && (
+        <button
+          className="btn"
+          data-size="sm"
+          data-tip={`${appAddress(env)} を右サイドバーのブラウザで開く（開発サーバーは、このワークツリーのターミナルで起動すると PORT=${env.band} で動きます）`}
+          onClick={() => open({ kind: "browser", projectId, url: env.app_url! })}
+        >
+          <Globe size={12} aria-hidden /> アプリを開く
+        </button>
+      )}
+      {env?.blocked && (
+        <button className="btn worktree-env-warn" data-size="sm" onClick={() => void alert("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
+          <TriangleAlert size={12} aria-hidden /> ポートを分けられません
+        </button>
+      )}
+      {env && env.issues.length > 0 && (
+        <button className="btn worktree-env-warn" data-size="sm" onClick={() => void alert("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
+          <TriangleAlert size={12} aria-hidden /> 整えきれていない所 {env.issues.length} 件
+        </button>
+      )}
+      <button
+        className="btn"
+        data-size="sm"
+        disabled={busy}
+        data-tip={
+          env
+            ? "手順で直せなかった所を、このワークツリーの新しいチャットで AI に直してもらいます（書き換えるのは Git で管理していないファイルだけ）"
+            : "このワークツリーのポートの帯と Docker の組の名前を割り当て、残った所を新しいチャットで AI に直してもらいます（書き換えるのは Git で管理していないファイルだけ）"
+        }
+        onClick={() => void setup()}
+      >
+        <WandSparkles size={12} aria-hidden /> {action.busy === "setup" ? "準備中…" : "AI で整える"}
+      </button>
+      <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={busy} onClick={() => void remove()} />
+      <ErrorText message={action.error ?? errorText(pr.error)} />
+    </div>
+  );
+}

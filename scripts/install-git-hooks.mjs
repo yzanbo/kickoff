@@ -1,4 +1,4 @@
-// git のフック（.githooks/。コミット時・push 時の確かめ）を、このリポジトリで使うようにする（メモの方針「0022_テストを軽くする」）。
+// git のフック（.githooks/。コミット時・push 時の確かめ）を、このリポジトリで使うようにする。
 // npm install のたびに postinstall から呼ぶ。core.hooksPath はリポジトリの設定で、本体とすべてのワークツリーに共有される
 // （相対のパスなので、それぞれの作業場所の .githooks/ を読む）。Git の外・.githooks/ のない所では何もしない
 import { spawnSync } from "node:child_process";

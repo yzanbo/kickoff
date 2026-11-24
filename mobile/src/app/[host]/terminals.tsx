@@ -2,7 +2,7 @@
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import type { TerminalTab } from "@shared/types";
+import type { TerminalTab } from "@shared/terminal/types";
 import { useHostState } from "../../state/useHostState";
 import { Button } from "../../ui/Button";
 import { colors, ui } from "../../ui/theme";
@@ -20,7 +20,7 @@ export default function TerminalsScreen() {
   useFocusEffect(
     useCallback(() => {
       void session?.client
-        .terminals(projectId)
+        .api("GET /api/terminals", { query: { project_id: projectId } })
         .then(setTabs)
         .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
     }, [session, projectId]),
@@ -30,7 +30,7 @@ export default function TerminalsScreen() {
     if (!session) return;
     setBusy(true);
     try {
-      open((await session.client.startTerminal(projectId, 80, 24)).key);
+      open((await session.client.api("POST /api/projects/:projectId/terminals", { params: { projectId }, body: { worktree_path: null, cols: 80, rows: 24 } })).key);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

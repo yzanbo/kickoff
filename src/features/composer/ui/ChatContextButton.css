@@ -1,0 +1,42 @@
+/* ==== チャットを文脈に足す一覧（ChatContextButton） ==== */
+@layer feature {
+  /* チャット欄の「ほかのチャットを参照」の一覧（ChatContextButton。枠は .chip-popover） */
+
+  .chat-context-popover .search-field {
+    margin: 4px 0 6px;
+  }
+
+  .chat-context-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chat-context-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    text-align: left;
+    color: var(--text);
+    background: none;
+    cursor: pointer;
+  }
+
+  .chat-context-row.active {
+    background: var(--bg-hover);
+  }
+
+  .chat-context-title {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: var(--chat-fs-13);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}

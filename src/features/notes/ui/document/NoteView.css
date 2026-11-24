@@ -1,0 +1,117 @@
+/* ==== 開いたノート（NoteView・NoteTitleField・NoteHeadTools） ==== */
+@layer feature {
+  .note-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* 見出し: 題名とフォルダ・保存の様子・書く / 読む・Finder */
+
+  .note-head {
+    gap: 10px;
+    padding: 6px var(--gutter) 6px 16px;
+  }
+
+  .note-head-title {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /*
+   * 題名（いつでも書き換えられる欄。ふだんは見出しの文字に見せ、乗せる・ピントが入ると地を付ける。⌘S で名前を変える）。
+   * type を付けないので、入力欄の共通の形（input[type="text"] の枠・余白）は当たらない。
+   * 幅は書いた文字の幅（field-sizing）にして、すぐ後ろに拡張子 .note-title-ext を続け、題名とファイル名を同じに見せる（長ければ縮めて … で切る）
+   */
+
+  .note-title {
+    flex: 0 1 auto;
+    min-width: 1em;
+    field-sizing: content;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-15);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    color: inherit;
+    background: none;
+  }
+
+  .note-title:hover,
+  .note-title:focus {
+    outline: none;
+    background: var(--bg-hover);
+  }
+
+  /* 題名の後ろの拡張子（書き換えられない。名前を変えても同じ拡張子を付け直す）。並びの間（8px）と題名の右の余白（4px）を打ち消して、題名の文字に続ける */
+
+  .note-title-ext {
+    flex: none;
+    margin-left: -12px;
+    font-size: var(--fs-15);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .note-head-folder {
+    flex: none;
+    max-width: 40%;
+    overflow: hidden;
+    font-size: var(--fs-12);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--extra-muted);
+  }
+
+  .note-save-state {
+    flex: none;
+    font-size: var(--fs-12);
+    white-space: nowrap;
+    color: var(--muted);
+  }
+
+  .note-save-state.warn {
+    color: var(--warn);
+  }
+
+  .note-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .note-message {
+    margin: 16px;
+  }
+
+  /* 本文と会話を左右に並べる（狭くても下へ回さない。下は見出しの切り替えで利用者が選ぶ）。ページの ⌘F（.page-find）はこの右上に浮かせる */
+
+  .note-view {
+    position: relative;
+    container: note-view / inline-size;
+  }
+
+  /* 右にノートのチャットを開いているときは、⌘F を本文の右上に出す（チャットの欄の見出しを隠さない。幅は NoteView が --note-find-right に入れる） */
+
+  .note-view > .pane-find.page-find {
+    right: calc(var(--note-find-right, 0px) + 12px);
+    width: min(320px, calc(100% - var(--note-find-right, 0px) - 24px));
+  }
+
+  .note-body.with-chat {
+    flex-direction: row;
+  }
+
+  .note-body.with-chat .md-editor {
+    min-width: 0;
+  }
+}

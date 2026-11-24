@@ -1,0 +1,97 @@
+/* ==== 送信のボタンと ▾ のメニュー（ComposerActions） ==== */
+@layer feature {
+  /* 入力欄の右下の操作の並び（中断・送信・送り方の切り替え・メーター） */
+
+  .composer-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 丸いボタン（中断・送信）と、その右の ▾（送り方を選ぶメニュー。右クリックと同じ）。▾ は丸に寄せた細いボタン */
+
+  .send-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  /* 中断と送信の丸どうしは、ほかの操作と同じだけ離す（▾ だけを丸に寄せる） */
+
+  .send-group > .send-button + .send-button {
+    margin-left: 6px;
+  }
+
+  .composer-actions .send-more {
+    width: 18px;
+    height: 28px;
+  }
+
+  .composer.compact .composer-actions .send-more {
+    height: 24px;
+  }
+
+  .composer-actions .send-more[aria-expanded="true"] {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  /* 送信の ▾ のメニュー（ほかの送り方・送り先）: アイコン・名前・下に小さく何が起きるかの一言（ComposerActions の SendTarget） */
+
+  button.send-target:is(.menu *) {
+    align-items: flex-start;
+    min-width: 260px;
+  }
+
+  .send-target-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--muted);
+  }
+
+  .send-target-text {
+    display: grid;
+    gap: 1px;
+  }
+
+  .send-target-hint {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .send-button {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .send-button:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .send-button.stop {
+    color: var(--bg);
+    background: var(--text);
+  }
+
+  /* 停止を頼んで止まるのを待っている間: 押せないが薄くせず、回る印を出す */
+
+  .send-button.stop.stopping:disabled {
+    opacity: 1;
+    cursor: progress;
+  }
+
+  .send-button.stop.stopping .spinner {
+    border-color: color-mix(in srgb, var(--bg) 30%, transparent);
+    border-top-color: var(--bg);
+  }
+}

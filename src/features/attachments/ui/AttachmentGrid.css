@@ -1,0 +1,46 @@
+/* ==== 添付の並び（AttachmentGrid） ==== */
+@layer feature {
+  /* 添付の一覧のポップオーバー（送信待ちの行の「+n」付きのサムネイルから、その上（入らなければ下）に開く。枠と地は .popover） */
+
+  .attachment-grid-popover {
+    width: min(360px, calc(100vw - 16px));
+    max-height: min(420px, 60vh);
+    padding: 10px;
+    overflow-y: auto;
+  }
+
+  /* 画像は大きめのサムネイルで並べる（押すと全画面） */
+
+  .attachment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 6px;
+  }
+
+  .attachment-grid-item {
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    cursor: zoom-in;
+  }
+
+  .attachment-grid-item:hover {
+    border-color: var(--accent);
+  }
+
+  .attachment-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .attachment-grid-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+}

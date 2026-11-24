@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { filterSql, isEmptyFilter, plainLike, previewRowsSql, type FilterDialect } from "./dbFilter";
+import { filterDialect, filterSql, isEmptyFilter, previewRowsSql } from "./dbFilter";
 
-const q = (n: string) => `"${n.replaceAll('"', '""')}"`;
-const sqlite: FilterDialect = { quote: q, placeholder: () => "?", like: plainLike };
-const pg: FilterDialect = { quote: q, placeholder: (n) => `$${n + 1}`, like: (c, not, p) => `CAST(${c} AS text) ${not ? "NOT ILIKE" : "ILIKE"} ${p} ESCAPE '!'` };
+const sqlite = filterDialect("sqlite");
+const pg = filterDialect("postgres");
 
 test("filterSql: 条件を AND でつなぎ、値はすべて params（LIKE の % _ ! は文字として扱う）", () => {
   const r = filterSql(
@@ -49,10 +48,10 @@ test("filterSql: WHERE の文があれば条件の代わりにそのまま（改
 
 test("previewRowsSql: 値を文字列の形で埋めた、見せるための SQL", () => {
   assert.equal(
-    previewRowsSql("users", { filters: [{ column: "name", op: "eq", value: "O'Neil" }], where: null }, [{ column: "id", desc: true }], q, 100),
+    previewRowsSql("users", { filters: [{ column: "name", op: "eq", value: "O'Neil" }], where: null }, [{ column: "id", desc: true }], "sqlite", 100),
     `SELECT * FROM "users" WHERE "name" = 'O''Neil' ORDER BY "id" DESC LIMIT 100`,
   );
-  assert.equal(previewRowsSql("t", { filters: [], where: "a = 1" }, [], q, 100), `SELECT * FROM "t" WHERE (a = 1) LIMIT 100`);
+  assert.equal(previewRowsSql("t", { filters: [], where: "a = 1" }, [], "postgres", 100), `SELECT * FROM "t" WHERE (a = 1) LIMIT 100`);
   // 場所つきの名前（SQL のタブで開くとき）
-  assert.equal(previewRowsSql("t", { filters: [], where: null }, [], q, 100, `"app"."t"`), `SELECT * FROM "app"."t" LIMIT 100`);
+  assert.equal(previewRowsSql("t", { filters: [], where: null }, [], "sqlite", 100, `"app"."t"`), `SELECT * FROM "app"."t" LIMIT 100`);
 });

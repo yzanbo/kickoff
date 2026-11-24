@@ -1,0 +1,284 @@
+import { systemClock } from "@/foundation/core/clock";
+import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
+import type { Chat, GitHubLink } from "@shared/chat/types";
+import type { AppSettings } from "@shared/foundation/contract/settings";
+import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
+import { chatsTable } from "@/features/chat/core/schema";
+import { CHAT_COLUMNS, type ChatFilter, type ChatPatch, type NewChat } from "./types";
+import { createChatArchive } from "./chatArchive";
+import { rememberChatSession } from "./agentSessions";
+import type { LogRevisions } from "./logRevisions";
+
+/**
+ * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
+ */
+export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: LogRevisions | undefined, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default">) {
+  // 行 ⇄ アプリの型は表の列の宣言（chatsTable）から（真偽値は 0 / 1。店の中だけの列は Chat に出さない）
+  const rows = chatsTable.on(db);
+  const toChat = (row: unknown): Chat => rows.fromRow(row as Record<string, SQLOutputValue>) satisfies Chat;
+  const get = (id: number): Chat | undefined => {
+    const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
+    return row ? toChat(row) : undefined;
+  };
+  /** 1 列だけ変えて、変更を知らせる（最後に動いた時刻は進めない: 並び順を変えない操作に使う） */
+  const setColumn = (id: number, column: "unread" | "pinned" | "group_id", value: number | null): Chat => {
+    db.prepare(`UPDATE chats SET ${column} = ? WHERE id = ?`).run(value, id);
+    const chat = get(id)!;
+    onChange({ type: "chat", chat });
+    return chat;
+  };
+  const inWorktree = (projectId: number, worktreePath: string): Chat[] =>
+    db.prepare("SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? AND trashed_at IS NULL ORDER BY id").all(projectId, worktreePath).map(toChat);
+
+  const replaceWorktree = (projectId: number, from: string, to: string | null): void => {
+    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように。知らせるのはふだんのチャットだけ）
+    const chats = inWorktree(projectId, from);
+    db.prepare("UPDATE chats SET worktree_path = ? WHERE project_id = ? AND worktree_path = ?").run(to, projectId, from);
+    for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
+  };
+
+  const descendants = (id: number): Chat[] =>
+    db
+      .prepare(
+        `WITH RECURSIVE tree(id, depth) AS (SELECT id, 1 FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL UNION ALL SELECT c.id, t.depth + 1 FROM chats c JOIN tree t ON c.parent_chat_id = t.id WHERE c.trashed_at IS NULL)
+         SELECT chats.* FROM chats JOIN tree ON chats.id = tree.id ORDER BY tree.depth DESC, chats.id`,
+      )
+      .all(id)
+      .map(toChat);
+
+  const archive = createChatArchive(db, onChange, get, descendants);
+
+  const noteChats = (projectId: number, notePath: string): Chat[] =>
+    db.prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC").all(projectId, notePath, notePath, notePath).map(toChat);
+
+  return {
+    get,
+    list(filter: ChatFilter = {}): Chat[] {
+      const where: string[] = ["trashed_at IS NULL", ...(filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"])];
+      const params: Record<string, string | number> = {};
+      if (filter.projectId !== undefined) {
+        where.push("project_id = $project_id");
+        params.project_id = filter.projectId;
+      }
+      if (filter.statuses?.length) where.push(`status IN (${filter.statuses.map((s) => `'${s}'`).join(",")})`);
+      const limit = filter.limit === undefined ? "" : ` LIMIT ${Math.trunc(filter.limit)}`;
+      return db
+        .prepare(`SELECT * FROM chats ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY active_at DESC, id DESC${limit}`)
+        .all(params)
+        .map(toChat);
+    },
+    create(input: NewChat): Chat {
+      const defaults = settings();
+      const { lastInsertRowid } = db
+        .prepare(
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, note_path, untracked_only, github_repo, github_number, github_kind, ai_generation, sandbox_enabled, edit_scope_enabled)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          input.project_id,
+          input.provider,
+          input.title,
+          input.status,
+          input.model ?? null,
+          input.effort ?? null,
+          input.permission_mode ?? "default",
+          bit(input.fast_mode ?? false),
+          input.group_id ?? null,
+          input.worktree_path ?? null,
+          input.parent_chat_id ?? null,
+          input.parent_event_id ?? null,
+          input.note_path ?? null,
+          bit(input.untracked_only ?? false),
+          // repo・番号・種類はそろって入れる（どれかがなければ結び付けない）
+          ...(input.github_repo && input.github_number && input.github_kind ? [input.github_repo, input.github_number, input.github_kind] : [null, null, null]),
+          input.ai_generation ?? 0,
+          bit(input.sandbox_enabled ?? defaults.sandbox_enabled_by_default),
+          bit(input.edit_scope_enabled ?? defaults.edit_scope_enabled_by_default),
+        );
+      const chat = get(Number(lastInsertRowid))!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /**
+     * 項目を変えて知らせる。状態（status）を変える更新は「動いた」なので、最後に動いた時刻（一覧の並び順）も進める
+     * （送った・作業が終わった。名前・未読・アーカイブなどの変更では進めない）
+     */
+    update(id: number, patch: ChatPatch): Chat {
+      updateRow(db, "chats", id, rows.toRow(patch), CHAT_COLUMNS, patch.status !== undefined);
+      // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ）
+      if (typeof patch.session_id === "string") rememberChatSession(db, id, patch.session_id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /** 知らせずに項目（と担当の AI）を変える（AI の切り替えでほかの表と 1 つのトランザクションに書く。知らせは呼ぶ側。動いた時刻は進めず、セッションも覚えない） */
+    write: (id: number, patch: ChatPatch & Partial<Pick<Chat, "provider">>): void => updateRow(db, "chats", id, rows.toRow(patch), [...CHAT_COLUMNS, "provider"]),
+    /** GitHub の issue・PR を結び付ける・外す（null）。最後に動いた時刻は進めない（並び順を変えない） */
+    setGitHub(id: number, link: GitHubLink | null): Chat {
+      db.prepare("UPDATE chats SET github_repo = ?, github_number = ?, github_kind = ? WHERE id = ?").run(link?.repo ?? null, link?.number ?? null, link?.kind ?? null, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /** AI が作った世代（利用者が作ったチャット = 0。AI の create_chat が作るたびに作った側 ＋ 1。ないチャットは 0） */
+    aiGeneration(id: number): number {
+      const row = db.prepare("SELECT ai_generation FROM chats WHERE id = ?").get(id) as { ai_generation: number } | undefined;
+      return row?.ai_generation ?? 0;
+    },
+    /** 子孫の子チャット（子・孫・ひ孫…。深い方から順に。自分は含まない） */
+    descendants,
+    archive,
+    /** ノートのチャット（そのノート、フォルダならその中のノートのもの。アーカイブ済みも含む。新しい順） */
+    noteChats,
+    /** ノートの名前を変えた・動かしたとき、ノートのチャットの note_path を付け替える（フォルダなら中のノートのものも。並び順は変えない） */
+    remapNotePath(projectId: number, from: string, to: string) {
+      for (const chat of noteChats(projectId, from)) {
+        const next = chat.note_path === from ? to : `${to}${chat.note_path!.slice(from.length)}`;
+        db.prepare("UPDATE chats SET note_path = ? WHERE id = ?").run(next, chat.id);
+        onChange({ type: "chat", chat: get(chat.id)! });
+      }
+    },
+    /**
+     * Kickoff のゴミ箱に入れる（ids のチャットに入れた時刻と一緒に入れたゴミ箱の行を書く。ふだんの読み取りから外れるので、消したのと同じに知らせる）。
+     * 子孫も入れるなら呼ぶ側が ids に入れる
+     */
+    trash(ids: number[], itemId: string, at = systemClock.iso()): Chat[] {
+      const chats = ids.map(get).filter((c): c is Chat => c !== undefined);
+      // ゴミ箱に入れたら、起動したときの再開の確かめでもう聞かない（戻しても聞かない）
+      const stmt = db.prepare("UPDATE chats SET trashed_at = ?, trashed_with = ?, resume_pending = 0 WHERE id = ?");
+      for (const chat of chats) stmt.run(at, itemId, chat.id);
+      for (const chat of chats) onChange({ type: "chat_deleted", id: chat.id, project_id: chat.project_id });
+      return chats;
+    },
+    /** そのゴミ箱の行と一緒に入れたチャット（深い方から） */
+    trashedWith(itemId: string): Chat[] {
+      return db.prepare("SELECT * FROM chats WHERE trashed_with = ? ORDER BY id DESC").all(itemId).map(toChat);
+    },
+    /**
+     * ゴミ箱から戻す（そのゴミ箱の行と一緒に入れたチャット）。親がもう消えた・ゴミ箱にあるチャットは親のないチャットにする。戻したチャットを知らせて返す
+     */
+    untrash(itemId: string): Chat[] {
+      const rows = db.prepare("SELECT id, parent_chat_id FROM chats WHERE trashed_with = ? ORDER BY id").all(itemId) as { id: number; parent_chat_id: number | null }[];
+      const ids = new Set(rows.map((r) => r.id));
+      db.prepare("UPDATE chats SET trashed_at = NULL, trashed_with = NULL WHERE trashed_with = ?").run(itemId);
+      for (const r of rows) {
+        if (r.parent_chat_id === null || ids.has(r.parent_chat_id) || get(r.parent_chat_id)) continue;
+        db.prepare("UPDATE chats SET parent_chat_id = NULL, parent_event_id = NULL, archived_with_parent = 0 WHERE id = ?").run(r.id);
+      }
+      const chats = rows.map((r) => get(r.id)).filter((c): c is Chat => c !== undefined);
+      for (const chat of chats) onChange({ type: "chat", chat });
+      return chats;
+    },
+    /** ゴミ箱の行と一緒に入れたチャットを本当に消す（会話の記録・送信待ちも。消したチャットを返す。知らせは出さない = もう画面にない） */
+    purgeTrashed(itemId: string): Chat[] {
+      const chats = db.prepare("SELECT * FROM chats WHERE trashed_with = ? ORDER BY id DESC").all(itemId).map(toChat);
+      db.prepare("DELETE FROM chats WHERE trashed_with = ?").run(itemId);
+      for (const c of chats) revisions?.changed(c.id);
+      return chats;
+    },
+    /** チャットを完全に削除する（会話の記録・送信待ち・子孫の子チャットも消える。子孫の分も知らせる） */
+    delete(id: number) {
+      const chat = get(id);
+      if (!chat) return;
+      const gone = [...descendants(id), chat];
+      db.prepare("DELETE FROM chats WHERE id = ?").run(id);
+      for (const c of gone) revisions?.changed(c.id);
+      for (const c of gone) onChange({ type: "chat_deleted", id: c.id, project_id: c.project_id });
+    },
+    /** 未読の印を付ける・外す */
+    setUnread: (id: number, unread: boolean) => setColumn(id, "unread", bit(unread)),
+    /** サイドバーの上に固定する・やめる */
+    setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", bit(pinned)),
+    /**
+     * 手動の並び（サイドバーの並び順「手動順」）を ids の順にする（position = 何番目か。ほかのプロジェクトのチャットは無視し、
+     * ids にないチャットはそのまま）。最後に動いた時刻は進めない。変わったチャットだけ知らせ、ids のうちこのプロジェクトのチャットを並びの順に返す
+     */
+    reorder(projectId: number, ids: number[]): Chat[] {
+      const stmt = db.prepare("UPDATE chats SET position = ? WHERE id = ? AND project_id = ? AND position IS NOT ?");
+      const changed = ids.filter((id, i) => Number(stmt.run(i, id, projectId, i).changes) > 0);
+      for (const id of changed) onChange({ type: "chat", chat: get(id)! });
+      return ids.map(get).filter((c): c is Chat => c?.project_id === projectId);
+    },
+    /**
+     * 子チャットを親から外す（parentId が null なら親のないチャットにして groupId のグループへ、先祖の ID ならその子に）。親のどの発言から聞いたか
+     * （parent_event_id）と「親と一緒にアーカイブした」印を消す（アーカイブ済みならそのまま。親を戻しても一緒には戻らない）。子孫の親子のつながりはそのまま。
+     * 確かめ（先祖か・グループ・作業中）は呼ぶ側（chat/detach.ts）。最後に動いた時刻は進めない
+     */
+    detach(id: number, parentId: number | null, groupId: number | null): Chat {
+      db.prepare("UPDATE chats SET parent_chat_id = ?, parent_event_id = NULL, archived_with_parent = 0, group_id = ? WHERE id = ?").run(parentId, parentId === null ? groupId : null, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /** チャットをグループへ移す（null でグループから外す。同じプロジェクトのグループだけ: トリガーで守る） */
+    setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
+    /**
+     * チャットを別のプロジェクトへ移す。グループ・作業場所（ワークツリー）・最後に作業したブランチは元のプロジェクトのものなので外す
+     * （作業場所は移った先の本体になる）。並び順は変えない
+     */
+    move(id: number, projectId: number): Chat {
+      db.prepare("UPDATE chats SET project_id = ?, group_id = NULL, worktree_path = NULL, branch = NULL, finished_worktree_branch = NULL WHERE id = ?").run(projectId, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /**
+     * チャットの作業場所を変える（null なら本体）。branch を渡せば最後に作業したブランチも書き替える
+     * （利用者・AI が移したときは移した先のいまのブランチ）。片付けた印は finishedBranch に置き換える（ワークツリーを片付けて戻したときだけ渡す）。並び順は変えない
+     */
+    setWorkplace(id: number, worktreePath: string | null, branch?: string | null, finishedBranch: string | null = null): Chat {
+      if (branch === undefined) db.prepare("UPDATE chats SET worktree_path = ?, finished_worktree_branch = ? WHERE id = ?").run(worktreePath, finishedBranch, id);
+      else db.prepare("UPDATE chats SET worktree_path = ?, branch = ?, finished_worktree_branch = ? WHERE id = ?").run(worktreePath, branch, finishedBranch, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /**
+     * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数（子孫は数えない）を返す。
+     * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（失敗・作業中・固定したものはしない）。
+     * 子チャットは親と一緒にしまうので、見るのは親のないチャットだけ。しまっていない子孫も、どれも同じく完了したまま days 日たっていなければしまわない
+     */
+    archiveStale(days: number, now = new Date(systemClock.now())): number {
+      const before = new Date(now.getTime() - days * 86_400_000).toISOString();
+      const stale = (c: Pick<Chat, "status" | "unread" | "active_at">) => (c.status === "completed" || c.status === "cancelled") && !c.unread && c.active_at < before;
+      const rows = db
+        .prepare("SELECT id FROM chats WHERE archived_at IS NULL AND trashed_at IS NULL AND parent_chat_id IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?")
+        .all(before) as { id: number }[];
+      let count = 0;
+      for (const { id } of rows) {
+        if (!descendants(id).every((c) => c.archived_at !== null || stale(c))) continue;
+        archive(id, true, now);
+        count++;
+      }
+      return count;
+    },
+    /** その作業場所（ワークツリー）を使っているチャット */
+    inWorktree,
+    /**
+     * ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻し、片付けた印に片付けたワークツリーのブランチを付ける
+     * （分からなければ、チャットが最後に作業したブランチ。並び順は変えない）
+     */
+    clearWorktree(projectId: number, worktreePath: string, finishedBranch: string | null): void {
+      const chats = inWorktree(projectId, worktreePath);
+      db.prepare("UPDATE chats SET worktree_path = NULL, finished_worktree_branch = COALESCE(?, branch) WHERE project_id = ? AND worktree_path = ?").run(finishedBranch, projectId, worktreePath);
+      for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
+    },
+    /** その作業場所のチャットを、別の作業場所（null なら本体）に付け替える（プロジェクトのフォルダを変えたとき。並び順は変えない） */
+    replaceWorktree,
+    /**
+     * 起動時の復旧: 前回の終了で作業中のまま残ったチャット（落ちた・強制終了した）を未読の失敗にし（最後に動いた時刻は変えない）、
+     * 起動したときの再開の確かめの印を付ける。印のあるチャット（アプリを終えるときに Runner.shutdown が付けたもの・前回答えなかったものも。
+     * アーカイブ・ゴミ箱のものは除く）の ID を返す
+     */
+    recoverInterrupted(error: string): number[] {
+      db.prepare("UPDATE chats SET status = 'failed', error = ?, unread = 1, resume_pending = 1 WHERE status = 'running'").run(error);
+      const rows = db.prepare("SELECT id FROM chats WHERE resume_pending = 1 AND archived_at IS NULL AND trashed_at IS NULL ORDER BY id").all() as { id: number }[];
+      return rows.map((r) => r.id);
+    },
+    /** 起動したときの再開の確かめの印を付ける・外す（店の中だけの印なので知らせない） */
+    setResumePending(ids: number[], pending: boolean): void {
+      const stmt = db.prepare("UPDATE chats SET resume_pending = ? WHERE id = ?");
+      for (const id of ids) stmt.run(bit(pending), id);
+    },
+  };
+}

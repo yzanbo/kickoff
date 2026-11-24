@@ -1,0 +1,206 @@
+/* ==== DB クライアントの結果の表（DataGrid。テーブルのタブは TableView.css・編集の印もここ） ==== */
+@layer feature {
+  .db-grid {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    font-size: var(--fs-12);
+    outline: none;
+  }
+
+  .db-grid-head,
+  .db-grid-row {
+    display: grid;
+    grid-template-columns: var(--db-grid-cols);
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .db-grid-head {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    height: 28px;
+    border-bottom: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+  }
+
+  .db-grid-col {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 0 8px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+  }
+
+  button.db-grid-col {
+    cursor: pointer;
+  }
+
+  button.db-grid-col:hover {
+    background: var(--bg-hover);
+  }
+
+  .db-grid-col-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 見出しの主キー（鍵の色。木の主キーと同じ）・外部キーの印 */
+
+  .db-grid-col > svg.db-grid-pk {
+    flex: none;
+    color: var(--warn);
+  }
+
+  .db-grid-col > svg.db-grid-fk {
+    flex: none;
+    color: var(--accent);
+  }
+
+  .db-grid-col-type {
+    flex: none;
+    font-weight: 400;
+    font-size: var(--fs-10);
+    color: var(--extra-muted);
+  }
+
+  .db-grid-col > svg {
+    flex: none;
+    color: var(--accent-fg);
+  }
+
+  .db-grid-body {
+    position: relative;
+  }
+
+  .db-grid-row {
+    position: absolute;
+    left: 0;
+    height: 26px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .db-grid-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .db-grid-index {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    padding: 0 6px;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    font-variant-numeric: tabular-nums;
+    line-height: 26px;
+    color: var(--extra-muted);
+    text-align: right;
+  }
+
+  .db-grid-head > .db-grid-index {
+    z-index: 3;
+    background: var(--bg-elev);
+  }
+
+  .db-grid-cell {
+    padding: 0 8px;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+    font-family: var(--mono);
+    line-height: 25px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .db-grid-cell.picked {
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+  }
+
+  .db-cell-null,
+  .db-cell-binary,
+  .db-cell-empty {
+    font-style: italic;
+    color: var(--extra-muted);
+  }
+
+  .db-cell-number {
+    text-align: right;
+  }
+
+  .db-cell-boolean {
+    color: var(--warn);
+  }
+
+  /* 2 列以上で並べ替えているときの何番目か */
+
+  .db-grid-sort-order {
+    flex: none;
+    font-size: var(--fs-10);
+    font-weight: 600;
+    color: var(--accent-fg);
+  }
+
+  /* セルの書き直しの欄（セルの上に重ね、中身に合わせて右と下へ伸ばす） */
+
+  .db-grid-editor {
+    position: absolute;
+    z-index: 2;
+    box-sizing: border-box;
+    min-height: 26px;
+    max-height: 240px;
+    margin: 0;
+    padding: 3px 7px;
+    border: 1.5px solid var(--accent);
+    border-radius: 0;
+    background: var(--bg-elev);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    line-height: 18px;
+    white-space: pre-wrap;
+    resize: none;
+    field-sizing: content;
+    box-shadow: var(--shadow-1);
+  }
+
+  /* 書き換えたセル（保存していない） */
+
+  .db-grid-cell.db-cell-changed {
+    background: color-mix(in srgb, var(--warn) 18%, transparent);
+  }
+
+  /* 足す行で入れていない列（DB の既定値） */
+
+  .db-cell-default {
+    font-style: italic;
+    color: var(--extra-muted);
+  }
+
+  .db-grid-row.db-row-added {
+    background: color-mix(in srgb, var(--ok) 10%, transparent);
+  }
+
+  .db-grid-row.db-row-added > .db-grid-index {
+    color: var(--ok);
+  }
+
+  .db-grid-row.db-row-deleted {
+    background: color-mix(in srgb, var(--ng) 12%, transparent);
+  }
+
+  .db-grid-row.db-row-deleted > .db-grid-cell {
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+}

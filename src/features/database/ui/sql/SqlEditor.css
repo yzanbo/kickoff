@@ -1,0 +1,8 @@
+/* ==== SQL の入力欄（SqlEditor。CodeMirror の上書きは SqlEditor.unlayered.css） ==== */
+@layer feature {
+  .db-sql-editor {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}

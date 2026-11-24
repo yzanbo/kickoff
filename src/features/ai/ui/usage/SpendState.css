@@ -1,0 +1,21 @@
+/* ==== 詳細の超過分の様子（SpendState） ==== */
+@layer feature {
+  /* 詳細の超過分（追加の使用枠）の様子。いま超過分で動いていれば見出しを赤く、オンなら黄に */
+
+  .usage-overage {
+    display: grid;
+    gap: 2px;
+  }
+
+  .usage-overage-label {
+    font-weight: 600;
+  }
+
+  .usage-overage[data-state="in_use"] .usage-overage-label {
+    color: var(--ng);
+  }
+
+  .usage-overage[data-state="on"] .usage-overage-label {
+    color: var(--warn);
+  }
+}

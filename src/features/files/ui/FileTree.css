@@ -1,0 +1,28 @@
+/* ==== 木の行の右の操作（FileTree。git の変更の一覧・ブランチの一覧も同じ） ==== */
+@layer feature {
+  /* 行の右の操作のボタン（ステージ・元に戻す・Finder で開くなど）。いつも薄い色で出し、乗せたボタンだけ濃くする */
+
+  .row-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    padding-right: 4px;
+  }
+
+  .row-actions .icon-button {
+    width: 22px;
+    height: 22px;
+  }
+
+  .row-actions .icon-button:not(:hover) {
+    color: var(--extra-muted);
+  }
+
+  /* 木の行の中の操作（行の右の余白の外に、行の端まで寄せる。ボタンの間は押せる行にしない） */
+
+  .row-actions:is(.tree-row > *) {
+    /* 記号との間は行の右の余白と同じ 10px（行の gap 4px ＋ 6px） */
+    margin-inline: 6px -10px;
+    cursor: auto;
+  }
+}

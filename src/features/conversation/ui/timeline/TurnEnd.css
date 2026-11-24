@@ -1,0 +1,16 @@
+/* ==== ターンの終わりの行（TurnEnd） ==== */
+@layer feature {
+  /* 作業の終わりの行（作業時間・返答のコピー） */
+
+  .turn-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .turn-footer .turn-action {
+    color: var(--extra-muted);
+  }
+}

@@ -1,3 +1,0 @@
-{
-  "src/renderer/src/hooks/useRowWindow.ts:useRowWindow": "チャットの流れの窓（案 22）の状態を ref の入れ物に持ち、描く中で読み書きする作り。抑止を外すと描く中の ref の外れが次々に出て、直すには窓の状態機械の作り直しが要るため"
-}

@@ -1,0 +1,79 @@
+/* ==== 下のパネル（どの画面でも開けるターミナル。VS Code と同じ） ==== */
+@layer feature {
+  /* 開閉の動きは styles/types/slide-pane.css（高さが --bottom-h まで動く） */
+
+  .bottom-panel {
+    --pane-shown: var(--bottom-h);
+
+    position: relative;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    background: var(--bg);
+  }
+
+  .bottom-panel.open.maximized {
+    flex: 1;
+    height: auto;
+  }
+
+  .bottom-panel-inner {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .bottom-panel.maximized .bottom-panel-inner {
+    flex: 1;
+    height: auto;
+  }
+
+  /* 上の端のつまみ（境目の線の上に重ねる。乗せると青い線） */
+
+  .bottom-panel-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 3;
+    height: 5px;
+    cursor: row-resize;
+  }
+
+  .bottom-panel-resizer:hover,
+  .bottom-panel.resizing .bottom-panel-resizer {
+    background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+  }
+
+  /*
+   * 中身は右のパネル・右端のチャット欄と同じタブ（.board-panel.as-sidebar.in-footer）。右端のチャット欄と違い、
+   * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（surface.css より詳細度を上げる）。
+   * 欄の根の自分のタブの列だけに当てる（surface.css と同じく子セレクタ。間の段は :where()）
+   */
+
+  .bottom-panel .board-panel.in-footer {
+    min-height: 0;
+  }
+
+  .bottom-panel .board-panel.in-footer > .panel-tabs,
+  .bottom-panel .board-panel.in-footer > :where(.split-view) > :where(.split-pane) > .panel-tabs {
+    min-height: 0;
+    padding-right: var(--gutter);
+    -webkit-app-region: no-drag;
+  }
+
+  .bottom-panel .board-panel.in-footer > .split-view {
+    --split-tabs-h: 37px;
+  }
+
+  .bottom-panel .board-panel.in-footer > :where(.split-view) > .split-pane.top-right > .panel-tabs {
+    padding-right: var(--gutter);
+  }
+
+  /* 最大表示では上に操作行を設けるので、高さを変えるつまみを操作ボタンに重ねない */
+
+  .bottom-panel.maximized .bottom-panel-resizer {
+    display: none;
+  }
+}

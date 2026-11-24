@@ -1,0 +1,59 @@
+// 「AI に渡す」の「新しいチャットで始める」: 作業場所を選んで、文と添付を入れた新しいチャットのタブを開く（送るのは自分で）
+import type { Attachment, GitHubLink } from "@shared/chat/types";
+import { worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
+import { parsePopout } from "@/foundation/ui/navigation/popout";
+import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
+import { choose } from "@/foundation/ui/kit/ask";
+import { panelKey } from "@/features/panel/ui";
+import { openDraft, openNewChat } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
+import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
+
+/** 作業場所を選ぶ（新しいワークツリー / 本体 / いまあるワークツリー）。やめたら null。branch は新しいワークツリーの名前の案 */
+export async function chooseWorkplace(projectId: number, branch: string): Promise<WorkplaceChoice | null> {
+  const worktrees = (await worktreeSource().list(projectId).catch(() => [])).filter((w) => !w.main && !w.prunable && w.branch);
+  const picked = await choose({
+    title: "どこで作業しますか",
+    message: "ほかのチャットと並行して進めるなら、新しいワークツリーがおすすめです（ファイルがぶつかりません）。",
+    choices: [
+      { value: "new", label: "新しいワークツリー", primary: true },
+      { value: "main", label: "本体" },
+      ...(worktrees.length > 0 ? [{ value: "existing", label: "いまあるワークツリー…" }] : []),
+    ],
+  }).then((r) => r?.value ?? null);
+  if (picked === "main") return { kind: "main" };
+  if (picked === "new") {
+    const name = await askNewWorktreeBranch(projectId, branch);
+    return name ? { kind: "new", branch: name } : null;
+  }
+  if (picked !== "existing") return null;
+  const path = await choose({
+    title: "どのワークツリーで作業しますか",
+    choices: worktrees.map((w) => ({ value: w.path, label: w.branch ?? w.path })),
+  }).then((r) => r?.value ?? null);
+  return path ? { kind: "existing", path } : null;
+}
+
+/**
+ * 文と添付を入れた新しいチャットのタブを、プロジェクトのチャットのパネルに開く（画面に出ていなければ、その画面へ移る）。
+ * link は作るチャットに結び付ける issue・PR（text が空なら入力欄は空のまま。チェックアウトのあとの「ここで新しいチャット」）。
+ * 別ウィンドウ（DB クライアントなど）の中からは、メインのウィンドウに頼む
+ */
+export function openSeededChat(projectId: number, place: WorkplaceChoice, seed: { text: string; attachments?: Attachment[]; link?: GitHubLink | null }) {
+  if (parsePopout(location.hash)) {
+    postToMainWindow("openSeededChat", { projectId, place, text: seed.text, attachments: seed.attachments ?? [], link: seed.link ?? null });
+    return;
+  }
+  const panel = panelKey("kanban", projectId);
+  const key = openNewChat(
+    panel,
+    { projectId, ...(place.kind === "existing" ? { worktree: place.path } : {}) },
+    {
+      text: seed.text,
+      attachments: seed.attachments ?? [],
+      ...(seed.link ? { github: seed.link } : {}),
+      ...(place.kind === "new" ? { newWorktreeBranch: place.branch } : {}),
+    },
+  );
+  openDraft({ panel, key });
+}

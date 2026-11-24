@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@/*": ["./src/*"],
+      "@xterm/xterm": ["./src/features/terminal/core/xtermTypes.d.ts"]
+    }
+  },
+  "include": [
+    "src/foundation/core/**/*.ts",
+    "src/foundation/desktop/**/*.ts",
+    "src/features/*/core/**/*.ts",
+    "src/features/*/desktop/**/*.ts",
+    "src/features/*/worker/**/*.ts",
+    "src/app/core/**/*.ts",
+    "src/app/desktop/**/*.ts",
+    "scripts/**/*.ts",
+    "electron.vite.config.ts",
+    "vitest.config.ts",
+    "src/shared/*/events.ts", "src/shared/*/ipc.ts",
+    "src/app/shared/settings.ts"
+  ],
+  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**", "src/**/testing.ts", "src/foundation/desktop/preload/**", "src/app/desktop/preload.ts"]
+}

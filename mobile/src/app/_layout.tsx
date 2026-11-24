@@ -49,7 +49,7 @@ function PushRegistrar() {
       if (!s) continue;
       const register = () =>
         void tokenOnce().then(async (t) => {
-          if (t) await s.client.setPush({ kind: "expo", token: t }).catch(() => {});
+          if (t) await s.client.api("PUT /api/devices/self/push", { body: { push: { kind: "expo", token: t } } }).catch(() => {});
         });
       if (s.state.kind === "open") register();
       offs.push(s.onOpen(register));

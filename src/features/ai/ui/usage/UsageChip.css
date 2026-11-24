@@ -1,0 +1,29 @@
+/* ==== AI の札（UsageChip） ==== */
+@layer feature {
+  /* AI の札（アイコン ＋ プラン名）。AI の種類を文字だけでなく、アイコンと色でも区別する。色はライト・ダーク両方のテーマ用トークン */
+
+  .footer-usage-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    height: 16px;
+    padding: 0 5px;
+    --tag-radius: var(--radius-sm);
+    --tag-color: var(--accent-bright);
+    --tag-tint: 12%;
+    font-size: var(--fs-11);
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .footer-usage-chip[data-provider="claude"] {
+    --tag-color: var(--warn);
+    --tag-tint: 14%;
+  }
+
+  .footer-usage-chip[data-provider="codex"] {
+    --tag-color: var(--info);
+    --tag-tint: 14%;
+  }
+}

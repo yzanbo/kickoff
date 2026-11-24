@@ -18,7 +18,7 @@ export default function NewChatScreen() {
     setBusy(true);
     setError(null);
     try {
-      const chat = await session.client.startChat(Number(project), text.trim());
+      const chat = await session.client.api("POST /api/projects/:projectId/chats", { params: { projectId: Number(project) }, body: { text: text.trim() } });
       router.replace(`/${encodeURIComponent(host)}/chat/${chat.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

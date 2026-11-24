@@ -1,0 +1,22 @@
+/* ==== Kickoff サーバーの中身の一覧（ServerInfo の .conn-list） ==== */
+@layer feature {
+  .conn-list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    margin: 2px 0 0;
+    font-size: var(--fs-12);
+  }
+
+  .conn-list dt {
+    color: var(--muted);
+  }
+
+  .conn-list dd {
+    margin: 0;
+  }
+
+  .conn-list .mono {
+    font-family: var(--mono);
+  }
+}

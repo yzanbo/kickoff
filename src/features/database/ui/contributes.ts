@@ -1,0 +1,36 @@
+// database が拡張点に出すもの（app/renderer/registry.ts が入れる）
+import { AI_DB_QUERY_TOOL } from "@shared/database/tools";
+import { toolRowViews, type ToolRowProps } from "@/features/conversation/ui";
+import { lazyPart } from "@/foundation/ui/points";
+import { projectViews } from "@/features/projects/ui";
+import { chatSideAdds } from "@/features/chatPanel/ui";
+import { databaseChatSideAdd, databaseView } from "@/features/database/ui/client/projectViews";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { databasePopout } from "@/features/database/ui/client/popoutKinds";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { dbUnlockHost } from "@/features/database/ui/connection/appHosts";
+import { openTargets } from "@/foundation/ui/navigation/open";
+import { dockerDbTarget } from "@/features/database/ui/client/dockerDbTarget";
+import { viewDescribers } from "@/foundation/ui/shell/viewDescribers";
+import { databaseSqlTarget } from "@/features/database/ui/ai/openSqlInChat";
+import { databaseDescriber } from "@/features/database/ui/client/viewDescriber";
+
+export const contributes = [
+  projectViews.item(databaseView),
+  chatSideAdds.item(databaseChatSideAdd),
+  popoutKinds.item(databasePopout),
+  // チャットの AI が DB に流した SQL: 開くと全文と「SQL のタブで開く」（結果の文も下に出す）。承認カードは SQL を全文 SQL の色で
+  toolRowViews.item({
+    match: (name, input) => name === AI_DB_QUERY_TOOL && typeof input.sql === "string",
+    Detail: lazyPart<ToolRowProps>(() => import("@/features/database/ui/ai/dbQueryRowView").then((m) => ({ default: m.DbQueryRowDetail }))),
+    result: "also",
+    ApprovalBody: lazyPart<{ input: Record<string, unknown>; name: string }>(() => import("@/features/database/ui/ai/dbQueryRowView").then((m) => ({ default: m.DbQuerySql }))),
+  }),
+  appHosts.item(dbUnlockHost),
+  // Docker タブの「DB で開く」
+  openTargets.item(dockerDbTarget),
+  // チャットの AI が開くよう頼んだ SQL（open_sql）
+  openTargets.item(databaseSqlTarget),
+  // AI の get_user_view に返す、開いている DB のタブ
+  viewDescribers.item(databaseDescriber),
+];

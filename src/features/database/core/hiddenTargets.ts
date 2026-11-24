@@ -1,0 +1,26 @@
+import path from "node:path";
+import { isAiVisible } from "@shared/database/aiVisibility";
+import type { DbConnection } from "@shared/database/types";
+import { expandHome } from "@/foundation/core/system/paths";
+import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
+import { isFileDb } from "@shared/database/connectionShape";
+
+/**
+ * プロジェクトの接続のうち「見せない」もののつなぎ先。SQLite のファイルは作業場所と本体の両方で解き、
+ * ファイル名だけでも探す（見せる接続に同じファイル名があれば、取り違えないよう名前だけでは探さない）
+ */
+export function hiddenDbTargets(connections: DbConnection[], dirs: string[]): HiddenDbTarget[] {
+  const visibleNames = new Set(connections.filter((c) => isAiVisible(c) && c.file_path).map((c) => path.basename(c.file_path ?? "")));
+  return connections
+    .filter((c) => !isAiVisible(c))
+    .map((c) => {
+      let file: HiddenDbTarget["file"] = null;
+      if (isFileDb(c.engine) && c.file_path) {
+        const expanded = expandHome(c.file_path);
+        const absolute = [...new Set(path.isAbsolute(expanded) ? [path.resolve(expanded)] : dirs.map((d) => path.resolve(d, expanded)))];
+        const base = path.basename(expanded);
+        file = { names: [...absolute, ...(c.file_path !== base ? [c.file_path] : []), ...(visibleNames.has(base) ? [] : [base])], absolute };
+      }
+      return { name: c.name, engine: c.engine, host: isFileDb(c.engine) ? null : c.host, port: c.port, file };
+    });
+}

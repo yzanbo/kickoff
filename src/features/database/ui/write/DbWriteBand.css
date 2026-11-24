@@ -1,0 +1,33 @@
+/* ==== 書き込みの帯（DbWriteBand） ==== */
+@layer feature {
+  .db-write-band {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 5px var(--gutter);
+    border-bottom: 1px solid var(--ng);
+    background: color-mix(in srgb, var(--ng) 38%, var(--bg));
+    color: var(--text);
+    font-size: var(--fs-12);
+    font-weight: 600;
+  }
+
+  .db-write-band > svg {
+    flex: none;
+    color: var(--ng);
+  }
+
+  .db-write-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-write-band .btn {
+    flex: none;
+    gap: 4px;
+  }
+}

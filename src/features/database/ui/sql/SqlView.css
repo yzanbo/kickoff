@@ -1,0 +1,128 @@
+/* ==== DB クライアントの SQL のタブ（上に入力欄、下に文ごとの結果。SqlView） ==== */
+@layer feature {
+  .db-sql-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ステージング・本番の接続の SQL は上に環境の色の帯 */
+
+  .db-sql-view.db-env-staging,
+  .db-sql-view.db-env-production {
+    border-top: 3px solid var(--db-env);
+  }
+
+  .db-sql-top {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: 80px;
+  }
+
+  .db-sql-toolbar {
+    flex: none;
+    flex-wrap: wrap;
+  }
+
+  .db-sql-toolbar .btn {
+    gap: 4px;
+  }
+
+  .db-sql-spacer {
+    flex: 1;
+  }
+
+  .db-sql-readonly {
+    padding: 1px 8px;
+    --tag-color: var(--info);
+    --tag-tint: 14%;
+  }
+
+  .db-sql-env {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px;
+    --tag-color: var(--db-env);
+    --tag-tint: 14%;
+    --tag-fg: color-mix(in srgb, var(--db-env) 70%, var(--text));
+    white-space: nowrap;
+  }
+
+  /* 「書き込む」の間: 上の赤い帯と、タブの枠の赤い線（読み取り専用を外していると、ひと目で分かるように） */
+
+  .db-sql-view.writing,
+  .db-table-view.writing {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ng) 70%, transparent);
+  }
+
+  .db-sql-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--state-needs-input);
+  }
+
+  /* 入力欄と結果の境目の高さのつまみ（.pane-resizer の縦向き） */
+
+  .db-sql-resizer {
+    width: auto;
+    height: 5px;
+    margin: -2px 0 -3px;
+    box-shadow: inset 0 2px 0 -1px var(--border);
+    cursor: row-resize;
+  }
+
+  .db-sql-resizer:hover,
+  .db-sql-resizer:is(.resizing > *) {
+    background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+  }
+
+  .db-sql-results {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .db-result-tabs {
+    flex: none;
+    align-items: normal;
+    gap: 2px;
+    padding: 4px var(--gutter);
+    overflow-x: auto;
+  }
+
+  .db-result-tab {
+    flex: none;
+    min-width: 26px;
+    white-space: nowrap;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font: inherit;
+    font-size: var(--fs-12);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .db-result-tab.active {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .db-result-tab.failed {
+    color: var(--ng);
+  }
+
+  /* 前の文で止まったので流していない文 */
+
+  .db-result-tab.skipped {
+    color: var(--extra-muted);
+    text-decoration: line-through;
+  }
+}

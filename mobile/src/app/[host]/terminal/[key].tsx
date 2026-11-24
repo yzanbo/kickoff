@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
-import type { TerminalClientMessage, TerminalServerMessage } from "@shared/types";
-import { authHeaders } from "../../../lib/client";
+import type { TerminalClientMessage, TerminalServerMessage } from "@shared/terminal/types";
+import { authHeaders } from "../../../lib/hostApi";
 import { useHostState } from "../../../state/useHostState";
 import { terminalPageHtml, type TerminalPageMessage } from "../../../terminal/terminalPage";
 import { Button } from "../../../ui/Button";
@@ -77,7 +77,7 @@ export default function TerminalScreen() {
   };
 
   const close = async () => {
-    await session?.client.closeTerminal(key).catch(() => {});
+    await session?.client.api("DELETE /api/terminals/:key", { params: { key } }).catch(() => {});
     router.back();
   };
 

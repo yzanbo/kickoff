@@ -1,0 +1,118 @@
+/* ==== サブエージェント（チャット欄のすぐ上のピルの列・行・アーカイブ） ==== */
+@layer feature {
+  /* チャット欄の下のチップ（サブエージェントなど） */
+
+  /* チャット欄のすぐ上のピルの列（サブエージェントなど） */
+
+  /* ピルと、横に並べる知らせの文（同じ作業場所で作業中のチャットがある、など）を上下の真ん中にそろえる（そろえないと文がピルの上端に寄っていた） */
+
+  .composer-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0 6px;
+  }
+
+  /* ピルが 1 つもない（右端のボタンの置き場所だけが空で残っている）ときは列ごと出さない */
+
+  .composer-chips:not(:has(> :not(.composer-chips-dock:empty))) {
+    display: none;
+  }
+
+  /* ピルと、押すと上に開く一覧（Popover。サブエージェント・ToDo・指示の履歴などで共通）をまとめる入れ物 */
+
+  .chip-wrap {
+    position: relative;
+  }
+
+  .composer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    --pill-border: var(--border-strong);
+    --pill-fg: var(--text);
+    --pill-bg: var(--bg-elev);
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    cursor: pointer;
+  }
+
+  .composer-chip:hover,
+  .composer-chip.open {
+    --pill-bg: var(--bg-hover);
+  }
+
+  /*
+   * ピルの左の状態の印（子チャット・サブエージェント。StatusSlot をサイドバーの行と同じ見た目で、ピルの高さに収める）。
+   * リングの右上の緑の点の縁と回答待ちの！の縁は、サイドバーの地ではなくピルの地の色にする
+   */
+
+  .composer-chip .status-slot {
+    width: 14px;
+    height: 16px;
+    margin-left: -3px;
+  }
+
+  .composer-chip {
+    --slot-ring: var(--bg-elev);
+  }
+
+  .composer-chip:hover,
+  .composer-chip.open {
+    --slot-ring: var(--bg-hover);
+  }
+
+  .chip-running {
+    color: var(--muted);
+  }
+
+  .chip-failed {
+    color: var(--state-failed);
+  }
+
+  .chip-network {
+    color: var(--warn);
+  }
+
+  /* 実行中なのに長く動きがない（サブエージェントの行・タブの見出し・作業中の行。stall.ts） */
+
+  .activity-stalled {
+    color: var(--warn);
+  }
+
+  .chip-chevron {
+    color: var(--muted);
+  }
+
+  /* ピルの上に開く一覧（枠と地は .popover） */
+
+  .chip-popover {
+    width: min(460px, 80vw);
+    max-height: min(440px, 60vh);
+    padding: 6px;
+    overflow-y: auto;
+  }
+
+  /* ---- ピルの列（基底より後ろ）。ノートの下の入力欄の上の 1 行（notes の NoteQuickChat.css）の詰め方は、そちらを勝たせる ---- */
+
+  .composer-chips.compact {
+    gap: 4px;
+    padding-bottom: 4px;
+  }
+
+  :where(.composer-chips.compact) .composer-chip {
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: var(--fs-11);
+  }
+
+  /* 列の右端に置いた一番下へ戻るボタンも、ピルと同じ高さに（列の高さを変えない） */
+
+  .composer-chips.compact .composer-chips-dock .scroll-bottom.guide {
+    height: 22px;
+  }
+}

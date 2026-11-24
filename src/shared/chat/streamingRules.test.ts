@@ -1,19 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent, ChatEvent } from "@shared/types";
-import { makeChat } from "@shared/testing/factories";
+import type { ChatEventType } from "@shared/chat/chatEvent";
+import { busEvent } from "@shared/foundation/testing/data";
+import { makeChat, makeEvent, type EventInput } from "@shared/chat/testing";
 import { streamingAppendOf, streamingEffectOf } from "./streamingRules";
 
-/** チャット 7 の記録の知らせ（中身の形は決まりに関わる所だけ） */
-const eventOf = (type: string, data: Record<string, unknown> = {}): BusEvent => ({
-  type: "chat_event",
-  project_id: 1,
-  event: { id: 1, chat_id: 7, type, data, created_at: "2026-11-15T00:00:00.000Z" } as unknown as ChatEvent,
-});
-
-test("streamingEffectOf: chat_delta は足す", () => {
-  assert.deepEqual(streamingEffectOf({ type: "chat_delta", project_id: 1, chat_id: 7, text: "こん" }), { chatId: 7, effect: "append", text: "こん" });
-});
+/** チャット 7 の記録の知らせ（中身は決まりに関わる所だけなので、形は言い切る） */
+const eventOf = (type: string, data: Record<string, unknown> = {}) =>
+  busEvent("chat_event", { project_id: 1, event: makeEvent(1, type as ChatEventType, data as EventInput<ChatEventType>, { chat_id: 7, created_at: "2026-11-15T00:00:00.000Z" }) });
 
 test("streamingEffectOf: メインエージェントの文・思考・ツールの呼び出しと結果、作業の終わり・失敗で消す", () => {
   for (const type of ["text", "thinking", "tool_use", "tool_result", "result", "error"]) {
@@ -39,7 +33,7 @@ test("streamingEffectOf: 巻き戻しと、作業中でなくなったときに�
   assert.equal(streamingEffectOf({ type: "chat", chat: makeChat(7, { status: "running" }) }), null);
 });
 
-test("streamingEffectOf: chat_delta の位置 offset を添える", () => {
+test("streamingEffectOf: chat_delta は位置 offset を添えて足す", () => {
   assert.deepEqual(streamingEffectOf({ type: "chat_delta", project_id: 1, chat_id: 7, text: "ちは", offset: 2 }), { chatId: 7, effect: "append", text: "ちは", offset: 2 });
 });
 
@@ -48,7 +42,6 @@ test("streamingAppendOf: もう持っている所は捨て、続きだけを足�
   assert.equal(streamingAppendOf(5, "にちは", 2), "");
   assert.equal(streamingAppendOf(5, "ちは。元気", 3), "。元気");
   assert.equal(streamingAppendOf(5, "。元気", 5), "。元気");
-  // 位置がない（古い本体）・間が抜けた（持っている分より先から）ときはそのまま足す
-  assert.equal(streamingAppendOf(5, "あ", undefined), "あ");
+  // 間が抜けた（持っている分より先から）ときはそのまま足す
   assert.equal(streamingAppendOf(5, "あ", 9), "あ");
 });

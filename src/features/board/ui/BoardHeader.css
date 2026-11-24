@@ -1,0 +1,194 @@
+/* ==== ボードの見出しの道具（BoardHeader） ==== */
+@layer feature {
+  .chat-search-content {
+    display: grid;
+    color: var(--extra-muted);
+  }
+
+  .chat-search-content:hover {
+    color: var(--text);
+  }
+
+  /* ==== ボードの見出し（道具のまとまり・表示の切り替え・絞り込み・エラーと読み込み） ==== */
+
+  .board-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 10px;
+  }
+
+  /* 文字は折り返さない。入りきらないときは、道具のまとまりごと次の行へ（パネルの開閉はいつも 1 行目の右端） */
+
+  .board-header > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .board-header > .board-tools {
+    /* まとまりの中でも折り返せるよう、縮められるようにする */
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .board-header > .board-tools-end {
+    flex: none;
+    align-self: flex-start;
+  }
+
+  /* 道具の概念ごとのまとまり（探す・絞り込む / 表示 / 作る・開く / パネル）。まとまりの中は折り返さず、間に区切り線を入れる */
+
+  .board-tool-group {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /*
+   * 区切り線はまとまりの間の間隔（.board-tools の column-gap）の中に描く。折り返して行の先頭に来たまとまりの線は、
+   * 道具の並びの外にはみ出るので切り取られて見えない
+   */
+
+  .board-tool-group + .board-tool-group {
+    position: relative;
+  }
+
+  .board-tool-group + .board-tool-group::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -10px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  /* 表示と探す・絞り込むは名前のすぐ右に左寄せ、作る・開くとパネルの開閉は右端に寄せる */
+
+  .board-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    /* 行の先頭の区切り線を切り取る（ピントの枠は切らない） */
+    overflow: clip;
+    overflow-clip-margin: 4px;
+  }
+
+  .board-tools-end {
+    margin-left: auto;
+  }
+
+  .board-header .view-toggle button,
+  .board-header .btn {
+    white-space: nowrap;
+  }
+
+  /*
+   * 道具のまとまりが 2 段に入らないとき（BoardHeader が useWrapCompact で実際の段の数を測って .icon-only を付ける。決め打ちの幅では切り替えない）は、
+   * ボタンの文字を隠してアイコンだけにし、検索欄も狭くする。2 段までは文字のまま折り返す
+   */
+
+  .board-tools.icon-only .btn-label {
+    display: none;
+  }
+
+  .board-tools.icon-only .btn[data-size="sm"] {
+    padding: 3px 7px;
+  }
+
+  /* カンバンの見出しの検索欄 */
+
+  .board-search.search-field {
+    width: 200px;
+    margin: 0;
+  }
+
+  .board-tools.icon-only .search-field.board-search {
+    width: 160px;
+  }
+
+  @container (max-width: 680px) {
+    /* アイコンだけのときの幅（.board-tools.icon-only）にも勝つよう、同じ強さで後ろに書く */
+    .board-header .board-tools .search-field.board-search {
+      width: 120px;
+    }
+
+    .board-filter {
+      max-width: 130px;
+    }
+  }
+
+  /*
+   * さらに狭いとき（チャット欄を広げた・パネルの横）: まとまりの箱をなくして道具を 1 つずつ並べ、2 段にそろえる
+   * （まとまりごと折り返すと、主な操作だけの行や、行の先頭の区切り線ができるため）。
+   * 1 段目 = 見出し・主な操作・表示の切り替え、右端にパネルの開閉 / 2 段目 = 段の分け方・整える・絞り込み・検索欄（残りの幅いっぱい）
+   */
+
+  @container (max-width: 600px) {
+    .board-header {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* この幅では道具の箱をなくすので段の数を測れない（useWrapCompact は測らない）。いつもアイコンだけにする */
+    .board-header .btn-label {
+      display: none;
+    }
+
+    .board-header .btn[data-size="sm"] {
+      padding: 3px 7px;
+    }
+
+    .board-header .board-tools,
+    .board-header .board-tool-group {
+      display: contents;
+    }
+
+    .board-header .panel-toggle {
+      order: 1;
+      margin-left: auto;
+    }
+
+    /* 段の区切り（幅いっぱいの高さ 0 の要素。上下の間隔が 2 回入らないよう、間隔の分だけ詰める） */
+    .board-header::after {
+      content: "";
+      order: 2;
+      flex-basis: 100%;
+      margin-top: -6px;
+    }
+
+    .board-header [data-part="view"] > :not(.view-toggle),
+    .board-header [data-part="arrange"] > *,
+    .board-header [data-part="find"] > * {
+      order: 3;
+    }
+
+    /* 検索欄は絞り込みの後ろで、残りの幅いっぱい（入らなければ 1 段を占める） */
+    .board-header .board-tools .search-field.board-search {
+      order: 4;
+      flex: 1 1 160px;
+      width: auto;
+      min-width: 0;
+    }
+
+    .board-header .board-filter {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .board-filter {
+    width: auto;
+    padding: 3px 24px 3px 9px;
+    background-position: right 8px center;
+    background-size: 12px;
+    font-size: var(--fs-12);
+  }
+
+  .board-error,
+  .board-loading {
+    margin: 0 0 8px;
+  }
+}

@@ -1,0 +1,38 @@
+/* ==== 裏で動く作業の出力（BackgroundTasks） ==== */
+@layer feature {
+  /* 裏で動いているコマンドの出力の最後の 1 行（名前の後ろ。狭ければ省く） */
+
+  .background-task-output {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: var(--chat-fs-11);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--extra-muted);
+  }
+
+  .background-tasks {
+    display: grid;
+    gap: 2px;
+    margin: -4px 0 8px;
+    padding: 0 0 0 22px;
+    list-style: none;
+  }
+
+  .background-task {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  .background-task-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

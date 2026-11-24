@@ -1,0 +1,48 @@
+/* ==== 動き（複数の画面で使う @keyframes） ==== */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 薄くなって戻る（作業中の点・音声の考え中） */
+
+@keyframes pulse-dim {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes drop-line-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+

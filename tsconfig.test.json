@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.dbtest.ts",
+    "src/**/testing/**/*.ts",
+    "src/**/testing.ts",
+    "src/app/renderer/global.d.ts",
+    "vitest.setup.ts",
+    "src/shared/*/events.ts", "src/shared/*/ipc.ts",
+    "src/features/*/ui/openTargets.ts",
+    "src/features/*/ui/popoutKinds.ts",
+    "src/features/*/ui/windowMessages.ts",
+    "src/app/shared/settings.ts",
+    "src/app/shared/aiToolViews.ts",
+    "src/app/core/hostRemote.ts"
+  ]
+}

@@ -1,0 +1,42 @@
+/* ==== 指示の下書きの選択肢（PromptAssist） ==== */
+@layer ui {
+  /* 入力のダイアログに添える、文から案を作ってもらう欄（PromptAssist。ワークツリーのブランチ名など） */
+
+  .prompt-assist {
+    display: grid;
+    gap: 8px;
+  }
+
+  .prompt-assist textarea {
+    resize: vertical;
+  }
+
+  .prompt-assist-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* 作ってもらった案（押すと入力欄に入る。いま入っている案は色を付ける） */
+
+  .prompt-assist-option {
+    padding: 3px 9px;
+    --pill-fg: var(--text);
+    --pill-bg: var(--bg-elev);
+    font: inherit;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .prompt-assist-option:hover {
+    --pill-border: var(--border-strong);
+    --pill-bg: var(--bg-hover);
+  }
+
+  .prompt-assist-option.is-picked {
+    --pill-border: var(--accent);
+    --pill-fg: var(--accent-bright);
+  }
+}

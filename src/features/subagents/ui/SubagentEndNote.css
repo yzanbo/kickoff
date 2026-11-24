@@ -1,0 +1,19 @@
+/* ==== サブエージェントの終わりの行（SubagentEndNote） ==== */
+@layer feature {
+  /* 裏で動かしたサブエージェントが終わった 1 行（押すとカードへ） */
+
+  .subagent-end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .subagent-end .agent-icon {
+    margin-top: 0;
+  }
+
+  .subagent-end .event-time {
+    margin-left: 0;
+  }
+}

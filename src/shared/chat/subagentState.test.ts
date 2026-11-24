@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/chat/testing";
 import type { SubagentEntry } from "./subagents";
-import { subagentState, waitingSubagentKeys } from "./subagentState";
+import { subagentAskers, subagentState } from "./subagentState";
 
-const entry = (patch: Partial<SubagentEntry>): SubagentEntry => ({ key: "a", description: "調査", status: "completed", ...patch });
+/** 終わったサブエージェント「調査」 */
+const entry = (patch: Partial<SubagentEntry>) => makeSubagent("a", { description: "調査", status: "completed", ...patch });
 
 test("subagentState: チャットと同じ 5 つの状態と、添える細かい様子", () => {
   assert.deepEqual(subagentState(entry({ status: "running" })), { state: "running", detail: null });
@@ -25,7 +26,7 @@ test("subagentState: 親がやり直したものは手を打たなくてよい�
   assert.deepEqual(subagentState(entry({ status: "running" }), true), { state: "needs_input", detail: null });
 });
 
-test("waitingSubagentKeys: 依頼の呼び出しの記録の parent（再開した回の ID も）から引き、記録になければサブエージェントの ID で引く", () => {
+test("subagentAskers: 依頼ごとに、依頼の呼び出しの記録の parent（再開した回の ID も）から引き、記録になければサブエージェントの ID で引く", () => {
   const ev = eventSequence();
   const events = [
     ev("tool_use", { id: "m1", name: "Bash", input: {} }),
@@ -33,10 +34,10 @@ test("waitingSubagentKeys: 依頼の呼び出しの記録の parent（再開し�
     ev("tool_use", { id: "s2", name: "Edit", input: {}, parent: "resume-b" }),
   ];
   const entries = [entry({ key: "a", status: "running" }), entry({ key: "b", status: "running", aliases: ["resume-b"] }), entry({ key: "c", status: "running", agentId: "deep1" })];
-  const ask = (tool_use_id?: string, agent_id?: string, kind: "permission" | "question" | "reconnect" = "permission") => ({ kind, tool_use_id, agent_id });
-  assert.deepEqual([...waitingSubagentKeys([ask("s1"), ask("s2")], events, entries)].sort(), ["a", "b"]);
+  const ask = (tool_use_id?: string, agent_id?: string, kind: "permission" | "question" | "reconnect" = "permission") => ({ id: `${tool_use_id}:${agent_id}`, kind, tool_use_id, agent_id });
+  assert.deepEqual([...subagentAskers([ask("s1"), ask("s2")], events, entries)], [["s1:undefined", "a"], ["s2:undefined", "b"]]);
   // 記録にない（深い入れ子）ものはサブエージェントの ID で
-  assert.deepEqual([...waitingSubagentKeys([ask("zz", "deep1", "question")], events, entries)], ["c"]);
+  assert.deepEqual([...subagentAskers([ask("zz", "deep1", "question")], events, entries).values()], ["c"]);
   // メインエージェントの依頼・再開の確かめ・分からないものは数えない
-  assert.deepEqual([...waitingSubagentKeys([ask("m1"), ask("s1", undefined, "reconnect"), ask("nope")], events, entries)], []);
+  assert.equal(subagentAskers([ask("m1"), ask("s1", undefined, "reconnect"), ask("nope")], events, entries).size, 0);
 });

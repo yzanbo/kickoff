@@ -1,0 +1,42 @@
+/* ==== 右サイドバーのプロジェクトの画面（SideViewBody） ==== */
+@layer feature {
+  .side-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* 見出しの行（ブラウザのタブの列と同じ高さ。ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける） */
+
+  .side-view-head {
+    flex: none;
+    min-height: 40px;
+    padding: 0 100px 0 var(--gutter);
+    -webkit-app-region: drag;
+  }
+
+  .side-view-head button {
+    -webkit-app-region: no-drag;
+  }
+
+  .side-view-title {
+    overflow: hidden;
+    font-size: var(--fs-13);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .side-view .side-project-view {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* 右の欄の、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面（SideProjectView。中身はプロジェクトのタブの部品のまま。欄の高さいっぱいに、プロジェクトの画面と同じく少し余白を取る） */
+
+  .side-project-view {
+    height: 100%;
+    padding: 8px;
+    gap: 8px;
+  }
+}

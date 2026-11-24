@@ -1,0 +1,55 @@
+// ほかの Kickoff（製品版から見た開発版・開発版から見た製品版）が使っているセッション（Claude Code の会話記録）を調べる。
+// どちらの Kickoff も同じ ~/.claude/projects に会話記録を置き、開発版のデータは製品版から写して作る（同じチャットが同じセッションを指す）ので、
+// 片方で使わなくなった会話記録を消すと、もう片方のチャットの会話が続かなくなる。消す前にほかの Kickoff の DB を読むだけで開いて確かめる
+import fs from "node:fs";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { appDataDir } from "@/foundation/core/system/appEnv";
+import { realPathLoose } from "@/foundation/core/system/paths";
+import { DB_FILE } from "@/foundation/core/db/db";
+import type { RememberedSessionIds } from "@/features/chat/core/ports";
+
+/** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result・離れた AI のセッションの覚え）。読めない DB があれば、すべて使っている扱い */
+export type SessionsUsedElsewhere = (ids: string[]) => Set<string>;
+/** ほかの Kickoff の DB を調べる口（remembered: chat の表のほかで覚えているセッションを、相手の DB で読む口。createChat が providerSwitch の口を渡す） */
+export type SiblingSessionCheck = (ids: string[], remembered: RememberedSessionIds) => Set<string>;
+
+/** 自分の保存先（dataDir）でない製品版・開発版の保存先の DB を調べる口を作る */
+export function siblingSessionCheck(dataDir: string, appDataRoot: string): SiblingSessionCheck {
+  const self = realPathLoose(dataDir);
+  const others = [appDataDir(appDataRoot, "production"), appDataDir(appDataRoot, "development")].filter((dir) => realPathLoose(dir) !== self);
+  return (ids, remembered) => {
+    const used = new Set<string>();
+    if (ids.length === 0) return used;
+    for (const dir of others) {
+      const file = path.join(dir, DB_FILE);
+      if (!fs.existsSync(file)) continue;
+      for (const id of usedIn(file, ids, remembered)) used.add(id);
+    }
+    return used;
+  };
+}
+
+/**
+ * 1 つの DB で使われている ID（読むだけで開く）。開けない・表や列が違う（相手の版が違う）ときは、すべて使っている扱いにする
+ * （使っていない扱いにすると、相手のチャットが使う会話記録を片付けてしまうため）
+ */
+function usedIn(file: string, ids: string[], remembered: RememberedSessionIds): string[] {
+  let db: DatabaseSync | null = null;
+  try {
+    db = new DatabaseSync(file, { readOnly: true });
+    const marks = ids.map(() => "?").join(", ");
+    const rows = db
+      .prepare(
+        `SELECT session_id AS sid FROM chats WHERE session_id IN (${marks})
+         UNION SELECT json_extract(data, '$.session_id') FROM chat_events
+         WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IN (${marks})`,
+      )
+      .all(...ids, ...ids) as { sid: string }[];
+    return [...new Set([...rows.map((r) => r.sid), ...remembered(ids, db)])];
+  } catch {
+    return ids;
+  } finally {
+    db?.close();
+  }
+}

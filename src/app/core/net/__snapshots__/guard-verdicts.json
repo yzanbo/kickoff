@@ -1,0 +1,228 @@
+{
+  "bash": {
+    "npm test": {},
+    "git status && git diff -- compose.yaml": {},
+    "rm -rf dist": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "/bin/rm a.txt": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "unlink a; shred -u b": {
+      "delete": "deny | reason=Kickoff では unlink でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "find . -name '*.log' -delete": {
+      "delete": "deny | reason=Kickoff では find -delete でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "find . -name '*.tmp' -exec rm {} +": {
+      "delete": "deny | reason=Kickoff では find -exec rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "ls | xargs -0 rm": {
+      "delete": "deny | reason=Kickoff では xargs rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "git clean -fd": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "delete": "deny | reason=Kickoff では git clean を使えません（Git にない新しいファイルを、戻せない形で消すため）。git clean -n で消えるものの一覧を見てから、代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "git clean -n": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    },
+    "git rm --cached a.txt": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    },
+    "rmdir empty": {},
+    "sudo FOO=1 rm -f x": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "sh -c 'rm -rf build'": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "bash -lc \"echo ok && rm x\"": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "sh -c \"sh -c 'sh -c \\\"rm x\\\"'\"": {
+      "delete": "deny | reason=Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+    },
+    "sh -c \"sh -c 'sh -c \\\"sh -c rm\\\"'\"": {},
+    "kickoff-trash dist": {},
+    "\"<HOME>/Library/Application Support/Kickoff/bin/kickoff-trash\" dist": {},
+    "git commit -m 'fix' --no-verify": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "gitHook": "deny | reason=Kickoff では git commit --no-verify / -n で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git commit -am wip": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    },
+    "git commit -mfix -n": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "gitHook": "deny | reason=Kickoff では git commit --no-verify / -n で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git commit -m -n": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    },
+    "git push --no-veri origin main": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "gitHook": "deny | reason=Kickoff では git push --no-verify で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git merge --no-verify topic": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "gitHook": "deny | reason=Kickoff では git merge --no-verify で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git -c core.hooksPath=/dev/null commit -m x": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）",
+      "gitHook": "deny | reason=Kickoff では git -c core.hooksPath=… で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git --config-env=core.hooksPath=HOOKS commit -m x": {
+      "gitHook": "deny | reason=Kickoff では git -c core.hooksPath=… で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git config core.hooksPath .githooks": {
+      "gitHook": "deny | reason=Kickoff では git config core.hooksPath で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git config --unset core.hooksPath": {
+      "gitHook": "deny | reason=Kickoff では git config core.hooksPath で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "git config --get core.hooksPath": {},
+    "bash -c 'git commit --no-verify -m x'": {
+      "gitHook": "deny | reason=Kickoff では git commit --no-verify / -n で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください"
+    },
+    "NODE_COMPILE_CACHE=/tmp/c npm run dev": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（NODE_COMPILE_CACHE=…）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "env NODE_COMPILE_CACHE_PORTABLE=1 electron .": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（NODE_COMPILE_CACHE_PORTABLE=…）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "/usr/bin/env -i NODE_COMPILE_CACHE=/tmp/c node a.js": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（NODE_COMPILE_CACHE=…）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "export NODE_COMPILE_CACHE=/tmp/c": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（export NODE_COMPILE_CACHE）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "launchctl setenv NODE_COMPILE_CACHE /tmp/c": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（launchctl setenv NODE_COMPILE_CACHE）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "open --env NODE_COMPILE_CACHE=/tmp/c -a Kickoff": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（open --env NODE_COMPILE_CACHE=…）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "eval 'export NODE_COMPILE_CACHE=/tmp/c'": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（export NODE_COMPILE_CACHE）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "env -S 'NODE_COMPILE_CACHE=/tmp/c node a.js'": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（NODE_COMPILE_CACHE=…）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "sudo env -i sh -c 'export NODE_COMPILE_CACHE=/tmp/c'": {
+      "compileCache": "deny | reason=Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（export NODE_COMPILE_CACHE）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください"
+    },
+    "echo $NODE_COMPILE_CACHE; printenv NODE_COMPILE_CACHE; unset NODE_COMPILE_CACHE": {},
+    "kill -TERM 4242": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。止めると、このチャットも止まります（プロセス 4242）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください"
+    },
+    "kill -9 4100": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。止めると、このチャットも止まります（プロセス 4100）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください"
+    },
+    "kill -TERM 42420": {},
+    "pkill -f Kickoff": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。止めると、このチャットも止まります。名前でまとめて止めないでください"
+    },
+    "killall 'Kickoff Dev'": {},
+    "osascript -e 'tell application \"Kickoff\" to quit'": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。止めると、このチャットも止まります。AppleScript で操作しないでください"
+    },
+    "curl -s localhost:4317/api/status": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "curl -s localhost:4318/api/status": {},
+    "cat \"<HOME>/Library/Application Support/Kickoff/kickoff.db\"": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）にはコマンドでも触れません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "ls ~/Library/Application\\ Support/Kickoff/uploads": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）にはコマンドでも触れません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "ls $HOME/Library/Application\\ Support/Kickoff\\ Dev": {},
+    "cp -R /Applications/Kickoff.app /tmp/k": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。アプリ本体（/Applications/Kickoff.app）には触れません。入れ替えは利用者が macOS のターミナルで npm run install-app を実行します"
+    },
+    "psql -h db.example.com -U app": {
+      "hiddenDb": "deny | reason=DB の接続「本番」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "psql postgres://app@localhost:5433/app": {
+      "hiddenDb": "deny | reason=DB の接続「手元」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "psql -p 5434 -h localhost": {},
+    "mysql -h db -u root": {
+      "hiddenDb": "deny | reason=DB の接続「compose」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "ls db/": {},
+    "sqlite3 data/app.db .tables": {
+      "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "sqlite3 other.db": {},
+    "git add . && git commit -m x": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    },
+    "git -C sub checkout -- a.txt": {
+      "untracked": "deny | reason=このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）"
+    }
+  },
+  "files": {
+    "Read {\"file_path\":\"<TMP>/work/compose.yaml\"}": {},
+    "Write {\"file_path\":\"<TMP>/work/compose.yaml\"}": {
+      "untracked": "deny | reason=compose.yaml は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）"
+    },
+    "Edit {\"file_path\":\"<TMP>/work/.env\"}": {},
+    "Write {\"file_path\":\"<TMP>/work/new.txt\"}": {},
+    "MultiEdit {\"file_path\":\"compose.yaml\"}": {
+      "untracked": "deny | reason=compose.yaml は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）"
+    },
+    "Write {\"file_path\":\"new-relative.txt\"}": {},
+    "Write {\"file_path\":\"<TMP>/work/.git/config\"}": {
+      "untracked": "deny | reason=このチャットでは .git の中は書けません"
+    },
+    "Write {\"file_path\":\"<TMP>/ref/a.md\"}": {
+      "reference": "deny | reason=参照資料（<TMP>/ref）は読むだけで、書き込めません",
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    },
+    "Read {\"file_path\":\"<TMP>/ref/a.md\"}": {},
+    "Write {\"file_path\":\"<TMP>/outside.txt\"}": {
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    },
+    "Write {\"file_path\":\"../outside.txt\"}": {
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    },
+    "NotebookEdit {\"notebook_path\":\"<TMP>/ref/n.ipynb\"}": {
+      "reference": "deny | reason=参照資料（<TMP>/ref）は読むだけで、書き込めません",
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    },
+    "Read {\"file_path\":\"<HOME>/Library/Application Support/Kickoff/kickoff.db\"}": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "Read {\"file_path\":\"<HOME>/Library/Application Support/Kickoff/uploads/a.png\"}": {},
+    "Write {\"file_path\":\"<HOME>/Library/Application Support/Kickoff/uploads/a.png\"}": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください",
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    },
+    "Read {\"file_path\":\"~/Library/Application Support/Kickoff/kickoff.db\"}": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "Read {\"file_path\":\"~/Library/Application Support/Kickoff Dev/kickoff.db\"}": {},
+    "Glob {\"pattern\":\"*.db\",\"path\":\"<HOME>/Library/Application Support/Kickoff\"}": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "Grep {\"pattern\":\"x\",\"path\":\"<HOME>/Library/Application Support/Kickoff/logs\"}": {
+      "self": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+    },
+    "Read {\"file_path\":\"<TMP>/work/data/app.db\"}": {
+      "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "Edit {\"file_path\":\"<TMP>/work/data/app.db\"}": {
+      "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "Read {\"file_path\":\"data/app.db\"}": {
+      "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
+    "Grep {\"pattern\":\"x\",\"path\":\"<TMP>/work/data/app.db\"}": {},
+    "Glob {\"pattern\":\"*.db\",\"path\":\"<TMP>/work/data\"}": {},
+    "Write {\"file_path\":\"~/notes.txt\"}": {
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    }
+  }
+}

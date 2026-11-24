@@ -1,0 +1,27 @@
+/* ==== 下の帯の「ポート n」のボタン（PortsButton） ==== */
+@layer feature {
+  .footer-ports {
+    position: relative;
+  }
+
+  /* チャットの実行の間に新しく現れたものがある印 */
+
+  .footer-ports-dot {
+    width: 6px;
+    height: 6px;
+    margin-left: 1px;
+    border-radius: 50%;
+    background: var(--dot-running);
+  }
+
+  /* 下の帯を隠しているときに ⌘K から開いた窓の置き場所（画面の左下） */
+
+  .ports-fallback-anchor {
+    position: fixed;
+    left: 12px;
+    bottom: 8px;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+}

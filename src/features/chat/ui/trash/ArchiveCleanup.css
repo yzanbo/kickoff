@@ -1,0 +1,11 @@
+/* ==== アーカイブの整理の結果（ArchiveCleanup） ==== */
+@layer feature {
+  /* 設定の「ゴミ箱と整理」のアーカイブ済みのチャットの整理（features/trash/TrashSettings）。見込みの数と「ゴミ箱に入れる」 */
+
+  .archive-cleanup-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,113 @@
+import type { ProjectFiles } from "@shared/foundation/fileTypes";
+
+/** エクスプローラーの 1 行（フォルダかファイル） */
+export interface TreeNode {
+  name: string;
+  path: string;
+  dir: boolean;
+  /** .gitignore で無視しているもの（薄く出し、フォルダは中を開かない） */
+  ignored: boolean;
+  children: TreeNode[];
+}
+
+/** フォルダを先に、名前の順（大文字・小文字を区別しない。VS Code と同じ） */
+function sortNodes(nodes: TreeNode[]) {
+  nodes.sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+  for (const node of nodes) sortNodes(node.children);
+}
+
+/** ファイルのパスの一覧から、フォルダの木を作る（いちばん上の段を返す。空のフォルダ empty_dirs も中のないフォルダとして出す） */
+export function buildTree({ files, ignored, empty_dirs = [] }: Pick<ProjectFiles, "files" | "ignored"> & Partial<Pick<ProjectFiles, "empty_dirs">>): TreeNode[] {
+  const root: TreeNode = { name: "", path: "", dir: true, ignored: false, children: [] };
+  const folders = new Map<string, TreeNode>([["", root]]);
+  const folderOf = (dirPath: string): TreeNode => {
+    const found = folders.get(dirPath);
+    if (found) return found;
+    const slash = dirPath.lastIndexOf("/");
+    const node: TreeNode = { name: dirPath.slice(slash + 1), path: dirPath, dir: true, ignored: false, children: [] };
+    folderOf(slash < 0 ? "" : dirPath.slice(0, slash)).children.push(node);
+    folders.set(dirPath, node);
+    return node;
+  };
+  const add = (filePath: string, dir: boolean, isIgnored: boolean) => {
+    const slash = filePath.lastIndexOf("/");
+    const parent = folderOf(slash < 0 ? "" : filePath.slice(0, slash));
+    const node: TreeNode = { name: filePath.slice(slash + 1), path: filePath, dir, ignored: isIgnored, children: [] };
+    parent.children.push(node);
+    if (dir) folders.set(filePath, node);
+  };
+  for (const file of files) add(file, false, false);
+  for (const entry of ignored) if (!folders.has(entry.path)) add(entry.path, entry.dir, true);
+  for (const dir of empty_dirs) folderOf(dir);
+  sortNodes(root.children);
+  return root.children;
+}
+
+/** ファイルの上にあるフォルダのパス（近い順。"a/b/c.ts" → ["a/b", "a"]） */
+export function parentFolders(file: string): string[] {
+  const out: string[] = [];
+  for (let slash = file.lastIndexOf("/"); slash > 0; slash = file.lastIndexOf("/", slash - 1)) out.push(file.slice(0, slash));
+  return out;
+}
+
+/** 木の中のフォルダのパス（すべて） */
+export function folderPaths(nodes: TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    if (!node.dir) continue;
+    out.push(node.path);
+    folderPaths(node.children, out);
+  }
+  return out;
+}
+
+/** 「すべて開く」で開くフォルダのパス（無視しているフォルダとその中は開かない。中を読んでいないので、開いても空のため） */
+export function openableFolders(nodes: TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    if (!node.dir || node.ignored) continue;
+    out.push(node.path);
+    openableFolders(node.children, out);
+  }
+  return out;
+}
+
+/** いくつかのパスのうち、ほかのフォルダの中に入っていないものだけ（まとめて動かす・ゴミ箱に入れるときに、フォルダと中身を重ねて扱わない。並びは元のまま） */
+export function topLevelPaths(paths: readonly string[]): string[] {
+  return paths.filter((p) => !paths.some((q) => q !== p && p.startsWith(`${q}/`)));
+}
+
+/** 木で見えている行のパス（開いているフォルダの中だけ。上から順。Shift ＋クリックの範囲に使う） */
+export function visibleTreePaths(nodes: readonly TreeNode[], open: ReadonlySet<string>, out: string[] = []): string[] {
+  for (const node of nodes) {
+    out.push(node.path);
+    if (node.dir && open.has(node.path)) visibleTreePaths(node.children, open, out);
+  }
+  return out;
+}
+
+/** 木のすべての行のパス（フォルダもファイルも。上から順） */
+export function treePaths(nodes: readonly TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    out.push(node.path);
+    treePaths(node.children, out);
+  }
+  return out;
+}
+
+/** 入ったフォルダのパス（いちばん外側なら空。"a/b/c.ts" → "a/b"） */
+export const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
+
+/** フォルダのパスと名前をつなぐ（いちばん外側（空）ならそのまま名前） */
+export const joinTreePath = (folder: string, name: string) => (folder ? `${folder}/${name}` : name);
+
+/**
+ * 新しいファイル・フォルダの名前を使えないときの理由（使えるなら null）。「a/b.ts」のように「/」で途中のフォルダも書ける（VS Code と同じ）。
+ * 空の段・「.」「..」・「\」は使えず、同じフォルダ（siblings）に同じ名前（最初の段が同じファイル、または「/」のない名前が同じもの）があれば断る
+ */
+export function newEntryNameError(siblings: readonly { name: string; dir: boolean }[], name: string): string | null {
+  const parts = name.split("/");
+  if (parts.some((p) => !p.trim() || p === "." || p === "..")) return "その名前は使えません";
+  if (name.includes("\\")) return "「\\」は名前に使えません";
+  const head = parts[0];
+  const clash = siblings.find((n) => n.name === head && (parts.length === 1 || !n.dir));
+  return clash ? `「${head}」はもうあります` : null;
+}

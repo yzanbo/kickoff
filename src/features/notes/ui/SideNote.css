@@ -1,0 +1,12 @@
+/* ==== 右サイドバーのノート（SideNote） ==== */
+@layer feature {
+  /* 右の欄・別ウィンドウに開いたノート（ノートのタブの右と同じ中身） */
+
+  .side-note {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+}

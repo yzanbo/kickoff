@@ -1,0 +1,17 @@
+/* ==== 記録の保存先の行（DiagnosticsPath） ==== */
+@layer feature {
+  .diagnostics-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .diagnostics-path code {
+    overflow: hidden;
+    font-size: var(--fs-11);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+}

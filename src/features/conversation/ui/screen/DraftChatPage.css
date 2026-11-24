@@ -1,0 +1,24 @@
+/* ==== 新しいチャット・子チャットの画面の中央の案内（NewChatPane・NewChildPane。DraftChatPage の中） ==== */
+@layer feature {
+  .new-chat-hero {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 18vh 24px 24px;
+    text-align: center;
+  }
+
+  .new-chat-hero p {
+    margin: 0;
+  }
+
+  .new-chat-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+}

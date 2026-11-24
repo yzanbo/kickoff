@@ -1,0 +1,39 @@
+// ワークツリーの PR の知らせの店（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられた。確認の画面と見張りは github）。
+// 見張りはコア（5 分ごと）で、アプリを開いたときに 1 回読み、変わったらサーバーの知らせ（プロジェクトの分を丸ごと）で入れ替える
+import { useMemo } from "react";
+import type { WorktreePrNotice } from "@shared/git/types";
+import { createCell, type ReduceTable } from "@/foundation/ui/store";
+import { worktreesApi } from "./api/worktrees";
+import { createStore } from "@/foundation/ui/store/createStore";
+import { useStore } from "@/foundation/ui/store/useStore";
+
+const NONE: WorktreePrNotice[] = Object.freeze([]) as unknown as WorktreePrNotice[];
+
+/** 知らせで一覧を直す（そのプロジェクトの分を入れ替える・消したプロジェクトの分を外す。関係なければ同じ一覧） */
+export const reduceWorktreePrs: ReduceTable<WorktreePrNotice[]> = {
+  project_deleted: (list, event) => (list.some((n) => n.project_id === event.id) ? list.filter((n) => n.project_id !== event.id) : list),
+  worktree_prs: (list, event) => [...list.filter((n) => n.project_id !== event.project_id), ...event.notices],
+};
+
+export const worktreePrsStore = createStore<WorktreePrNotice[]>({ load: () => worktreesApi.worktreePrs(), reduce: reduceWorktreePrs });
+
+/** いまの知らせ（すべてのプロジェクト。届くまでは空） */
+export const useWorktreePrNotices = (): WorktreePrNotice[] => useStore(worktreePrsStore).data ?? NONE;
+
+/** 作業場所（ワークツリーのフォルダ）ごとの知らせを引く関数（知らせがなければ undefined） */
+export function useWorktreePrLookup(): (worktree: string | null | undefined) => WorktreePrNotice | undefined {
+  const notices = useWorktreePrNotices();
+  return useMemo(() => {
+    const byPath = new Map(notices.map((n) => [n.worktree, n]));
+    return (worktree) => (worktree ? byPath.get(worktree) : undefined);
+  }, [notices]);
+}
+
+/** 知らせを見分けるキー（プロジェクト・ワークツリー・PR の番号） */
+export const noticeKey = (n: WorktreePrNotice) => `${n.project_id}:${n.worktree}:${n.pr.number}`;
+
+/** 印から確認を開き直す頼み（知らせのキー。PrNoticeHost が受けて空に戻す） */
+export const prNoticeRequest = createCell<string | null>(null);
+
+/** 印から確認を開き直す */
+export const openPrNotice = (notice: WorktreePrNotice) => prNoticeRequest.set(noticeKey(notice));

@@ -1,15 +1,15 @@
 // 本体のチャット一覧（プロジェクトごと。回答待ち → 作業中 → 未読 → 最後に動いた順）。押すとチャットへ。新しいチャット・ターミナル
 import { useMemo } from "react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { AGENT_STATE_LABELS, type AgentState } from "@shared/types";
 import { chatSections } from "../../lib/hostState";
 import { useHosts } from "../../state/hosts";
 import { useHostState } from "../../state/useHostState";
 import { ConnectionBanner } from "../../ui/ConnectionBanner";
+import { TONE_COLORS } from "../../ui/colors";
 import { colors, ui } from "../../ui/theme";
 
-const STATE_COLORS: Record<AgentState, string> = { needs_input: colors.warn, failed: colors.ng, running: colors.running, unread: colors.ok, read: colors.border };
 
 export default function ChatListScreen() {
   const { host } = useLocalSearchParams<{ host: string }>();
@@ -44,11 +44,11 @@ export default function ChatListScreen() {
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push(`${base}/chat/${item.chat.id}`)} style={({ pressed }) => [{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }, pressed && { backgroundColor: colors.hover }]}>
             <View style={ui.row}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: STATE_COLORS[item.state] }} />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: TONE_COLORS[STATE_LOOKS[item.state].tone] }} />
               <Text style={[ui.text, { flex: 1 }]} numberOfLines={1}>
                 {item.chat.title}
               </Text>
-              {item.state !== "read" && <Text style={[ui.muted, { color: STATE_COLORS[item.state] }]}>{AGENT_STATE_LABELS[item.state]}</Text>}
+              {item.state !== "read" && <Text style={[ui.muted, { color: TONE_COLORS[STATE_LOOKS[item.state].tone] }]}>{STATE_LOOKS[item.state].label}</Text>}
             </View>
           </Pressable>
         )}

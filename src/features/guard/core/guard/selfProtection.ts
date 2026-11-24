@@ -1,0 +1,120 @@
+import os from "node:os";
+import path from "node:path";
+import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { SelfGuardRules } from "@/features/guard/core/platformRules";
+import { isInside } from "@/foundation/core/system/paths";
+import { TRASH_COMMAND } from "@/features/trash/core/index";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
+import { claudeToolOf } from "@shared/ai/claudeTools";
+
+/**
+ * エージェントを動かしている Kickoff 自身（製品版で Kickoff を作るときは製品版）。
+ * エージェントがうっかり自分を止めたり、自分のデータ・API を触ったりしないよう、PreToolUse フックで断るのに使う
+ */
+export interface SelfInfo {
+  /**
+   * Kickoff のプロセス（コアのプロセスと Electron のメインプロセス。単体のコアは自分だけ）。どれを止めてもチャットが止まる
+   * （コアを止めるとチャットが止まり、メインを止めると全部が止まる）
+   */
+  pids: number[];
+  /** 保存先（~/Library/Application Support/Kickoff など） */
+  dataDir: string;
+  /** コアの API のポート */
+  port: number;
+  /** アプリの名前（保存先のフォルダ名と同じ。Kickoff / Kickoff Dev） */
+  appName: string;
+  /** インストールしたアプリの本体（/Applications/Kickoff.app など）。開発中（node_modules の Electron）・daemon ではない */
+  appBundle?: string;
+  /** OS ごとのプロセスを止める・操作するコマンドの見分け方（macOS は MACOS_SELF_GUARD） */
+  guard: SelfGuardRules;
+}
+
+/** いま動いているプロセスから、自分の情報を作る（アプリの本体は OS の口から。guard は OS ごとの止めるコマンドの見分け方。hostPid はメインプロセス） */
+export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf">, guard: SelfGuardRules, hostPid?: number): SelfInfo {
+  const bundle = platform.appBundleOf(process.execPath)?.replace(/\/+$/, "");
+  return {
+    pids: [...new Set([process.pid, hostPid ?? process.pid])],
+    dataDir: path.resolve(dataDir),
+    port,
+    appName: path.basename(dataDir),
+    appBundle: bundle && !bundle.includes("/node_modules/") ? bundle : undefined,
+    guard,
+  };
+}
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** シェルの書き方の違い（~・$HOME・\ で区切った空白）をそろえて、パスを探しやすくする */
+export function normalizeCommand(command: string): string {
+  const home = os.homedir();
+  return command
+    .replace(/\\ /g, " ")
+    .replace(/\$\{HOME\}|\$HOME/g, home)
+    .replace(/(^|[\s"'=:(])~(?=\/)/g, `$1${home}`);
+}
+
+/** パスの後ろが続きの名前でない（Kickoff の後ろに「 Dev」や別の文字が続かない）ところで、そのパスを指しているか */
+function mentionsPath(command: string, target: string): boolean {
+  return new RegExp(`${escape(target)}(?=$|[/"'\\s;)|&])(?! Dev\\b)`).test(command);
+}
+
+/** 名前（Kickoff など）を、ほかの名前の一部・「Kickoff Dev」としてでなく指しているか */
+function mentionsName(command: string, name: string): boolean {
+  return new RegExp(`(?<![\\w-])${escape(name)}(?![\\w-]| Dev\\b)`).test(command);
+}
+
+/**
+ * ツールの呼び出しが、エージェントを動かしている Kickoff 自身を壊すものなら断る:
+ * 自分のプロセスを止める（kill・pkill・killall・AppleScript）・アプリ本体に触る・保存先のデータに触る・自分の API を叩く。
+ * 開発版（Kickoff Dev）は別の名前・保存先・ポート・プロセスなので、ここでは断らない。うっかりを防ぐもので、わざと避ける書き方までは見抜けない
+ */
+export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: Record<string, unknown>): DenyVerdict {
+  const who = `「${self.appName}」はこのチャットを動かしているアプリです`;
+  // 開発版へ案内するのは、インストールしたアプリ（製品版）のときだけ（開発版が自分のときに開発版を勧めると食い違う）
+  const dev = self.appBundle ? "Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください" : "";
+  const join = (...parts: string[]) => parts.filter(Boolean).join("。");
+
+  // ファイルのツールのパスは、作業フォルダで解いた絶対パス（scope.ts の resolveCallPaths）
+  const key = claudeToolOf(toolName)?.pathKey;
+  const file = key ? input[key] : undefined;
+  if (typeof file === "string" && file) {
+    // チャットの添付ファイル（保存先の uploads）は、Read で読むだけなら通す（画面は「Read ツールで読めます」と案内している）
+    const upload = toolName === "Read" && isInside(path.join(self.dataDir, "uploads"), file);
+    if (!upload && isInside(self.dataDir, file)) return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
+  }
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
+
+  // Kickoff が置いた kickoff-trash（保存先の bin/）を場所で呼ぶのは通す（PATH に入れてあるが、場所で書かれることもある）
+  const command = normalizeCommand(input.command).split(path.join(self.dataDir, "bin", TRASH_COMMAND)).join(TRASH_COMMAND);
+  if (mentionsPath(command, self.dataDir)) {
+    return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）にはコマンドでも触れません`, dev) };
+  }
+  if (self.appBundle && mentionsPath(command, self.appBundle)) {
+    return { kind: "deny", reason: `${who}。アプリ本体（${self.appBundle}）には触れません。入れ替えは利用者が macOS のターミナルで npm run install-app を実行します` };
+  }
+  if (new RegExp(`(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|\\[::1\\]):${self.port}(?!\\d)`).test(command)) {
+    return { kind: "deny", reason: join(who, `その API（ポート ${self.port}）は叩けません`, dev) };
+  }
+  const stop = `${who}。止めると、このチャットも止まります`;
+  const hit = self.pids.find((pid) => new RegExp(`\\bkill\\b[^\\n;&|]*?(?<![\\d.])${pid}(?![\\d.])`).test(command));
+  if (hit !== undefined) {
+    return { kind: "deny", reason: `${stop}（プロセス ${hit}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
+  }
+  if (self.guard.killByName.test(command) && mentionsName(command, self.appName)) {
+    return { kind: "deny", reason: `${stop}。名前でまとめて止めないでください` };
+  }
+  if (self.guard.scripting.pattern.test(command) && mentionsName(command, self.appName)) {
+    return { kind: "deny", reason: `${stop}。${self.guard.scripting.label} で操作しないでください` };
+  }
+  return { kind: "pass" };
+}
+
+/** 自分を守る守り（Bash とパスを取るファイルのツール） */
+export function selfRule(self: SelfInfo): GuardRule {
+  return {
+    name: "self",
+    kind: "deny",
+    sees: (call) => call.name === "Bash" || Boolean(claudeToolOf(call.name)?.pathKey),
+    check: (call) => evaluateSelfProtection(self, call.name, call.input),
+  };
+}

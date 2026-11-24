@@ -5,9 +5,10 @@
     "noUnusedLocals": true,
     "types": ["node"],
     "paths": {
-      "@shared/*": ["../src/shared/*"]
+      "@shared/*": ["../src/shared/*"],
+      "@/app/shared/*": ["../src/app/shared/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "../src/shared/**/*.ts"],
-  "exclude": ["node_modules", "../src/shared/**/*.test.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "../src/shared/**/*.ts", "../src/app/shared/**/*.ts"],
+  "exclude": ["node_modules", "../src/shared/**/*.test.ts", "../src/shared/foundation/webGlobals.d.ts"]
 }

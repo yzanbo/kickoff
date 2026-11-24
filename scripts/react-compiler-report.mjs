@@ -1,6 +1,6 @@
-// React Compiler の報告（electron.vite.config.ts の画面のビルドに差し込む。メモの仕様書「0023_表示を軽くする」の案 17）。
+// React Compiler の報告（electron.vite.config.ts の画面のビルドに差し込む）。
 // コンパイラの logger の知らせ（最適化した / 外した）を集め、ビルドの終わりに out/react-compiler-report.json に書いて数を出す。
-// 外した部品・hooks が許した一覧（src/renderer/react-compiler-skips.json。「ファイル:関数名」と理由の文）にないときは、ビルドを失敗にする
+// 外した部品・hooks が許した一覧（src/app/renderer/react-compiler-skips.json。「ファイル:関数名」と理由の文）にないときは、ビルドを失敗にする
 // （npm run build のまま、効かない部品が黙って増えないように）。テストは隣の react-compiler-report.test.mjs（.mjs にするのは、軽い組に入れるため）
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";

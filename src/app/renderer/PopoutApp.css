@@ -1,0 +1,52 @@
+/* ==== 別ウィンドウの枠（PopoutApp） ==== */
+@layer feature {
+  /*
+   * 別ウィンドウ（PopoutApp。チャットの画面の右の欄の変更・ファイル・サブエージェントを、メインのウィンドウの外に出したもの）:
+   * ウィンドウいっぱいに 1 つの中身を置く（右の欄のタブの中身と同じ部品を、そのまま縦に伸ばす）
+   */
+
+  .popout {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ページの ⌘F（.page-find）は、上の細い帯と中の画面の帯（件数・表示のしかた・取り直しなど）の下に出す（帯のボタンを隠さない） */
+
+  .popout > .pane-find.page-find {
+    top: 82px;
+  }
+
+  /* 別ウィンドウの上の細い帯（何のウィンドウか・右の欄に戻す。子チャットは自分の帯に同じボタン） */
+
+  .popout-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-sidebar);
+  }
+
+  .popout-bar-label {
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  .popout-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .popout-body > * {
+    flex: 1;
+    min-height: 0;
+  }
+}

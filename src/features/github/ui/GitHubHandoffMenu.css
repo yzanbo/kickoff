@@ -1,0 +1,10 @@
+/* ==== AI に渡すボタン（GitHubHandoffMenu） ==== */
+@layer feature {
+  /* 見出しの「AI に渡す ▾」（取り直し・GitHub で開くの左） */
+
+  .github-handoff-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+}

@@ -1,0 +1,44 @@
+import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
+import { providerFeatureMissing } from "@shared/ai/types";
+import type { AgentProvider } from "@/features/ai/core/index";
+import { asInvalid, Invalid } from "@/foundation/core/errors";
+
+/**
+ * 会話を引き継げる、いちばん近い作業の終わり（end より前。省けば最後まで）。巻き戻し・子チャットの起点。
+ * 最後まで終わった作業の終わり（session_id と message_id があるもの）だけを数え、止めた・失敗した作業の終わりは飛ばす
+ * （最後のメッセージがセッションに残っていないことがある）。間にコンテキストの消去（context_cleared）があれば、
+ * それより前の会話は引き継がないので undefined（最初から始める）。間に作業場所を移した区切り（workplace_moved）があれば、
+ * それより前の起点は使わず、区切りが持つ移したあとの起点（新しいセッションに写した会話の、同じ発言）にする（なければ最初から）
+ */
+export function resumePointBefore(events: ChatEvent[], end = events.length): ChatEventOf<"result">["data"] | undefined {
+  for (let i = Math.min(end, events.length) - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.type === "context_cleared" || e.type === "provider_switched") return undefined;
+    if (e.type === "workplace_moved") return e.data.session_id && e.data.message_id ? { status: "completed", session_id: e.data.session_id, message_id: e.data.message_id } : undefined;
+    if (e.type === "result" && e.data.status === "completed" && e.data.session_id && e.data.message_id) return e.data;
+  }
+  return undefined;
+}
+
+/**
+ * index の記録（自分の発言）を送ったときのセッション（ファイルを戻すときの、ファイルの記録があるセッション）。
+ * あとでコンテキストを消去していれば、消去の直前に使っていたセッション（なければ null）、消去していなければいまのセッション（current）
+ */
+export function sessionAt(events: ChatEvent[], index: number, current: string | null): string | null {
+  const cleared = events.findIndex((e, i) => i > index && e.type === "context_cleared");
+  if (cleared < 0) return current;
+  for (let i = cleared - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.type === "init") return e.data.session_id;
+  }
+  return null;
+}
+
+/**
+ * 起点（最後まで終わった作業の終わり）から会話を新しいセッションに分岐し、新しいセッションの ID を返す（巻き戻し・分岐・子チャットの 3 か所）。
+ * 分岐できない AI・分岐に失敗したら 400
+ */
+export async function forkFrom(provider: AgentProvider, point: { session_id: string; message_id: string }, cwd: string, opts?: { keep?: number }): Promise<string> {
+  if (!provider.fork) throw new Invalid(providerFeatureMissing(provider.label, "fork"));
+  return provider.fork(point.session_id, point.message_id, cwd, opts).catch(asInvalid);
+}

@@ -1,0 +1,235 @@
+/* ==== 自分の発言の吹き出し・返答の文（UserMessage ほか） ==== */
+@layer feature {
+  /* 自分の吹き出し（並べる位置と幅は外側の .user-message。UserMessage.css） */
+
+  .bubble.user {
+    padding: 12px 16px;
+    /* 右上だけ角を立てる */
+    border-radius: var(--radius) 2px var(--radius) var(--radius);
+    white-space: pre-wrap;
+    background: var(--bg-active);
+  }
+
+  .bubble-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  /* 長い URL・パスなど、区切りのない文も欄の中で折り返す */
+
+  .assistant {
+    padding: 8px 0;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  .assistant.sub {
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* ==== 発言（自分の吹き出しの折りたたみ・時刻とコピーの行。UserMessage・AssistantMessage） ==== */
+
+  /* 自分の発言: 吹き出しと、その下の時刻・コピーを右に寄せて縦に並べる */
+
+  .user-message {
+    display: flex;
+    flex-direction: column;
+    align-self: flex-end;
+    align-items: flex-end;
+    max-width: 80%;
+    margin: 12px 0 4px;
+  }
+
+  .user-message .bubble.user {
+    max-width: 100%;
+  }
+
+  /* 右のパネル（狭い）では広めに使う */
+
+  .chat-panel .user-message {
+    max-width: 90%;
+  }
+
+  /* 長い発言は途中まで出し、下を薄くする（「もっと見る」で開く） */
+
+  .bubble-text.clamped {
+    max-height: 240px;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  }
+
+  .bubble-more {
+    display: block;
+    margin-top: 6px;
+    padding: 0;
+    border: none;
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .bubble-more:hover {
+    color: var(--text);
+  }
+
+  /* 吹き出しの下の時刻とコピー（返答の下の作業時間の行と同じ薄さ） */
+
+  .message-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: var(--chat-fs-12);
+    color: var(--extra-muted);
+  }
+
+  .message-meta .message-action {
+    color: var(--extra-muted);
+  }
+
+  /* 届いていなかったサブエージェントの報告を添えて渡した印 */
+
+  .message-handover {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+    color: var(--muted);
+  }
+
+  /* 圧縮中に「いま」で送り、圧縮が終わるのを待っている指示（AfterCompactMessages）: 送る前なので薄く、点線の枠 */
+
+  .user-message.after-compact .bubble.user {
+    opacity: 0.7;
+    outline: 1px dashed var(--muted);
+    outline-offset: -1px;
+  }
+
+  /*
+   * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact。.compact-prompt）: 圧縮の行（.compacted）と同じアクセントの色で、自分で書いた指示と見分ける。
+   * どちらかは札の名前とアイコン（CompactPromptMark）で見分ける。吹き出しは圧縮の行（CompactingRow.css の .compacted）と同じ枠（アクセント 45%）と薄い地（アクセント 10%）にし、
+   * 上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字は圧縮の行の見出し（.compacting-title）と同じ --accent-fg にする
+   */
+
+  .user-message.compact-prompt .bubble.user {
+    outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -1px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  /* 圧縮が終わるのを待っている圧縮後指示（AfterCompactMessages）は、色の枠のまま点線にして送る前と分かるように */
+
+  .user-message.after-compact.compact-prompt .bubble.user {
+    outline-style: dashed;
+  }
+
+  /* 札のもとの色（.message-kind-label は QuestionCard.css、.sticky-prompt-kind は StickyPrompt.css。どちらも後ろにある）に勝つよう 2 つのクラスで書く */
+
+  .message-kind-label.compact-prompt-kind,
+  .sticky-prompt-kind.compact-prompt-kind {
+    font-weight: 600;
+    color: var(--accent-fg);
+  }
+
+  /* 吹き出しの中の書き直しの欄 */
+
+  .user-message.editing {
+    width: 80%;
+  }
+
+  .user-message.editing .bubble.user {
+    width: 100%;
+  }
+
+  .bubble-editor textarea {
+    width: 100%;
+    padding: 0;
+    border: none;
+    font: inherit;
+    line-height: inherit;
+    color: inherit;
+    background: transparent;
+    resize: vertical;
+    outline: none;
+  }
+
+  .bubble-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  /* 依頼文の頼みの発言（handoff_request）: 頼み方の文は決まった長い文なので、1 行「親への依頼文を頼みました」にたたむ（押すと全文） */
+
+  .user-message.handoff-request.folded .bubble.user {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .handoff-request-toggle {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .handoff-request-toggle:hover {
+    color: var(--text);
+  }
+
+  .user-message.handoff-request:not(.folded) .handoff-request-toggle {
+    margin-bottom: 6px;
+  }
+
+  .handoff-request-chevron {
+    transition: transform 0.15s;
+  }
+
+  /* 頼みに添えた追加の指示（たたんでいる間だけ、1 行の下にそのまま出す） */
+
+  .handoff-request-extra {
+    margin-top: 4px;
+    padding-left: 18px;
+    font-size: var(--chat-fs-13);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .handoff-request-toggle[aria-expanded="true"] .handoff-request-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* 送った発言の下（吹き出しと同じ右寄せ） */
+
+  .message-handoff-from {
+    display: flex;
+    justify-content: flex-end;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  .message-handoff-from .handoff-from-open {
+    font-size: var(--chat-fs-11);
+  }
+
+  /* 発言から聞いた子チャットの札（chat の ChatLinkChip）は右に寄せる */
+
+  .user-message .child-chat-marks {
+    justify-content: flex-end;
+  }
+}

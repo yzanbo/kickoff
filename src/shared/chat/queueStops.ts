@@ -1,6 +1,7 @@
 // 送信待ちの「ここまで送ったら止めます」の印の位置（指示とは別に、列の中の位置で持つ。0 = 1 件目の上、n = n 件目のあと）。
-// 同じ位置に何本でも置ける（1 本が 1 回分の一時停止。いちばん上に足してから、1 本ずつドラッグ・↑↓ で止めたい位置へ動かせるように）
-import type { QueuedMessage } from "@shared/types";
+// 同じ位置に何本でも置ける（1 本が 1 回分の一時停止。いちばん上に足してから、1 本ずつドラッグ・↑↓ で止めたい位置へ動かせるように）。
+// コアの並べ替え（core/chat/queue.ts）と画面の落とした形の予測（useQueueDrag）が同じこの関数を使う（ずれると、落とした形と届いた並びが食い違う）。変えたら queueStops.test.ts を通す
+import type { QueuedMessage } from "@shared/chat/types";
 
 /** 印の位置を整える（整数で 0〜列の長さに収め、小さい順に。同じ位置の印はその本数のまま残す） */
 export function normalizeStops(stops: number[], length: number): number[] {
@@ -47,7 +48,7 @@ export interface QueueSlot {
 /**
  * 指示を、並びを保ったまま slot へ動かしたあとの列と印の位置。
  * 印の線は見た目の並びの 1 行として扱い、動かした指示だけが線の上下を移る（動かしていない指示は線の同じ側に残る）。
- * 以前は印を位置の数のまま残していたので、いちばん上・下へ移すと、動かしていない指示が線を越えて止まる所がずれていた
+ * 印を位置の数のまま残すと、いちばん上・下へ移したとき、動かしていない指示が線を越えて止まる所がずれる
  */
 export function moveToSlot<T extends { id: string }>(list: T[], stops: number[], ids: string[], slot: QueueSlot): { list: T[]; stops: number[] } {
   const moving = new Set(ids);

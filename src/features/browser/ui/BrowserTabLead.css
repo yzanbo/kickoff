@@ -1,0 +1,22 @@
+/* ==== AI が操作しているタブの印（BrowserTabLead） ==== */
+@layer feature {
+  /* タブの「AI 操作中」の印（ロボット。ゆっくり明滅させる） */
+
+  .agent-browsing-mark {
+    display: inline-flex;
+    color: var(--accent);
+    animation: agent-browsing-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes agent-browsing-pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .agent-browsing-mark {
+      animation: none;
+    }
+  }
+}

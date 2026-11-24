@@ -1,0 +1,37 @@
+/* ==== ピルの中に置く選択欄（WorktreePicker の作業場所。枠と背景はピルに任せる） ==== */
+@layer ui {
+  .pill-select {
+    width: auto;
+    /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
+    field-sizing: content;
+    padding: 0 16px 0 2px;
+    border: none;
+    color: inherit;
+    background-color: transparent;
+    background-position: right 2px center;
+    background-size: 11px;
+    cursor: pointer;
+  }
+
+  .pill-select:focus {
+    outline: none;
+  }
+
+  /* 作業場所の選び直しのピル（新しいチャット・ファイル・履歴のタブ） */
+  .new-chat-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 4px 1px 8px;
+    --pill-border: var(--border-strong);
+  }
+
+  .new-chat-group.has-group {
+    --pill-border: color-mix(in srgb, var(--accent-bright) 50%, transparent);
+    --pill-fg: var(--accent-bright);
+  }
+
+  .new-chat-group .pill-select {
+    font-size: var(--fs-12);
+  }
+}

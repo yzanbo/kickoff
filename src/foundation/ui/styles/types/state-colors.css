@@ -1,0 +1,58 @@
+/*
+ * 状態の色の対応（値の表はここ 1 か所）。部品は属性を付け、色は変数で読む:
+ * 変更の種類 data-kind（M = 黄・A U = 緑・D ! = 赤・R C = 青）→ --kind-color、issue・PR data-pr-state（open = 緑・merged done = 紫・
+ * closed = 赤・draft skipped = 灰）→ --pr-color、CI・チェック data-ci（success = 緑・failure = 赤・pending = 黄・neutral = 灰）→ --ci-color
+ */
+[data-kind] {
+  --kind-color: var(--warn);
+}
+
+[data-kind="A"],
+[data-kind="U"] {
+  --kind-color: var(--ok);
+}
+
+[data-kind="D"],
+[data-kind="!"] {
+  --kind-color: var(--ng);
+}
+
+[data-kind="R"],
+[data-kind="C"] {
+  --kind-color: var(--info);
+}
+
+[data-pr-state="open"] {
+  --pr-color: var(--ok);
+}
+
+[data-pr-state="merged"],
+[data-pr-state="done"] {
+  --pr-color: var(--chart-4);
+}
+
+[data-pr-state="closed"] {
+  --pr-color: var(--ng);
+}
+
+[data-pr-state="draft"],
+[data-pr-state="skipped"] {
+  --pr-color: var(--muted);
+}
+
+[data-ci="success"] {
+  --ci-color: var(--ok);
+}
+
+[data-ci="failure"] {
+  --ci-color: var(--ng);
+}
+
+[data-ci="pending"] {
+  --ci-color: var(--warn);
+}
+
+[data-ci="neutral"] {
+  --ci-color: var(--muted);
+}
+

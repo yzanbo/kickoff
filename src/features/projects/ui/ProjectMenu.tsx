@@ -1,0 +1,163 @@
+import {
+  Activity,
+  Archive,
+  ArchiveRestore,
+  Check,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  FolderOpen,
+  FolderPlus,
+  Pin,
+  Plus,
+  Settings,
+  SquarePen,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import { useState, type MouseEvent, type ReactNode } from "react";
+import type { Placement } from "@/foundation/ui/lib/floating";
+import { MAX_TAG_LENGTH, MAX_TAGS, validateTagAdd } from "@shared/projects/tags";
+import type { Project } from "@shared/projects/types";
+import { alert, prompt } from "@/foundation/ui/kit/ask";
+import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
+import { useOrderedTags } from "./projectTagFilter";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { openAppDialog } from "@/foundation/ui/shell/points";
+import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
+import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+
+/** ⌘⇧A の一覧（作業中・待ちのチャット）を開くメニューの項目の文（chatList のボタンも同じ文） */
+export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
+
+/** 開いた場所によって使える操作（見出しのカードから開いたときだけ渡す） */
+export interface ProjectMenuExtras {
+  /** グループを作り始める（チャット一覧に名前の入力欄を出す） */
+  onCreateGroup?: () => void;
+  /** チャット一覧の開閉 */
+  collapse?: { collapsed: boolean; toggle: () => void };
+}
+
+/**
+ * プロジェクトの右クリックメニュー（サイドバーの見出しのカード・下の丸）。プロジェクトに対する操作をすべて、まとまりに分けて並べる:
+ * このプロジェクト（新しいチャット・グループを作成・作業中・待ちのチャットを一覧・Finder。カンバンは名前を押せば開く）/ 整理（固定・開閉・アーカイブ）/
+ * タグ（使っているタグの付け外しと、新しいタグ）/ 編集・削除（プロジェクトの編集のダイアログ）。
+ * すべてのプロジェクトに効く設定（チャットの並べ方など）はここに入れず、一覧の上の見出しの行に置く。
+ * 見出しのカードには、いつも使うもの（開閉・名前・状態ごとの数・＋）だけを常に出す。
+ * open に右クリックのイベントを渡し、element を描く（メニューと編集のダイアログ）
+ */
+export function useProjectMenu(projects: Project[]) {
+  const menu = useContextMenu<{ id: number; extras?: ProjectMenuExtras }>();
+  const [editing, setEditing] = useState<{ id: number; section?: string } | null>(null);
+  // 編集中に保存した内容も出るよう、いまのプロジェクトを引き直す
+  const find = (id: number) => projects.find((p) => p.id === id);
+  const shown = menu.menu;
+  const menuProject = shown && find(shown.value.id);
+  const editingProject = editing && find(editing.id);
+  return {
+    open: (e: MouseEvent, project: Project, extras?: ProjectMenuExtras) => menu.open(e, { id: project.id, extras }),
+    element: (
+      <>
+        {shown && menuProject && (
+          <ProjectMenu
+            at={shown.at}
+            project={menuProject}
+            extras={shown.value.extras}
+            onEdit={(section) => setEditing({ id: menuProject.id, section })}
+            onClose={menu.close}
+          />
+        )}
+        {editing && editingProject && <ProjectEditDialog project={editingProject} initial={editing.section} onClose={() => setEditing(null)} />}
+      </>
+    ),
+  };
+}
+
+/** 新しいタグの名前を聞いて付ける（やめたら何もしない。上限を超えるならお知らせ） */
+async function addNewTag(project: Project) {
+  if (project.tags.length >= MAX_TAGS) return alert("タグを足せません", `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
+  const name = await prompt({
+    title: `「${project.name}」に新しいタグを付ける`,
+    label: "タグの名前",
+    placeholder: "例: 仕事・プライベート・クライアント A",
+    confirmLabel: "付ける",
+  }).then((r) => r?.value ?? null);
+  if (!name) return;
+  const added = validateTagAdd(project.tags, [name]);
+  if (!added.ok) return alert("タグを付けられません", added.reason === "too_long" ? `タグは ${MAX_TAG_LENGTH} 文字までです。` : `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
+  changeProject(project.id, { tags: added.tags });
+}
+
+function ProjectMenu({
+  at,
+  project,
+  extras,
+  onEdit,
+  onClose,
+}: {
+  at: Placement;
+  project: Project;
+  extras?: ProjectMenuExtras;
+  onEdit: (section?: string) => void;
+  onClose: () => void;
+}) {
+  // 使っているタグ（ほかのプロジェクトの分も。サイドバーのタグの行で並べた順。押すたびに付け外す）
+  const { tags } = useOrderedTags();
+  /** 押したらメニューを閉じてから行う */
+  const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
+    <MenuItem key={key} danger={opts.danger} onSelect={run}>
+      {icon} {label}
+    </MenuItem>
+  );
+  const archived = Boolean(project.archived_at);
+  return (
+    <PopupMenu at={at} label={`${project.name} のメニュー`} onClose={onClose}>
+      <div className="menu-label">このプロジェクト</div>
+      {item("new", <SquarePen size={14} />, "新しいチャット", () => openTarget({ kind: "newChat", projectId: project.id }))}
+      {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
+      {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openAppDialog("activeChats", { projectId: project.id }))}
+      {canOpenExternal() && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void openExternal({ kind: "path", path: project.repo_path }))}
+
+      <div className="menu-separator" role="separator" />
+      <div className="menu-label">整理</div>
+      {!archived &&
+        item("pin", <Pin size={14} />, project.pinned ? "固定をやめる" : "上に固定", () =>
+          changeProject(project.id, { pinned: !project.pinned }),
+        )}
+      {extras?.collapse &&
+        item(
+          "fold",
+          extras.collapse.collapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />,
+          extras.collapse.collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる",
+          extras.collapse.toggle,
+        )}
+      {item("archive", archived ? <ArchiveRestore size={14} /> : <Archive size={14} />, archived ? "アーカイブから戻す" : "アーカイブ", () =>
+        // アーカイブするときも戻すときも確かめる
+        void (archived ? confirmRestoreProject(project) : confirmArchiveProject(project)),
+      )}
+
+      <div className="menu-separator" role="separator" />
+      <div className="menu-label">タグ</div>
+      {tags.map((tag) => {
+        const on = project.tags.includes(tag);
+        return (
+          <MenuItem
+            key={`tag:${tag}`}
+            role="menuitemcheckbox"
+            checked={on}
+            onSelect={() => changeProject(project.id, { tags: on ? project.tags.filter((t) => t !== tag) : [...project.tags, tag] })}
+          >
+            <Tag size={14} /> <span className="project-switch-item">{tag}</span>
+            {on && <Check size={14} aria-hidden />}
+          </MenuItem>
+        );
+      })}
+      {item("new-tag", <Plus size={14} />, "新しいタグ…", () => void addNewTag(project))}
+
+      <div className="menu-separator" role="separator" />
+      {item("edit", <Settings size={14} />, "編集…", () => onEdit())}
+      {item("delete", <Trash2 size={14} />, "削除…", () => onEdit("danger"), { danger: true })}
+    </PopupMenu>
+  );
+}

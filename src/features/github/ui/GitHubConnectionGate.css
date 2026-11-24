@@ -1,0 +1,15 @@
+/* ==== GitHub につなぐ前の画面（GitHubConnectionGate） ==== */
+@layer feature {
+  .github-tab {
+    position: relative;
+    display: flex;
+    flex: 1;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .github-tab-loading {
+    padding: 16px var(--gutter);
+  }
+}

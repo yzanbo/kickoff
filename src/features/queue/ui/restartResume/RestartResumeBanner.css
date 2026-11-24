@@ -1,0 +1,48 @@
+/* ==== 作業を止めたチャットの帯と下の帯の札（RestartResumeBanner・RestartResumeFooterButton） ==== */
+@layer feature {
+  /* 送信待ちの上の帯（RestartResumeBanner）: 決めるまで続けない・送らないことと、その場で決めるボタン。注意の色の薄い地 */
+
+  .restart-resume-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+  }
+
+  .restart-resume-banner-icon {
+    flex: none;
+    color: var(--warn);
+  }
+
+  .restart-resume-banner-text {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  .restart-resume-banner-note {
+    margin-left: 4px;
+    color: var(--warn);
+  }
+
+  .restart-resume-banner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* 送信待ちのないチャットの帯（作業の途中で止まったことだけを聞く）: 入力欄の上に、独り立ちの枠で置く */
+
+  .restart-resume-banner.standalone {
+    margin-bottom: 6px;
+    --notice-edge: 35%;
+    --notice-radius: var(--radius);
+  }
+
+  /* 下の帯の入口（決めていない再開）。注意の色（乗せた・押している間は下の帯のボタンの色） */
+
+  .restart-resume-footer.footer-button:where(:not(:hover, .active)) {
+    color: var(--warn);
+  }
+}

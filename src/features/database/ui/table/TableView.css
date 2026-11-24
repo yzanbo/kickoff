@@ -1,0 +1,153 @@
+/* ==== DB の表の画面（TableView・定義・詳細の表） ==== */
+@layer feature {
+  /* テーブルのタブ */
+
+  .db-table-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .db-view-head {
+    flex: none;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .db-view-title {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-view-kind {
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+
+  .db-view-switch {
+    margin-left: auto;
+  }
+
+  /* 見出しの右の「AI に聞く」「SQL で開く」 */
+
+  .db-view-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .db-table-data {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .db-table-foot {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 5px var(--gutter);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* 構造・リレーション・DDL・情報 */
+
+  .db-detail,
+  .db-ddl {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    padding: 8px var(--gutter) 24px;
+    overflow: auto;
+  }
+
+  .db-detail-head {
+    margin: 12px 0 6px;
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .db-detail-head:first-child {
+    margin-top: 4px;
+  }
+
+  .db-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-12);
+  }
+
+  .db-detail-table :is(th, td) {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .db-detail-table th {
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .db-info-table th {
+    width: 140px;
+  }
+
+  .db-mono {
+    font-family: var(--mono);
+  }
+
+  .db-pk {
+    font-size: var(--fs-10);
+    color: var(--warn);
+  }
+
+  .db-relations {
+    margin: 0;
+    padding-left: 18px;
+    font-size: var(--fs-12);
+    line-height: 1.8;
+  }
+
+  /* 右上のコピーのボタンに文が重ならないよう、右を空ける */
+
+  .db-ddl pre {
+    margin: 0;
+    padding-right: 32px;
+    font-size: var(--fs-12);
+    white-space: pre-wrap;
+  }
+
+  /* 関数・列挙型のタブ: 情報の表の下に作る文（外の .db-detail でまとめて流す） */
+
+  .db-definition-ddl {
+    position: relative;
+    margin-top: 14px;
+  }
+
+  .db-definition-ddl pre {
+    margin: 0;
+    padding-right: 32px;
+    font-size: var(--fs-12);
+    white-space: pre-wrap;
+  }
+
+  .db-definition-ddl .db-ddl-copy {
+    top: 0;
+    right: 0;
+  }
+
+  .db-ddl-copy {
+    position: absolute;
+    top: 8px;
+    right: var(--gutter);
+  }
+}

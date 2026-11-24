@@ -1,0 +1,288 @@
+// 実行の受付（Runner）のテスト: 送る・続き・既定の選択・添付・途中経過・未読・止める・承認。送信待ちの列は runner.queue.test.ts、圧縮とお知らせは runner.notices.test.ts
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import { ScriptedProvider, type Script } from "@/features/ai/core/testing";
+import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
+import { setupCore, testUploads, until } from "@/app/core/testing/testCore";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
+
+/** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
+const setup = (script: Script, uploads?: ReturnType<typeof testUploads>) => setupCore(new ScriptedProvider(script), { uploads });
+
+test("実行するとイベントが記録され、続きのメッセージは同じセッションで再開する", async () => {
+  const { store, runner, provider, project } = setup(async (params, cb) => {
+    cb.emit({ type: "init", session_id: "s1" });
+    cb.emit({ type: "text", text: `受け取りました: ${params.prompt}` });
+    return { status: "completed", sessionId: "s1", result: "ok", costUsd: 0.01, turns: 1 };
+  });
+
+  const chat = await runner.start({ projectId: project.id, prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.equal(store.chats.get(chat.id)?.session_id, "s1");
+  assert.equal(provider.calls[0].model, "sonnet");
+  assert.equal(provider.calls[0].effort, "low");
+  // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
+  assert.equal(store.settings.get().provider_chat_defaults.claude.model, "opus");
+
+  await runner.message(chat.id, { text: "続き", options: { permission_mode: "plan" } });
+  await until(() => store.chats.get(chat.id)?.num_turns === 2);
+  assert.equal(provider.calls[1].resumeSessionId, "s1");
+  assert.equal(provider.calls[1].permissionMode, "plan");
+  assert.deepEqual(
+    store.events.list(chat.id).map((e) => e.type),
+    ["user", "init", "text", "result", "user", "init", "text", "result"],
+  );
+});
+
+test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  store.settings.update({ provider_chat_defaults: { claude: { model: "fable", effort: "high", permission_mode: "auto", fast_mode: true } } });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const call = provider.calls[0];
+  assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
+});
+
+test("自動圧縮を始める使用率は設定の値を渡す（決めていなければ null）", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const first = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(first.id)?.status === "completed");
+  store.settings.update({ auto_compact_pct: 50 });
+  const second = await runner.start({ projectId: project.id, prompt: "y" });
+  await until(() => store.chats.get(second.id)?.status === "completed");
+  assert.deepEqual(provider.calls.map((c) => c.autoCompactPct), [null, 50]);
+});
+
+test("どこでも決めていなければ、推論の深さは指定せず（null）、権限モードは毎回確認。指示と権限はどのチャットも同じ", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const call = provider.calls[0];
+  assert.deepEqual([call.effort, call.permissionMode], [null, "default"]);
+  assert.deepEqual([store.chats.get(chat.id)?.effort, store.chats.get(chat.id)?.permission_mode], [null, "default"]);
+  assert.ok(call.gate.allowedCommands.includes("git status"));
+  assert.ok(!call.systemPrompt.includes("mcp__kickoff__"));
+});
+
+test("添付ファイルはパスがメッセージに書き添えられ、会話には添付として記録される", async () => {
+  const uploadsDir = tempDir();
+  const uploads = testUploads(uploadsDir);
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
+  const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });
+  const chat = await runner.start({ projectId: project.id, prompt: "読んで", attachments: [attachment] });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
+  assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
+  // 発言には、Claude Code に渡した ID も残す（ファイルを戻すときの目印）
+  const { message_uuid, ...data } = store.events.list(chat.id)[0].data as { message_uuid?: string };
+  assert.deepEqual(data, { text: "読んで", attachments: [attachment] });
+  assert.equal(message_uuid, provider.calls[0].promptId);
+});
+
+test("返答の途中経過は配信だけされ、チャット名は AI が付ける（ユーザーが変えていなければ）", async () => {
+  const { store, runner, provider, project, bus } = setup(async (_p, cb) => {
+    cb.stream?.("こん");
+    cb.stream?.("にちは");
+    cb.emit({ type: "text", text: "こんにちは" });
+    return { status: "completed", sessionId: "s" };
+  });
+  Object.assign(provider, { ask: async () => "挨拶" }); // 名前は 1 回だけ聞く口（askTitle）で付けてもらう
+  // バスの知らせの順（途中の文と、記録の text）
+  const order: string[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "chat_delta") order.push(`delta:${e.text}`);
+    else if (e.type === "chat_event" && e.event.type === "text") order.push("text");
+  });
+
+  const chat = await runner.start({ projectId: project.id, prompt: "とても長い依頼文" });
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.title === "挨拶");
+  // 続けて届いた途中の文は 1 通にまとまり、確定した記録より前に届く（バスでまとめる）
+  assert.deepEqual(order, ["delta:こんにちは", "text"]);
+  // 途中経過は保存しない
+  assert.deepEqual(store.events.list(chat.id).map((e) => e.type), ["user", "text", "result"]);
+});
+
+test("実行中のコマンドの出力・サブエージェントの途中経過は、チャットとプロジェクトを添えて配信だけされ、保存しない", async () => {
+  const { store, runner, project, bus } = setup(async (_p, cb) => {
+    cb.commandOutput?.({ tool_use_id: "tu1", task_id: "b1", text: "line1" });
+    cb.commandOutput?.({ tool_use_id: "tu1", task_id: "b1", text: "line1\nline2" });
+    cb.subagentProgress?.({ task_id: "t1", description: "調べる", status: "running", tokens: 10, last_tool: "Read" });
+    return { status: "completed", sessionId: "s" };
+  });
+  const outputs: { chat_id: number; project_id: number; text: string }[] = [];
+  bus.subscribe((e) => e.type === "chat_command_output" && outputs.push({ chat_id: e.chat_id, project_id: e.project_id, text: e.output.text }));
+  const subagents: { chat_id: number; project_id: number; task_id: string; last_tool?: string }[] = [];
+  bus.subscribe((e) => e.type === "chat_subagent" && subagents.push({ chat_id: e.chat_id, project_id: e.project_id, task_id: e.subagent.task_id, last_tool: e.subagent.last_tool }));
+
+  const chat = await runner.start({ projectId: project.id, prompt: "ビルドして" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.deepEqual(outputs, [
+    { chat_id: chat.id, project_id: project.id, text: "line1" },
+    { chat_id: chat.id, project_id: project.id, text: "line1\nline2" },
+  ]);
+  assert.deepEqual(subagents, [{ chat_id: chat.id, project_id: project.id, task_id: "t1", last_tool: "Read" }]);
+  assert.deepEqual(store.events.list(chat.id).map((e) => e.type), ["user", "result"]);
+});
+
+test("作業が終わると未読になり、続けて送ると消える。中断では付かない", async () => {
+  // 2 回目の実行は、合図があるまで終わらせない
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  let calls = 0;
+  const { store, runner, project } = setup(async (_p, _cb, signal) => {
+    calls++;
+    if (calls === 2) await gate;
+    if (calls === 3) await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
+    return { status: signal.aborted ? "cancelled" : "completed", sessionId: "s" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.equal(store.chats.get(chat.id)?.unread, true);
+
+  await runner.message(chat.id, { text: "続き" });
+  assert.equal(store.chats.get(chat.id)?.unread, false);
+  release();
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.unread === true);
+
+  // 中断したときは未読を付けない
+  store.chats.update(chat.id, { unread: false });
+  await runner.message(chat.id, { text: "もう一度" });
+  await until(() => store.chats.get(chat.id)?.status === "running");
+  runner.cancel(chat.id);
+  await until(() => store.chats.get(chat.id)?.status === "cancelled");
+  assert.equal(store.chats.get(chat.id)?.unread, false);
+});
+
+test("送った直後（作業場所を調べている間）に止めても、プロバイダーを動かさずに中断で終わる", async () => {
+  let calls = 0;
+  const { store, runner, project } = setup(async (_p, _cb, signal) => {
+    calls++;
+    await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
+    return { status: "cancelled", sessionId: null };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  runner.cancel(chat.id);
+  await until(() => store.chats.get(chat.id)?.status === "cancelled");
+  assert.equal(calls, 0);
+  assert.equal(runner.isBusy(chat.id), false);
+});
+
+test("承認待ちの間は作業中のまま回答待ちの一覧に入り、回答するとエージェントに結果が渡る", async () => {
+  let received: unknown;
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    received = await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false }, signal);
+    return { status: "completed", sessionId: "s" };
+  });
+
+  const chat = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  assert.equal(store.chats.get(chat.id)?.status, "running");
+  const [pending] = approvals.list({ chatId: chat.id });
+  approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.deepEqual(received, { action: "answer", answers: { 何を作る: "Todo" } });
+  assert.equal(approvals.list().length, 0);
+  // 何と答えたかを記録に残す（画面は「質問への回答」の吹き出しで出す）
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual(resolved?.data, { approval_id: pending.id, action: "answer", kind: "question", answers: { 何を作る: "Todo" } });
+});
+
+test("質問の「その他」に添付して答えたら、記録には選んだままの回答と添付を残す（AI には添付のパスを書き添えた回答を渡す）", async () => {
+  let received: unknown;
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    received = await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false }, signal);
+    return { status: "completed", sessionId: "s" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  const [pending] = approvals.list({ chatId: chat.id });
+  const attachment = { kind: "file" as const, id: "a1", name: "色.png", mime: "image/png", size: 10 };
+  approvals.resolve(pending.id, { action: "answer", answers: { 好きな色: "この色（/path/色.png）" }, plain: { 好きな色: "この色" }, attachments: { 好きな色: [attachment] } });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.deepEqual((received as { answers: unknown }).answers, { 好きな色: "この色（/path/色.png）" });
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual(resolved?.data, {
+    approval_id: pending.id,
+    action: "answer",
+    kind: "question",
+    answers: { 好きな色: "この色" },
+    attachments: { 好きな色: [attachment] },
+  });
+});
+
+test("質問の選択肢に図（preview）があれば、選んだ選択肢の図も記録に残す（画面の「質問への回答」で開いて見る）", async () => {
+  const questions = [
+    { question: "形は？", header: "", multiSelect: false, options: [{ label: "四角", description: "", preview: "┌─┐\n└─┘" }, { label: "丸", description: "" }] },
+    { question: "色は？", header: "", multiSelect: false, options: [{ label: "赤", description: "" }] },
+  ];
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions }, canRemember: false }, signal);
+    return { status: "completed", sessionId: "s" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  const [pending] = approvals.list({ chatId: chat.id });
+  approvals.resolve(pending.id, { action: "answer", answers: { "形は？": "四角", "色は？": "赤" } });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual((resolved?.data as { previews?: unknown }).previews, { "形は？": "┌─┐\n└─┘" });
+});
+
+test("送った指示は数に関係なくすぐ動き、中断すると承認待ちも片付く", async () => {
+  const { runner, approvals, project, store } = setup(async (_p, cb, signal) => {
+    const d = await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal);
+    return signal.aborted ? { status: "cancelled", sessionId: null } : { status: d.action === "deny" ? "failed" : "completed", sessionId: null };
+  });
+
+  const chats = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, prompt })));
+  await until(() => chats.every((r) => approvals.list({ chatId: r.id }).length === 1));
+  assert.equal(runner.stats().running, 3);
+  // 作業中のチャットの名前（終了の確かめに並べる）。名前がなければ既定の名前
+  store.chats.update(chats[1].id, { title: " " });
+  assert.deepEqual(runner.busyChats().map((c) => c.title), ["a", UNTITLED_CHAT_TITLE, "c"]);
+
+  runner.cancel(chats[0].id);
+  await until(() => store.chats.get(chats[0].id)?.status === "cancelled");
+  assert.deepEqual(
+    approvals.list().map((x) => x.chat_id).sort(),
+    [chats[1].id, chats[2].id].sort(),
+  );
+  for (const r of chats.slice(1)) runner.cancel(r.id);
+  await until(() => chats.every((r) => store.chats.get(r.id)?.status === "cancelled"));
+});
+
+test("kickoff-trash があれば、PATH・置き場・チャットの ID を渡し、ファイルを消すコマンドの守りを付ける（なければ付けない）", async () => {
+  const trashCommand = { path: "/data/bin/kickoff-trash", dir: "/data/trash" };
+  const withCommand = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" })), { trashCommand });
+  const chat = await withCommand.runner.start({ projectId: withCommand.project.id, prompt: "x" });
+  await until(() => withCommand.store.chats.get(chat.id)?.status === "completed");
+  const params = withCommand.provider.calls[0];
+  assert.equal(withCommand.gateMaterials[0].deleteGuard, true);
+  assert.ok(params.env?.PATH?.startsWith("/data/bin:"));
+  assert.equal(params.env?.KICKOFF_TRASH_DIR, "/data/trash");
+  assert.equal(params.env?.KICKOFF_CHAT_ID, String(chat.id));
+
+  const plain = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const other = await plain.runner.start({ projectId: plain.project.id, prompt: "x" });
+  await until(() => plain.store.chats.get(other.id)?.status === "completed");
+  assert.equal(plain.gateMaterials[0].deleteGuard, false);
+  assert.equal(plain.provider.calls[0].env?.KICKOFF_TRASH_DIR, undefined);
+});
+
+test("作業の途中で AI がブランチを替えたら、作業の終わりに最後に作業したブランチを覚え直す（失敗で終わっても）", async () => {
+  const { store, runner, project } = setup(async (params) => {
+    gitIn(params.cwd)("switch", "-q", "-c", params.prompt);
+    return params.prompt === "feat/fail" ? { status: "failed", sessionId: "s", error: "失敗" } : { status: "completed", sessionId: "s", result: "ok", turns: 1 };
+  });
+  gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
+  const chat = await runner.start({ projectId: project.id, prompt: "feat/x" });
+  // 結果を書く前に覚え直す
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/x");
+  await runner.message(chat.id, { text: "feat/fail" });
+  await until(() => store.chats.get(chat.id)?.status === "failed" && store.chats.get(chat.id)?.branch === "feat/fail");
+  // ブランチから外れた場所で始めても、取り出したブランチを覚える
+  gitIn(project.repo_path)("switch", "-q", "--detach");
+  await runner.message(chat.id, { text: "feat/from-detached" });
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/from-detached");
+});

@@ -1,0 +1,189 @@
+/* ==== チャットのツールの実行（まとめて 1 行・開くと個別に・実行中の光・出力と差分の色） ==== */
+@layer feature {
+  /* ツールの実行（まとめて 1 行、開くと個別に。見出しは .fold-summary） */
+
+  .tool-group {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tool-group > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 30px;
+    padding: 3px 10px 3px 4px;
+    border-radius: var(--radius-sm);
+    font-size: var(--chat-fs-14);
+    color: var(--muted);
+  }
+
+  .tool-group > summary:hover,
+  .tool-group[open] > summary {
+    color: var(--text);
+    background: var(--bg-elev);
+  }
+
+  /* 実行中のツールは、文字の上を光が流れる */
+
+  .tool-group.active .tool-summary,
+  .tool-group.active .tool-current {
+    color: transparent;
+    background: linear-gradient(90deg, var(--muted) 0%, var(--text) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .tool-chevron {
+    flex: none;
+    transition: transform 0.15s;
+  }
+
+  .tool-summary {
+    flex: none;
+  }
+
+  .tool-current {
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: var(--chat-fs-12);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 「1 件失敗」は狭い欄でも 1 文字ずつ折り返さない（要約・時刻の方を縮める） */
+
+  .tool-failed {
+    flex: none;
+    white-space: nowrap;
+    color: var(--ng);
+  }
+
+  /* 処理の時刻（まとまりの見出しの要約の後ろ・1 件の行の右。実行中の回る印は行の左端の状態のアイコン） */
+
+  .tool-time {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--chat-fs-12);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+
+  .tool-calls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    gap: 4px;
+    margin: 4px 0 8px;
+    padding: 8px;
+    --card-bg: var(--bg);
+  }
+
+  .tool-call {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+  }
+
+  .tool-call.error {
+    border-color: color-mix(in srgb, var(--ng) 50%, var(--border));
+  }
+
+  .tool-call > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    font-size: var(--chat-fs-13);
+  }
+
+  .tool-name {
+    flex: none;
+    font-weight: 600;
+  }
+
+  .tool-arg {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: var(--chat-fs-12);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+
+  /* ファイルを変えるツールの行のファイル名（押すと右の欄で開く。乗せると地の色 .hover-bg） */
+
+  .tool-file-link {
+    max-width: 100%;
+    overflow: hidden;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .tool-output,
+  .diff,
+  .bash-text {
+    max-height: 320px;
+    margin: 0;
+    padding: 8px 12px;
+    overflow: auto;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: var(--chat-fs-12);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .tool-output.error {
+    color: var(--ng);
+  }
+
+  /* ツールの行を開いた中身の下のボタン（DB に流した SQL の「SQL のタブで開く」・作った子チャットの「子チャットを開く」） */
+
+  .tool-actions {
+    display: flex;
+    gap: 6px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .diff-add {
+    display: block;
+    color: var(--ok);
+    background: color-mix(in srgb, var(--ok) 10%, transparent);
+  }
+
+  .diff-del {
+    display: block;
+    color: var(--ng);
+    background: color-mix(in srgb, var(--ng) 10%, transparent);
+  }
+
+  /* 失敗した作業の直す操作（FailedTurnActions）: 終わりの行の下に小さなボタンを並べる */
+
+  .turn-retry {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 2px 0 6px;
+  }
+
+  /* 直す操作の小さなボタン（サブエージェントの再開のボタン SubagentStatusText.css の .subagent-recovery .btn と同じ大きさ） */
+
+  .turn-retry .btn {
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: var(--chat-fs-12);
+  }
+}

@@ -1,0 +1,68 @@
+/* ==== 設定の AI のつなぎ方（ProviderAuthSettings・ProviderLoginButton・ProviderVersion） ==== */
+@layer feature {
+  /* 設定の「接続」の AI のログインの仕方（`ProviderAuthSettings`: AI ごとにサブスク / API キーの切り替えと API キーの欄） */
+
+  .provider-auth h3 {
+    margin: 16px 0 4px;
+    font-size: var(--fs-14);
+  }
+
+  .provider-auth-row {
+    padding: 10px 0;
+  }
+
+  .provider-auth-row + .provider-auth-row {
+    border-top: 1px solid var(--border);
+  }
+
+  .provider-auth-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .provider-auth-head .segmented {
+    margin-left: auto;
+  }
+
+  /* 使った分の支払い（API キーで動かす AI）。注意の色で、定額のプランと見分ける */
+
+  .provider-pay-badge {
+    color: var(--warn);
+  }
+
+  /* 設定の「接続」の AI のカードの「ブラウザでログイン」（ProviderLoginButton。待っている間の案内と「やめる」も） */
+
+  .provider-login {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 8px;
+  }
+
+  .provider-login p {
+    margin: 0;
+  }
+
+  /* 設定の「接続」の AI のカードの CLI の版と、新しい版の知らせ（ProviderVersion） */
+
+  .provider-version {
+    display: grid;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .provider-update {
+    display: grid;
+    gap: 4px;
+    margin-top: 2px;
+    color: var(--warn);
+  }
+
+  .provider-update .command-line {
+    color: var(--text);
+  }
+}

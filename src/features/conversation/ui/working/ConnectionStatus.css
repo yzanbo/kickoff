@@ -1,0 +1,19 @@
+/* ==== つなぎ直しの行（ConnectionStatus） ==== */
+@layer feature {
+  /* 通信が切れて止まり、つながるのを待っている行（流れのいちばん下。作業中の行の代わり） */
+
+  .reconnect-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: var(--chat-fs-13);
+    color: var(--text);
+  }
+
+  .reconnect-row svg {
+    flex: none;
+    color: var(--warn);
+  }
+}

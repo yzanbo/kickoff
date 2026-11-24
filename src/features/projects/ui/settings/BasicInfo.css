@@ -1,0 +1,36 @@
+/* ==== プロジェクトの色の選択（編集の「基本情報」） ==== */
+@layer feature {
+  /* プロジェクトの色を選ぶ（編集の「基本情報」）。選んでいる色は外側に輪を出す */
+
+  .color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .color-swatch {
+    width: 26px;
+    height: 26px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    background: hsl(var(--hue) 45% 45%);
+    cursor: pointer;
+  }
+
+  .color-swatch:hover {
+    background: hsl(var(--hue) 50% 52%);
+  }
+
+  .color-swatch[aria-checked="true"] {
+    border-color: var(--bg);
+    box-shadow: 0 0 0 2px hsl(var(--hue) 60% 65%);
+  }
+
+  /* 基本情報の「概要」: 空なら 2 行の高さ、書いた分だけ伸ばす（長くなったら中でスクロール。つまみで縦に広げてもよい） */
+
+  .project-description {
+    min-height: calc(2lh + 16px);
+    max-height: 360px;
+    field-sizing: content;
+  }
+}

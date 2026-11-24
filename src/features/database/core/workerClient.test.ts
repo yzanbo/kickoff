@@ -1,0 +1,163 @@
+// DB ワーカーを本物の別のプロセス（node ＋ tsx）で動かす: 起動・頼み・DB 側の読み取り専用・止める（SQLite はワーカーごと）・
+// 何もしないと止まる（準備のコマンドを流している間は止めない）・止めるとワーカーが起動したシェルも止める
+import assert from "node:assert/strict";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { test, vi } from "vitest";
+import { settle } from "@shared/foundation/testing/async";
+import { manualClock } from "@/foundation/core/testing/manualClock";
+import { tempDir } from "@/foundation/core/testing/tempDir";
+import { until } from "@/app/core/testing/testCore";
+import { DbWorkerClient, devWorkerEntry, forkWorker, killGroup, type WorkerChannel } from "./workerClient";
+import type { DbTarget } from "@shared/database/workerProtocol";
+import { quietShell } from "@/foundation/core/testing/quietShell";
+
+quietShell();
+
+function sqliteTarget(readOnly = false): DbTarget {
+  const file = path.join(tempDir(), "t.db");
+  const db = new DatabaseSync(file);
+  db.exec("CREATE TABLE t (a INTEGER); INSERT INTO t VALUES (1), (2), (3);");
+  db.close();
+  return { engine: "sqlite", host: null, port: null, database: null, username: null, password: null, file, ssl: null, read_only: readOnly };
+}
+
+test("DB ワーカー: 別のプロセスで起動して流し、DB 側の読み取り専用は書く文を断る", async (t) => {
+  const client = new DbWorkerClient(() => forkWorker(devWorkerEntry()));
+  t.onTestFinished(() => client.stop());
+  const target = sqliteTarget();
+  const result = await client.request("query", { session: "s", target, sql: "select a from t order by a", max_rows: 2 });
+  assert.deepEqual(result.rows, [[1], [2]]);
+  assert.equal(result.truncated, true);
+  assert.equal(client.running, true);
+
+  const readOnly = { ...target, read_only: true };
+  await assert.rejects(client.request("query", { session: "ro", target: readOnly, sql: "delete from t", max_rows: 10 }), /readonly/);
+  // 同じ名前の接続でも、トランザクションの途中ならつなぎ方を変えない
+  await client.request("query", { session: "tx", target, sql: "begin", max_rows: 1 });
+  assert.equal(client.isInTransaction("tx"), true);
+  await assert.rejects(client.request("query", { session: "tx", target: readOnly, sql: "select 1", max_rows: 1 }), /トランザクションの途中/);
+  await client.request("rollback", { session: "tx" });
+  assert.equal(client.isInTransaction("tx"), false);
+});
+
+test("DB ワーカー: SQLite の文を止めるとワーカーごと止め、次の頼みで起動し直す", async (t) => {
+  const client = new DbWorkerClient(() => forkWorker(devWorkerEntry()));
+  t.onTestFinished(() => client.stop());
+  const target = sqliteTarget();
+  await client.request("query", { session: "s", target, sql: "select 1", max_rows: 1 });
+  const controller = new AbortController();
+  // 終わらない再帰の問い合わせ
+  const slow = client.request(
+    "query",
+    { session: "s", target, sql: "with recursive c(x) as (select 1 union all select x + 1 from c) select count(*) from c", max_rows: 1 },
+    { signal: controller.signal, engine: "sqlite" },
+  );
+  setTimeout(() => controller.abort(), 200);
+  await assert.rejects(slow, /止めました/);
+  assert.equal(client.running, false);
+  const again = await client.request("query", { session: "s", target, sql: "select count(*) from t", max_rows: 1 });
+  assert.deepEqual(again.rows, [[3]]);
+});
+
+test("DB ワーカー: 何もしない状態が続いたら止まる（トランザクションの途中・準備のコマンドを流している間は止めない）。止めると途中の印も消える", async () => {
+  let channel: WorkerChannel | null = null;
+  const clock = manualClock();
+  const client = new DbWorkerClient(() => (channel = forkWorker(devWorkerEntry())), 300, undefined, clock);
+  // 使っていないので止める頼み（shutdown）の答えを覚える（答えを待ってから止まったかを見る）
+  const shutdowns: Promise<unknown>[] = [];
+  const request = client.request.bind(client);
+  vi.spyOn(client, "request").mockImplementation((method, params, opts) => {
+    const answer = request(method, params, opts);
+    if (method === "shutdown") shutdowns.push(answer.catch(() => null));
+    return answer;
+  });
+  /** 使っていない時間を 300ms 進め、止める頼みを送ったら、その答えまで待つ */
+  const idle = async () => {
+    const sent = shutdowns.length;
+    await clock.advance(300);
+    if (shutdowns.length === sent) return;
+    await shutdowns[sent];
+    await settle();
+  };
+  const target = sqliteTarget();
+  await client.request("query", { session: "s", target, sql: "select 1", max_rows: 1 });
+  // 何もしないと止まる（299ms ではまだ止めない）
+  await clock.advance(299);
+  assert.equal(shutdowns.length, 0);
+  await idle();
+  assert.equal(client.running, false);
+
+  // トランザクションの途中なら止めない
+  await client.request("query", { session: "s", target, sql: "begin", max_rows: 1 });
+  await idle();
+  assert.equal(shutdowns.length, 1, "止める頼みを送らない");
+  assert.equal(client.running, true);
+  client.stop();
+  assert.equal(client.isInTransaction("s"), false);
+  assert.ok(channel);
+
+  // 準備のコマンドを流している間も止めない（終われば止まる）
+  await client.request("prepare", { connection_id: 1, commands: ["sleep 1"], cleanup: [], vars: {}, my_ip_url: null });
+  await idle();
+  assert.equal(shutdowns.length, 2);
+  assert.equal(client.running, true);
+  await until(async () => (await idle(), !client.running), 15_000);
+});
+
+test("DB ワーカー: 止めると、ワーカーが起動したシェル（準備のコマンド）も止める", async () => {
+  const killed: number[] = [];
+  const client = new DbWorkerClient(
+    () => forkWorker(devWorkerEntry()),
+    60_000,
+    (pid) => {
+      killed.push(pid);
+      killGroup(pid);
+    },
+  );
+  const running = client.request("prepare", { connection_id: 1, commands: ["sleep 30"], cleanup: [], vars: {}, my_ip_url: null }).catch(() => null);
+  // シェルが動き始めたという知らせを待つ（決め打ちで待つと、負荷が高いときにワーカーの起動が遅れ、止める相手がまだいなかった）
+  await until(() => client.childCount > 0, 15_000);
+  client.stop();
+  await running;
+  assert.equal(killed.length, 1);
+  // シェルのプロセスグループはもういない（止まるまで待つ。決め打ちで待つと、負荷が高いときにまだ残っていた）
+  const groupGone = () => {
+    try {
+      process.kill(-killed[0]!, 0);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  await until(groupGone, 15_000);
+});
+
+test("DB ワーカー: 開いた接続の知らせを覚え、ワーカーが落ちたら開いていた接続をすべて閉じたと知らせる", () => {
+  let listener: Parameters<WorkerChannel["onMessage"]>[0] = () => {};
+  let exited: (reason: string) => void = () => {};
+  const channel: WorkerChannel = { send: () => {}, onMessage: (fn) => (listener = fn), onExit: (fn) => (exited = fn), kill: () => {} };
+  const client = new DbWorkerClient(() => channel);
+  const seen: string[] = [];
+  client.onEvent = (e) => e.event === "session" && seen.push(`${e.name}:${e.open}`);
+  void client.request("close", { session: "z" }).catch(() => {});
+  listener({ event: "session", name: "a", open: true });
+  listener({ event: "session", name: "b", open: true });
+  listener({ event: "session", name: "a", open: false });
+  // 知らない接続を閉じた知らせは流さない
+  listener({ event: "session", name: "x", open: false });
+  exited("終了コード 1");
+  assert.deepEqual(seen, ["a:true", "b:true", "a:false", "b:false"]);
+});
+
+test("DB ワーカー: もう止めた signal の頼みは送らずに失敗する（ワーカーも起こさない）", async () => {
+  const sent: unknown[] = [];
+  let started = 0;
+  const channel: WorkerChannel = { send: (m) => sent.push(m), onMessage: () => {}, onExit: () => {}, kill: () => {} };
+  const client = new DbWorkerClient(() => (started++, channel));
+  const stopped = new AbortController();
+  stopped.abort();
+  await assert.rejects(client.request("query", { session: "s", target: sqliteTarget(), sql: "select 1", max_rows: 1 }, { signal: stopped.signal, engine: "postgres" }), /止めました/);
+  assert.equal(started, 0);
+  assert.deepEqual(sent, []);
+});

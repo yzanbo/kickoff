@@ -1,8 +1,8 @@
 // スマホのチャットで、数式を含む返答と AI が描いた図（SVG・HTML・Mermaid）を WebView に描くページを組み立てる（純粋な関数）。
 // 数式（KaTeX）と Mermaid は、APK を大きくしないよう CDN（cdn.jsdelivr.net）から読む（スマホは本体とつなぐのにネットワークを使う）。
 // どのページも、図の枠と同じ CSP（決めた CDN のほかへは通信しない）で、高さを React Native へ知らせる
-import { mathRanges } from "@shared/markdown/mathGuard";
-import { VISUAL_FRAME_CSP, VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/chat/visualDocument";
+import { mathRanges } from "@shared/foundation/markdown/mathGuard";
+import { VISUAL_FRAME_CSP, VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
 import { colors } from "../ui/colors";
 
 /** KaTeX と Mermaid の版（CDN の URL に入れる） */

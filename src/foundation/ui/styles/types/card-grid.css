@@ -1,0 +1,10 @@
+/* ==== カードとその並び（準備状況・使用枠）・使用状況のサービスごとのまとまり・状態カードと状態の点 ==== */
+/* カードとその並び（準備状況・使用枠など） */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+

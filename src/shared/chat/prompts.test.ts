@@ -75,36 +75,39 @@ test("起動したときの再開の確かめで続ける指示: 途中で止ま
 
 test("圧縮前指示・圧縮後指示: オンの分を共通 → プロジェクトの順に空行でつなぎ、空・オフのものは除く", () => {
   const source = (pre: string | null, enabled = true) => ({ pre_compact_prompt: pre, post_compact_prompt: "あと", pre_compact_enabled: enabled, post_compact_enabled: true });
-  assert.equal(compactPromptFor("pre", source("メモを残す"), source("TODO を書く")), "メモを残す\n\nTODO を書く");
+  assert.equal(compactPromptFor("pre", source("ノートを残す"), source("TODO を書く")), "ノートを残す\n\nTODO を書く");
   assert.equal(compactPromptFor("pre", source(null), source(" TODO を書く ")), "TODO を書く");
   assert.equal(compactPromptFor("pre", source("  "), undefined), null);
   assert.equal(compactPromptFor("pre", undefined, undefined), null);
   // オフにした分は、文が残っていても送らない（種類ごとに別）
-  assert.equal(compactPromptFor("pre", source("メモを残す", false), source("TODO を書く")), "TODO を書く");
-  assert.equal(compactPromptFor("pre", source("メモを残す", false), source("TODO を書く", false)), null);
-  assert.equal(compactPromptFor("post", source("メモを残す", false), undefined), "あと");
+  assert.equal(compactPromptFor("pre", source("ノートを残す", false), source("TODO を書く")), "TODO を書く");
+  assert.equal(compactPromptFor("pre", source("ノートを残す", false), source("TODO を書く", false)), null);
+  assert.equal(compactPromptFor("post", source("ノートを残す", false), undefined), "あと");
 });
 
 test("圧縮後指示: 圧縮したことを前置きにして、指示の文をそのまま添える", () => {
-  const message = postCompactMessage("memo.md を読み直す");
+  const message = postCompactMessage("note.md を読み直す");
   assert.match(message, /^【圧縮後指示】会話を圧縮しました/);
-  assert.ok(message.endsWith("---\nmemo.md を読み直す"));
+  assert.ok(message.endsWith("---\nnote.md を読み直す"));
 });
 
 test("圧縮前指示: 自動のときだけ合図の一文を頼み、その一文で済んだと分かる", () => {
-  const auto = autoPreCompactMessage("メモを残す");
+  const auto = autoPreCompactMessage("ノートを残す");
   assert.ok(auto.startsWith("【圧縮前指示】"));
-  assert.ok(auto.endsWith("---\nメモを残す"));
+  assert.ok(auto.endsWith("---\nノートを残す"));
   assert.match(auto, new RegExp(PRE_COMPACT_DONE));
-  assert.doesNotMatch(manualPreCompactMessage("メモを残す"), new RegExp(PRE_COMPACT_DONE));
+  assert.doesNotMatch(manualPreCompactMessage("ノートを残す"), new RegExp(PRE_COMPACT_DONE));
   assert.ok(isPreCompactDone(`${PRE_COMPACT_DONE}。`));
-  assert.ok(!isPreCompactDone("メモを残しました"));
+  assert.ok(!isPreCompactDone("ノートを残しました"));
 });
 
-test("サブエージェントについて聞く文: 宛先と添付の名前を前に置き、本文は区切りの後ろにそのまま。見分けると名前と本文が取れる（前の頭のものも）", () => {
+test("圧縮前指示の合図の見分けは、合図の一文を含むか（AI の側の門が渡された doneMark を含むかで見るのと同じ式）", () => {
+  for (const text of [PRE_COMPACT_DONE, `はい。${PRE_COMPACT_DONE}`, "済ませました", ""]) assert.equal(text.includes(PRE_COMPACT_DONE), isPreCompactDone(text));
+});
+
+test("サブエージェントについて聞く文: 宛先と添付の名前を前に置き、本文は区切りの後ろにそのまま。見分けると名前と本文が取れる", () => {
   const message = subagentAskMessage("a1", "調査", "サブエージェントの記録-調査.md", "core には？\n2 行目");
   assert.ok(message.includes("「サブエージェントの記録-調査.md」"));
   assert.deepEqual(subagentAskOf(message), { name: "調査", text: "core には？\n2 行目" });
   assert.equal(subagentAskOf("ふつうの指示"), undefined);
-  assert.deepEqual(subagentAskOf("【サブエージェントに直接聞く】「調査」（ID: a1）\n前置き\n---\n本文"), { name: "調査", text: "本文" });
 });

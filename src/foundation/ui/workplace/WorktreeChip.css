@@ -1,0 +1,33 @@
+/* ==== 作業場所の札（WorktreeChip。札に機能のクラスも付くので機能と同じ feature の層） ==== */
+@layer feature {
+  /*
+   * チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行）。色は作業場所の色（--hue。workplaceHue）で、
+   * タブを作業場所別にまとめたときのまとまりの札・タブの線と同じ色（明るさも ChatTabStrip.css の --group-color と同じ）。
+   */
+
+  .worktree-chip {
+    --chip-color: hsl(var(--hue) var(--hue-fg-group));
+
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    max-width: 160px;
+    --tag-color: var(--chip-color);
+    overflow: hidden;
+    font-size: var(--fs-11);
+    line-height: 17px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .worktree-chip svg {
+    flex: none;
+  }
+
+  /* フォルダの見つからないワークツリー・片付けて本体に戻ったチャットの、最後に作業したブランチ（色はそのまま、点線の枠で少し薄く。説明に理由） */
+
+  .worktree-chip.is-gone {
+    border-style: dashed;
+    opacity: 0.75;
+  }
+}

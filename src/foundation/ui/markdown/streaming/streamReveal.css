@@ -1,0 +1,19 @@
+/* ==== 書いている途中の返答（features/chat/timeline/StreamingReply） ==== */
+@layer ui {
+  /*
+   * 書いている途中の返答（StreamingReply）: 出たばかりの文字を、出てからの時間の段ごとに薄く出し、すぐ濃くする
+   * （段は lib/streamReveal.ts の wrapStreamTail が付ける。1 が最も新しい。フレームごとに段が進むので、文字がにじむように現れて見える）
+   */
+
+  .stream-fade-1:is(.assistant.live *) {
+    opacity: 0.2;
+  }
+
+  .stream-fade-2:is(.assistant.live *) {
+    opacity: 0.5;
+  }
+
+  .stream-fade-3:is(.assistant.live *) {
+    opacity: 0.8;
+  }
+}

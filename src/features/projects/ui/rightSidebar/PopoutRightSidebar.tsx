@@ -1,0 +1,85 @@
+import { useEffect, useEffectEvent, useState } from "react";
+import { closeWhenDocked, popoutKey } from "@/foundation/ui/navigation/popout";
+import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router";
+import { onWindowMessage, postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { useProjects } from "@/features/projects/ui/stores/projects";
+import { adoptSidePanels, allPanels, browserTab, isSidePanel, openTab, ownSidePanelsOnly, panelKey, setPanelOpen } from "@/features/panel/ui";
+import { SideBody } from "./RightSidebar";
+import { SideRail } from "./SideRail";
+import { useFallbackProject } from "@/features/projects/ui/currentProject";
+import { useMainWindowRoute } from "@/foundation/ui/navigation/useMainWindowRoute";
+import { onCloseRequested } from "@/foundation/ui/lib/desktopApp";
+
+/** メインのウィンドウがチャット欄の状態を渡してくるのを待つ上限（過ぎたら空のまま描く） */
+const ADOPT_WAIT_MS = 3000;
+
+/** このウィンドウがチャット欄の状態を持っているか（受け取ったか。メインのウィンドウが読み込み直したら、渡し直さずにこのウィンドウのものを使ってもらう） */
+let holding = false;
+
+/**
+ * チャット欄をメインのウィンドウに戻して、このウィンドウを閉じる（open: メインのウィンドウのチャット欄を開くか。「チャット欄に戻す」は開き、✕ は閉じたまま）。
+ * メインのウィンドウがシェルの持ち主になってから閉じる（先に閉じると、このウィンドウが持つシェルが止まる）
+ */
+export function returnSideWindow(open: boolean) {
+  const panels = [...allPanels()].filter(([key]) => isSidePanel(key));
+  closeWhenDocked(popoutKey({ kind: "side" }));
+  holding = false;
+  (open ? postToMainWindow : postWindowMessage)("returnSidePanels", { panels, open });
+}
+
+/**
+ * チャット欄の別ウィンドウの中身（メインのウィンドウの右サイドバーと同じ SideBody と、右端のアイコンの列を、ウィンドウいっぱいに）。
+ * 開くとメインのウィンドウがチャット欄の状態（すべてのプロジェクトのタブ）をこのウィンドウに渡し、メインのウィンドウはチャット欄を描かない（panelHandOff.ts）。
+ * 出すのはメインのウィンドウで開いているプロジェクトの欄（全プロジェクトの画面ならサイドバーで選んでいるもので、チャットは出さない）。
+ * ✕ で閉じるとチャット欄をメインのウィンドウに戻す（閉じたまま。メインプロセスが閉じるのを止めて知らせる）
+ */
+export function PopoutSideChat() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    // 受け取るまでは、このウィンドウの下書きの保存でほかの欄を書き換えない
+    ownSidePanelsOnly();
+    // 届かなければ、空のまま描く（あとから届いたら受け取る）
+    const timer = setTimeout(() => setReady(true), ADOPT_WAIT_MS);
+    // メインのウィンドウから頼まれたブラウザのタブ（このウィンドウがチャット欄を持っている間）
+    const offBrowser = onWindowMessage("sideOpenBrowser", (m) => {
+      if (isSidePanel(m.panel)) openTab(m.panel, browserTab(m.url));
+    });
+    const offPanels = onWindowMessage("sidePanels", (m) => {
+      // 受け取るのは 1 回だけ（同じ知らせが重ねて届いても、受け取ったあとのタブを消さない）
+      if (holding) return;
+      clearTimeout(timer);
+      holding = true;
+      adoptSidePanels(m.panels);
+      setReady(true);
+    });
+    return () => {
+      clearTimeout(timer);
+      offBrowser();
+      offPanels();
+    };
+  }, []);
+  const route = useMainWindowRoute((open) => postWindowMessage("sideWindow", { open, holding }));
+  // ✕・⌘W（メインプロセスが閉じるのを止めて知らせる）: チャット欄をメインのウィンドウに戻してから閉じる
+  const closeRequested = useEffectEvent(() => returnSideWindow(false));
+  useEffect(() => onCloseRequested(() => closeRequested()), []);
+  const { missing } = useProjects();
+  const fallbackProject = useFallbackProject();
+  const routeProject = routeProjectId(route);
+  const projectId = routeProject !== null && !missing(routeProject) ? routeProject : fallbackProject;
+  // このウィンドウでは欄をいつも開いておく（閉じるボタン・右上の開閉はない）
+  useEffect(() => {
+    if (ready && projectId !== undefined) setPanelOpen(panelKey("side", projectId), true);
+  }, [ready, projectId]);
+  if (!ready) return <div className="popout-body page muted">読み込み中…</div>;
+  if (projectId === undefined) return <div className="popout-body page muted">プロジェクトがありません</div>;
+  return (
+    <RouteContext.Provider value={route}>
+      <div className="popout-body popout-side-chat">
+        <div className="popout-side-body">
+          <SideBody projectId={projectId} />
+        </div>
+        <SideRail projectId={projectId} open inWindow />
+      </div>
+    </RouteContext.Provider>
+  );
+}

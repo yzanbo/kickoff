@@ -1,0 +1,74 @@
+/* ==== ファイル・変更・履歴・ノートの木の行（TreeView。線と貼り付けは styles/types/tree.css。行に機能のクラスも付くので機能と同じ feature の層） ==== */
+@layer feature {
+  .tree-row {
+    gap: 4px;
+    /* VS Code のエクスプローラーと同じ 22px の行 */
+    min-height: 22px;
+    padding: 0 10px 0 var(--tree-left);
+    font-size: var(--fs-13);
+  }
+
+  /* .gitignore で無視しているもの（node_modules など） */
+
+  .tree-row.ignored {
+    --drag-source-opacity: 0.5;
+
+    opacity: 0.5;
+  }
+
+  /* 変更の種類（data-kind。ファイルの木の行に付く）の色（styles/types/state-colors.css の --kind-color）を、名前と記号に付ける */
+
+  .tree-row[data-kind] {
+    color: var(--kind-color);
+  }
+
+  .tree-row svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .tree-chevron {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 14px;
+  }
+
+  .tree-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 名前を変えている行（ファイル・ノートの木。変更の一覧は files の SearchResults.css。行の Enter・右クリックの「名前を変更」）。名前の欄を残りの幅いっぱいに */
+
+  .tree-row.renaming {
+    align-items: center;
+    cursor: default;
+  }
+
+  .tree-row.renaming:hover {
+    background: transparent;
+  }
+
+  .tree-row.renaming .inline-name-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tree-rename {
+    width: 100%;
+  }
+
+  /* ファイル・ノートの木の行は、入力欄を行の高さに収める（狭いので決定・取り消しのボタンは出さない。InlineName の buttons） */
+
+  .tree-row.renaming {
+    padding-block: 1px;
+  }
+
+  .tree-row.renaming input[type="text"].inline-name {
+    padding-inline: 4px;
+  }
+}

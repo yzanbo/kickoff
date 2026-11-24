@@ -1,0 +1,16 @@
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { storage } from "@/features/chatPanel/ui/storage";
+import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
+
+/**
+ * 「アーカイブ済みのチャットを表示」（storage.settings.showArchived。パネルのチャットのタブだけの設定で、サイドバーの「アーカイブ」とは別。初めは隠す）。
+ * パネルのタブの列の「表示」のメニュー・タブの右クリックの「タブの表示 ›」と、まとまりの札の右クリックに置く
+ */
+export function ArchivedChatsItem() {
+  const [archived, setArchived] = useSetting(storage.settings.showArchived);
+  return (
+    <MenuItem checked={archived} title="タブの列だけの設定です（サイドバーの「アーカイブ」とは別）" onSelect={() => setArchived(!archived)}>
+      <span className="project-switch-item">アーカイブ済みのチャットを表示</span>
+    </MenuItem>
+  );
+}

@@ -1,12 +1,12 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ChatEvent } from "@shared/types";
-import { makeEvent } from "@shared/testing/factories";
-import { scenarioChat } from "@shared/testing/chatScenarios";
-import { collectVisuals } from "./aiVisual";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { makeEvent } from "@shared/chat/testing";
+import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";
-import { collectSubagents, subagentReport } from "./subagents";
-import { waitingSubagentKeys } from "./subagentState";
+import { collectSubagents } from "./subagents";
+import { subagentReport } from "./subagentReport";
+import { subagentAskers } from "./subagentState";
 
 /** 記録の中の呼び出しから、回答待ち・裏の作業が指す呼び出しを種で決めて選ぶ（R3 を確かめる） */
 function contextOf(events: readonly ChatEvent[]): IndexContext {
@@ -20,19 +20,18 @@ const digestAt = (events: readonly ChatEvent[], s: number, ctx: IndexContext) =>
 
 /** 記録全体から作るもの（@shared の関数）を、同じ記録の並びに流した結果 */
 function digestResults(events: ChatEvent[], ctx: IndexContext) {
-  const approvals = ctx.approvalCallIds.map((id) => ({ kind: "permission" as const, tool_use_id: id }));
+  const approvals = ctx.approvalCallIds.map((id) => ({ id, kind: "permission" as const, tool_use_id: id }));
   const out: unknown[] = [];
   for (const busy of [true, false]) {
     for (const live of [undefined, new Set<string>()]) {
       const entries = collectSubagents(events, {}, busy, live);
-      out.push(entries, entries.map((e) => subagentReport(e, events)), [...waitingSubagentKeys(approvals, events, entries)]);
+      out.push(entries, entries.map((e) => subagentReport(e, events)), [...subagentAskers(approvals, events, entries)]);
     }
   }
-  out.push([...collectVisuals(events)]);
   return out;
 }
 
-test("どの切れ目の索引 ＋ 末尾でも、記録全体から作るもの（サブエージェント・報告・回答待ち・図）が全件と同じになる（ランダムな記録。種は固定）", () => {
+test("どの切れ目の索引 ＋ 末尾でも、記録全体から作るもの（サブエージェント・報告・回答待ち。図は @shared/visuals の aiVisual.test.ts）が全件と同じになる（ランダムな記録。種は固定）", () => {
   for (const [seed, running] of [[1, false], [2, true], [3, false], [7, true]] as const) {
     const events = scenarioChat({ turns: 24, seed, running });
     const ctx = contextOf(events);

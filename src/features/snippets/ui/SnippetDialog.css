@@ -1,0 +1,23 @@
+/* ==== 定型文のダイアログ（SnippetDialog） ==== */
+@layer feature {
+  .snippet-dialog {
+    --dialog-w: 640px;
+  }
+
+  .snippet-dialog .app-dialog-body {
+    max-height: min(720px, calc(100vh - 80px));
+    overflow-y: auto;
+  }
+
+  .snippet-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .snippet-dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+  }
+}

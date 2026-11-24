@@ -1,0 +1,15 @@
+/* ==== 接続のメモの欄（ConnectionNoteField） ==== */
+@layer feature {
+  /* 接続のダイアログの手順ノートの欄（選ぶ ▾ と「新しく作る…」） */
+
+  .db-note-field {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .db-note-field select {
+    flex: 1;
+    min-width: 0;
+  }
+}

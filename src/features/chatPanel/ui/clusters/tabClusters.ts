@@ -1,0 +1,125 @@
+import type { Chat } from "@shared/chat/types";
+import type { PanelTab } from "@/features/panel/ui";
+import type { NewChatDraft } from "@/features/composer/ui";
+import { sortBuckets, type BucketHead } from "@/features/chatList/ui";
+
+/** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */
+export const OTHER_CLUSTER: BucketHead = { key: "other", kind: "other", label: "その他", title: "グループ・作業場所に入らないタブ（ブラウザなど）" };
+
+/** タブのまとまりを決めるのに使うもの（useTabClusters が、いまのまとめ方・サイドバーのチャット・ワークツリーの一覧から作る） */
+export interface ClusterResolver {
+  /** ID のチャット（知っているチャットから。なければ undefined） */
+  chatById: (id: number) => Chat | undefined;
+  /** チャットが入るまとまり（サイドバー・ボードと同じ決め方） */
+  ofChat: (chat: Chat) => BucketHead;
+  /** 送る前の新しいチャットの下書き（作成先を読む。なければ undefined） */
+  draftOf: (key: string) => Pick<NewChatDraft, "projectId" | "group" | "worktree"> | undefined;
+  /** 作成先（プロジェクト・グループ）のまとまり（チャットがまだ分からないタブ・新しいチャット） */
+  ofTarget: (projectId: number, group?: number, worktree?: string) => BucketHead;
+  /** フォルダ（本体・ワークツリー）のまとまり（ターミナル。グループ別では「その他」） */
+  ofFolder: (projectId: number, cwd: string) => BucketHead;
+}
+
+/**
+ * タブがどのまとまりに入るか（グループ別・作業場所別にまとめるとき）: チャットはそのチャットのまとまり（まだ届いていなければ作成先（グループなし・本体））、
+ * 新しいチャットは作成先、ターミナルは開いたフォルダ。ほか（ブラウザ・右の欄のタブ）は「その他」
+ */
+export function tabClusterOf(tab: PanelTab, resolve: ClusterResolver): BucketHead {
+  if (tab.kind === "chat") {
+    const chat = resolve.chatById(tab.id);
+    return chat ? resolve.ofChat(chat) : resolve.ofTarget(tab.projectId);
+  }
+  if (tab.kind === "new") {
+    const draft = resolve.draftOf(tab.key);
+    return draft ? resolve.ofTarget(draft.projectId, draft.group, draft.worktree) : OTHER_CLUSTER;
+  }
+  if (tab.kind === "terminal") return resolve.ofFolder(tab.projectId, tab.cwd);
+  return OTHER_CLUSTER;
+}
+
+/** タブのまとまり（見出しは bucketChats と同じ形・同じキー。サイドバーの見出し・ボードの段と同じまとまり） */
+/**
+ * まとまりの札の名前を省略するときの 1 文字（「まとまりの名前を省略」。グループはグループ名・本体は「本」・ワークツリーはブランチ名の頭。
+ * いくつかのプロジェクトが並ぶときに札の名前の前に添えるプロジェクト名は使わない）。サロゲートペア（絵文字など）は切らない
+ */
+export function clusterInitial(head: BucketHead): string {
+  const name = head.group?.name ?? (head.place?.kind === "main" ? "本体" : head.place?.name) ?? head.label.split(" · ").pop() ?? head.label;
+  return Array.from(name.trim())[0] ?? "";
+}
+
+export interface TabCluster extends BucketHead {
+  /** まとまりの中のタブのキー（ペインの並びのまま） */
+  tabs: string[];
+}
+
+/**
+ * ペインのタブ（並び順のキー）を、まとまりごとに分ける。並びは bucketChats と同じ（sortBuckets: プロジェクトの順 projectOrder → その中は
+ * 固定 → グループ（サイドバーの並び）・作業場所（本体が先）→ グループなし、後ろにアーカイブ済み → 「その他」）。
+ * seeds はタブがなくても札だけ出すまとまり（グループ別のときの、自分で作ったグループ）。まとまりの中はペインの並びのまま
+ * （並べ替えても、まとまりの中の順が変わるだけ）
+ */
+export function clusterTabs(keys: readonly string[], clusterOf: (key: string) => BucketHead, seeds: readonly BucketHead[] = [], projectOrder: readonly number[] = []): TabCluster[] {
+  const clusters = new Map<string, TabCluster>();
+  for (const head of seeds) clusters.set(head.key, { ...head, tabs: [] });
+  for (const key of keys) {
+    const head = clusterOf(key);
+    const found = clusters.get(head.key);
+    if (found) found.tabs.push(key);
+    else clusters.set(head.key, { ...head, tabs: [key] });
+  }
+  return sortBuckets([...clusters.values()], projectOrder);
+}
+
+/**
+ * タブの列に出すまとまり（グループ別のとき）: 隠したグループ（hiddenGroups。自分で作ったグループだけ）と、hideEmpty なら
+ * チャットもタブもないグループ（countOf が 0）を外す。隠したグループでも、ペインで表示中のタブ（active）があれば、
+ * そのタブがどれか分かるよう札ごと残し、畳んだ形で見せる（forced。そのタブだけが見える）。グループなし・固定・アーカイブ済み・作業場所・その他は外さない
+ */
+export function shownClusters(
+  clusters: readonly TabCluster[],
+  { hiddenGroups, hideEmpty, countOf, active }: { hiddenGroups: ReadonlySet<number>; hideEmpty: boolean; countOf: (cluster: TabCluster) => number; active: string | null },
+): { clusters: TabCluster[]; forced: Set<string> } {
+  const forced = new Set<string>();
+  const shown = clusters.filter((c) => {
+    if (c.kind !== "group" || !c.group) return true;
+    if (hiddenGroups.has(c.group.id)) {
+      if (active === null || !c.tabs.includes(active)) return false;
+      forced.add(c.key);
+      return true;
+    }
+    return !(hideEmpty && c.tabs.length === 0 && countOf(c) === 0);
+  });
+  return { clusters: shown, forced };
+}
+
+/**
+ * 畳んだまとまりで見せるタブ。畳んでいれば、そのペインで表示中のタブ（中身が見えているもの）だけを残し、ほかは隠す
+ * （表示中のタブまで隠すと、いま見ている中身がどのタブか分からなくなるため。隠したタブを一覧から開けば、そのタブが表示中になって出る）
+ */
+export function visibleClusterTabs(cluster: TabCluster, collapsed: boolean, active: string | null): string[] {
+  return collapsed ? cluster.tabs.filter((key) => key === active) : cluster.tabs;
+}
+
+/**
+ * 見た目の並びでの落とす位置（何番目のタブの前か）を、ペインの並びの位置に直す（まとめて並べ替えて見せているとき、
+ * ドラッグで落とす位置は見た目の並びで決まるため）。いちばん後ろはペインの最後
+ */
+export function paneIndexOf(displayIndex: number, display: readonly string[], paneTabs: readonly string[]): number {
+  const key = display[displayIndex];
+  return key === undefined ? paneTabs.length : paneTabs.indexOf(key);
+}
+
+/**
+ * 一覧のペインのタブを、チャットのタブだけサイドバーの並び（orderOf。チャットの ID → 何番目か）に並べ替える（サイドバーとタブの並びをそろえる）。
+ * チャットのタブは、いまチャットのタブがある位置どうしで入れ替え、ほかのタブ（新しいチャット・ブラウザなど）は位置を変えない。
+ * サイドバーの並びにないチャット（自分で開いたアーカイブ済みなど）は、並びにあるものの後ろに今の順のまま。変わらなければ同じ配列を返す
+ */
+export function orderLikeSidebar(keys: string[], chatIdOf: (key: string) => number | null, orderOf: ReadonlyMap<number, number>): string[] {
+  const chatKeys = keys.filter((k) => chatIdOf(k) !== null);
+  const rank = (k: string) => orderOf.get(chatIdOf(k) as number) ?? Number.MAX_SAFE_INTEGER;
+  // 同じ順位（並びにないもの）どうしは今の順のまま（sort は安定）
+  const sorted = [...chatKeys].sort((a, b) => rank(a) - rank(b));
+  if (sorted.every((k, i) => k === chatKeys[i])) return keys;
+  let next = 0;
+  return keys.map((k) => (chatIdOf(k) === null ? k : sorted[next++]));
+}

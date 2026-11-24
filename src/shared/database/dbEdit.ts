@@ -1,5 +1,6 @@
-// テーブルの行の変更（段階 3 のセルの編集・行の追加と削除・CSV の取り込み）を SQL にする（純粋な関数。コアが流す文と、画面が見せる文で共通）
-import type { DbEngine, DbKeyValue, DbObjectPath, DbRowEdit, DbTableDetail } from "../types";
+// テーブルの行の変更（セルの編集・行の追加と削除・CSV の取り込み）を SQL にする（純粋な関数。コアが流す文と、画面が見せる文で共通）
+import type { DbEngine, DbKeyValue, DbObjectPath, DbRowEdit, DbTableDetail } from "@shared/database/types";
+import { DB_DIALECTS, qualifiedTable, quoteIdent } from "./dialect";
 
 /** DB に渡す値（数はそのまま。SQLite の型のない列でもキーが合うように） */
 export type DbEditParam = string | number | null;
@@ -13,28 +14,15 @@ export interface DbEditStatement {
   preview: string;
 }
 
-/** 識別子を囲む（MySQL は `…`、ほかは "…"。中の囲みの文字は 2 つにする） */
-export function quoteName(engine: DbEngine, name: string): string {
-  return engine === "mysql" ? `\`${name.replaceAll("`", "``")}\`` : `"${name.replaceAll('"', '""')}"`;
-}
-
-/** テーブルの場所つきの名前（PostgreSQL はスキーマ、MySQL は DB、SQLite は付け足した DB の名前） */
-export function qualifiedTable(engine: DbEngine, path: DbObjectPath, table: string): string {
-  const scope = engine === "postgres" ? path.schema : path.database;
-  return scope ? `${quoteName(engine, scope)}.${quoteName(engine, table)}` : quoteName(engine, table);
-}
-
 /** キーの値を DB に渡す形にする（真偽は PostgreSQL なら true / false の文字、ほかは 1 / 0） */
-export function editParam(engine: DbEngine, value: DbKeyValue): DbEditParam {
-  if (typeof value === "boolean") return engine === "postgres" ? String(value) : value ? 1 : 0;
-  return value;
+function editParam(engine: DbEngine, value: DbKeyValue): DbEditParam {
+  return typeof value === "boolean" ? DB_DIALECTS[engine].boolParam(value) : value;
 }
 
 /** 見せる文に埋める値（文字は ' で囲む） */
-function literal(value: DbEditParam): string {
+function literal(engine: DbEngine, value: DbEditParam): string {
   if (value === null) return "NULL";
-  if (typeof value === "number") return String(value);
-  return `'${value.replaceAll("'", "''")}'`;
+  return typeof value === "number" ? String(value) : DB_DIALECTS[engine].literal(value);
 }
 
 /**
@@ -43,14 +31,14 @@ function literal(value: DbEditParam): string {
  */
 export function editStatements(engine: DbEngine, path: DbObjectPath, table: string, edits: DbRowEdit[]): DbEditStatement[] {
   const target = qualifiedTable(engine, path, table);
-  const q = (name: string) => quoteName(engine, name);
+  const q = (name: string) => quoteIdent(engine, name);
   const out: DbEditStatement[] = [];
   for (const edit of edits) {
     const params: DbEditParam[] = [];
     // 値の置き場所（params に足して ? / $n を返す）と、見せる文の値
     const put = (value: DbEditParam) => {
       params.push(value);
-      return { sql: engine === "postgres" ? `$${params.length}` : "?", shown: literal(value) };
+      return { sql: DB_DIALECTS[engine].placeholder(params.length), shown: literal(engine, value) };
     };
     const where = (key: Record<string, DbKeyValue>) => {
       const parts = Object.entries(key).map(([col, raw]) => {
@@ -82,7 +70,7 @@ export function editStatements(engine: DbEngine, path: DbObjectPath, table: stri
     } else {
       const cols = Object.entries(edit.values);
       if (cols.length === 0) {
-        const sql = engine === "mysql" ? `INSERT INTO ${target} () VALUES ()` : `INSERT INTO ${target} DEFAULT VALUES`;
+        const sql = DB_DIALECTS[engine].insertDefaults(target);
         out.push({ sql, params, expect: null, preview: sql });
         continue;
       }

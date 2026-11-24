@@ -1,0 +1,174 @@
+import "./PrNoticeDialog.css";
+import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
+import { useEffect, useEffectEvent, useState } from "react";
+import type { WorktreePrNotice } from "@shared/git/types";
+import { chatsApi, useChatsWithChildren } from "@/features/chat/ui";
+import { useAction } from "@/foundation/ui/hooks/useAction";
+import { useQuery } from "@/foundation/ui/query";
+import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
+import { alert } from "@/foundation/ui/kit/ask";
+import { DialogActions } from "@/foundation/ui/kit/DialogActions";
+import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { CheckField } from "@/foundation/ui/kit/Field";
+import { Segmented } from "@/foundation/ui/kit/Segmented";
+import { downVolumesCheck, dropConnectionsCheck, removeWorktreeAndRefresh, useWorktreeEnv, worktreesApi } from "@/features/worktrees/ui";
+import {
+  PR_CHAT_ACTIONS,
+  PR_CHAT_ACTION_LABELS,
+  PR_WORKTREE_ACTIONS,
+  PR_WORKTREE_ACTION_LABELS,
+  defaultWorktreeAction,
+  prNoticeTitle,
+  prNoticeWarnings,
+  rootChatIds,
+  tryEach,
+  type PrChatAction,
+  type PrWorktreeAction,
+} from "./prNoticePlan";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+import { useProjects } from "@/features/projects/ui";
+
+/**
+ * 確認「PR #12 がマージされました」: ワークツリー（ブランチも消す / ワークツリーだけ消す / 残す）と、
+ * そのワークツリーのチャット（子チャットも。アーカイブ / 削除 / そのまま）の扱いを 1 つで選ぶ。
+ * 作業中のチャット・コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットは、確認の中で知らせる
+ * （作業中のチャットがあれば、消す・アーカイブはできない）。マージされたときは、片付けたあと本体を最新にする（プル）
+ */
+export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; gone: boolean; onClose: () => void }) {
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
+  const projectId = notice.project_id;
+  const { projectName } = useProjects();
+  const chats = useChatsWithChildren().filter((c) => c.project_id === projectId && c.worktree_path === notice.worktree);
+  const running = chats.filter((c) => c.status === "running").length;
+  const info = useQuery(["PrNoticeDialog.info", projectId, notice.worktree], () => worktreesApi.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), { keepPrevious: true });
+  const [worktreeAction, setWorktreeAction] = useState<PrWorktreeAction>(defaultWorktreeAction(notice));
+  const [chatAction, setChatAction] = useState<PrChatAction>("archive");
+  // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すか（初めは消す）
+  const volumes = downVolumesCheck(useWorktreeEnv(projectId, notice.worktree));
+  const [downVolumes, setDownVolumes] = useState(true);
+  // このワークツリーの DB から作った DB クライアントの接続も消すか（初めは消す）
+  const connections = dropConnectionsCheck(info.data?.db_connections ?? []);
+  const [dropConnections, setDropConnections] = useState(true);
+  const action = useAction();
+  const effectiveChatAction = chats.length > 0 ? chatAction : "keep";
+  const warnings = prNoticeWarnings(info.data, running, worktreeAction, effectiveChatAction);
+  const nothing = worktreeAction === "keep" && effectiveChatAction === "keep";
+  const blocked = running > 0 && !nothing;
+  const merged = notice.pr.state === "MERGED";
+  const Icon = merged ? GitMerge : GitPullRequestClosed;
+
+  // ほかの窓などで片付いて知らせが消えたら閉じる（自分で片付けている途中は、終わってから閉じる）
+  const closeDialog = useEffectEvent(() => dialog.close());
+  useEffect(() => {
+    if (gone && action.busy === null) closeDialog();
+  }, [gone, action.busy]);
+
+  const submit = async () => {
+    // 片付けるとチャットの作業場所が本体に戻り、ここでの一覧から外れるので、先に覚えておく
+    const ids = effectiveChatAction === "keep" ? [] : rootChatIds(chats);
+    let pullError: string | null = null;
+    const ok = await action.run("submit", async () => {
+      if (worktreeAction !== "keep") {
+        // コミットしていない変更は、確認の中で知らせたうえで消すので force で消す。マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
+        const removed = await removeWorktreeAndRefresh(projectId, notice.worktree, {
+          force: (info.data?.changes ?? 0) > 0,
+          deleteBranch: worktreeAction === "both",
+          downVolumes: volumes !== null && downVolumes,
+          dropDbConnections: connections !== null && dropConnections,
+          pullMain: merged,
+        });
+        pullError = removed.pullError;
+      }
+      // チャットは全部を試してから、失敗をまとめて知らせる（途中の失敗で残りを止めない）
+      const failures = await tryEach(ids, (id) => (effectiveChatAction === "delete" ? chatsApi.deleteChat(id) : chatsApi.archiveChat(id)));
+      if (failures.length > 0)
+        throw new Error(`チャット ${failures.length} 件を${PR_CHAT_ACTION_LABELS[effectiveChatAction]}できませんでした: ${failures.join(" / ")}`);
+    });
+    if (!ok) return;
+    dialog.close();
+    if (pullError) void alert("本体を最新にできませんでした", pullError);
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="dialog floating app-dialog pr-notice-dialog"
+      aria-label={prNoticeTitle(notice)}
+      onClose={() => {
+        // 片付けずに閉じたら、同じ PR では確認を出し直さない（印から開き直せる。片付けて知らせが消えていれば何もしない）
+        if (!notice.dismissed && !gone) void worktreesApi.dismissWorktreePr(projectId, notice.pr.number).catch(() => undefined);
+        onClose();
+      }}
+    >
+      <form
+        className="app-dialog-body"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <h2 className="app-dialog-title pr-notice-title" data-pr-state={merged ? "merged" : "closed"}>
+          <Icon size={16} aria-hidden /> {prNoticeTitle(notice)}
+        </h2>
+        <p className="app-dialog-message">
+          {projectName(projectId)} のワークツリー「{notice.branch}」の PR です。
+          {merged ? "ワークツリーを片付けて、本体を最新にできます。" : "マージされていないので、作業を失わないよう、初めはブランチを残します。"}
+        </p>
+        <button type="button" className="link-button pr-notice-link" onClick={() => openInDefaultBrowser(notice.pr.url)} title={notice.pr.url}>
+          <span className="pr-notice-link-title">
+            #{notice.pr.number} {notice.pr.title}
+          </span>
+          <ExternalLink size={12} aria-hidden />
+        </button>
+        <section className="pr-notice-section">
+          <h3 className="pr-notice-label">ワークツリー</h3>
+          <Segmented<PrWorktreeAction>
+            className="pr-notice-choice"
+            label="ワークツリーをどうするか"
+            value={worktreeAction}
+            options={PR_WORKTREE_ACTIONS.map((a) => ({ value: a, label: PR_WORKTREE_ACTION_LABELS[a] }))}
+            onChange={setWorktreeAction}
+          />
+          <p className="muted small pr-notice-path" title={notice.worktree}>
+            {notice.worktree}
+          </p>
+          {volumes && worktreeAction !== "keep" && <CheckField label={volumes.label} help={volumes.help(downVolumes)} checked={downVolumes} onChange={setDownVolumes} />}
+          {connections && worktreeAction !== "keep" && (
+            <CheckField label={connections.label} help={connections.help(dropConnections)} checked={dropConnections} onChange={setDropConnections} />
+          )}
+        </section>
+        {chats.length > 0 && (
+          <section className="pr-notice-section">
+            <h3 className="pr-notice-label">このワークツリーのチャット {chats.length} 件（子チャットも）</h3>
+            <Segmented<PrChatAction>
+              className="pr-notice-choice"
+              label="このワークツリーのチャットをどうするか"
+              value={chatAction}
+              options={PR_CHAT_ACTIONS.map((a) => ({ value: a, label: PR_CHAT_ACTION_LABELS[a] }))}
+              onChange={setChatAction}
+            />
+            {worktreeAction !== "keep" && effectiveChatAction === "keep" && <p className="muted small">そのままにしたチャットは、続きを本体で進めます。</p>}
+          </section>
+        )}
+        {warnings.length > 0 && (
+          <ul className="pr-notice-warnings">
+            {warnings.map((w) => (
+              <li key={w} className="warn-text small">
+                {w}
+              </li>
+            ))}
+          </ul>
+        )}
+        <ErrorText message={action.error} />
+        <DialogActions className="app-dialog-actions">
+          <button type="button" className="btn" disabled={action.busy !== null} onClick={() => dialog.close()} title="何もせずに閉じます。印から、また開けます">
+            あとで
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={action.busy !== null || blocked || info.loading}>
+            {action.busy ? "片付けています…" : nothing ? "このままにする" : "この内容で片付ける"}
+          </button>
+        </DialogActions>
+      </form>
+    </dialog>
+  );
+}

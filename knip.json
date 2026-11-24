@@ -1,22 +1,22 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/main/index.ts",
-    "src/preload/index.ts",
-    "src/renderer/src/main.tsx",
-    "src/core/daemon.ts",
-    "src/core/host/main.ts",
+    "src/app/desktop/index.ts",
+    "src/app/desktop/preload.ts",
+    "src/app/renderer/main.tsx",
+    "src/app/core/hostMain.ts",
     "src/**/*.dbtest.ts",
-    "electron.vite.config.ts",
+    "src/features/terminal/core/xtermTypes.d.ts",
+    "src/features/*/ui/windowMessages.ts",
     "scripts/*.mjs",
-    "scripts/check-provider-switch.ts",
-    "scripts/check-codex-uploads.ts",
-    "scripts/check-restriction-defaults.ts",
     "scripts/*.cjs",
     "scripts/hooks/pre*.mjs",
-    "scripts/perf/*.mjs"
+    "scripts/perf/*.mjs",
+    "scripts/devtools/*.mjs",
+    "scripts/e2e/*.mjs",
+    "scripts/e2e/scenarios/*.mjs"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}", "scripts/check-provider-switch.ts", "scripts/check-codex-uploads.ts"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
   "ignoreExportsUsedInFile": true,
-  "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto", "codex"]
+  "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto"]
 }

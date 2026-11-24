@@ -11,7 +11,7 @@ const root = path.join(import.meta.dirname, "..");
 const target = "/Applications/Kickoff.app";
 const built = path.join(root, "dist", "mac-arm64", "Kickoff.app");
 const bundleId = "dev.zanbo.kickoff";
-// 本番の保存先とポート（src/core/system/appEnv.ts の production と同じ）
+// 本番の保存先とポート（src/foundation/core/system/appEnv.ts の production と同じ）
 const prodDir = path.join(os.homedir(), "Library", "Application Support", "Kickoff");
 const prodPort = 4317;
 
@@ -26,7 +26,7 @@ const isRunning = () => {
 
 /**
  * 本番の Kickoff で、実行中のチャットがあればやめる（終了するとチャットが止まるため）。
- * 順番待ち（agents.queued）はもうないので数えない（以前は running と足していて、queued がない版では NaN になり、実行中でも止まらなかった）
+ * 数えるのは実行中（/api/status の agents.running）だけ
  */
 async function assertIdle() {
   if (!isRunning()) return;
@@ -79,8 +79,8 @@ if (wasRunning) {
 }
 
 // 画面の HTTP キャッシュ（Chromium の Cache。チャット・設定・localStorage は別の場所なので消えない）を消し、
-// 入れ替えたあとの最初の起動で古い index.html・JS を使わせない（古い画面と新しいコアがかみ合わず、真っ暗になることがあった）。
-// いまのコアは画面のファイルを no-cache で返すが、それより前の版がキャッシュに残したものはここで消す
+// 入れ替えたあとの最初の起動で古い画面のファイル（index.html・JS）を使わせない（古い画面と新しいコアがかみ合わないと、真っ暗になる）。
+// コアは画面のファイルを no-cache で返すが、キャッシュに残ったものがあればここで消す
 rmSync(path.join(prodDir, "Cache"), { recursive: true, force: true });
 
 if (existsSync(target)) rmSync(target, { recursive: true, force: true });

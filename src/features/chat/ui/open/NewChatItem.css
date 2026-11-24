@@ -1,0 +1,33 @@
+/* ==== 新しいチャットの項目の右に添える置き場所の札（NewChatItem） ==== */
+@layer feature {
+  /*
+   * 「新しいチャット」の項目の右に添える、始めるグループ・作業場所の札（NewChatItem。パネルのタブの名前の後ろの札と同じ「薄い地に色の文字」の丸い札。
+   * 色が分からない（グループなし）ときは灰色）
+   */
+
+  .menu-place-badges {
+    display: inline-flex;
+    flex: none;
+    gap: 4px;
+    margin-left: auto;
+    padding-left: 12px;
+  }
+
+  .menu-place-badge {
+    --group-color: var(--muted);
+
+    max-width: 120px;
+    overflow: hidden;
+    --tag-color: var(--group-color);
+    --tag-tint: 18%;
+    font-size: var(--fs-10);
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .menu-place-badge[style] {
+    --group-color: hsl(var(--hue) var(--hue-fg-group));
+  }
+}

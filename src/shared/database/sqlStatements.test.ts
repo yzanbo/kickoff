@@ -93,6 +93,8 @@ test("isReadOnlyStatement: 書く文・分からない文", () => {
     assert.equal(isReadOnlyStatement(sql, "postgres"), false, sql);
   for (const sql of ["pragma foreign_keys = off", "pragma journal_mode(wal)", "pragma optimize", "attach database 'x' as y"]) assert.equal(isReadOnlyStatement(sql, "sqlite"), false, sql);
   assert.equal(isReadOnlyStatement("pragma table_info(t)", "postgres"), false);
+  // 知らない頭の語は書く文とみなす（判定できない文を読み取りとして通さない）
+  for (const engine of ["postgres", "mysql", "sqlite"] as const) assert.equal(isReadOnlyStatement("FOO BAR", engine), false, engine);
 });
 
 test("dangerReason: DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文は理由、読む文・ふつうの書く文は null", () => {

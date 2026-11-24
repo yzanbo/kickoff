@@ -1,0 +1,108 @@
+/*
+ * 入力欄の枠の中のいちばん上（送信待ちとの区切り線の下・文を書く欄の上）の定型文の帯（SnippetBar）。
+ * 帯は 1 行で、ピルが入りきらなければ横にスクロールする（スクロールバーは出さず、端の先に続きがあればその側を薄くぼかす）
+ */
+@layer feature {
+  .snippet-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    /* 左右は文を書く欄の文字の位置にそろえる（右はボタンの余白のぶん詰める） */
+    padding: 8px 8px 0 12px;
+  }
+
+  /* 帯の下の文を書く欄: 帯との間を詰める（帯がないときは入力欄の既定の余白のまま） */
+
+  .snippet-bar:is(.composer > *) ~ textarea {
+    padding-top: 6px;
+  }
+
+  .snippet-bar:is(.composer.compact > *) {
+    padding: 5px 6px 0 10px;
+  }
+
+  .snippet-bar:is(.composer.compact > *) ~ textarea {
+    padding-top: 4px;
+  }
+
+  .snippet-bar-scroll {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .snippet-bar-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 端の先に続きがあるとき（useHorizontalScroller）、その側をぼかして、横に流せることを示す */
+
+  .snippet-bar-scroll.fade-start {
+    mask-image: linear-gradient(to right, transparent, #000 24px);
+  }
+
+  .snippet-bar-scroll.fade-end {
+    mask-image: linear-gradient(to left, transparent, #000 24px);
+  }
+
+  .snippet-bar-scroll.fade-start.fade-end {
+    mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  }
+
+  /* 定型文のピル（入力欄の上の情報のピルより低く・薄く、押すと入れる道具に見せる） */
+
+  .snippet-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    max-width: 220px;
+    height: 24px;
+    padding: 0 10px;
+    --pill-fg: var(--text);
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .snippet-chip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .snippet-chip:hover {
+    --pill-border: var(--border-strong);
+    --pill-bg: var(--bg-hover);
+  }
+
+  .snippet-chip:active {
+    --pill-bg: var(--bg-active);
+  }
+
+  /* まだ定型文がないときの「定型文を追加」（点線で、ほかのピルと分ける） */
+
+  .snippet-chip.snippet-chip-add {
+    border-style: dashed;
+    --pill-fg: var(--muted);
+  }
+
+  .snippet-bar-tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .snippet-bar-tool {
+    width: 24px;
+    height: 24px;
+  }
+}

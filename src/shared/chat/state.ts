@@ -1,5 +1,6 @@
 // カンバンとステータス表示の決め方（コア・画面の両方で使う。Node 依存を持ち込まないこと）
-import type { AgentState, BoardColumn, Chat, ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { AgentState, BoardColumn, Chat } from "@shared/chat/types";
 
 /**
  * チャットのエージェントの状態。優先順位:
@@ -16,7 +17,9 @@ export function agentStateOf(chat: Chat, hasPendingApproval: boolean): AgentStat
 
 /**
  * 未読にする「新しい結果」の記録か: AI の文章の返答（サブエージェントのものは除く）・作業の終わり・失敗。
- * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）
+ * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）。
+ * コア（turn.ts が未読を付ける）と画面（useMarkSeen が既読にする）が同じこの関数を使う。既読にしてよいかを見る db/events.ts の
+ * latestUnreadId は同じ条件を SQL で書いているので、変えたらそちらも直す
  */
 export function isUnreadEvent(event: ChatEvent): boolean {
   if (event.type === "text") return !event.data.parent;
@@ -28,6 +31,9 @@ export function busyWithUnread(chat: Chat, state: AgentState): boolean {
   return chat.unread && state === "running";
 }
 
+/** いくつかの状態をまとめるときの強い順（回答待ちは手を止めているので最優先、次に作業中のリング。ボードの列の並びとは別） */
+export const STATE_STRENGTH = ["needs_input", "running", "failed", "unread", "read"] as const satisfies readonly AgentState[];
+
 /** カンバンの列（AI の状態だけで決まる。失敗したものも、見るまでは未読） */
 export function boardColumnOf(state: AgentState): BoardColumn {
   if (state === "running") return "running";
@@ -35,3 +41,12 @@ export function boardColumnOf(state: AgentState): BoardColumn {
   if (state === "unread" || state === "failed") return "unread";
   return "read";
 }
+
+/** 自分が見る番か（要対応。カンバンの回答待ち・未読の列と同じ。失敗したものも見るまでは未読なので入る）。サイドバーの要対応・⌘⇧A のボタンの数・Dock の数で共通 */
+export const needsAttention = (state: AgentState): boolean => {
+  const column = boardColumnOf(state);
+  return column === "needs_input" || column === "unread";
+};
+
+/** 行の名前を太字にするか（回答待ち・未読と、作業中のまま読んでいない結果があるとき。失敗した行は太字にしない = 不具合の候補 12-5 は利用者に聞くまでいまのまま） */
+export const showsBold = (state: AgentState, busyUnread: boolean): boolean => state === "needs_input" || state === "unread" || busyUnread;

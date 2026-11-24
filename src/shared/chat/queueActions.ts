@@ -1,5 +1,5 @@
 // 送信待ちの、指示の代わりに挟む行（会話の圧縮・コンテキストの消去）の見分け
-import type { QueueAction, QueuedMessage } from "@shared/types";
+import type { QueueAction, QueuedMessage } from "@shared/chat/types";
 
 /** 指示の代わりに挟む行ならその種類（ふつうの指示なら null） */
 export function queueActionOf(m: QueuedMessage): QueueAction | null {
@@ -20,6 +20,3 @@ export function isQueueAction(m: QueuedMessage): boolean {
 export function isClearCommand(text: string, attachments: readonly unknown[] = []): boolean {
   return attachments.length === 0 && /^\/clear\s*$/.test(text.trim());
 }
-
-/** / の候補に出す /clear の説明（Kickoff での動き。Claude Code の説明を置き換える） */
-export const CLEAR_COMMAND_DESCRIPTION = "コンテキストを消去して、次の指示から新しい会話で始める（記録は残り、区切りの線が入る）";

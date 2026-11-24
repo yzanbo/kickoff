@@ -1,0 +1,2 @@
+/* KaTeX の CSS を vendor の層に入れる（Markdown・ノートの数式の上書きが詳細度によらず勝つように。数式が出てきたときに読む） */
+@import "katex/dist/katex.min.css" layer(vendor);

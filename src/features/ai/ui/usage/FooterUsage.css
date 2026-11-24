@@ -1,0 +1,57 @@
+/* ==== 下の帯の使用状況（FooterUsage） ==== */
+@layer feature {
+  /* 下の帯の右の使用状況（AI ごとのボタンを区切り線で並べ、押すとその AI の詳細）。2 つ並べるためバーを短くし、リセットまでの時間は説明に出す */
+
+  .footer-usages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    min-width: 0;
+  }
+
+  /* 1 つの AI のボタン（札 ＋ 枠のメーター） */
+
+  .footer-usage {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding: 0 6px;
+    border: none;
+    font: inherit;
+    color: var(--text);
+    white-space: nowrap;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .footer-usage:hover,
+  .footer-usage.active {
+    background: var(--bg-hover);
+  }
+
+  /* AI のまとまりの間の区切り線 */
+
+  .footer-usage-sep {
+    flex: none;
+    width: 1px;
+    height: 12px;
+    background: var(--border-strong);
+  }
+
+  /* 帯の中のメーターは短く細く（AI を 2 つ並べても入るように） */
+
+  .footer-usage .meter.meter-inline {
+    gap: 5px;
+  }
+
+  .footer-usage .meter.meter-inline .meter-track {
+    width: 30px;
+    height: 5px;
+  }
+
+  .footer-usage .meter.meter-inline .meter-value {
+    min-width: 2.2em;
+  }
+}

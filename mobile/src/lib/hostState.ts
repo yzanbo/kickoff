@@ -1,7 +1,11 @@
 // 1 つの本体の一覧の様子（プロジェクト・チャット・回答待ち）。つながったときに読み、本体の知らせでその場で直す。純粋な関数でテストする
-import type { Approval, BusEvent, Chat, Project } from "@shared/types";
-import { agentStateOf } from "@shared/chat/state";
-import type { AgentState } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
+import type { BusEvent } from "@shared/foundation/contract";
+import { agentStateOf, boardColumnOf } from "@shared/chat/state";
+import { byUrgency } from "@shared/chatList/urgency";
+import type { AgentState } from "@shared/chat/types";
 
 export interface HostState {
   projects: Project[];
@@ -39,13 +43,11 @@ export function applyHostEvent(state: HostState, e: BusEvent): HostState {
   }
 }
 
-/** 一覧の 1 行（アーカイブ・子チャット・メモのチャットは出さない。回答待ち → 作業中 → 未読 → 最後に動いた順） */
+/** 一覧の 1 行（アーカイブ・子チャット・ノートのチャットは出さない。ボードと同じ急ぐ順（作業中 → 回答待ち → 未読 → 既読）→ 最後に動いた順） */
 export interface ChatRow {
   chat: Chat;
   state: AgentState;
 }
-
-const STATE_ORDER: Record<AgentState, number> = { needs_input: 0, failed: 1, running: 2, unread: 3, read: 4 };
 
 /** プロジェクトごとのチャットの一覧（チャットのないプロジェクトも出す。アーカイブしたプロジェクトは出さない） */
 export function chatSections(state: HostState): { project: Project; rows: ChatRow[] }[] {
@@ -55,8 +57,8 @@ export function chatSections(state: HostState): { project: Project; rows: ChatRo
     .map((project) => ({
       project,
       rows: state.chats
-        .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.memo_path === null)
+        .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.note_path === null)
         .map((chat) => ({ chat, state: agentStateOf(chat, pending.has(chat.id)) }))
-        .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || b.chat.active_at.localeCompare(a.chat.active_at)),
+        .sort((a, b) => byUrgency(boardColumnOf(a.state), boardColumnOf(b.state)) || b.chat.active_at.localeCompare(a.chat.active_at)),
     }));
 }

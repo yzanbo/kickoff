@@ -1,0 +1,37 @@
+/* ==== プロジェクトの切り替え（ProjectSwitcher） ==== */
+@layer feature {
+  /*
+   * プロジェクトの画面の名前（押すとプロジェクトを切り替える）。印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地
+   * （地と枠の色は project-mark.css で、サイドバーの見出し・バッジと共通）
+   */
+
+  .project-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    /* 高さは名前の行のアイコンのボタン（24px）にそろえる */
+    height: 24px;
+    padding: 0 8px 0 2px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    color: inherit;
+  }
+
+  button.project-switch {
+    cursor: pointer;
+  }
+
+  .project-switch > svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .project-switch-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

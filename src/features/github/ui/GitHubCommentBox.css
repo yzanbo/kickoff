@@ -1,0 +1,30 @@
+/* ==== コメントの欄（GitHubCommentBox） ==== */
+@layer feature {
+  /* GitHub タブの書き込み: Markdown の書く欄・コメント欄・ラベルの札・新しい issue・マージの確認・レビューの帯と行のコメント・スレッドの返信 */
+
+  /* 会話の下のコメント欄 */
+
+  .github-comment-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .github-comment-actions,
+  .github-thread-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  /* ボタンと ▾ を 1 つに見せる組（閉じ方を選ぶ。.split-button）の ▾ */
+
+  .github-split-toggle {
+    padding-inline: 4px;
+    border-left: none;
+  }
+}

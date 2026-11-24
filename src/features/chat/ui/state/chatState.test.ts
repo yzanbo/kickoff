@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import type { Chat } from "@shared/chat/types";
+import { makeChat } from "@shared/chat/testing";
+import { approvalIndex, chatStateOf, stateCounts, summaryState } from "./chatState";
+
+const chat = (id: number, status: Chat["status"], unread = false) => makeChat(id, { status, unread });
+
+test("approvalIndex: 回答待ちの依頼があるチャットの ID の集まり（同じチャットの依頼が複数あっても 1 つ）", () => {
+  const index = approvalIndex([{ chat_id: 1 }, { chat_id: 3 }, { chat_id: 1 }]);
+  assert.deepEqual([...index].sort(), [1, 3]);
+  assert.equal(approvalIndex([]).size, 0);
+});
+
+test("chatStateOf: 回答待ちの依頼があれば、作業中でも回答待ち", () => {
+  const index = approvalIndex([{ chat_id: 1 }]);
+  assert.equal(chatStateOf(chat(1, "running"), index), "needs_input");
+  assert.equal(chatStateOf(chat(2, "running"), index), "running");
+});
+
+test("chatStateOf: 依頼がなければ、チャットの状態どおり（失敗・未読・既読）", () => {
+  const none = approvalIndex([]);
+  // 失敗も、見るまでは目立たせ（未読）、見たら既読
+  assert.equal(chatStateOf(chat(1, "failed", true), none), "failed");
+  assert.equal(chatStateOf(chat(1, "failed"), none), "read");
+  assert.equal(chatStateOf(chat(1, "completed", true), none), "unread");
+  assert.equal(chatStateOf(chat(1, "completed"), none), "read");
+});
+
+test("stateCounts: 作業中・回答待ち・未読の数（カンバンの列と同じ決め方。既読とアーカイブ済みは数えない）", () => {
+  const list = [
+    chat(1, "running"),
+    chat(2, "running"),
+    // 回答待ちの依頼がある（approvals から引く）
+    chat(3, "running"),
+    chat(4, "completed", true),
+    chat(5, "failed", true),
+    chat(6, "completed"),
+    // 見た失敗は既読なので数えない
+    chat(9, "failed"),
+    // 回答待ちの依頼がある（approvals から引く）
+    chat(7, "running"),
+  ];
+  const archived = { ...chat(8, "running"), archived_at: "2026-01-01T00:00:00Z" };
+  assert.deepEqual(stateCounts([...list, archived], approvalIndex([{ chat_id: 3 }, { chat_id: 7 }, { chat_id: 8 }])), { running: 2, needs_input: 2, unread: 2 });
+  assert.deepEqual(stateCounts([], approvalIndex([])), { running: 0, needs_input: 0, unread: 0 });
+});
+
+test("stateCounts: 依頼と状態がずれた一瞬（依頼が残ったまま止まった・依頼が消えて状態が戻る前）も、0 未満や二重には数えない", () => {
+  // 「作業中 = 動いている数 − 回答待ちの数」の引き算で数えると、ここが -1 になる
+  assert.deepEqual(stateCounts([chat(1, "completed")], approvalIndex([{ chat_id: 1 }])), { running: 0, needs_input: 1, unread: 0 });
+});
+
+test("summaryState: 回答待ち > 作業中 > 失敗 > 未読 > 既読 の順で強いものを 1 つ出す（空なら既読）", () => {
+  assert.deepEqual(summaryState([]), { state: "read", unread: false });
+  assert.deepEqual(summaryState(["read", "read"]), { state: "read", unread: false });
+  assert.deepEqual(summaryState(["read", "unread"]), { state: "unread", unread: false });
+  assert.deepEqual(summaryState(["unread", "failed"]), { state: "failed", unread: false });
+  assert.deepEqual(summaryState(["failed", "running"]), { state: "running", unread: false });
+  assert.deepEqual(summaryState(["running", "needs_input", "unread"]), { state: "needs_input", unread: false });
+});
+
+test("summaryState: 作業中で、ほかに未読があれば、リングに緑の点を重ねる（unread）", () => {
+  assert.deepEqual(summaryState(["running", "unread", "read"]), { state: "running", unread: true });
+  assert.deepEqual(summaryState(["running", "read"]), { state: "running", unread: false });
+});

@@ -1,0 +1,264 @@
+// API のテスト: 呼び主（この Mac / 端末）と、端末に開く口・届ける知らせ（既定で閉じる）
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { test } from "vitest";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
+import type { Device, PairingClaimResult, PairingPollResult} from "@shared/devices/types";
+import { openSse, sseType } from "@/foundation/core/testing/sse";
+import { tempDir } from "@/foundation/core/testing/tempDir";
+import { AUTH, setup } from "@/app/core/testing/testServer";
+
+const DEVICE_TOKEN = "d".repeat(43);
+const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}` };
+
+/** スマホ連携をオンにした準備（オフの既定では、端末からの頼みもペアリングも断る） */
+function mobileSetup() {
+  const ctx = setup({ features: ["devices", "settings", "chat", "userView", "notes"] });
+  ctx.store.settings.update({ mobile_enabled: true });
+  return ctx;
+}
+
+function withDevice() {
+  const ctx = mobileSetup();
+  const device = ctx.store.devices.create("Pixel 8", DEVICE_TOKEN);
+  return { ...ctx, device };
+}
+
+test("端末: 知らないトークン・取り消した端末は 401。Tailscale などの見出しでは呼び主にならない。使ったら最後に使った時刻を書く", async () => {
+  const { app, store, device } = withDevice();
+  assert.equal(store.devices.get(device.id)!.last_used_at, null);
+  assert.equal((await app.request("/api/status", { headers: DEVICE })).status, 200);
+  assert.ok(store.devices.get(device.id)!.last_used_at);
+  assert.equal((await app.request("/api/status", { headers: { authorization: "Bearer nope" } })).status, 401);
+  const forwarded = { "tailscale-user-login": "someone@example.com", "x-forwarded-for": "127.0.0.1" };
+  assert.equal((await app.request("/api/status", { headers: forwarded })).status, 401);
+  // Cookie で来ても同じ（iPhone の Web は Cookie で持つ）
+  assert.equal((await app.request("/api/status", { headers: { cookie: `kickoff_token=${DEVICE_TOKEN}` } })).status, 200);
+  store.devices.remove(device.id);
+  assert.equal((await app.request("/api/status", { headers: DEVICE })).status, 401);
+});
+
+test("端末: 見るだけの端末は、見る口・見ているものの知らせ・既読だけ使え、送る・答える・止めるは 403 と印で断る", async () => {
+  const { app, store, project, device, call, api } = withDevice();
+  store.devices.setAccess(device.id, "read");
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const req = (method: string, url: string, body?: unknown) =>
+    app.request(url, { method, headers: { ...DEVICE, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  assert.equal((await req("GET", `/api/chats/${chat.id}`)).status, 200);
+  assert.equal((await req("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
+  assert.equal((await req("POST", `/api/chats/${chat.id}/seen`)).status, 200);
+  for (const [method, url] of [
+    ["POST", `/api/chats/${chat.id}/messages`],
+    ["POST", `/api/chats/${chat.id}/cancel`],
+    ["POST", "/api/approvals/x"],
+    ["POST", `/api/projects/${project.id}/chats`],
+    ["PUT", `/api/projects/${project.id}/note`],
+  ] as const) {
+    const res = await req(method, url, {});
+    assert.equal(res.status, 403, url);
+    assert.equal(((await res.json()) as { code: string }).code, DEVICE_READ_ONLY, url);
+  }
+  // 閉じた口は、見るだけでも端末に開いていない印のまま
+  assert.equal(((await (await req("GET", "/api/settings")).json()) as { code: string }).code, DEVICE_FORBIDDEN);
+  // 自分を読める（できることが分かる）。この Mac の画面からは 400
+  const self = (await (await req("GET", "/api/devices/self")).json()) as Device;
+  assert.equal(self.access, "read");
+  assert.equal((await api("GET /api/devices/self")).status, 400);
+  // この Mac の画面で「使える」に戻すと、次の頼みから送れる（送る口そのものの答えは 403 以外）
+  const updated = await api("PATCH /api/devices/:deviceId", { params: { deviceId: device.id }, body: { access: "full" } });
+  assert.equal((updated.body as Device).access, "full");
+  assert.notEqual((await req("POST", `/api/chats/${chat.id}/messages`, {})).status, 403);
+  assert.equal((await api("PATCH /api/devices/:deviceId", { params: { deviceId: 999 }, body: { access: "read" } })).status, 404);
+  assert.equal((await call("PATCH", `/api/devices/${device.id}`, { access: "admin" })).status, 400);
+});
+
+test("SSE: 端末には開いた口の知らせだけを届け、この Mac の画面への頼み・閉じた口の知らせは届けない", async () => {
+  const { app, bus, project } = withDevice();
+  // 3 つの知らせを流し、最後の notes が届くまでに届いた知らせの種類（ports_changed・docker_changed は notes より先に流す）
+  const read = async (headers: Record<string, string>) => {
+    const sse = await openSse(app, headers);
+    bus.publish({ type: "ports_changed", count: 1, fresh: 0 });
+    bus.publish({ type: "docker_changed", project_id: project.id });
+    bus.publish({ type: "notes", project_id: project.id, path: null });
+    return (await sse.read((m) => sseType(m) === "notes")).map(sseType);
+  };
+  assert.deepEqual(await read(DEVICE), ["notes"]);
+  // この Mac の画面にはすべて届く
+  assert.deepEqual(await read(AUTH), ["ports_changed", "docker_changed", "notes"]);
+});
+
+/** 番号で頼み、Mac で答え、結果を聞くまで（認証の外の口） */
+async function claim(app: ReturnType<typeof setup>["app"], code: string, name = "Pixel 8") {
+  const res = await app.request("/pairing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, name }) });
+  return { status: res.status, body: (await res.json()) as PairingClaimResult & { error?: string } };
+}
+async function poll(app: ReturnType<typeof setup>["app"], id: string, secret: string) {
+  const res = await app.request(`/pairing/requests/${id}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ secret }) });
+  return (await res.json()) as PairingPollResult;
+}
+
+test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つなぐ」を押したら端末のトークンを 1 回だけ渡す。そのトークンで開いた口を使える", async () => {
+  const { app, call, api, store, bus } = mobileSetup();
+  const events: string[] = [];
+  bus.subscribe((e) => events.push(e.type));
+  await call("PUT", "/api/settings", { mobile_url: "https://mac.example.ts.net" });
+  const started = (await api("POST /api/pairing")).body;
+  assert.match(started.code!, /^\d{6}$/);
+  assert.equal(started.url, "https://mac.example.ts.net");
+  assert.equal(started.host_id, store.databaseId);
+
+  const claimed = await claim(app, started.code!);
+  assert.equal(claimed.status, 201);
+  assert.equal(claimed.body.host_id, store.databaseId);
+  assert.deepEqual(await poll(app, claimed.body.request_id, claimed.body.secret), { status: "pending" });
+  // 鍵が違えば何も分からない
+  assert.deepEqual(await poll(app, claimed.body.request_id, "wrong"), { status: "expired" });
+  const waiting = (await api("GET /api/pairing")).body;
+  assert.equal(waiting.request?.name, "Pixel 8");
+
+  const approved = (await api("POST /api/pairing/requests/:requestId/approve", { params: { requestId: claimed.body.request_id }, body: { access: "read" } })).body;
+  // 番号は使い終える
+  assert.equal(approved.code, null);
+  const result = await poll(app, claimed.body.request_id, claimed.body.secret);
+  assert.equal(result.status, "approved");
+  if (result.status !== "approved") return;
+  // 2 回目は渡さない
+  assert.deepEqual(await poll(app, claimed.body.request_id, claimed.body.secret), { status: "expired" });
+  assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 200);
+  assert.equal((await app.request("/api/settings", { headers: { authorization: `Bearer ${result.token}` } })).status, 403);
+  // 一覧に出し、トークンは出さない
+  const devices = (await api("GET /api/devices")).body;
+  assert.deepEqual(devices.map((d) => [d.name, d.access]), [["Pixel 8", "read"]]);
+  assert.ok(!JSON.stringify(devices).includes(result.token));
+  assert.ok(events.includes("pairing") && events.includes("devices"));
+
+  // 取り消したら、そのトークンは使えない
+  assert.equal((await api("DELETE /api/devices/:deviceId", { params: { deviceId: result.device_id } })).status, 204);
+  assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 401);
+  assert.equal((await api("DELETE /api/devices/:deviceId", { params: { deviceId: result.device_id } })).status, 404);
+});
+
+test("ペアリング: 番号が違う・期限切れは断り、5 回続けて間違えたら番号を捨てる。断ったら端末には denied。ペアリングの口は端末には開かない", async () => {
+  const { app, api, pairingClock } = mobileSetup();
+  assert.equal((await claim(app, "123456")).status, 404);
+  const { code } = (await api("POST /api/pairing")).body;
+  const wrong = code === "000000" ? "111111" : "000000";
+  for (let i = 0; i < 4; i++) assert.equal((await claim(app, wrong)).status, 400);
+  assert.equal((await claim(app, wrong)).status, 400);
+  // 5 回目で捨てたので、正しい番号でも頼めない
+  assert.equal((await claim(app, code!)).status, 404);
+
+  const second = (await api("POST /api/pairing")).body;
+  const req = await claim(app, second.code!.replace(/(\d{3})/, "$1-"));
+  assert.equal(req.status, 201, "区切りの - は読み飛ばす");
+  // 確かめを待っている間は、ほかの端末は頼めない
+  assert.equal((await claim(app, second.code!, "別の端末")).status, 409);
+  await api("POST /api/pairing/requests/:requestId/deny", { params: { requestId: req.body.request_id } });
+  assert.deepEqual(await poll(app, req.body.request_id, req.body.secret), { status: "denied" });
+
+  // 期限（5 分）を過ぎたら番号は消える
+  pairingClock.now += 5 * 60_000 + 1;
+  assert.equal(((await api("GET /api/pairing")).body).code, null);
+  assert.equal((await claim(app, second.code!)).status, 404);
+});
+
+test("ペアリング: つないだのに結果を聞かれないまま期限を過ぎたら、作った端末を消す", async () => {
+  const { app, api, store, pairingClock } = mobileSetup();
+  const { code } = (await api("POST /api/pairing")).body;
+  const req = await claim(app, code!);
+  await api("POST /api/pairing/requests/:requestId/approve", { params: { requestId: req.body.request_id } });
+  assert.equal(store.devices.list().length, 1);
+  pairingClock.now += 5 * 60_000 + 1;
+  await api("GET /api/pairing");
+  assert.equal(store.devices.list().length, 0);
+});
+
+test("ペアリングと端末の一覧の口は、端末には開かない", async () => {
+  const { app } = withDevice();
+  for (const [method, url] of [["GET", "/api/pairing"], ["POST", "/api/pairing"], ["GET", "/api/devices"], ["DELETE", "/api/devices/1"]] as const) {
+    assert.equal((await app.request(url, { method, headers: DEVICE })).status, 403, `${method} ${url}`);
+  }
+});
+
+test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先は一覧に出さない）。この Mac の画面からは 400、形が違えば 400", async () => {
+  const { app, api, store, device } = withDevice();
+  const put = (body: unknown) => app.request("/api/devices/self/push", { method: "PUT", headers: { ...DEVICE, "content-type": "application/json" }, body: JSON.stringify(body) });
+  assert.equal((await put({ push: { kind: "expo", token: "ExponentPushToken[z]" } })).status, 204);
+  assert.deepEqual(store.devices.push(device.id), { kind: "expo", token: "ExponentPushToken[z]" });
+  const listed = (await api("GET /api/devices")).body;
+  assert.equal(listed[0].has_push, true);
+  assert.ok(!JSON.stringify(listed).includes("ExponentPushToken"));
+  assert.equal((await put({ push: { kind: "web", endpoint: "http://insecure.example", keys: { p256dh: "a", auth: "b" } } })).status, 400);
+  assert.equal((await put({ push: null })).status, 204);
+  assert.equal(store.devices.push(device.id), null);
+  assert.equal((await api("PUT /api/devices/self/push", { body: { push: null } })).status, 400);
+});
+
+test("SSE: 端末にも、続けて流した途中の返答は 1 通（つないだ文）で、そのあとの知らせより前に届く", async () => {
+  const { app, bus, project } = withDevice();
+  const sse = await openSse(app, DEVICE);
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "途中" });
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "の文" });
+  bus.publish({ type: "notes", project_id: project.id, path: null });
+  const events = (await sse.read((m) => sseType(m) === "notes")).map((m) => m.data as { type: string; text?: string });
+  assert.deepEqual(
+    events.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
+    ["delta:途中の文", "notes"],
+  );
+});
+
+test("スマホ連携がオフなら、つないだ端末からの頼みとペアリングを断る（登録は残し、オンに戻せばそのまま使える）。オフにしたら端末の SSE を切る", async () => {
+  const { app, call, api, store, device } = withDevice();
+  const res = await app.request("/api/projects", { headers: DEVICE });
+  assert.equal(res.status, 200);
+  const sse = await openSse(app, DEVICE);
+  await call("PUT", "/api/settings", { mobile_enabled: false });
+  assert.equal(await sse.next(), "end");
+  const off = await app.request("/api/projects", { headers: DEVICE });
+  assert.equal(off.status, 403);
+  assert.equal(((await off.json()) as { code: string }).code, MOBILE_DISABLED);
+  const start = await api("POST /api/pairing");
+  assert.equal(start.status, 409);
+  assert.equal((start.body as { code: string }).code, MOBILE_DISABLED);
+  assert.equal(store.devices.get(device.id)?.name, "Pixel 8");
+  await call("PUT", "/api/settings", { mobile_enabled: true });
+  assert.equal((await app.request("/api/projects", { headers: DEVICE })).status, 200);
+});
+
+test("端末を取り消したら、その端末のつながったままの SSE をそこで切る（ほかの端末・この Mac の画面は切らない）", async () => {
+  const { app, bus, api, device, project, store } = withDevice();
+  const other = store.devices.create("タブレット", "o".repeat(43));
+  const mine = await openSse(app, DEVICE);
+  const theirs = await openSse(app, { authorization: `Bearer ${"o".repeat(43)}` });
+  const host = await openSse(app, AUTH);
+  await api("DELETE /api/devices/:deviceId", { params: { deviceId: device.id } });
+  assert.equal(await mine.next(), "end");
+  // この Mac の画面には、端末の一覧が変わった知らせが届く（切れない）。ほかの端末は切れておらず、あとの知らせも届く
+  assert.equal(await host.next(), "data");
+  bus.publish({ type: "notes", project_id: project.id, path: null });
+  assert.equal((await theirs.read((m) => sseType(m) === "notes")).map(sseType).at(-1), "notes");
+  assert.ok(store.devices.get(other.id));
+});
+
+test("Tailscale の様子: 入っていなければ installed: false と始めるコマンド。入っていれば名前と Serve の URL。端末には開かない", async () => {
+  const { api, app, tailscaleFake } = withDevice();
+  const missing = (await api("GET /api/tailscale")).body;
+  assert.equal(missing.installed, false);
+  assert.match(missing.command, /^tailscale serve --bg --https=\d+ http:\/\/127\.0\.0\.1:\d+$/);
+  // 答えを書いた小さなスクリプトを tailscale として置く（status と serve status）
+  const cli = path.join(tempDir(), "tailscale");
+  const serveJson = JSON.stringify({ Web: { "mac.tailnet.ts.net:443": { Handlers: { "/": { Proxy: "http://127.0.0.1:1" } } } } });
+  const statusJson = JSON.stringify({ BackendState: "Running", Self: { DNSName: "mac.tailnet.ts.net." } });
+  fs.writeFileSync(cli, `#!/bin/sh\nif [ "$1" = "serve" ]; then echo '${serveJson}'; else echo '${statusJson}'; fi\n`, { mode: 0o755 });
+  tailscaleFake.cli = cli;
+  const running = (await api("GET /api/tailscale")).body;
+  assert.equal(running.installed, true);
+  assert.equal(running.running, true);
+  assert.equal(running.dns_name, "mac.tailnet.ts.net");
+  // ほかのポートへ渡している Serve は、この本体の URL にしない
+  assert.equal(running.serve_url, null);
+  assert.deepEqual(running.other_serves, ["https://mac.tailnet.ts.net → http://127.0.0.1:1"]);
+  assert.equal(running.error, null);
+  assert.equal((await app.request("/api/tailscale", { headers: DEVICE })).status, 403);
+});

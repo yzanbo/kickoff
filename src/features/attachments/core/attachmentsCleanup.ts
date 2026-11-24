@@ -1,0 +1,22 @@
+// 入力欄に付けたまま送らなかった添付の片付け。
+// 添付は入力欄に付けた時点で uploads/ に保存し、入力欄の下書きは画面の中（localStorage）にあるので、コアはまだ下書きで使っているかを確かめられない。
+// どこからも使われていない添付（会話の記録（ゴミ箱のチャットも）・送信待ちのどれも ID を指していないもの）は、付けてから 30 日たったら消す。
+// 利用者が「消した」ものではないので、ゴミ箱には入れない
+import type { ChatStoreDeps } from "@/features/chat/core/index";
+import type { UploadStore } from "./uploads";
+
+/** 付けてから消すまで（金曜に書きかけて週明けに続けても消えないよう、ゴミ箱の 3 日より長く） */
+export const UNUSED_UPLOAD_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** 保存してから 30 日たち、どこからも使われていない添付を消す。消した数を返す */
+export async function sweepUnusedUploads(deps: { store: Pick<ChatStoreDeps, "events">; uploads: Pick<UploadStore, "savedBefore" | "remove"> }, now = Date.now()): Promise<number> {
+  let removed = 0;
+  const old = await deps.uploads.savedBefore(now - UNUSED_UPLOAD_KEEP_MS);
+  const used = deps.store.events.uploadsInUse(old);
+  for (const id of old) {
+    if (used.has(id)) continue;
+    await deps.uploads.remove(id);
+    removed++;
+  }
+  return removed;
+}

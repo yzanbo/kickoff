@@ -1,5 +1,5 @@
 // AI へ送る定型文（送るとチャットに自分の発言として残る）。コアの再開の段取りと、画面の操作（再試行・サブエージェントへの指示）で共有する。Node 依存なし
-import type { AppSettings } from "@shared/types";
+import type { AppSettings } from "@shared/foundation/contract/settings";
 
 // ---- 止まったあとの再開（コアの chat/recovery/rules.ts が送る） ----
 
@@ -65,8 +65,6 @@ export function relayMessage(agentId: string, name: string, text: string): strin
 }
 
 const SUBAGENT_ASK_HEAD = "【サブエージェントについて聞く】";
-/** 見分けるときの頭（言葉を整理する前の「【サブエージェントに直接聞く】」で始めた子チャットも見分ける） */
-const SUBAGENT_ASK_HEADS = [SUBAGENT_ASK_HEAD, "【サブエージェントに直接聞く】"];
 
 /**
  * サブエージェントについて子チャットで聞くときの最初の指示（1 行目に宛先、本文は区切りの後ろにそのまま）。
@@ -83,11 +81,14 @@ export function subagentAskMessage(agentId: string, name: string, fileName: stri
 
 /** 子チャットの最初の発言が、サブエージェントについて聞いたものなら、宛先の名前と本文（違えば undefined） */
 export function subagentAskOf(message: string): { name: string; text: string } | undefined {
-  if (!SUBAGENT_ASK_HEADS.some((head) => message.startsWith(head))) return undefined;
+  if (!message.startsWith(SUBAGENT_ASK_HEAD)) return undefined;
   const at = message.indexOf("\n---\n");
   const name = /「(.*)」（ID: /.exec(message.split("\n")[0])?.[1];
   return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };
 }
+
+/** 文がサブエージェントへの追加の指示か（relayMessage で作った文。宛先は問わない） */
+export const isRelayMessage = (message: string): boolean => message.startsWith(RELAY_HEAD);
 
 /** 文がサブエージェントへの追加の指示なら、宛先の名前と本文（違えば undefined。送信待ちの行で、AI への前置きを隠して見せる） */
 export function relayOf(message: string): { name: string; text: string } | undefined {
@@ -141,12 +142,9 @@ export function retryRequest(entry: { description: string; subagentType?: string
 export const HAND_OVER_NOW = "届いていなかったサブエージェントの報告を渡します。読んで、必要なら作業を続けてください。";
 
 // ---- 圧縮前指示・圧縮後指示（会話を圧縮する前・後に AI に送る指示。どちらも設定の共通の指示と、プロジェクトの指示） ----
-// 圧縮前指示: 要約するといまの会話の細かい内容が失われるので、その前にメモを残すなどを頼む。
-// 圧縮後指示: 要約したあとの会話で、残したメモを読み直すなどを頼む（圧縮が終わったら、預かっていた指示より先に送る）。
+// 圧縮前指示: 要約するといまの会話の細かい内容が失われるので、その前にノートを残すなどを頼む。
+// 圧縮後指示: 要約したあとの会話で、残したノートを読み直すなどを頼む（圧縮が終わったら、預かっていた指示より先に送る）。
 // 送ったものはチャットに「圧縮前指示」「圧縮後指示」の札付きの自分の発言として残る
-
-/** 圧縮前指示・圧縮後指示の長さの上限（文字。共通・プロジェクトのそれぞれ） */
-export const COMPACT_PROMPT_MAX = 4000;
 
 /** 圧縮の前・後のどちらの指示か（圧縮前指示 / 圧縮後指示） */
 export type CompactPromptKind = "pre" | "post";
@@ -160,12 +158,12 @@ export const COMPACT_PROMPT_FIELDS = {
 type CompactPromptSource = Pick<AppSettings, "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled">;
 
 /** 設定またはプロジェクトの、送る指示（オフ・空なら null） */
-export function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSource | undefined): string | null {
+function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSource | undefined): string | null {
   const { text, enabled } = COMPACT_PROMPT_FIELDS[kind];
   return source?.[enabled] ? (source[text]?.trim() ?? null) || null : null;
 }
 
-/** そのプロジェクトで送る圧縮前指示・圧縮後指示（オンの分を共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
+/** そのプロジェクトで送る圧縮前指示・圧縮後指示（オンの分を共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null）。コアの送る文と画面の見せる文が同じこの関数を使う */
 export function compactPromptFor(kind: CompactPromptKind, settings: CompactPromptSource | undefined, project: CompactPromptSource | undefined): string | null {
   const parts = [activeCompactPrompt(kind, settings), activeCompactPrompt(kind, project)].filter((p): p is string => p !== null);
   return parts.length > 0 ? parts.join("\n\n") : null;

@@ -1,0 +1,55 @@
+/* ==== コミットの欄（CommitBox） ==== */
+@layer feature {
+  /*
+   * 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる）。メッセージは 1 行から書いた分だけ伸び、
+   * ボタンは VS Code と同じ 26px の高さ。コミットは右に ▾（コミットの仕方のメニュー）を付けた 1 つのボタンに見せる
+   */
+
+  .commit-box {
+    display: grid;
+    gap: 6px;
+    padding: 6px 10px 8px;
+  }
+
+  .commit-box .commit-message {
+    min-height: 28px;
+    max-height: 200px;
+    padding: 4px 8px;
+    font-size: var(--fs-13);
+    line-height: 18px;
+    resize: none;
+    field-sizing: content;
+  }
+
+  /* 空のときは、VS Code と同じく案内を 1 行に収めて末尾を省く（狭い一覧で 2 行にしない） */
+
+  .commit-box .commit-message:placeholder-shown {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .commit-button {
+    justify-content: center;
+    width: 100%;
+    height: 26px;
+    padding: 0 8px;
+  }
+
+  .commit-split {
+    display: flex;
+  }
+
+  .commit-split .commit-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .commit-more {
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-left-color: color-mix(in srgb, var(--accent-text) 30%, transparent);
+  }
+}

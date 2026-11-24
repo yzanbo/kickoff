@@ -1,0 +1,11 @@
+/* ==== ノートのフォルダの欄（NoteFolderField） ==== */
+@layer feature {
+  /* 設定のノートのフォルダの欄の、保存・既定に戻すの行 */
+
+  .note-folder-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+}

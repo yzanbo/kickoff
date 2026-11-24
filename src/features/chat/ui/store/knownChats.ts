@@ -1,0 +1,295 @@
+// チャットの一覧（全プロジェクトで 1 つ）。アーカイブしていないものは使い始めたときに 1 回読み、アーカイブ済みは頼まれたときだけ読む。
+// どちらもサーバーの知らせ（chat / chat_deleted / project_deleted）で直し、並びはサーバーと同じく最後に動いた順。
+// 部品は useChats({ projectId?, archived? }) で読む（そのプロジェクト・アーカイブ済みを含めるかの見え方ごとに、中身が同じなら同じ配列を返す）。
+// 知っているチャット（knownChat）= 詳細を読んだチャット（seenChats.ts。一覧にないアーカイブ済み・別ウィンドウのチャットも）∪ 読み込んだ一覧
+import { useEffect, useSyncExternalStore } from "react";
+import type { Chat } from "@shared/chat/types";
+import { walkDown } from "@shared/foundation/tree";
+import { chatsApi } from "@/features/chat/ui/api/chats";
+import { onServerEvent } from "@/foundation/ui/api/events";
+import { createKeyedSelector, createSelector, type ReduceTable } from "@/foundation/ui/store";
+import { createStore } from "@/foundation/ui/store/createStore";
+import { useStoreStatus } from "@/foundation/ui/store/useStore";
+import { createSeenChats } from "./seenChats";
+
+/** 空の一覧（描くたびに作らない。書き換えない） */
+export const NO_CHATS: Chat[] = Object.freeze([]) as unknown as Chat[];
+
+/** 最後に動いた順（同じなら新しく作った順。サーバーの一覧と同じ並び。まとまりの中の並びもこれ） */
+export const byActive = (a: Chat, b: Chat) => b.active_at.localeCompare(a.active_at) || b.id - a.id;
+
+/** 届いたチャットを一覧に入れる（同じ ID は置き換え、最後に動いた順の位置へ） */
+export function upsertChat(list: readonly Chat[], chat: Chat): Chat[] {
+  const rest = list.filter((r) => r.id !== chat.id);
+  const at = rest.findIndex((r) => byActive(chat, r) < 0);
+  return at < 0 ? [...rest, chat] : [...rest.slice(0, at), chat, ...rest.slice(at)];
+}
+
+/** チャットを一覧から外す（なければ同じ一覧） */
+function removeChat(list: Chat[], id: number): Chat[] {
+  return list.some((r) => r.id === id) ? list.filter((r) => r.id !== id) : list;
+}
+
+/**
+ * 知らせで一覧を直す（archived: アーカイブ済みの一覧か）。アーカイブした・戻したチャットは、もう一方の一覧へ移る。
+ * 別のプロジェクトへ移したチャットは、プロジェクトの ID が変わって届く（プロジェクトごとの見え方からも外れる）
+ */
+export const reduceChats = (archived: boolean): ReduceTable<Chat[]> => ({
+  chat: (list, event) => (Boolean(event.chat.archived_at) === archived ? upsertChat(list, event.chat) : removeChat(list, event.chat.id)),
+  chat_deleted: (list, event) => removeChat(list, event.id),
+  project_deleted: (list, event) => (list.some((r) => r.project_id === event.id) ? list.filter((r) => r.project_id !== event.id) : list),
+});
+
+const activeChats = createStore<Chat[]>({ load: () => chatsApi.allChats(), reduce: reduceChats(false) });
+const archivedChats = createStore<Chat[]>({ load: () => chatsApi.allChats({ archived: true }), reduce: reduceChats(true) });
+/** 詳細を読んだチャット（チャットの店が入れ、中身を捨てたら忘れる） */
+const seenChats = createSeenChats();
+onServerEvent("chat", (e) => seenChats.update(e.chat));
+onServerEvent("chat_deleted", (e) => seenChats.forget(e.id));
+onServerEvent("project_deleted", (e) => seenChats.forgetProject(e.id));
+
+/**
+ * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）とノートのチャットは入れない
+ * （サイドバー・ボード・パネルのタブなどの一覧には並べず、子チャットは親の中（childChatsOf / useChildChats）、ノートのチャットはそのノートの右の欄（useNoteChatOf）から開く）
+ */
+export function selectChats(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined, projectId?: number): Chat[] {
+  const inProject = (r: Chat) => r.parent_chat_id === null && r.note_path === null && (projectId === undefined || r.project_id === projectId);
+  const list = [...(active ?? []).filter(inProject), ...(archived ?? []).filter(inProject)];
+  if (archived?.length) list.sort(byActive);
+  return list.length > 0 ? list : NO_CHATS;
+}
+
+/** 同じチャットが同じ順に並んでいるか（中身の変わらない見え方は、前の配列のまま返す） */
+const sameItems = <T>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+// 見え方（プロジェクト × アーカイブ済みを含めるか）ごとの、直前の結果
+const views = createKeyedSelector((_key: string, active: Chat[] | undefined, old: Chat[] | undefined, projectId: number | undefined, prev: Chat[] | undefined) => {
+  const next = selectChats(active, old, projectId);
+  return prev && sameItems(prev, next) ? prev : next;
+});
+
+const viewKey = (projectId: number | undefined, archived: boolean) => `${projectId ?? "all"}:${archived ? "with-archived" : "active"}`;
+
+function chatsView(projectId: number | undefined, archived: boolean): Chat[] {
+  return views.get(viewKey(projectId, archived), activeChats.get().data, archived ? archivedChats.get().data : undefined, projectId);
+}
+
+// 消したプロジェクトの見え方は捨てる（覚え続けない）
+onServerEvent("project_deleted", (e) => {
+  views.forget(viewKey(e.id, false));
+  views.forget(viewKey(e.id, true));
+});
+
+function subscribeChats(listener: () => void) {
+  const a = activeChats.subscribe(listener);
+  const b = archivedChats.subscribe(listener);
+  return () => {
+    a();
+    b();
+  };
+}
+
+function subscribeKnown(listener: () => void) {
+  const off = subscribeChats(listener);
+  const seen = seenChats.subscribe(listener);
+  return () => {
+    off();
+    seen();
+  };
+}
+
+export interface ChatQuery {
+  /** そのプロジェクトのチャットだけ（省けば全プロジェクト） */
+  projectId?: number;
+  /** アーカイブ済みも含める（頼んだときに初めて読み込む） */
+  archived?: boolean;
+  /** false の間は読まずに、空の一覧を返す（サイドバーと連動しないパネルなど）。初めは true */
+  enabled?: boolean;
+}
+
+export interface ChatList {
+  /** 最後に動いた順（書き換えない） */
+  chats: Chat[];
+  /** 頼んだ一覧（アーカイブ済みを含めるならそれも）が届いたか */
+  loaded: boolean;
+  loading: boolean;
+  error: string | undefined;
+}
+
+const NOT_LOADED: ChatList = { chats: NO_CHATS, loaded: false, loading: false, error: undefined };
+
+/** チャットの一覧（サイドバー・ボード・パネル・⌘K・⌘⇧A などで共通。中身の変わらないプロジェクトの一覧は同じ配列のまま） */
+export function useChats({ projectId, archived = false, enabled = true }: ChatQuery = {}): ChatList {
+  const active = useStoreStatus(activeChats, { active: enabled });
+  const old = useStoreStatus(archivedChats, { active: enabled && archived });
+  // 読まない間は、一覧が変わっても描き直さない
+  const chats = useSyncExternalStore(subscribeChats, () => (enabled ? chatsView(projectId, archived) : NO_CHATS));
+  if (!enabled) return NOT_LOADED;
+  return {
+    chats,
+    loaded: active.loaded && (!archived || old.loaded),
+    loading: active.loading || (archived && old.loading),
+    error: active.error ?? (archived ? old.error : undefined),
+  };
+}
+
+/**
+ * アーカイブしていないチャットの一覧から選んだ値（select の結果が変わったときだけ描き直す。結果は文字・数など、同じ中身なら === になるもの。
+ * プロジェクトの最近動いた順など、一覧が変わっても結果が変わらないことの多いものを読むとき）。enabled でなければ読まず、undefined
+ */
+export function useChatsValue<T extends string | number>(select: (chats: Chat[]) => T, enabled = true): T | undefined {
+  useStoreStatus(activeChats, { active: enabled });
+  return useSyncExternalStore(subscribeChats, () => (enabled ? select(chatsView(undefined, false)) : undefined));
+}
+
+/** いまの一覧（部品の外・操作の途中で読むとき。読み込みは頼まない） */
+export const currentChats = ({ projectId, archived = false }: Omit<ChatQuery, "enabled"> = {}): Chat[] => chatsView(projectId, archived);
+
+/** 操作の応答で届いたチャットを一覧に入れる（知らせを待たずに knownChat で引けるように。作った子チャットを、親の右の欄で開くときなど） */
+export const addChat = (chat: Chat) => {
+  seenChats.update(chat);
+  (chat.archived_at ? archivedChats : activeChats).update((list) => upsertChat(list, chat));
+};
+
+/** 操作の応答で届いたいくつものチャットを、まとめて一覧に入れる（手動の並びを変えたときなど。一覧ごとに 1 回だけ変える） */
+export function addChats(chats: readonly Chat[]): void {
+  chats.forEach(seenChats.update);
+  const into = (list: readonly Chat[], archived: boolean) => chats.filter((c) => Boolean(c.archived_at) === archived).reduce(upsertChat, list as Chat[]);
+  if (chats.some((c) => !c.archived_at)) activeChats.update((list) => into(list, false));
+  if (chats.some((c) => c.archived_at)) archivedChats.update((list) => into(list, true));
+}
+
+// 一覧ごとの ID の引き表（一覧が変わったら作り直す）
+const indexes = new WeakMap<readonly Chat[], Map<number, Chat>>();
+function inList(list: readonly Chat[] | undefined, id: number): Chat | undefined {
+  if (!list) return undefined;
+  let index = indexes.get(list);
+  if (!index) indexes.set(list, (index = new Map(list.map((c) => [c.id, c]))));
+  return index.get(id);
+}
+
+/**
+ * ID の知っているチャット（詳細を読んだチャット、なければ読み込んでいる一覧から。子チャット・アーカイブ済みも。部品の外で引くとき。なければ undefined）。
+ * 詳細を読んだチャットを先に引く（読んだあとも知らせ・操作の応答で直すので、一覧と同じかより新しい）
+ */
+export const knownChat = (id: number): Chat | undefined => seenChats.get(id) ?? inList(activeChats.get().data, id) ?? inList(archivedChats.get().data, id);
+
+/** チャットの店に渡す知っているチャット（詳細の応答で入れ・引き・中身を捨てたら忘れる） */
+export const knownChatsForStore = { remember: seenChats.remember, get: knownChat, forget: seenChats.forget };
+
+/**
+ * ID のチャット（knownChat を部品から。変わったときだけ描き直す。右の欄の子チャットのタブの状態の印）。
+ * fetch: 一覧が届いても知らないチャットなら、行を 1 回取って一覧の外で見たチャットに入れる（タブが指すチャット。詳細の覚えから外れたアーカイブ済みなど）
+ */
+export function useKnownChat(id: number, { fetch = false }: { fetch?: boolean } = {}): Chat | undefined {
+  const { loaded } = useStoreStatus(activeChats);
+  const chat = useSyncExternalStore(subscribeKnown, () => knownChat(id));
+  const missing = fetch && loaded && id > 0 && !chat;
+  // 行だけを取る（詳細の記録は 1 件だけ読む）
+  useEffect(() => (missing ? seenChats.fetch(id, () => chatsApi.chatDetail(id, { limit: 1 }).then((d) => d.chat)) : undefined), [missing, id]);
+  return chat;
+}
+
+/** プロジェクトごとのチャット（サイドバー。中身の変わらないプロジェクトの一覧は同じ配列のまま） */
+export type ChatsByProject = Record<number, Chat[]>;
+
+/** 一覧をプロジェクトごとに分ける（prev と中身の同じプロジェクトは、prev の配列を使う。どれも同じなら prev を返す） */
+export function chatsByProject(chats: readonly Chat[], prev?: ChatsByProject): ChatsByProject {
+  const next: ChatsByProject = {};
+  for (const chat of chats) (next[chat.project_id] ??= []).push(chat);
+  if (!prev) return next;
+  let same = Object.keys(prev).length === Object.keys(next).length;
+  for (const [id, list] of Object.entries(next)) {
+    const before = prev[Number(id)];
+    if (before && sameItems(before, list)) next[Number(id)] = before;
+    else same = false;
+  }
+  return same ? prev : next;
+}
+
+const byProjectViews = createKeyedSelector((_archived: boolean, chats: Chat[], prev: ChatsByProject | undefined) => chatsByProject(chats, prev));
+
+const byProjectView = (archived: boolean): ChatsByProject => byProjectViews.get(archived, chatsView(undefined, archived));
+
+/** 子チャットを親ごとに（親の ID → 子。最後に動いた順。アーカイブ済みは archived のときだけ） */
+export function childChatsOf(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined): ReadonlyMap<number, Chat[]> {
+  const map = new Map<number, Chat[]>();
+  for (const chat of [...(active ?? []), ...(archived ?? [])]) {
+    if (chat.parent_chat_id !== null) (map.get(chat.parent_chat_id) ?? map.set(chat.parent_chat_id, []).get(chat.parent_chat_id)!).push(chat);
+  }
+  if (archived?.length) for (const list of map.values()) list.sort(byActive);
+  return map;
+}
+
+const childViews = createKeyedSelector<boolean, [Chat[] | undefined, Chat[] | undefined], ReadonlyMap<number, Chat[]>>((_archived, active, old) => childChatsOf(active, old));
+
+const childView = (archived: boolean): ReadonlyMap<number, Chat[]> => childViews.get(archived, activeChats.get().data, archived ? archivedChats.get().data : undefined);
+
+/** 読み込んだ一覧にある子孫（子・孫…）（archived: アーカイブ済みの一覧も見る。読み込んでいなければ入れない） */
+export function knownDescendants(id: number, { archived = false }: { archived?: boolean } = {}): Chat[] {
+  const map = childView(archived);
+  const out: Chat[] = [];
+  walkDown(map.get(id) ?? [], (c) => map.get(c.id) ?? [], (c) => void out.push(c), { key: (c) => c.id, seen: [id] });
+  return out;
+}
+
+/** 読み込んだ一覧にある子孫（子・孫…）の数。アーカイブ・削除の確かめの文に使う */
+export const knownDescendantCount = (id: number, options: { archived?: boolean } = {}): number => knownDescendants(id, options).length;
+
+/** 子チャットを親ごとに（サイドバーの親の行の開閉・数、チャットの画面の札。archived: アーカイブ済みも含める） */
+export function useChildChats({ archived = false }: { archived?: boolean } = {}): ReadonlyMap<number, Chat[]> {
+  useStoreStatus(activeChats);
+  useStoreStatus(archivedChats, { active: archived });
+  return useSyncExternalStore(subscribeChats, () => childView(archived));
+}
+
+/** アーカイブしていないチャットの一覧が届いたか（起動の時刻の記録でサイドバーが読む） */
+export function useChatsLoaded(): boolean {
+  return useStoreStatus(activeChats).loaded;
+}
+
+/** すべてのプロジェクトのチャットを、プロジェクトごとに（サイドバー。archived: アーカイブ済みも含める） */
+export function useChatsByProject({ archived = false }: { archived?: boolean } = {}): ChatsByProject {
+  useStoreStatus(activeChats);
+  useStoreStatus(archivedChats, { active: archived });
+  return useSyncExternalStore(subscribeChats, () => byProjectView(archived));
+}
+
+// アーカイブしていないチャットを子チャットも入れて（ノートのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため
+const withChildren = createSelector((active: Chat[] | undefined, prev: { chats: Chat[]; byProject: ChatsByProject } | undefined) => {
+  const next = (active ?? []).filter((r) => r.note_path === null);
+  const chats = sameItems(prev?.chats ?? NO_CHATS, next) ? (prev?.chats ?? NO_CHATS) : next.length > 0 ? next : NO_CHATS;
+  const byProject = prev && chats === prev.chats ? prev.byProject : chatsByProject(chats, prev?.byProject);
+  return { chats, byProject };
+});
+
+const withChildrenView = () => withChildren(activeChats.get().data);
+
+/**
+ * アーカイブしていないチャットを、子チャット（孫・ひ孫も）も入れて最後に動いた順に（ノートのチャットは入れない）。
+ * 要対応の一覧と数・⌘⇧A・プロジェクト画面の状態ごとの数で使う（ふつうの一覧の useChats は子チャットを入れず、親の中に出す）
+ */
+export function useChatsWithChildren(): Chat[] {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => withChildrenView().chats);
+}
+
+/** useChatsWithChildren をプロジェクトごとに（サイドバーの要対応。中身の変わらないプロジェクトの一覧は同じ配列のまま） */
+export function useChatsWithChildrenByProject(): ChatsByProject {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => withChildrenView().byProject);
+}
+
+/** そのノートのチャット（アーカイブしていない、いちばん新しいもの。まだなければ undefined。一覧が届くまでも undefined） */
+export function useNoteChatOf(projectId: number, notePath: string): Chat | undefined {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => noteChatIn(activeChats.get().data, projectId, notePath));
+}
+
+const noteChatIn = (list: readonly Chat[] | undefined, projectId: number, notePath: string): Chat | undefined => {
+  let found: Chat | undefined;
+  for (const chat of list ?? []) {
+    if (chat.project_id === projectId && chat.note_path === notePath && !chat.archived_at && (!found || chat.id > found.id)) found = chat;
+  }
+  return found;
+};

@@ -1,0 +1,31 @@
+/* ==== 設定の「リンク」の覚えたドメイン（LinkSettings） ==== */
+@layer feature {
+  /* 設定の「リンクと画像」: 確認せずに開くドメインの一覧 */
+
+  .trusted-domain-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .trusted-domain-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 10px;
+  }
+
+  .trusted-domain-list li + li {
+    border-top: 1px solid var(--border);
+  }
+
+  .trusted-domain {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    overflow-wrap: anywhere;
+  }
+}

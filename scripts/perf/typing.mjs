@@ -1,8 +1,9 @@
 // 入力の遅れを測る: 表に出ているチャットの入力欄に 1 文字ずつ打ち、押してから次の描画（2 回の rAF）までの時間を出す。
-// node scripts/perf/typing.mjs [--chat 224] [--keys 40] [--streaming] [--json]
+// node scripts/perf/typing.mjs [--chat 224] [--keys 40] [--streaming] [--json] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 //   --streaming: 確かめ用のチャットに返答を書かせ、書いている最中に打つ（streaming.mjs）
 import { parseArgs } from "node:util";
-import { api, connectPage, metrics, metricsDelta, sleep, waitTimelineExpr } from "./cdp.mjs";
+import { api, connectPage, metrics, metricsDelta, sleep, waitTimelineExpr } from "../devtools/cdp.mjs";
+import { perfDefaults } from "../devtools/fixture.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
 import { startStreamingLive, stopStreaming } from "./streaming.mjs";
 
@@ -62,7 +63,7 @@ export async function measureTyping({ chatId = 224, keys = 40, streaming = false
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { values } = parseArgs({ options: { chat: { type: "string", default: "224" }, keys: { type: "string", default: "40" }, streaming: { type: "boolean" }, json: { type: "boolean" } } });
+  const { values } = parseArgs({ options: { chat: { type: "string", default: perfDefaults().chat }, fixture: { type: "boolean" }, keys: { type: "string", default: "40" }, streaming: { type: "boolean" }, json: { type: "boolean" } } });
   const r = await measureTyping({ chatId: Number(values.chat), keys: Number(values.keys), streaming: !!values.streaming });
   if (values.json) console.log(JSON.stringify(r, null, 1));
   else {

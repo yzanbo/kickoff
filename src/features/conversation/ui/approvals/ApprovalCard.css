@@ -1,0 +1,89 @@
+/* ==== 承認依頼・質問 ==== */
+@layer feature {
+  .approval-card {
+    display: grid;
+    gap: 10px;
+    --card-tone: color-mix(in srgb, var(--accent) 55%, var(--border));
+  }
+
+  .approval-card p {
+    margin: 0;
+  }
+
+  /* サブエージェントからの依頼のとき、カードの上に添える「サブエージェント「調査」からの依頼 開く」（ApprovalFrom） */
+
+  .approval-from {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 -4px 2px;
+    color: var(--muted);
+  }
+
+  .approval-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 承認・再開の確認: 見出しが長く折り返しても、バッジは縮めず 1 行のまま見出しの 1 行目にそろえる（質問のカードの見出しは開閉のボタンなので除く） */
+
+  .approval-head:has(> .approval-title) {
+    align-items: baseline;
+  }
+
+  .approval-badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 1px 8px;
+    --tag-color: var(--accent);
+    font-size: var(--chat-fs-12);
+    font-weight: 600;
+  }
+
+  /* 質問のバッジ（質問の欄の .question と名前を分ける。重なると .question の padding: 0 でバッジの余白が消える） */
+
+  .approval-badge.question-badge {
+    --tag-color: var(--info);
+  }
+
+  .approval-title {
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  /* 承認を求めるコマンド（結果の欄と同じ等幅の箱を枠で囲む） */
+
+  .approval-command {
+    max-height: 320px;
+    margin: 0;
+    padding: 8px 12px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: var(--chat-fs-12);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .approval-actions,
+  .approval-deny {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .approval-deny input {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  /* 再開するかを聞くカードのバッジ */
+
+  .approval-badge.reconnect-badge {
+    --tag-color: var(--warn);
+  }
+}

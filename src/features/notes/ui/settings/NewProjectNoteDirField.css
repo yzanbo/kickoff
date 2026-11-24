@@ -1,0 +1,10 @@
+/* ==== 新しいプロジェクトのノートのフォルダの欄（NewProjectNoteDirField） ==== */
+@layer feature {
+  /* 自動で決まる値を見せるだけの欄（新しいプロジェクトのノートの保存先。「変更…」で書ける欄に替わる） */
+
+  input.note-dir-auto:is(.input-row *) {
+    color: var(--muted);
+    background: transparent;
+    text-overflow: ellipsis;
+  }
+}

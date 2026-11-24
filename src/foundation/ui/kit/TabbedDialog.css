@@ -1,0 +1,102 @@
+/* ==== 左に節の一覧を置くダイアログ（TabbedDialog。設定・プロジェクトの設定） ==== */
+@layer ui {
+  /* 左に項目の一覧・右に内容のダイアログ（アプリの設定・プロジェクトの編集） */
+
+  .dialog.tabbed-dialog {
+    width: min(1040px, calc(100vw - 48px));
+    height: min(86vh, 820px);
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .tabbed-dialog:focus {
+    outline: none;
+  }
+
+  .tabbed-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tabbed-dialog-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tabbed-dialog-head h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .tabbed-dialog-body {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 210px minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .tabbed-dialog-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 16px 10px;
+    border-right: 1px solid var(--border);
+  }
+
+  .tabbed-dialog-tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .tabbed-dialog-tab:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  .tabbed-dialog-tab.active {
+    color: var(--text);
+    background: var(--bg-active);
+  }
+
+  .tabbed-dialog-tab.danger {
+    margin-top: auto;
+  }
+
+  .tabbed-dialog-tab.danger.active,
+  .tabbed-dialog-tab.danger:hover {
+    color: var(--ng);
+  }
+
+  .tabbed-dialog-content {
+    min-width: 0;
+    padding: 8px 32px 32px;
+    overflow-y: auto;
+  }
+
+  /* 左に項目・右に内容のダイアログのフォームは、右の欄の横幅いっぱいに使う */
+
+  .tabbed-dialog-content .form {
+    max-width: none;
+  }
+
+  /* 保存のボタンのあとに続くフォーム（設定の「チャット」の「✕ を押したとき」など）は、ボタンとの間を空ける（くっついて見えた） */
+
+  .tabbed-dialog-content .dialog-actions + .form {
+    margin-top: 28px;
+  }
+}

@@ -1,6 +1,6 @@
 // 1 つの本体の一覧の様子（プロジェクト・チャット・回答待ち・この端末のできること）。つながるたびに読み直し、知らせで直す
 import { useEffect, useState } from "react";
-import type { DeviceAccess } from "@shared/types";
+import type { DeviceAccess } from "@shared/devices/types";
 import { applyHostEvent, emptyHostState, type HostState } from "../lib/hostState";
 import { useHosts, useHostSession } from "./hosts";
 
@@ -15,7 +15,7 @@ export function useHostState(hostId: string) {
     if (!session) return;
     const load = async () => {
       try {
-        const [projects, chats, approvals, self] = await Promise.all([session.client.projects(), session.client.request<HostState["chats"]>("GET", "/api/chats"), session.client.approvals(), session.client.self()]);
+        const [projects, chats, approvals, self] = await Promise.all([session.client.api("GET /api/projects"), session.client.api("GET /api/chats"), session.client.api("GET /api/approvals"), session.client.api("GET /api/devices/self")]);
         setState({ projects, chats, approvals });
         setAccess(self.access);
         // できることが本体で変わっていたら覚え直す（一覧の「見るだけ」の札）

@@ -1,0 +1,29 @@
+/* ==== チェックの状態の印（CheckStateIcon） ==== */
+@layer feature {
+  /* CI とレビュー */
+
+  .github-checks {
+    color: var(--ci-color);
+  }
+
+  .ci-state {
+    flex: none;
+  }
+
+  /* 動いている実行・ジョブ・ステップの印はゆっくり回す */
+
+  .ci-state-pending {
+    animation: spin 2.4s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ci-state-pending {
+      animation: none;
+    }
+  }
+
+  .ci-run-row > .ci-state,
+  .ci-external-row > .ci-state {
+    margin-top: 2px;
+  }
+}

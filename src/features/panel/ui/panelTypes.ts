@@ -1,0 +1,75 @@
+/**
+ * タブに入れる、上の機能の値の型（panel は中身を見ずに渡すだけ）。持ち主の機能が declare module で足す:
+ * attachment = 新しい子チャットの入力欄に初めに入れる添付（chat の Attachment）
+ */
+export interface PanelTabValues {}
+type ValueOf<K extends string> = K extends keyof PanelTabValues ? PanelTabValues[K] : never;
+
+/** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ノート・子チャット・新しい子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
+export type PanelTab =
+  /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。チャットそのものは持たず、ID で知っているチャットから引く */
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string }
+  /** 送る前の新しいチャット。キーは下書きのキー（書きかけの文・添付・名前・固定・作成先は composer の下書きの店） */
+  | { key: string; kind: "new" }
+  /**
+   * チャットの画面の右の欄（サブエージェントの欄）に開いた、サブエージェントの画面。chatId: どのチャットのものか。
+   * agentKey: サブエージェントの一覧の行のキー（起動した Task / Agent の呼び出し ID）。title: タブに出す名前（開いたときの名前）。
+   * path: サブエージェントの中で起動したもの（入れ子）の、外側からの道筋（「調査 › 洗い出し」。名前の前に「↳」を付け、乗せると出す。入れ子でなければない）
+   */
+  | { key: string; kind: "subagent"; chatId: number; agentKey: string; title: string; path?: string }
+  /**
+   * チャットの画面の右の欄に開いた、作業場所のコミットしていない変更（変更のあるファイルの差分を縦に並べる。作業場所ごとに 1 つ）。chatId: どのチャットから開いたか。
+   * worktree: チャットの作業場所のワークツリーのフォルダ（本体ならない）。focus: 移るファイル（作業場所からの相対パス）。focusAt: 移るように頼んだ時刻（同じファイルを押し直しても移る）
+   */
+  | { key: string; kind: "changes"; chatId: number; projectId: number; worktree?: string; focus?: string; focusAt?: number }
+  /**
+   * チャットの画面の右の欄に開いた、作業場所のファイルの中身（変更のないファイル・返答のチップに行の番号があったとき）。
+   * path: 作業場所からの相対パス。line: 目立たせる行
+   */
+  | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
+  /**
+   * チャットの画面の右の欄に開いた、プロジェクトの画面（view = projects の画面の表 projectViews の名前。ファイル・検索・履歴・DB・GitHub・CI・Docker・ゴミ箱。画面ごとに欄に 1 つ）。
+   * chatId: どのチャットの右の欄か。worktree: 初めに見る作業場所のワークツリーのフォルダ（本体ならない。作業場所に付く画面だけ使い、中で切り替えられる）
+   */
+  | { key: string; kind: "projectView"; chatId: number; projectId: number; worktree?: string; view: string }
+  /**
+   * プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files）に開いたファイル（features/editor/fileTabs.ts）。path: 作業場所からの相対パス。
+   * staged: 変更の一覧から開いた差分（ステージ済みか。なければ中身）。line: 検索の行から開いたときの行。edit: 差分を見ながら編集する。focus: 開いたら編集の部品にピントを置く
+   */
+  | { key: string; kind: "projectFile"; projectId: number; path: string; staged?: boolean; line?: number; edit?: boolean; focus?: boolean }
+  /** チャットの画面の右の欄に開いた、プロジェクトのノート（自動で保存）。chatId: どのチャットの右の欄か。path: ノートのフォルダからの相対パス */
+  | { key: string; kind: "note"; chatId: number | null; projectId: number; path: string }
+  /**
+   * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
+   * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）
+   */
+  | { key: string; kind: "child"; chatId: number; childId: number; projectId: number; title: string }
+  /**
+   * これから作る子チャット（入力欄だけ。右の欄の「＋」・「子チャットを作成」・「新しい子チャットで聞く」で開く。最初の文を送ると、できた子チャットのタブに置き換わる）。
+   * chatId: どのチャットの右の欄か（いちばん上の親）。parentId: 作る子チャットの親（右の欄のチャットと違うとき = 子チャットから孫を作るときだけ）。
+   * quote: 入力欄に引用として初めに入れる文（選んだ文・発言）。eventId: 親の会話の聞いた位置（発言の右クリックから）。
+   * follow: 作ったあと設定の「子チャットを作ったとき」に従う（右の欄なら置き換え、別ウィンドウ・開かないならタブを閉じる。右の欄の「＋」は従わず、いつも置き換える）。
+   * text・attachments: 入力欄に初めに入れる文と添付（「AI に渡す」の「子チャットで聞く」）
+   */
+  | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean; text?: string; attachments?: ValueOf<"attachment">[] }
+  /** url は開いたときのページ、current はいまのページ（保存や webview の作り直しに使う）。restored は欄を開くまで読み込まない復元タブ */
+  | { key: string; kind: "browser"; url: string; title: string; current?: string; restored?: boolean }
+  /**
+   * cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う。
+   * command・title・env: 決まったコマンドで開くタブ（Docker のシェルなど。TerminalTarget）
+   */
+  | ({ key: string; kind: "terminal" } & TerminalTarget);
+
+/** 内蔵ターミナルを開く場所（タブの列の＋のメニューに出す）。command があれば、そのコマンドを流すタブとして開く */
+export interface TerminalTarget {
+  cwd: string;
+  label: string;
+  /** どのプロジェクトのターミナルか */
+  projectId: number;
+  /** 流すコマンド（ログインシェルの -l -c。終わってもシェルは開き直さず「終了しました」と［もう一度流す］を出す） */
+  command?: string;
+  /** タブに出す名前（command のタブ。なければ「ターミナル · label」） */
+  title?: string;
+  /** シェルに足す環境変数 */
+  env?: Record<string, string>;
+}

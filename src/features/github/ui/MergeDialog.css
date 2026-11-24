@@ -1,0 +1,57 @@
+/* ==== マージのダイアログ（MergeDialog） ==== */
+@layer feature {
+  /* マージの確認 */
+
+  .github-merge {
+    --dialog-w: 560px;
+  }
+
+  .github-merge-warnings {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .github-merge-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    font-size: var(--fs-12);
+  }
+
+  .github-merge-warning svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .github-merge-warning.danger {
+    background: color-mix(in srgb, var(--ng) 14%, transparent);
+    color: var(--ng);
+  }
+
+  .github-merge-warning.warn {
+    background: color-mix(in srgb, var(--warn) 14%, transparent);
+    color: var(--warn);
+  }
+
+  .github-merge-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .github-merge-method {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-13);
+  }
+}

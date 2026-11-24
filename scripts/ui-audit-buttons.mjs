@@ -1,10 +1,11 @@
 // 開発版（npm run dev:cdp = KICKOFF_REMOTE_DEBUG=9333 npm run dev）の画面で、アイコンだけのボタンのアイコンがボタンの真ん中からずれているものを挙げる。
 // ボタンの見た目を足した・変えたあとの確かめに使う（よくあるずれ: ブラウザの既定の余白（左右 6px）が残り、狭めたボタンでアイコンが右へはみ出す）。
 //
-//   node scripts/ui-audit-buttons.mjs [#/hash ...]   … 指定した画面（省けばいまの画面）を順に開いて調べる
+//   node scripts/ui-audit-buttons.mjs [#/hash ...] [--cdp <port>]   … 指定した画面（省けばいまの画面）を順に開いて調べる
 //
 // ずれたボタンがあれば、class・aria-label・大きさ・ずれ（px）・余白を出し、終わりのコードを 1 にする。本番のアプリ（ポート 4317）には触らない。
-const CDP_PORT = Number(process.env.KICKOFF_REMOTE_DEBUG ?? 9333);
+import { cdpPort, connectPage, sleep } from "./devtools/cdp.mjs";
+
 /** これ以上ずれていたら挙げる（px。小数の位置の丸めは数えない） */
 const TOLERANCE = 0.75;
 
@@ -23,31 +24,17 @@ const AUDIT = `(() => {
   return out;
 })()`;
 
-const pages = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`)).json();
-const page = pages.find((p) => p.type === "page" && p.url.startsWith("http://localhost"));
-if (!page) throw new Error(`開発版の画面が見つかりません（CDP ${CDP_PORT}）。npm run dev:cdp（KICKOFF_REMOTE_DEBUG=${CDP_PORT} npm run dev）で起動してください`);
-const ws = new WebSocket(page.webSocketDebuggerUrl);
-await new Promise((resolve) => ws.addEventListener("open", resolve, { once: true }));
-let id = 0;
-const evaluate = (expression) =>
-  new Promise((resolve) => {
-    const my = ++id;
-    const onMessage = (m) => {
-      const d = JSON.parse(m.data);
-      if (d.id !== my) return;
-      ws.removeEventListener("message", onMessage);
-      resolve(d.result?.result?.value);
-    };
-    ws.addEventListener("message", onMessage);
-    ws.send(JSON.stringify({ id: my, method: "Runtime.evaluate", params: { expression, returnByValue: true, awaitPromise: true } }));
-  });
+const page = await connectPage({ port: cdpPort() });
+const { evaluate } = page;
 
-const hashes = process.argv.slice(2);
+const args = process.argv.slice(2);
+// 画面のハッシュだけ（--cdp などの引数とその値を除く）
+const hashes = args.filter((a, i) => !a.startsWith("--") && !(args[i - 1]?.startsWith("--") && !args[i - 1].includes("=")));
 let found = 0;
 for (const hash of hashes.length ? hashes : [null]) {
   if (hash) {
     await evaluate(`location.hash = ${JSON.stringify(hash)}`);
-    await new Promise((r) => setTimeout(r, 2500));
+    await sleep(2500);
   }
   const list = await evaluate(AUDIT);
   const where = hash ?? (await evaluate("location.hash")) ?? "";
@@ -55,5 +42,5 @@ for (const hash of hashes.length ? hashes : [null]) {
   for (const item of list) console.log("  ", JSON.stringify(item));
   found += list.length;
 }
-ws.close();
+page.close();
 process.exitCode = found ? 1 : 0;

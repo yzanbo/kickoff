@@ -1,0 +1,6 @@
+/* ==== 定型文の一覧の空の文（SnippetManager。一覧の形は土台の types/manage-list.css） ==== */
+@layer feature {
+  .snippet-empty {
+    padding: 24px 12px;
+  }
+}

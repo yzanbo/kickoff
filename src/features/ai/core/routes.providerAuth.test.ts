@@ -1,0 +1,122 @@
+// AI の一覧・できること・ログインの仕方と API キー・チャットごとの AI
+import { test } from "vitest";
+import assert from "node:assert/strict";
+import type { ProviderStatus } from "@shared/ai/types";
+import { PROVIDER_IDS } from "@shared/settings/types";
+import { setup } from "@/app/core/testing/testServer";
+import { until } from "@/app/core/testing/testCore";
+import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
+import { claudeAuthEnv } from "@/features/ai/core/providers/claude/env";
+import { testStore } from "@/app/core/testing/testStore";
+import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
+
+/** 中身を逆さにするだけの暗号化（テスト用） */
+const reverseCipher: SecretCipher = {
+  encrypt: async (plain) => [...plain].reverse().join(""),
+  decrypt: async (sealed) => [...sealed].reverse().join(""),
+};
+
+test("AI の一覧: 5 つの AI と、できること・ログインの仕方・API キーを置いたかを返す（キーそのものは返さない）", async () => {
+  const { call } = setup({ features: ["ai", "chat", "settings", "childChats"], secretCipher: reverseCipher });
+  const before = (await call("GET", "/api/providers")).body as ProviderStatus[];
+  // テストの偽のプロバイダーはどの AI として呼ばれても同じもの（数だけ見る）
+  assert.equal(before.length, PROVIDER_IDS.length);
+  assert.ok(before.every((p) => Array.isArray(p.capabilities) && !("features" in p) && p.auth_mode === "subscription" && p.has_api_key === false));
+
+  assert.equal((await call("PUT", "/api/providers/codex/api-key", { key: "sk-test-123" })).status, 204);
+  await call("PUT", "/api/settings", { provider_auth: { codex: "api_key" } });
+  const after = (await call("GET", "/api/providers")).body as ProviderStatus[];
+  const codex = after[PROVIDER_IDS.indexOf("codex")];
+  assert.equal(codex.auth_mode, "api_key");
+  assert.equal(codex.has_api_key, true);
+  assert.ok(!JSON.stringify(after).includes("sk-test-123"));
+
+  assert.equal((await call("PUT", "/api/providers/codex/api-key", { key: null })).status, 204);
+  assert.equal(((await call("GET", "/api/providers")).body as ProviderStatus[])[PROVIDER_IDS.indexOf("codex")].has_api_key, false);
+  assert.equal((await call("PUT", "/api/providers/nope/api-key", { key: "x" })).status, 400);
+});
+
+test("API キー: 暗号化して置き、設定が API キーのときだけ開いて渡す", async () => {
+  const store = testStore();
+  const vault = new ProviderKeyVault(store, reverseCipher);
+  await vault.set("claude", "  sk-ant-1  ");
+  assert.equal(store.secrets.get("provider_api_key:claude"), "safe:v1:1-tna-ks");
+  assert.deepEqual(await vault.authFor("claude"), { mode: "subscription", apiKey: null });
+  store.settings.update({ provider_auth: { claude: "api_key" } });
+  assert.deepEqual(await vault.authFor("claude"), { mode: "api_key", apiKey: "sk-ant-1" });
+  // 置いていない AI は API キーの設定でもキーなし（実行は分かる文で止める）
+  store.settings.update({ provider_auth: { claude: "api_key", codex: "api_key" } });
+  assert.deepEqual(await vault.authFor("codex"), { mode: "api_key", apiKey: null });
+  // 開けない（キーチェーンで拒否）ならキーなし
+  const locked = new ProviderKeyVault(store, { encrypt: reverseCipher.encrypt, decrypt: async () => Promise.reject(new Error("拒否")) });
+  assert.deepEqual(await locked.authFor("claude"), { mode: "api_key", apiKey: null });
+});
+
+test("Claude Code に渡す API キー: API キーのときだけ、子プロセスから外す印と一緒に渡す", () => {
+  assert.deepEqual(claudeAuthEnv(undefined), {});
+  assert.deepEqual(claudeAuthEnv({ mode: "subscription", apiKey: null }), {});
+  assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: null }), {});
+  assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: "k" }), { ANTHROPIC_API_KEY: "k", CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1" });
+});
+
+test("新しいチャット: AI を選べ（省けばプロジェクトの AI）、子チャットの既定は親と同じ。違う AI の子チャットは会話を引き継がない", async () => {
+  const { call, api, store, project } = setup({ features: ["ai", "chat", "settings", "childChats"] });
+  const plain = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "x" } })).body;
+  assert.equal(plain.provider, "claude");
+  const codex = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "y", provider: "codex" } })).body;
+  assert.equal(codex.provider, "codex");
+  await until(() => store.chats.get(codex.id)?.status !== "running");
+
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: codex.id }, body: { text: "z", inherit: false } })).body;
+  assert.equal(child.provider, "codex");
+  const other = (await api("POST /api/chats/:chatId/children", { params: { chatId: codex.id }, body: { text: "w", inherit: true, provider: "claude" } })).body;
+  assert.equal(other.provider, "claude");
+  await until(() => store.events.list(other.id).some((e) => e.type === "notice"));
+  const notice = store.events.list(other.id).find((e) => e.type === "notice");
+  assert.ok(notice?.type === "notice" && notice.data.message.includes("AI が違うので"));
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "q", provider: "nope" })).status, 400);
+});
+
+test("ブラウザでのログイン: 始めると開く URL を返し、終わり・失敗・やめたを provider_login で知らせる（ログインを持たない AI は 400）", async () => {
+  const { call, bus, provider } = setup({ features: ["ai", "chat", "settings", "childChats"] });
+  assert.equal((await call("POST", "/api/providers/codex/login")).status, 400);
+
+  const events: unknown[] = [];
+  const unsubscribe = bus.subscribe((e) => {
+    if (e.type === "provider_login") events.push(e);
+  });
+  // 偽のログイン（終わり方をテストから決める）
+  const pending: { resolve: () => void; reject: (e: Error) => void }[] = [];
+  let cancels = 0;
+  Object.assign(provider, {
+    login: async () => {
+      let settle!: { resolve: () => void; reject: (e: Error) => void };
+      const completed = new Promise<true>((resolve, reject) => (settle = { resolve: () => resolve(true), reject }));
+      pending.push(settle);
+      return { authUrl: `https://auth.example/${pending.length}`, completed, cancel: () => (cancels++, settle.reject(new Error("やめました"))) };
+    },
+  });
+  try {
+    const started = await call("POST", "/api/providers/codex/login");
+    assert.deepEqual(started.body, { auth_url: "https://auth.example/1" });
+    pending[0].resolve();
+    await until(() => events.length === 1);
+    assert.deepEqual(events[0], { type: "provider_login", provider: "codex", status: "completed", error: null });
+
+    await call("POST", "/api/providers/codex/login");
+    pending[1].reject(new Error("ブラウザで断られました"));
+    await until(() => events.length === 2);
+    assert.deepEqual(events[1], { type: "provider_login", provider: "codex", status: "failed", error: "ブラウザで断られました" });
+
+    // やめる → cancelled。始め直したら前のものは知らせずにやめる
+    await call("POST", "/api/providers/codex/login");
+    await call("POST", "/api/providers/codex/login");
+    assert.equal(cancels, 1);
+    assert.equal((await call("DELETE", "/api/providers/codex/login")).status, 204);
+    await until(() => events.length === 3);
+    assert.deepEqual(events[2], { type: "provider_login", provider: "codex", status: "cancelled", error: null });
+    assert.equal((await call("DELETE", "/api/providers/codex/login")).status, 204);
+  } finally {
+    unsubscribe();
+  }
+});

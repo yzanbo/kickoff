@@ -1,0 +1,75 @@
+import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
+import { EFFORT_LABELS } from "@shared/settings/types";
+import { reportFailure } from "@/foundation/ui/kit/ask";
+import { ProviderIcon } from "@/features/ai/ui";
+import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { useOptionalChatScreen, usePortValue } from "@/features/chat/ui";
+import { useRewindActions } from "@/features/conversation/ui/rewindContext";
+import { useBeforeWorkplaceMove } from "@/features/chat/ui";
+import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
+
+/**
+ * 失敗した作業の終わりの行の下に出す直す操作（いちばん新しい作業が失敗で終わったときだけ）:
+ * 続きから再試行・深さを下げて再試行・別のモデルで再試行・巻き戻して再試行（その作業を始めた発言から、同じ文で送り直す。確かめは巻き戻しと同じ）。
+ * 選択肢はチャットの画面の変わる様子から読む（チャットの画面の外では出さない）
+ */
+export function FailedTurnActions({ resultId }: { resultId: number }) {
+  const screen = useOptionalChatScreen();
+  const actions = useRewindActions();
+  const choices = usePortValue(actions?.choices, (c) => c, null);
+  // 別のモデルの一覧（終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く）
+  const menu = useContextMenu();
+  // 作業を始めた発言が作業場所を移した区切りより前なら、巻き戻して再試行は出さない
+  const beforeMove = useBeforeWorkplaceMove(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
+  const beforeSwitch = useBeforeProviderSwitch(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
+  if (!actions || !choices || choices.failed.resultId !== resultId) return null;
+  const { lower, models, failed, provider } = choices;
+  const retry = actions.retry;
+  const prompt = failed.prompt;
+  const rewind = prompt && !beforeMove && !beforeSwitch && (() => void actions.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
+  return (
+    <div className="turn-retry" role="group" aria-label="失敗した作業を直す">
+      <button type="button" className="btn" title="同じ設定のまま、止まったところから続けるよう頼みます" onClick={() => retry()}>
+        <RotateCcw size={12} aria-hidden />
+        続きから再試行
+      </button>
+      {lower && (
+        <button type="button" className="btn" title="推論の深さを 1 段下げて、続きから再試行します（チャット欄の深さも変わります）" onClick={() => retry({ effort: lower })}>
+          <Brain size={12} aria-hidden />
+          深さを下げて再試行（{EFFORT_LABELS[lower]}）
+        </button>
+      )}
+      {models.length > 0 && (
+        <button
+          type="button"
+          className="btn turn-retry-model"
+          title="別のモデルで、続きから再試行します（チャット欄のモデルも変わります）"
+          aria-haspopup="menu"
+          aria-expanded={menu.isOpen}
+          onClick={menu.toggle}
+        >
+          <ProviderIcon provider={provider} />
+          別のモデルで再試行
+          <ChevronDown size={12} aria-hidden />
+        </button>
+      )}
+      {rewind && (
+        <button type="button" className="btn" title="この作業を始めた発言まで巻き戻して、同じ文で送り直します（ファイルも戻すか選べます）" onClick={rewind}>
+          <History size={12} aria-hidden />
+          巻き戻して再試行
+        </button>
+      )}
+      {menu.menu && (
+        // 開いているときにボタンを押したら閉じる（外側のクリックとして閉じると、続くクリックで開き直してしまう）
+        <PopupMenu at={menu.menu.at} label="再試行するモデル" ignore=".turn-retry-model" onClose={menu.close}>
+          {models.map((m) => (
+            <MenuItem key={m.value} onSelect={() => retry({ model: m.value })}>
+              {m.label}
+            </MenuItem>
+          ))}
+        </PopupMenu>
+      )}
+    </div>
+  );
+}

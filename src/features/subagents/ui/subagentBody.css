@@ -1,0 +1,108 @@
+/* ==== サブエージェントの指示と結果（subagentBody） ==== */
+@layer feature {
+  /* 開いた中身: 左の縦線で字下げし、そのサブエージェントの流れ（依頼 → 発言・ツール・入れ子のカード → 報告）を並べる */
+
+  .subagent-card-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin: 2px 10px 10px 17px;
+    padding: 6px 0 0 14px;
+    border-left: 2px solid color-mix(in srgb, var(--agent-color) 55%, var(--border));
+  }
+
+  /* カードの中の返答は、カードの縦線があるので自分の縦線を引かず、メインの返答より小さく出す */
+
+  .subagent-card-body .assistant.sub {
+    padding: 2px 0;
+    border-left: none;
+    font-size: var(--chat-fs-13);
+    color: var(--text);
+  }
+
+  /* 深い入れ子は字下げをやめる（見出しに道筋を添える） */
+
+  .subagent-card.flat > .subagent-card-body {
+    margin-left: 10px;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .subagent-label {
+    margin-bottom: 4px;
+    font-size: var(--chat-fs-11);
+    color: var(--muted);
+  }
+
+  /* 親からの依頼（初めは 1 行にたたむ） */
+
+  .subagent-prompt > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  .subagent-prompt > summary:hover {
+    color: var(--text);
+  }
+
+  .subagent-prompt > summary .subagent-label {
+    flex: none;
+    margin: 0;
+  }
+
+  .subagent-prompt-first {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subagent-prompt[open] .subagent-prompt-first {
+    display: none;
+  }
+
+  .subagent-prompt-body {
+    margin-top: 6px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-size: var(--chat-fs-13);
+    background: var(--bg-hover);
+  }
+
+  .subagent-result {
+    padding: 12px 14px;
+    --card-tone: var(--border-strong);
+  }
+
+  /* 報告の見出しの行: 左に「起動したエージェントへの報告」、右に全文の切り替え（長いときだけ） */
+
+  .subagent-result-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .subagent-result-head .subagent-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .subagent-result-toggle {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--chat-fs-12);
+  }
+
+  /* 流れの中のカードの長い報告: 高さを抑えて中でスクロールさせる（高さは画面が style で与える。下の端はぼかさない: いちばん下までスクロールしても最後の行が薄いままになるため） */
+
+  .subagent-result-body.limited {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

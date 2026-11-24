@@ -1,0 +1,43 @@
+/* プロジェクトの「ゴミ箱」タブ（features/trash/TrashTab）。消したものを 3 日取っておく一覧 */
+@layer feature {
+  .trash-tab {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 見出し（説明と「ゴミ箱を空にする」）は残し、その下（.trash-body）だけを流す */
+
+  .trash-head {
+    flex: none;
+    padding: 12px var(--gutter) 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .trash-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 var(--gutter) 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trash-head h2 {
+    margin: 0;
+    font-size: var(--fs-15);
+  }
+
+  .trash-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+}

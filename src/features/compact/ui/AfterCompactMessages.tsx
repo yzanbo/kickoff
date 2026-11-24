@@ -1,0 +1,88 @@
+import { Clock, Pencil, Trash2 } from "lucide-react";
+import type { QueuedMessage } from "@shared/chat/types";
+import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { chatQueueApi, useActionButton, useOptionalChatScreen } from "@/features/chat/ui";
+import { AttachmentChips } from "@/features/attachments/ui";
+import { cx } from "@/foundation/ui/lib/cx";
+import { CompactPromptMark } from "./CompactPromptMark";
+import { afterCompactLabelOf, type AfterCompactUntil } from "./afterCompactLabel";
+import { startHeldEdit, useHeldEdit } from "./heldEdit";
+
+/** コアが預かりに入れる前に、圧縮後指示を先に見せる吹き出しの ID（まだ消せない） */
+const PENDING_POST_ID = "post-compact-pending";
+
+/**
+ * 圧縮が終わるのを待っている指示（ChatLive の now）。圧縮中の行の下に、送る前の吹き出しとして、送る順に並べる。
+ * 圧縮後指示があれば、いちばん上に「圧縮後指示」の札を付けた吹き出しを出し（コアが圧縮の記録を受け取るまでは pendingPost の文で先に見せる）、
+ * 圧縮前指示から圧縮のあとのやり取りが終わるまでに「いま」で送った指示は、その下に「圧縮後指示（なければ圧縮のあと）のやり取りが終わったら送ります」と添える。
+ * 圧縮が終わると、圧縮後指示はコアがいまのやり取りに足して自分の発言の記録になり、預かった指示はそのやり取り（until = exchange）が終わってから
+ * 送る（1 つ目を新しい作業として送り、残りはその作業に伝える）。それまでは作業中の行の下（圧縮後指示の発言・圧縮の行より後ろ）に出し続ける。
+ * 圧縮を待っていないのに残っている圧縮後指示（通信の切断などで作業ごと終わったもの）は、
+ * 作業中ならいまの作業に、作業していなければ次に送った指示の作業にそのまま伝わるので、そう添える（until）。
+ * 伝える前なら、吹き出しの下のボタンで送らずに消せる（圧縮中に誤って送ったとき）。鉛筆（ふつうの発言の書き直しと同じアイコン）で、チャット欄を書き直しの欄に
+ * 入れ替えて直せる（HeldEditComposer。保存しても送る順は変えない。「入力欄に戻す」で消してから入力欄に入れると、送り直したとき最後に回り、順番が入れ替わる）
+ */
+export function AfterCompactMessages({ messages, pendingPost, until }: { messages: QueuedMessage[]; pendingPost: string | null; until: AfterCompactUntil }) {
+  const pending: QueuedMessage[] = pendingPost === null ? [] : [{ id: PENDING_POST_ID, text: pendingPost, options: {}, attachments: [], created_at: "", post_compact: true }];
+  const items = [...pending, ...messages];
+  const hasPost = items.some((m) => m.post_compact);
+  const screen = useOptionalChatScreen();
+  // 入力欄で書き直している指示（あれば、その吹き出しに印を付け、ほかの鉛筆は押せなくする）
+  const editing = useHeldEdit(screen?.chatId ?? -1);
+  // 消すのは指示ごとに、返るまで押せない
+  const action = useActionButton();
+  /** 送らずに外す */
+  const remove = (m: QueuedMessage) => {
+    if (!screen) return;
+    const { chatId } = screen;
+    action.press(m.id, () => chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId }, body: { commands: [{ op: "remove", ids: [m.id] }] } }), "指示を取り消せませんでした");
+  };
+  return (
+    <>
+      {items.map((m, i) => (
+        <div key={m.id} className={cx("user-message", "after-compact", m.post_compact && "compact-prompt post-compact", editing?.id === m.id && "held-editing")}>
+          <div className="bubble user">
+            {m.post_compact && <CompactPromptMark kind="post" className="message-kind-label" />}
+            {m.attachments.length > 0 && (
+              <div className="bubble-attachments">
+                <AttachmentChips attachments={m.attachments} />
+              </div>
+            )}
+            {m.text && <div className="bubble-text">{m.text}</div>}
+          </div>
+          <div className="message-meta">
+            {editing?.id === m.id ? <Pencil size={12} aria-hidden /> : <Clock size={12} aria-hidden />}
+            {editing?.id === m.id ? "チャット欄で書き直しています（保存しても、この順番のまま送ります）" : afterCompactLabelOf(until, m.post_compact === true, hasPost)}
+            {/* 伝える前なら送らずに消せる（コアが預かりに入れる前に先に見せている圧縮後指示は、まだ消せない） */}
+            {screen && m.id !== PENDING_POST_ID && (
+              <>
+                {!m.post_compact && editing?.id !== m.id && (
+                  <IconButton
+                    size="sm"
+                    icon={Pencil}
+                    iconSize={13}
+                    label="書き直す"
+                    title={editing ? "ほかの指示を書き直しています（保存するか、やめてから）" : "チャット欄で書き直す（画像の添付・定型文も使えます。保存しても送る順はそのまま。書き直している間は送らずに待ちます）"}
+                    className="message-action"
+                    disabled={editing !== null}
+                    onClick={() => startHeldEdit(screen.chatId, { id: m.id, position: i + 1, text: m.text, attachments: m.attachments })}
+                  />
+                )}
+                <IconButton
+                  size="sm"
+                  icon={Trash2}
+                  iconSize={13}
+                  label="送らずに消す"
+                  title={m.post_compact ? "今回の圧縮では、圧縮後指示を送らない（設定の圧縮後指示はそのまま）" : "この指示を送らずに消す（圧縮中に誤って送ったとき）"}
+                  className="message-action"
+                  disabled={action.pending(m.id)}
+                  onClick={() => remove(m)}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}

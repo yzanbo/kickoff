@@ -1,0 +1,165 @@
+/* ==== 検索の結果と変更の一覧の行（SearchResults。git の ChangeGroup・ChangedFiles も同じ行） ==== */
+@layer feature {
+  /* 「ステージされている変更」「変更」の見出し（VS Code と同じく、ファイルの行と同じ 22px・13px の 1 行。長い名前は省く） */
+
+  .change-group-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    height: 22px;
+    padding: 0 4px 0 8px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .change-group-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 変更のあるファイルの数（VS Code と同じ丸いバッジ。グループの見出しとプロジェクトのタブ） */
+
+  .change-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: var(--fs-11);
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-active);
+  }
+
+  .change-files {
+    margin: 0 0 6px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .change-file {
+    align-items: baseline;
+    gap: 6px;
+    /* VS Code の一覧と同じ 22px の行 */
+    padding: 0 10px 0 26px;
+    font-size: var(--fs-13);
+    line-height: 22px;
+  }
+
+  .change-name {
+    flex: none;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .change-name.deleted {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .change-dir {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-11);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--extra-muted);
+  }
+
+  .change-kind,
+  .tree-kind {
+    flex: none;
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: var(--fs-11);
+    font-weight: 700;
+  }
+
+  /* 変更の種類の色（styles/types/state-colors.css の --kind-color）。変更の一覧では記号に付ける（エクスプローラーの行は土台の TreeView.css の .tree-row[data-kind]） */
+
+  .change-kind {
+    color: var(--kind-color);
+  }
+
+  /*
+   * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 開いたフォルダの中身の段に、
+   * 親のフォルダの開閉の矢印の下から縦の線を引く。一覧にマウスを乗せている間だけ全部を薄く出し、選んでいる行・ピントのある行の親の段
+   * （その行が開いたフォルダなら、その中身の段）の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40% の
+   * tree.inactiveIndentGuidesStroke）。検索の結果のファイルの中の行（.code-search-lines。木の行は styles/types/tree.css）
+   */
+
+  .code-search-lines {
+    position: relative;
+  }
+
+  .code-search-lines::before {
+    --tree-guide: color-mix(in srgb, var(--extra-muted) 40%, transparent);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    /* 行の左の余白 6px ＋ 段ごとの 12px ＋ 開閉の矢印（幅 14px）の真ん中 */
+    left: calc(13px + var(--guide-depth, 0) * 12px);
+    /* 中の段の行（選んでいる行の地など）より上に重ね、外側の段の線も途切れさせない */
+    z-index: 1;
+    border-left: 1px solid var(--tree-guide);
+    content: "";
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s linear;
+  }
+
+  /* 検索の結果: ファイルの行の開閉の矢印（左の余白 8px ＋ 幅 12px）の真ん中 */
+
+  .code-search-lines::before {
+    left: 14px;
+  }
+
+  .changes-list:hover .code-search-lines::before {
+    opacity: 1;
+  }
+
+  /* 濃くするのは、選んでいる行のあるファイルの段 */
+
+  .code-search-lines:has(> .code-search-row.selected)::before {
+    --tree-guide: var(--extra-muted);
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .code-search-lines::before {
+      transition: none;
+    }
+  }
+
+  .change-file .file-icon {
+    align-self: center;
+  }
+
+  /* 名前を変えている変更の一覧の行（木の行は土台の TreeView.css と同じ）。名前の欄を残りの幅いっぱいに */
+  .change-file.renaming {
+    align-items: center;
+    cursor: default;
+  }
+
+  .change-file.renaming:hover {
+    background: transparent;
+  }
+
+  .change-file.renaming .inline-name-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,154 @@
+// チャットの作業場所を移す。利用者・AI が移すときも、Kickoff が自動で変えるとき
+// （ワークツリーを片付けた・別のプロジェクトへ移した・プロジェクトのフォルダを変えた）も同じここを通す:
+// 会話を新しいセッションに写し、古い会話記録をゴミ箱へ入れ、作業場所とブランチを書き替え、区切り workplace_moved を置く
+import { errorMessage } from "@shared/foundation/errors";
+import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
+import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
+import { replaceSession, resumePointBefore, workdirOf, type ChatRunner, type SessionTrash, type ChatStoreDeps } from "@/features/chat/core/index";
+import { currentBranch } from "@/foundation/core/workplace/reads";
+import { Invalid, NotFound } from "@/foundation/core/errors";
+import type { AgentProvider } from "@/features/ai/core/index";
+
+export interface WorkplaceMoveDeps {
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects">;
+  providers: Record<ProviderId, AgentProvider>;
+  /** 写したあとの古い会話記録をゴミ箱へ入れる口（ほかのチャット・ほかの Kickoff が使っていれば入れない） */
+  sessionTrash?: SessionTrash;
+}
+
+export interface WorkplaceMoveInput {
+  /** 移す先のワークツリーのフォルダ（本体なら null） */
+  worktreePath: string | null;
+  /** 別のプロジェクトへ移すときの、移す先のプロジェクト（省けばいまのプロジェクト） */
+  projectId?: number;
+  reason: WorkplaceMoveReason;
+  /** 移す前の作業フォルダ（プロジェクトのフォルダを変えたあとなど、いまの店の値から決まる場所が違うとき） */
+  fromDir?: string;
+  /** コミットしていない変更を持っていった */
+  carried?: boolean;
+  /** ワークツリーを片付けたとき、コミットしていない変更を控えに入れた */
+  backedUp?: boolean;
+  /** ワークツリーを片付けたとき、消す直前に確かめたそのワークツリーのブランチ（ブランチから外れていれば null で、チャットが最後に作業したブランチを使う） */
+  finishedBranch?: string | null;
+  /** 元の作業場所で動いている内蔵ターミナル（AI が移したとき、区切りと知らせに書く） */
+  running?: string[];
+  /** 移した先で作業中のほかのチャットの数（AI が移したとき） */
+  busy?: number;
+  /** 先にこのチャットのワークツリーを片付けてから移した */
+  afterFinish?: boolean;
+}
+
+/**
+ * 移す前後の段（利用者・AI が新しいワークツリーへ移すとき）: before = ワークツリーを作る・変更を持っていく（決まった作業場所などを返す）、
+ * after = 移せたあとの片付け（持っていった変更の stash を消す）、undo = 移せなかったときに元へ戻す
+ */
+export interface WorkplaceMoveSteps {
+  before?: () => Promise<Partial<WorkplaceMoveInput>>;
+  after?: () => Promise<void>;
+  undo?: () => Promise<void>;
+}
+
+/** 利用者・AI が移すとき（写せなければ移さない）か、Kickoff が自動で変えるとき（作業場所はもうないので、写せなくても移す） */
+const isManual = (reason: WorkplaceMoveReason) => reason === "user" || reason === "ai";
+
+/** 作業フォルダのいまのブランチ（読めなければ控えのブランチ・null） */
+async function branchAt(dir: string, fallback: string | null): Promise<string | null> {
+  return (await currentBranch(dir)) || fallback;
+}
+
+/**
+ * 作業場所を移す。移す先がいまと同じなら何もしない（区切りも置かない）。作業中かは呼ぶ側（createMover の move）が確かめる。
+ * 利用者・AI が移すときは、会話を新しいセッションに写せなければ移さずに 400。写せないプロバイダー・まだ会話がないチャットは写さずに移す
+ */
+export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number, input: WorkplaceMoveInput): Promise<Chat> {
+  const { store } = deps;
+  const chat = store.chats.get(chatId);
+  if (!chat) throw new NotFound("チャットが見つかりません");
+  const project = store.projects.get(chat.project_id);
+  if (!project) throw new NotFound("プロジェクトが見つかりません");
+  const target = input.projectId === undefined ? project : store.projects.get(input.projectId);
+  if (!target) throw new NotFound("移す先のプロジェクトが見つかりません");
+  const fromDir = input.fromDir ?? workdirOf(chat, project);
+  const toDir = input.worktreePath ?? target.repo_path;
+  if (target.id === chat.project_id && input.worktreePath === chat.worktree_path && fromDir === toDir) return chat;
+
+  const from: WorkplaceRef = { project_id: chat.project_id, worktree_path: chat.worktree_path, branch: await branchAt(fromDir, chat.branch), dir: fromDir };
+  const toBranch = await branchAt(toDir, null);
+  const to: WorkplaceRef = { project_id: target.id, worktree_path: input.worktreePath, branch: toBranch, dir: toDir };
+
+  // 会話を新しいセッションに写す（ファイルの控えが新しいセッションで始まり、移したあとの発言を正しく戻せるように）
+  const old = chat.session_id;
+  const provider = deps.providers[chat.provider];
+  const copyForMove = provider.sessions?.copyForMove;
+  if (old && copyForMove) {
+    let copied: { sessionId: string; previousFile: string } | null = null;
+    let failure: string | null = null;
+    try {
+      copied = await copyForMove(old, fromDir);
+      if (!copied) failure = "会話記録が見つかりません";
+    } catch (e) {
+      failure = errorMessage(e);
+    }
+    if (copied) await replaceSession({ store, trash: deps.sessionTrash }, chat, copied, "作業場所を移す前").catch(() => {});
+    else if (isManual(input.reason)) {
+      throw new Invalid(`会話を新しいセッションに写せなかったので、作業場所を移しませんでした（${failure}）`);
+    }
+  }
+
+  // 移したあとの起点: 区切りの直前の、最後まで終わった作業の終わり（写したなら新しいセッションの同じ発言 ID）
+  const point = resumePointBefore(store.events.list(chatId));
+  if (target.id !== chat.project_id) {
+    // 別のプロジェクトへ: グループ・作業場所・ブランチは元のプロジェクトのものなので外す（作業場所は移った先の本体）
+    store.chats.move(chatId, target.id);
+    if (input.worktreePath !== null) store.chats.setWorkplace(chatId, input.worktreePath, toBranch);
+  } else {
+    // 利用者・AI が移したら、移した先のいまのブランチを書く。片付け・フォルダの付け替えは、最後に作業したブランチを残す。
+    // 片付けたときは片付けたワークツリーのブランチを印に残す（札は本体のまま、説明に添える。次に送るまで）。ほかの移し方では印を外す
+    const finished = input.reason === "worktree_finished" ? (input.finishedBranch ?? from.branch) : null;
+    store.chats.setWorkplace(chatId, input.worktreePath, isManual(input.reason) ? toBranch : undefined, finished);
+  }
+  store.events.add(chatId, {
+    type: "workplace_moved",
+    from,
+    to,
+    reason: input.reason,
+    ...(input.carried ? { carried: true as const } : {}),
+    ...(input.backedUp ? { backed_up: true as const } : {}),
+    ...(input.running?.length ? { running: input.running } : {}),
+    ...(input.busy ? { busy: input.busy } : {}),
+    ...(input.afterFinish ? { after_finish: true as const } : {}),
+    ...(point?.session_id && point.message_id ? { session_id: point.session_id, message_id: point.message_id } : {}),
+  });
+  return store.chats.get(chatId)!;
+}
+
+/** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがなければ null） */
+export function workplaceMoveContext(pending: ChatEventDataOf<"workplace_moved"> | null): string | null {
+  return pending ? `Kickoff からの知らせ（利用者の発言ではありません）:\n${workplaceMoveNote(pending)}` : null;
+}
+
+/**
+ * チャットの作業場所を移す口（作業場所が変わる道はすべてここを通す）。利用者・AI が移すときは作業中なら 409。
+ * 移している間（会話を写す間）も作業中として数え（chat の withIdleChat。送る準備 move_workplace）、その間の「いま」は預かって、
+ * 利用者が移したなら済んでから送る。止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
+ */
+export function createMover(deps: WorkplaceMoveDeps & { runner: Pick<ChatRunner, "withIdleChat"> }) {
+  return (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> =>
+    // AI の予約は作業の終わりに移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
+    deps.runner.withIdleChat(
+      chatId,
+      "move_workplace",
+      "作業場所の変更",
+      async ({ undo }) => {
+        // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
+        const prepared = { ...input, ...(await steps?.before?.()) };
+        undo.add(() => steps?.undo?.());
+        const chat = await moveChatWorkplace(deps, chatId, prepared);
+        await steps?.after?.();
+        return chat;
+      },
+      { check: input.reason === "user", forgetRecovery: true, next: () => (input.reason === "user" ? "deliver" : undefined) },
+    );
+}

@@ -1,0 +1,49 @@
+/* ==== プロジェクトの「ノート」タブ（左にノートのフォルダの木、右に開いたノート。枠と一覧はエディタタブの .changes を使う） ==== */
+@layer feature {
+  /* 名前で探す欄（一覧の見出しの下） */
+
+  .note-search {
+    margin: 6px 8px 2px;
+  }
+
+  /* ノート・フォルダを落とす先: フォルダの行と中身を染め、名前をアクセントの色に（タブの木は TreeView の平らな行で中身は .drop-inside、入力欄の上の木は枠で囲む） */
+
+  .note-tree .tree-row:is(.drop-target, .drop-inside) {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .note-tree .tree-row.drop-target .tree-name {
+    font-weight: 600;
+    color: var(--accent-fg);
+  }
+
+  /* 直下へ落とすときは一覧ごと（木の外側）を囲む */
+
+  .note-list.drop-target,
+  .note-chip-list.drop-target {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+
+  .note-main {
+    overflow: hidden;
+  }
+
+  .note-main > .empty-state {
+    align-self: center;
+  }
+
+  .note-dir {
+    margin-top: 6px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ==== プロジェクトの「ノート」タブの右の、開いたノートをタブで並べるパネルと、ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル ==== */
+
+  /* 開いたノートをタブで並べるパネル（SURFACES の notes。チャットのパネルと同じタブ・分割）。いつも見せて右いっぱいに広げる */
+
+  .note-main > .board-panel.note-panel {
+    flex: 1;
+    min-width: 0;
+  }
+}

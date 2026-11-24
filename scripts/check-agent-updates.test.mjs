@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { test, vi } from "vitest";
-import { tempDir } from "../src/core/testing/tempDir.ts";
+import { tempDir } from "../src/foundation/core/testing/tempDir.ts";
 import { checkAgentUpdates, hookContext, hookOutput, needsFetch, shouldNotify } from "./check-agent-updates.mjs";
 
 const at = (s) => Date.parse(s);

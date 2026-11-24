@@ -1,0 +1,8 @@
+/* ==== タブの「別ウィンドウで開く」（PopOutTabButton） ==== */
+@layer feature {
+  /* 右の欄のタブの中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton。どのタブでも同じ位置）。狭い見出しでも縮めない */
+
+  .tab-popout-button {
+    flex: none;
+  }
+}

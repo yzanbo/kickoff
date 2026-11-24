@@ -1,0 +1,82 @@
+/* ==== 履歴の左の一覧のブランチ・リモート・タグ（RefList） ==== */
+@layer feature {
+  .ref-items {
+    margin: 0;
+    padding: 0 0 4px;
+    list-style: none;
+  }
+
+  /* 中身がない（ワークツリーがない・絞り込みで消えた）ときは、開いても閉じても同じ高さ（下の余白も出さない） */
+
+  .ref-items:empty {
+    display: none;
+  }
+
+  .ref-item {
+    gap: 6px;
+    padding: 3px 10px 3px var(--tree-left);
+    --tree-pad: 22px;
+    --tree-indent: 14px;
+    font-size: var(--fs-13);
+  }
+
+  /*
+   * 押して選んでいる行（どの行を見ているか分かるように）。ファイルタブの木の選んだ行と同じ地の色に、
+   * 左端のアクセントの線を添える。乗せても地の色は変えない。いまのブランチ（.current の太字）とは別
+   */
+
+  .ref-item.selected,
+  .ref-item.selected:hover,
+  .ref-all.selected,
+  .ref-all.selected:hover,
+  .change-item.selected > .row-actions {
+    background: var(--bg-active);
+  }
+
+  .ref-item.selected,
+  .ref-all.selected {
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  .ref-item.selected svg,
+  .ref-all.selected svg {
+    color: var(--text);
+  }
+
+  /* いまのブランチ（太字と濃い ✓ で目立たせる。地の色は付けない） */
+
+  .ref-item.current {
+    font-weight: 700;
+  }
+
+  .ref-item.current svg {
+    color: var(--text);
+  }
+
+  .ref-item svg,
+  .ref-remote-name svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .ref-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ref-note {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+
+  .change-item .ref-item {
+    flex: 1;
+    min-width: 0;
+  }
+}

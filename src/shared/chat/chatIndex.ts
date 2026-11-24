@@ -1,8 +1,8 @@
-import type { ChatEvent, ChatEventType } from "@shared/types";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "./aiVisual";
+import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
+import { INDEX_TOOLS } from "./indexedTools";
 
 /*
- * 記録の索引（メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-3）。画面は最新の数十ターン分（末尾 tail）だけを中身のまま持ち、
+ * 記録の索引。画面は最新の数十ターン分（末尾 tail）だけを中身のまま持ち、
  * それより前は「記録全体から作るもの（指示の履歴・ToDo・サブエージェントの一覧・図など）が読む記録」だけを軽くして持つ（索引 index）。
  * 記録全体から作るものは、いまの関数をそのまま「索引 ＋ 末尾」に流し、全件に流したときと同じ結果になる（どの切れ目でも。テストで確かめる）。
  *
@@ -44,7 +44,7 @@ export interface IndexContext {
 }
 
 /** R1: 丸ごと入れる種類 */
-export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
+const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
   "user",
   "init",
   "result",
@@ -56,19 +56,6 @@ export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
   "subagent",
   "approval_resolved",
   "handoff",
-]);
-
-/** R2: 呼び出しと結果を丸ごと入れるツール（サブエージェントの起動・報告・ToDo・図） */
-export const INDEX_TOOLS: ReadonlySet<string> = new Set([
-  "Task",
-  "Agent",
-  "SendMessage",
-  "SubagentHandback",
-  "TodoWrite",
-  "TaskCreate",
-  "TaskUpdate",
-  AI_SHOW_VISUAL_TOOL,
-  AI_UPDATE_VISUAL_TOOL,
 ]);
 
 const ACTIVITY_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>(["text", "thinking", "tool_use", "tool_result"]);

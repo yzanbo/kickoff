@@ -1,0 +1,142 @@
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useQuery } from "@/foundation/ui/query";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
+import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
+import type { ProjectSearchResult } from "@shared/files/types";
+import { errorMessage } from "@shared/foundation/errors";
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
+import { storage } from "./storage";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
+
+/** 打つのが止まってから探すまでの時間 */
+const DEBOUNCE_MS = 300;
+
+type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
+
+/** 表示している結果と、そのときの探し方（印・置換に使う） */
+interface SearchResult {
+  query: ProjectSearchQuery;
+  value: ProjectSearchResult;
+}
+
+const NO_DISMISSED: DismissedResults = new Set();
+
+/**
+ * プロジェクトのファイルの中を探す（VS Code の検索と同じく、打つと探し直す。表示を切り替えても残す）。
+ * 探し方の切り替え・含める / 除外するファイル（詳細）・置換の欄の中身・結果から外したもの・検索の履歴も持つ
+ */
+export function useProjectSearch(projectId: number) {
+  const target = useWorkplace(projectId);
+  const [query, setQueryState] = useState("");
+  // 「Aa」「ab」「.*」はほかの検索の欄（⌘F）と同じ値。除外設定を使うかだけは、この検索のもの
+  const find = useFindOptions();
+  const [useIgnore, setUseIgnore] = useState(true);
+  const options: Record<SearchOption, boolean> = { case_sensitive: find.options.caseSensitive, whole_word: find.options.wholeWord, regex: find.options.regex, use_ignore: useIgnore };
+  const [include, setInclude] = useState("");
+  const [exclude, setExclude] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
+  const [replace, setReplace] = useState("");
+  const [showReplace, setShowReplace] = useState(false);
+  const [preserveCase, setPreserveCase] = useState(false);
+  const [history, setHistory] = useSetting(storage.settings.searchHistory);
+  // 履歴をたどっている位置（-1 = 打っている文字）。打ったら戻す
+  const historyIndex = useRef(-1);
+
+  // 探し方ごとに探す（打つのが止まってから。空なら待たずに結果を消す）。古い応答は捨て、探している間は前の結果を出したまま
+  const current: ProjectSearchQuery = { query, ...options, include, exclude };
+  const searched = useQuery<SearchResult | null>(
+    ["projectSearch", workplaceKey(target), JSON.stringify(current)],
+    (signal) =>
+      current.query
+        ? filesApi(
+            "GET /api/projects/:projectId/search",
+            workdirInput(target, {
+              q: current.query,
+              case: current.case_sensitive,
+              word: current.whole_word,
+              regex: current.regex,
+              include: current.include,
+              exclude: current.exclude,
+              ignore: current.use_ignore,
+            }),
+            { signal },
+          ).then((value) => ({ query: current, value }))
+        : Promise.resolve(null),
+    { delay: query ? DEBOUNCE_MS : 0, keepPrevious: true },
+  );
+  const result = searched.data ?? undefined;
+  // 探し直したら、外したものは忘れる（VS Code と同じ。外したものは、その結果のときだけ効く）
+  const [dismissedOf, setDismissedOf] = useState<{ of: SearchResult | undefined; paths: DismissedResults }>({ of: undefined, paths: new Set() });
+  const dismissed = dismissedOf.of === result ? dismissedOf.paths : NO_DISMISSED;
+
+  // 探した文字を履歴に残す（打っている途中の文字ではなく、結果が出たもの）
+  const resultQuery = result?.query.query;
+  // 結果が変わったときだけ（履歴が変わっても足し直さない）
+  const remember = useEffectEvent((text: string) => {
+    if (historyIndex.current < 0) setHistory(pushHistory(history, text));
+  });
+  useEffect(() => {
+    if (resultQuery) remember(resultQuery);
+  }, [resultQuery]);
+
+  const files = visibleResults(result?.value.files ?? [], dismissed);
+
+  return {
+    query,
+    setQuery: (next: string) => {
+      historyIndex.current = -1;
+      setQueryState(next);
+    },
+    options,
+    /** 「Aa」「ab」「.*」（ほかの検索の欄と同じ値）と切り替え */
+    findOptions: find.options,
+    toggleFind: find.toggle,
+    /** 除外設定と .gitignore を使うか（この検索だけ）を切り替える */
+    toggleIgnore: () => setUseIgnore(!useIgnore),
+    include,
+    setInclude,
+    exclude,
+    setExclude,
+    showDetails,
+    setShowDetails,
+    replace,
+    setReplace,
+    showReplace,
+    setShowReplace,
+    preserveCase,
+    setPreserveCase,
+    /** 表示している結果と、そのときの探し方（印・置換に使う） */
+    result,
+    /** 結果から外したものを除いたファイル */
+    files,
+    error: searched.error ? errorMessage(searched.error) : undefined,
+    loading: Boolean(query) && searched.loading,
+    rerun: () => query && void searched.reload(),
+    /** 結果からファイル（line なし）・行を外す */
+    dismiss: (path: string, line?: number) => setDismissedOf({ of: result, paths: new Set(dismissed).add(line === undefined ? path : lineKey(path, line)) }),
+    /** 検索の文字と結果を消す */
+    clear: () => {
+      historyIndex.current = -1;
+      setQueryState("");
+    },
+    /** 入力欄の ↑（older）・↓ で履歴をたどる。たどれなければ false */
+    stepHistory: (older: boolean): boolean => {
+      const next = historyIndex.current + (older ? 1 : -1);
+      if (next < -1 || next >= history.length) return false;
+      historyIndex.current = next;
+      setQueryState(next < 0 ? "" : history[next]);
+      return true;
+    },
+    /** フォルダーの中だけを探す（ファイルの木の右クリック。含めるファイルにフォルダーを入れ、詳細を開く） */
+    findInFolder: (folder: string) => {
+      setInclude(`./${folder}/`);
+      setShowDetails(true);
+    },
+  };
+}
+
+export type ProjectSearchController = ReturnType<typeof useProjectSearch>;

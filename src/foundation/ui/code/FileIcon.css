@@ -1,0 +1,10 @@
+/* ==== フォルダ・ファイルのアイコン（FileIcon） ==== */
+@layer ui {
+  /* フォルダ・ファイルのアイコン（Material Icon Theme） */
+
+  .file-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+}

@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import { draftScope, panelKey, parsePanelKey, windowScope } from "./surface";
+import { panelScreen, projectOfPanel } from "./surfaces";
+
+test("欄の覚える名前: 欄と画面から作り、読み戻せる（下書きの保存のキーと同じ形）", () => {
+  assert.equal(panelKey("kanban", 3), "kanban:3");
+  assert.equal(panelKey("kanban", "all"), "kanban:all");
+  assert.equal(panelKey("side", 3), "side:3");
+  assert.equal(panelKey("bottom", "all"), "bottom:all");
+  assert.deepEqual(parsePanelKey("bottom:all"), { surface: "bottom", scope: "all" });
+  assert.deepEqual(parsePanelKey("side:12"), { surface: "side", scope: 12 });
+  for (const bad of ["side", "side:none", "side:0", "panel:3", "kanban:1.5", ""]) assert.equal(parsePanelKey(bad), undefined, bad);
+});
+
+test("欄が出る画面: 全プロジェクトの欄（ボード・フッター）は全プロジェクトの画面、プロジェクトの欄はそのプロジェクトのボード", () => {
+  assert.deepEqual(panelScreen("kanban:all"), { name: "allProjects" });
+  // kanban 以外の全プロジェクトの欄（フッター）も、ID が NaN のプロジェクトの画面にしない
+  assert.deepEqual(panelScreen("bottom:all"), { name: "allProjects" });
+  assert.deepEqual(panelScreen("bottom:4"), { name: "project", id: 4, tab: "board" });
+  assert.deepEqual(panelScreen("side:4"), { name: "project", id: 4, tab: "board" });
+  // ボードの右のパネルは、チャットをボードと分けているとき（初め）は「チャット」タブ
+  assert.deepEqual(panelScreen("kanban:4"), { name: "project", id: 4, tab: "chats" });
+  assert.equal(panelScreen("side:none"), undefined);
+});
+
+test("サブエージェントの欄: チャットごとの名前（agents:<チャット>）で覚え、下書きを持たないので移る先はない", () => {
+  assert.equal(panelKey("agents", 33), "agents:33");
+  assert.deepEqual(parsePanelKey("agents:33"), { surface: "agents", scope: 33 });
+  // チャットの ID をプロジェクトの ID と取り違えて、別のプロジェクトのボードへ移らない
+  assert.equal(panelScreen("agents:33"), undefined);
+});
+
+test("送る前の新しいチャットの右の欄: 下書きのタブの key ごとの名前（agents:draft-<key>）で覚え、読み戻せ、移る先はない", () => {
+  const key = panelKey("agents", draftScope("new-abc"));
+  assert.equal(key, "agents:draft-new-abc");
+  assert.deepEqual(parsePanelKey(key), { surface: "agents", scope: "draft-new-abc" });
+  assert.equal(panelScreen(key), undefined);
+  assert.equal(parsePanelKey("agents:draft-"), undefined);
+});
+
+test("ブラウザの別ウィンドウの欄: プロジェクトと開いたタブのキーの名前（win:win-<プロジェクト>-<キー>）で覚え、プロジェクトを読み戻せ、移る先はない", () => {
+  const key = panelKey("win", windowScope(21, "browser:1:abc"));
+  assert.equal(key, "win:win-21-browser:1:abc");
+  assert.deepEqual(parsePanelKey(key), { surface: "win", scope: "win-21-browser:1:abc" });
+  assert.equal(projectOfPanel(key), 21);
+  assert.equal(panelScreen(key), undefined);
+  // プロジェクトのないものは 0 で、プロジェクトは null
+  assert.equal(projectOfPanel(panelKey("win", windowScope(null, "browser:2:def"))), null);
+});

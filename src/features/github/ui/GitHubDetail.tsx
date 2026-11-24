@@ -1,0 +1,187 @@
+import "./GitHubDetail.css";
+import { useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
+import type { GitHubPullDetail } from "@shared/github/types";
+import type { GitHubKind } from "@shared/chat/types";
+import { githubApi } from "@/features/github/ui/api/github";
+import { cx } from "@/foundation/ui/lib/cx";
+import { CopyButton } from "@/foundation/ui/kit/CopyButton";
+import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
+import { reportFailure } from "@/foundation/ui/kit/ask";
+import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { Segmented } from "@/foundation/ui/kit/Segmented";
+import { GitHubHtml } from "./GitHubHtml";
+import { GitHubChecksList } from "./GitHubChecksList";
+import { GitHubLinkedPulls, GitHubMergeBadges } from "./GitHubDetailBadges";
+import { GitHubPullChanges } from "./GitHubPullChanges";
+import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
+import { GitHubStateChip } from "./GitHubStateIcon";
+import { GitHubAuthor, GitHubTime, GitHubTimeline } from "./GitHubTimeline";
+import { GitHubHandoffMenu } from "./GitHubHandoffMenu";
+import { GitHubCommentBox } from "./GitHubCommentBox";
+import { GitHubLabelPicker } from "./GitHubLabelPicker";
+import { GitHubPullActions } from "./GitHubPullActions";
+import { GitHubDetailProvider, type GitHubDetailValue, type ThreadActions } from "./githubDetailContext";
+import { fixReviewComments } from "./githubHandoff";
+import { linkOf } from "./githubPrompt";
+import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
+import { useGitHubBodyActions } from "./useGitHubBodyActions";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+
+/** PR の中身の切り替え */
+const PR_VIEWS = ["conversation", "files", "checks"] as const;
+type PrView = (typeof PR_VIEWS)[number];
+const PR_VIEW_LABELS: Record<PrView, string> = { conversation: "会話", files: "変更", checks: "チェック" };
+
+const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
+
+/**
+ * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当・issue を閉じる PR、PR はブランチ・増減・レビュー・マージできるか・承認の数・衝突）と、
+ * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す。
+ * 書く: 会話の下のコメント欄（閉じる・開き直すも）・ラベル・URL のコピー、PR はチェックアウト・マージ・行のスレッドへの返信と解決・「変更」でのレビュー。
+ * 書いたら中身を取り直す
+ */
+export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: number; kind: GitHubKind; number: number; onBack?: () => void }) {
+  const detail = useGitHubDetail(projectId, kind, number);
+  const [view, setView] = useState<PrView>("conversation");
+  const data = detail.data;
+  const refresh = detail.refresh;
+  // 行のスレッドへの返信と解決（返信・解決済みにするのは人）。したら取り直す
+  const threadActions = useMemo<ThreadActions>(
+    () => ({
+      reply: async (thread, body) => {
+        await githubApi.githubReplyThread(projectId, number, thread.id, body);
+        refresh();
+      },
+      resolve: async (thread, resolved) => {
+        await githubApi.githubResolveThread(projectId, number, thread.id, resolved);
+        refresh();
+      },
+    }),
+    [projectId, number, refresh],
+  );
+  const setLabels = (labels: string[]) =>
+    void githubApi
+      .githubSetLabels(projectId, number, labels)
+      .then(refresh)
+      .catch(reportFailure("ラベルを変えられませんでした"));
+
+  return (
+    <section className="github-detail" aria-busy={detail.loading || undefined}>
+      <header className="github-detail-head bar">
+        <div className="github-detail-tools">
+          {onBack && <IconButton icon={ArrowLeft} label="一覧へ戻る" onClick={onBack} />}
+          {data && detail.loading && <span className="github-updating muted small">更新中…</span>}
+          <span className="github-detail-spacer" />
+          {data && <GitHubHandoffMenu projectId={projectId} detail={data} />}
+          <RefreshButton label="GitHub から取り直す" busy={detail.loading} onClick={detail.refresh} />
+          {data && <CopyButton label="URL をコピー" text={data.item.url} />}
+          {data && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => openInDefaultBrowser(data.item.url)} />}
+        </div>
+        {data && (
+          <>
+            <h2 className="github-detail-title">
+              {data.item.title} <span className="github-detail-number muted">#{data.item.number}</span>
+            </h2>
+            <div className="github-detail-meta">
+              <GitHubStateChip item={data.item} />
+              <GitHubAuthor user={data.item.author} />
+              <span className="muted small">
+                が作成 <GitHubTime iso={data.item.created_at} />
+              </span>
+              {isPull(data) && (
+                <span className="github-branches small">
+                  <code>{data.head_owner && data.head_owner !== data.item.url.split("/")[3] ? `${data.head_owner}:` : ""}{data.item.head_ref}</code> → <code>{data.item.base_ref}</code>
+                </span>
+              )}
+              {isPull(data) && (
+                <span className="github-diffstat small">
+                  <span className="github-add">+{data.additions}</span> <span className="github-del">−{data.deletions}</span>
+                  <span className="muted"> · {data.changed_files} ファイル</span>
+                </span>
+              )}
+              {data.item.review_decision && <span className={`github-review github-review-${data.item.review_decision}`}>{REVIEW_DECISION_LABELS[data.item.review_decision]}</span>}
+              {isPull(data) && <GitHubMergeBadges detail={data} />}
+              <GitHubLinkedPulls projectId={projectId} pulls={data.linked_pulls} />
+            </div>
+            {(data.item.labels.length > 0 || data.item.assignees.length > 0 || data.item.milestone || data.viewer.can_label || isPull(data)) && (
+              <div className="github-detail-meta">
+                {data.viewer.can_label && <GitHubLabelPicker key={data.item.labels.map((l) => l.name).join("\n")} projectId={projectId} selected={data.item.labels.map((l) => l.name)} onCommit={setLabels} />}
+                <GitHubLabels labels={data.item.labels} />
+                {data.item.assignees.length > 0 && <span className="muted small">担当: {data.item.assignees.map((a) => a.login).join("、")}</span>}
+                {data.item.milestone && <span className="muted small">マイルストーン: {data.item.milestone}</span>}
+                {isPull(data) && <GitHubPullActions projectId={projectId} detail={data} onChanged={refresh} />}
+              </div>
+            )}
+            {isPull(data) && data.item.state === "open" && data.mergeable === "conflicting" && (
+              <p className="github-conflict small">
+                <TriangleAlert size={13} aria-hidden /> base のブランチと衝突しています
+              </p>
+            )}
+            {isPull(data) && (
+              <Segmented
+                className="github-pr-views"
+                label="PR の中身の切り替え"
+                value={view}
+                onChange={setView}
+                options={PR_VIEWS.map((v) => ({ value: v, label: v === "conversation" ? PR_VIEW_LABELS[v] : `${PR_VIEW_LABELS[v]} ${v === "checks" ? data.checks.length : data.changed_files}` }))}
+              />
+            )}
+          </>
+        )}
+      </header>
+      <ErrorText message={detail.error ?? undefined} />
+      {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
+      {data && (
+        <DetailBody
+          projectId={projectId}
+          detail={data}
+          files={isPull(data) && view === "files"}
+          threadActions={isPull(data) ? threadActions : null}
+          handOffThread={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}
+        >
+          {isPull(data) && view === "checks" ? (
+            <GitHubChecksList projectId={projectId} checks={data.checks} />
+          ) : isPull(data) && view === "files" ? (
+            <GitHubPullChanges projectId={projectId} number={number} threads={data.review_threads} version={data.head_sha ?? data.fetched_at} headSha={data.head_sha} onChanged={refresh} />
+          ) : (
+            <>
+              <article className="github-entry github-body">
+                <div className="github-entry-head">
+                  <GitHubAuthor user={data.item.author} />
+                  <GitHubTime iso={data.item.created_at} />
+                </div>
+                <GitHubHtml html={data.body_html} />
+              </article>
+              <GitHubTimeline entries={data.timeline} threads={isPull(data) ? data.review_threads : []} truncated={data.timeline_truncated} />
+              <GitHubCommentBox key={`${kind}:${number}`} projectId={projectId} detail={data} onChanged={refresh} />
+            </>
+          )}
+        </DetailBody>
+      )}
+    </section>
+  );
+}
+
+/**
+ * 中身の本文の入れ物（本文の中のこのリポジトリの #番号 のリンクは Kickoff の中で開き、選んだ文は右クリックでチャットに追加。useGitHubBodyActions）。
+ * files は PR の「変更」（入れ物は流さず、中のファイルの木と差分がそれぞれ流れる）
+ */
+function DetailBody({
+  projectId,
+  detail,
+  files = false,
+  threadActions,
+  handOffThread,
+  children,
+}: { projectId: number; detail: Detail; files?: boolean; children: ReactNode } & Omit<GitHubDetailValue, "place">) {
+  const actions = useGitHubBodyActions(projectId, detail);
+  return (
+    <GitHubDetailProvider value={{ place: actions.place, threadActions, handOffThread }}>
+      <div className={cx("github-detail-body", files && "files")} onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
+        {children}
+        {actions.menu}
+      </div>
+    </GitHubDetailProvider>
+  );
+}

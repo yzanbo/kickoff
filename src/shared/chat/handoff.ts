@@ -1,7 +1,7 @@
 // 子チャットから親チャットへの依頼文の受け渡し（子チャットの AI に依頼文を書かせ、その返答を親に渡す）。
 // 頼み方の文・渡し方と渡したあとの選び方・作業の最後の返答の取り出し（コア・画面で同じものを使う。Node 依存なし）
-import type { ChatEvent, HandoffFrom, HandoffVia, MessageMarks } from "@shared/types";
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import type { ChatEvent, HandoffFrom, HandoffVia, MessageMarks } from "@shared/chat/chatEvent";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 
 /** 渡したあとの子チャット: そのまま / アーカイブ / 削除（削除は今すぐ送る・送信待ちで渡したときだけ。入力欄ならアーカイブにする） */
 export const HANDOFF_AFTERS = ["keep", "archive", "delete"] as const;

@@ -1,0 +1,175 @@
+import { initEffort, type SDKMessage } from "./wire";
+import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
+import { clipToolResult, contentText, setCompacting } from "@/features/ai/core/providers/shared/events";
+
+/**
+ * 1 回の実行の間だけ持つ、メッセージの変換の状態。
+ * 思考の時間（メインエージェントの分だけ）: 思考のブロックは、流れてくる途中経過（stream_event）で始まりと終わりが分かり、
+ * 中身は後から届く assistant に入る。
+ * サブエージェントでないタスク（裏のコマンドなど）: 途中経過・終了の知らせには種類が入らないので、始まりで覚えておいて除く
+ */
+export interface MessageState {
+  /** サブエージェント（local_agent）でないタスクの ID */
+  otherTasks: Set<string>;
+  /** 思考のブロックを始めた時刻（ブロックの番号ごと） */
+  starts: Map<number, number>;
+  /** 終わった思考のかかった時間（届いた順。assistant の思考のブロックに順に割り当てる） */
+  durations: number[];
+  /** 会話を圧縮している最中か（Claude Code の status の知らせ） */
+  compacting: boolean;
+  /** 入力を書いている途中のメインエージェントのツールの呼び出し（ブロックの番号 → ツールの名前） */
+  toolInputs: Map<number, string>;
+}
+
+export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false, toolInputs: new Map() });
+
+/** 次の思考のかかった時間（終わりの知らせより先に中身が届いたら、まだ終わっていない最初の思考の始まりから数える） */
+function takeThinkingDuration(state: MessageState, now: number): number | undefined {
+  const done = state.durations.shift();
+  if (done !== undefined) return done;
+  const first = [...state.starts.keys()].sort((a, b) => a - b)[0];
+  if (first === undefined) return undefined;
+  const start = state.starts.get(first)!;
+  state.starts.delete(first);
+  return now - start;
+}
+
+/** SDK のメッセージを Kickoff のイベントに変換する。init のときはセッション ID を返す */
+export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: MessageState = createMessageState(), now = Date.now()): string | undefined {
+  switch (msg.type) {
+    case "system":
+      if (msg.subtype === "init") {
+        const effort = initEffort(msg);
+        cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode, ...(effort !== undefined ? { effort } : {}) });
+        return msg.session_id;
+      }
+      // 会話の要約（手で圧縮したとき・上限に近づいて自動で圧縮されたとき）
+      if (msg.subtype === "compact_boundary") {
+        const { trigger, pre_tokens, post_tokens, duration_ms } = msg.compact_metadata;
+        // 要約の記録を先に残してから圧縮中を外す（圧縮中に預かった「いま」は外れたときに伝えるので、記録で圧縮の下に並ぶ）
+        cb.emit({
+          type: "compact",
+          trigger,
+          pre_tokens,
+          ...(post_tokens !== undefined ? { post_tokens } : {}),
+          ...(duration_ms !== undefined ? { duration_ms } : {}),
+        });
+        setCompacting(state, cb, false);
+        return undefined;
+      }
+      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を渡す（お知らせに残すかはコアが決める）。
+      // 終わりは段階のなくなった知らせ（null）だけで見る。Claude Code は API に問い合わせを始めるたびに requesting を送り、長い圧縮の間にも挟まりうる。
+      // それで圧縮中を外すと、圧縮が続いているのに画面の圧縮中の表示（円・圧縮中の行）が消える（区切り compact_boundary と作業の終わりでも外れる）
+      if (msg.subtype === "status") {
+        if (msg.status === "compacting") setCompacting(state, cb, true);
+        else if (msg.status === null) setCompacting(state, cb, false);
+        if (msg.compact_result === "failed") cb.compactFailed?.(msg.compact_error ?? null);
+        return undefined;
+      }
+      // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す。
+      // タスクには裏のコマンド（local_bash）なども入るので、サブエージェント（local_agent。種類のない古い CLI も）だけにする
+      if (msg.subtype === "task_started" && msg.task_type && msg.task_type !== "local_agent") {
+        state.otherTasks.add(msg.task_id);
+        return undefined;
+      }
+      if ("task_id" in msg && typeof msg.task_id === "string" && state.otherTasks.has(msg.task_id)) return undefined;
+      if (msg.subtype === "task_started") {
+        cb.emit({
+          type: "subagent",
+          task_id: msg.task_id,
+          tool_use_id: msg.tool_use_id,
+          description: msg.description,
+          subagent_type: msg.subagent_type,
+          status: "running",
+        });
+      } else if (msg.subtype === "task_progress") {
+        cb.subagentProgress?.({
+          task_id: msg.task_id,
+          tool_use_id: msg.tool_use_id,
+          description: msg.description,
+          subagent_type: msg.subagent_type,
+          status: "running",
+          tokens: msg.usage.total_tokens,
+          tool_uses: msg.usage.tool_uses,
+          duration_ms: msg.usage.duration_ms,
+          last_tool: msg.last_tool_name,
+        });
+      } else if (msg.subtype === "task_notification") {
+        cb.emit({
+          type: "subagent",
+          task_id: msg.task_id,
+          tool_use_id: msg.tool_use_id,
+          description: "",
+          status: msg.status,
+          tokens: msg.usage?.total_tokens,
+          tool_uses: msg.usage?.tool_uses,
+          duration_ms: msg.usage?.duration_ms,
+          summary: msg.summary,
+        });
+      }
+      return undefined;
+
+    case "assistant": {
+      // サブエージェントの発言は、どのサブエージェントのものかを残す（画面でその中身を見られるように）
+      const parent = msg.parent_tool_use_id ?? undefined;
+      const sub = parent ? { parent } : {};
+      for (const block of msg.message.content) {
+        if (block.type === "text" && block.text.trim()) {
+          cb.emit({ type: "text", text: block.text, ...sub });
+        } else if (block.type === "tool_use") {
+          cb.emit({ type: "tool_use", id: block.id, name: block.name, input: block.input, ...sub });
+        } else if (block.type === "thinking" || block.type === "redacted_thinking") {
+          // 中身が空（既定では思考の中身を返さない）でも、かかった時間が分かれば残す
+          const text = block.type === "thinking" ? block.thinking.trim() : "";
+          const duration = parent ? undefined : takeThinkingDuration(state, now);
+          if (text || duration !== undefined) {
+            cb.emit({ type: "thinking", text, ...(duration !== undefined ? { duration_ms: duration } : {}), ...sub });
+          }
+        }
+      }
+      return undefined;
+    }
+
+    case "user": {
+      const content = msg.message.content;
+      if (typeof content === "string") return undefined;
+      for (const block of content) {
+        if (block.type !== "tool_result") continue;
+        cb.emit({
+          type: "tool_result",
+          tool_use_id: block.tool_use_id,
+          content: clipToolResult(contentText(block.content)),
+          is_error: Boolean(block.is_error),
+          ...(msg.parent_tool_use_id ? { parent: msg.parent_tool_use_id } : {}),
+        });
+      }
+      return undefined;
+    }
+
+    case "stream_event": {
+      // メインエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
+      if (msg.parent_tool_use_id !== null) return undefined;
+      const event = msg.event;
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        cb.stream?.(event.delta.text);
+      } else if (event.type === "content_block_start" && (event.content_block.type === "thinking" || event.content_block.type === "redacted_thinking")) {
+        state.starts.set(event.index, now);
+      } else if (event.type === "content_block_start" && event.content_block.type === "tool_use") {
+        // ツールの入力を書き始めた・書き終えた（図のように中身が長いものは、書き終えるまで画面に出す。どれを出すかはコアが決める）
+        state.toolInputs.set(event.index, event.content_block.name);
+        cb.toolInputStreaming?.(event.content_block.name, true);
+      } else if (event.type === "content_block_stop" && state.toolInputs.has(event.index)) {
+        cb.toolInputStreaming?.(state.toolInputs.get(event.index)!, false);
+        state.toolInputs.delete(event.index);
+      } else if (event.type === "content_block_stop" && state.starts.has(event.index)) {
+        state.durations.push(now - state.starts.get(event.index)!);
+        state.starts.delete(event.index);
+      }
+      return undefined;
+    }
+
+    default:
+      return undefined;
+  }
+}
+

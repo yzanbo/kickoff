@@ -1,0 +1,28 @@
+/* ==== 状態ごとの数（StateStats） ==== */
+@layer feature {
+  /* 状態ごとの数のボタン（一覧は左端に合わせて右へ開く。見出しはドラッグ領域なので no-drag。狭くても縮めない） */
+
+  .state-stats {
+    position: relative;
+    flex: none;
+    -webkit-app-region: no-drag;
+  }
+
+  .state-stats-button {
+    display: inline-flex;
+    gap: 6px;
+    padding: 2px;
+    border: none;
+    border-radius: 999px;
+    font: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* 札（ToneChip）は、乗せた・開いている間だけ地を少し濃くして押せると分かるようにする */
+
+  .state-stats-button:hover .tone-chip,
+  .state-stats-button[aria-expanded="true"] .tone-chip {
+    background: color-mix(in srgb, var(--head-color) 24%, transparent);
+  }
+}

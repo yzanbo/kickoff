@@ -1,0 +1,206 @@
+// 時刻の表示（相対時刻・使用枠のリセットまでの時間）
+
+/**
+ * 日時を文字にする書式（toLocale*String と同じ選択肢。どれも時・日付の項目を持つので、Intl.DateTimeFormat の format と同じ文字になる）。
+ * toLocale*String は呼ぶたびに Intl の準備をやり直して重いので、書式ごとに作り置いて使い回す（流れの項目・一覧の行ごとに呼ぶため）
+ */
+const DATE_FORMATS = {
+  clock: { hour: "2-digit", minute: "2-digit" },
+  clockSeconds: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
+  monthDay: { month: "numeric", day: "numeric" },
+  monthDayWeekday: { month: "numeric", day: "numeric", weekday: "short" },
+} as const satisfies Record<string, Intl.DateTimeFormatOptions>;
+type DateFormatName = keyof typeof DATE_FORMATS;
+
+/**
+ * 時間帯（タイムゾーン）を見直す間隔。Intl.DateTimeFormat は作ったときの時間帯を覚えるので、Mac の時間帯を変えたらこの間に作り直す
+ * （毎回見直すと、それ自体が Intl の準備になる。夏時間の切り替えは時間帯が同じなので format が正しく扱う）
+ */
+export const ZONE_CHECK_MS = 60_000;
+let formatters: Partial<Record<DateFormatName, Intl.DateTimeFormat>> = {};
+let zone: string | undefined;
+let zoneCheckedAt = -Infinity;
+
+function formatterOf(name: DateFormatName): Intl.DateTimeFormat {
+  const now = Date.now();
+  if (now - zoneCheckedAt >= ZONE_CHECK_MS || now < zoneCheckedAt) {
+    zoneCheckedAt = now;
+    const current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (current !== zone) {
+      zone = current;
+      formatters = {};
+    }
+  }
+  return (formatters[name] ??= new Intl.DateTimeFormat("ja-JP", DATE_FORMATS[name]));
+}
+
+/** 日時を書式で文字にする（toLocale*String と同じ文字。不正な日時は toLocale*String と同じく "Invalid Date"。format は投げるので先に見る） */
+function formatDate(date: Date, name: DateFormatName): string {
+  return Number.isNaN(date.getTime()) ? "Invalid Date" : formatterOf(name).format(date);
+}
+
+/** 作り置きの書式を捨てる（時間帯を替えるテストのあとに呼ぶ。テストは同じプロセスで続けて流れるので、ほかのファイルに残さない） */
+export function resetDateFormats() {
+  formatters = {};
+  zone = undefined;
+  zoneCheckedAt = -Infinity;
+}
+
+/** 相対時刻の形 */
+export type RelativeStyle = "long" | "short" | "ago";
+
+/**
+ * どれだけ前か。style の既定 long は「たった今」「5分前」「3時間前」、1 日より前は日付（11/1）。
+ * short は狭い所（サイドバーの行）向けに「今」「5分」「23時間」「3日」、7 日より前は日付（「前」は付けない）。
+ * ago は日付にしない（VS Code の GitLens と同じ形: たった今・5分前・3時間前・5日前・2か月前・1年前）
+ */
+export function relativeTime(iso: string, { style = "long", now = Date.now() }: { style?: RelativeStyle; now?: number } = {}): string {
+  const diff = (now - new Date(iso).getTime()) / 1000;
+  const ago = style === "short" ? "" : "前";
+  if (diff < 60) return style === "short" ? "今" : "たった今";
+  if (diff < 3600) return `${Math.floor(diff / 60)}分${ago}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}時間${ago}`;
+  const days = Math.floor(diff / 86400);
+  if (style === "ago") {
+    if (days < 30) return `${days}日前`;
+    if (days < 365) return `${Math.floor(days / 30)}か月前`;
+    return `${Math.floor(days / 365)}年前`;
+  }
+  if (style === "short" && days < 7) return `${days}日`;
+  return formatDate(new Date(iso), "monthDay");
+}
+
+/** リセットまでの表示（5 時間枠は残り時間、週枠は日時） */
+export function formatReset(resetsAt: string | null, now = Date.now()): string | null {
+  if (!resetsAt) return null;
+  const at = new Date(resetsAt);
+  const diffMin = Math.max(0, Math.round((at.getTime() - now) / 60_000));
+  if (diffMin < 24 * 60) {
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+    return `あと ${h > 0 ? `${h}時間` : ""}${m}分でリセット`;
+  }
+  const date = formatDate(at, "monthDayWeekday");
+  const time = formatDate(at, "clock");
+  return `${date} ${time} にリセット`;
+}
+
+/** リセットまでの残りを短く（"3日後" / "5時間後" / "12分後"） */
+export function resetInShort(resetsAt: string | null, now = Date.now()): string | null {
+  if (!resetsAt) return null;
+  const min = Math.max(0, Math.round((new Date(resetsAt).getTime() - now) / 60_000));
+  if (min >= 24 * 60) return `${Math.round(min / (24 * 60))}日後`;
+  if (min >= 60) return `${Math.round(min / 60)}時間後`;
+  return `${min}分後`;
+}
+
+/** 時刻だけ（"14:05"） */
+export function formatClock(iso: string): string {
+  return formatDate(new Date(iso), "clock");
+}
+
+/** 日時を、今日・昨日は時刻つきの短い形で（"今日 22:06" / "昨日 21:25" / "10月25日 22:01" / "2025/3/1"）。履歴の表に使う */
+export function formatDayTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(now) - day(date)) / 86_400_000);
+  const clock = formatClock(iso);
+  if (diff === 0) return `今日 ${clock}`;
+  if (diff === 1) return `昨日 ${clock}`;
+  if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日 ${clock}`;
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+/**
+ * 発言の時刻: 今日なら時刻（"14:05"）、7 日以内なら曜日と時刻（"水曜 14:05"）、それより前は日付（"10月25日" / "2025/3/1"）。
+ * 乗せたときの title には、いつでも年月日と時刻を出す（formatFullDateTime）
+ */
+export function formatMessageTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(now) - day(date)) / 86_400_000);
+  if (diff <= 0) return formatClock(iso);
+  if (diff < 7) return `${"日月火水木金土"[date.getDay()]}曜 ${formatClock(iso)}`;
+  if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日`;
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+/** 年月日と時刻（"2026/11/3 14:05"。乗せたときの title に） */
+export function formatFullDateTime(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${formatClock(iso)}`;
+}
+
+/** 始まりから終わり（なければ now）までのミリ秒（始まりがない・時刻がおかしい・負なら null。チェック・ジョブの所要時間） */
+export function elapsedBetween(start: string | null, end: string | null, now = Date.now()): number | null {
+  if (!start) return null;
+  const ms = (end ? Date.parse(end) : now) - Date.parse(start);
+  return Number.isFinite(ms) && ms >= 0 ? ms : null;
+}
+
+/**
+ * かかった時間。既定は短く、ちょうどのときは下の単位を付けない（"8秒" / "1分23秒" / "1分" / "1時間5分"。作業中の経過時間・作業にかかった時間）。
+ * full はいちばん大きい単位から下をすべて出す（"1分0秒" / "1時間2分5秒"。処理の実行時間）
+ */
+export function formatDuration(ms: number, { full = false }: { full?: boolean } = {}): string {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (full) {
+    if (h > 0) return `${h}時間${m}分${s}秒`;
+    if (m > 0) return `${m}分${s}秒`;
+    return `${s}秒`;
+  }
+  if (h > 0) return `${h}時間${m ? `${m}分` : ""}`;
+  if (m > 0) return `${m}分${s ? `${s}秒` : ""}`;
+  return `${s}秒`;
+}
+
+/** 秒まで出す時刻（"08:34:12"） */
+const clockWithSeconds = (date: Date) => formatDate(date, "clockSeconds");
+const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/** 日付の部分（今年なら "11/4"、ほかの年は "2025/11/4"） */
+const shortDay = (date: Date, now: Date) =>
+  date.getFullYear() === now.getFullYear() ? `${date.getMonth() + 1}/${date.getDate()}` : `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+
+/** 処理の時刻（秒まで。ツールの実行・思考など）: 今日なら時刻だけ（"08:34:12"）、別の日なら日付も（"11/4 08:34:12" / "2025/11/4 08:34:12"） */
+export function formatStamp(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  return sameDay(date, now) ? clockWithSeconds(date) : `${shortDay(date, now)} ${clockWithSeconds(date)}`;
+}
+
+/**
+ * 処理の時間の範囲（"08:34:12 – 08:36:40"）。終わりが始まりと同じ日なら終わりには日付を付けず、日をまたいだら付ける。
+ * 始まりと終わりが同じ秒なら 1 つだけ（"08:34:12"）
+ */
+export function formatStampRange(start: string, end: string, now = new Date()): string {
+  const from = new Date(start);
+  const to = new Date(end);
+  if (sameDay(from, to) && clockWithSeconds(from) === clockWithSeconds(to)) return formatStamp(start, now);
+  return `${formatStamp(start, now)} – ${sameDay(from, to) ? clockWithSeconds(to) : `${shortDay(to, now)} ${clockWithSeconds(to)}`}`;
+}
+
+/**
+ * 出している開始と終了の時刻の差（秒より下を切り捨てた時刻どうしの差。"13:27:37 – 13:27:38" なら 1秒）。
+ * 実際の長さ（0.6 秒など）を切り捨てると、時刻は 1 秒違うのに「0秒」と出て、並べた時刻と合わない
+ */
+export function formatStampRunTime(start: string, end: string): string {
+  const seconds = Math.floor(Date.parse(end) / 1000) - Math.floor(Date.parse(start) / 1000);
+  return formatDuration(seconds * 1000, { full: true });
+}
+
+/**
+ * 終わった処理の範囲と実行時間（"08:34:12 – 08:36:40 · 2分28秒"。1 件の行の「始めた時刻 · かかった時間」と同じ形）。
+ * 実行時間は、並べた開始と終了の時刻の差（formatStampRunTime）。始まりと終わりが同じ秒で時刻が 1 つだけになるときは、実行時間を添えない
+ */
+export function formatStampRangeWithRunTime(start: string, end: string, now = new Date()): string {
+  const range = formatStampRange(start, end, now);
+  return range === formatStamp(start, now) ? range : `${range} · ${formatStampRunTime(start, end)}`;
+}
+
+/** 年月日と秒までの時刻（"2026/11/5 08:34:12"。処理の時刻に乗せたときの title に） */
+export function formatFullStamp(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${clockWithSeconds(date)}`;
+}

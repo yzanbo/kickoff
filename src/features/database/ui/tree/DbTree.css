@@ -1,0 +1,164 @@
+/* ==== DB の接続と中身の木（DbTree。行は土台の TreeView） ==== */
+@layer feature {
+  /* 木 */
+
+  .db-tree {
+    flex: 1;
+    min-height: 0;
+    padding: 4px 0 12px;
+    overflow: auto;
+  }
+
+  .db-tree-row.tree-row {
+    gap: 5px;
+    height: var(--row-tight);
+    padding: 0 8px 0 var(--tree-left);
+    --tree-indent: 14px;
+    font-size: var(--fs-13);
+  }
+
+  .db-tree-row > svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .db-tree-chevron {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 12px;
+    color: var(--muted);
+  }
+
+  .db-tree-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 接続の行の名前の後ろの「つないでいる」印（木・テーブル・SQL のタブの接続が開いている間） */
+
+  .db-tree-connected {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+  }
+
+  .db-tree-connection .db-tree-label {
+    font-weight: 600;
+  }
+
+  /* 接続の行の左の色の線（環境。ホームのカードと同じ色） */
+
+  .db-tree-connection {
+    box-shadow: inset 3px 0 0 var(--db-env, var(--extra-muted));
+  }
+
+  .db-tree-lock {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    color: var(--muted);
+  }
+
+  .db-tree-note {
+    flex: none;
+    font-size: var(--fs-11);
+    color: var(--extra-muted);
+  }
+
+  /* テーブルの中の段: 主キーの列は鍵の色、列・インデックスなどの葉は少し小さく */
+
+  .db-tree-row > svg.db-tree-pk {
+    color: var(--warn);
+  }
+
+  .db-tree-leaf.tree-row,
+  .db-tree-group.tree-row {
+    font-size: var(--fs-12);
+  }
+
+  /* 名前を先に見せ、残りの幅に型などを右寄せで（足りなければ型の方を省く） */
+
+  .db-tree-leaf .db-tree-label {
+    flex: 0 1 auto;
+  }
+
+  .db-tree-leaf .db-tree-note {
+    flex: 1 1 0;
+    min-width: 48px;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-tree-group .db-tree-label {
+    color: var(--muted);
+  }
+
+  .db-tree-error.tree-row,
+  .db-tree-hint.tree-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    padding: 3px 8px 4px var(--tree-left);
+    --tree-pad: 26px;
+    --tree-indent: 14px;
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  .db-tree-error.tree-row {
+    color: var(--ng);
+  }
+
+  /* DB クライアントの左の一覧の補い: 下の帯（つないでいる数・AI に見せる数）・ピン留めの行・探す窓の注意・木の軽さ */
+
+  /* 木の行は、画面の外にある間は描かない（テーブルの多い DB でも開いた段を軽く保つ。行の高さは決まっている） */
+
+  .db-tree-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--row-tight);
+  }
+
+  /* 縦の線は開閉の矢印（左の余白 6px ＋ 幅 12px）の真ん中に、段ごとに 14px */
+
+  .db-tree {
+    --tree-guide-left: 12px;
+    --tree-guide-step: 14px;
+  }
+
+  /* 案内・失敗の行は押せる行に見せない */
+
+  .db-tree-error:hover,
+  .db-tree-hint:hover {
+    background: transparent;
+    cursor: default;
+  }
+
+  .db-tree-row > svg.db-tree-pin {
+    color: var(--accent);
+  }
+
+  /* 木の接続の行の名前の後ろの、手順ノートがあることの小さな印 */
+
+  .db-tree-note {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    color: var(--extra-muted);
+  }
+
+  /* 木の接続の行の「確かめる日が来た」印 */
+
+  .db-tree-check {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    color: var(--warn);
+  }
+}
