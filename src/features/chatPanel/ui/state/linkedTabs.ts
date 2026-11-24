@@ -1,6 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { chatTab, type SurfaceExt } from "@/features/panel/ui";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import { chatTab, type SurfaceExt, type PanelTab } from "@/features/panel/ui";
 
 /** サイドバーと連動したチャットのタブの覚え（パネルごと） */
 export interface LinkState {

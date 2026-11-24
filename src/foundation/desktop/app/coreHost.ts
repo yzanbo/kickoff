@@ -2,9 +2,9 @@
 // （通知・詰まり）・様子の配り先（画面の帯の IPC core.onState）
 import path from "node:path";
 import { app } from "electron";
-import { recordCoreStall } from "@/foundation/desktop/diagnostics/stalls";
+import { recordCoreStall } from "@/foundation/desktop/app/stalls";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
-import { notifyFromCore } from "@/foundation/desktop/notifications/notifications";
+import { notifyFromCore } from "@/foundation/desktop/app/notifications";
 import { hostPlatform } from "@/foundation/desktop/platform/index";
 import { COMPILE_CACHE_ARG } from "@/foundation/core/system/compileCache";
 import { prefixedHandlers, type Prefixed } from "@/foundation/core/host/protocol";

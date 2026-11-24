@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/foundation/ui/kit/markdown/markdownFileLinks";
+import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/foundation/ui/markdown/markdownFileLinks";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ChatFileLinksContext, openByClick, type ChatFileLinks, type ChatFileSource } from "@/features/chat/ui";
 import { FileMenu } from "./FileMenu";

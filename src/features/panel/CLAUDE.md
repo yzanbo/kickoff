@@ -4,9 +4,9 @@
 
 ## 地図
 - `ui/surface.ts`: 欄の口（`defineSurface`・`panelSurfaces`・`panelKey(欄, scope)`・`parsePanelKey`）。欄の一覧は `PANEL_SURFACE_IDS` が正
-- `ui/kind.ts`: タブの種類の口（`defineTabKind`・`panelTabs`・`kindOf(tab)`）。`ui/tabs/`: 作る関数 `tabData.ts`・型 `panelTypes.ts`・`TabPageFrame`
+- `ui/kind.ts`: タブの種類の口（`defineTabKind`・`panelTabs`・`kindOf(tab)`）。作る関数 `ui/tabData.ts`・型 `ui/panelTypes.ts`。`ui/tabs/`: `TabPageFrame`・ドラッグ `useTabDrag`・`tabTransfer.ts`
 - `ui/state/`: `panelReducer`（純粋）・店 `panelStore.ts`・操作 `actions.ts`（`openTab`・`openInFocusedPane`・`mapTabs`）
-- `ui/layout/`: ペインの木 `paneTree.ts`・`paneLayout.ts`・`paneGeometry.ts`・ドラッグ `useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`
+- `ui/layout/`: ペインの木 `paneTree.ts`・`paneLayout.ts`・`paneGeometry.ts`・`tabDragOut.ts`
 - `ui/TabBar`（並べ方は欄の `Strip`、既定 `PlainStrip`）・`ui/popout/`・`ui/openWith/`（開く場所 `terminalTargetOf`）
 - 欄の殻: チャットのパネルと右の欄は `@/features/chatPanel/ui/`、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`
 

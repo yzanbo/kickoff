@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { makeGroup } from "@shared/groups/testing";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";
 import { OTHER_CLUSTER } from "./tabClusters";
 

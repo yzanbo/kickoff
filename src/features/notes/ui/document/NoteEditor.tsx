@@ -7,7 +7,7 @@ import { tags } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
 import type { MutableRefObject } from "react";
 import type { NoteKind } from "@shared/notes/kinds";
-import { useCodeMirror } from "@/foundation/ui/hooks/useCodeMirror";
+import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";

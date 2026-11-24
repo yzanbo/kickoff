@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { selectionToMarkdown } from "@/foundation/ui/kit/markdown/selectionMarkdown";
+import { selectionToMarkdown } from "@/foundation/ui/markdown/selectionMarkdown";
 
 /**
  * 中の文を選んで「チャットに追加」・右クリックできる所（会話の流れ・サブエージェントの画面の手順）の印。

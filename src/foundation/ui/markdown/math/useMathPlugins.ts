@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createCell, useCell } from "@/foundation/ui/store";
-import type { MathPlugins } from "@/foundation/ui/kit/markdown/markdownProcessor";
+import type { MathPlugins } from "@/foundation/ui/markdown/markdownProcessor";
 import { remarkMathGuard } from "./remarkMathGuard";
 
 // KaTeX は大きいので、数式が出てきたときに初めて読み込む（読み込んだら、すべての Markdown で使う）

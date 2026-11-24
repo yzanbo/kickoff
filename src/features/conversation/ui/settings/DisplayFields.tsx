@@ -3,7 +3,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useCommandKeys } from "@/foundation/ui/commands";
 import { ChoiceField, SwitchField } from "@/foundation/ui/kit/ChoiceField";
 import { storage } from "@/features/conversation/ui/storage";
-import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
+import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/conversation/ui/display/chatFontSize";
 
 /** 会話の文字の大きさ */
 export function ChatFontSizeField() {

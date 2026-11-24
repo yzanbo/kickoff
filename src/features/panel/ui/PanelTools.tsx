@@ -5,7 +5,7 @@ import { useCommandKeys } from "@/foundation/ui/commands";
 import { surfaceOf } from "./state/panelStore";
 import { PanelViewButton, type PanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import type { TerminalTarget } from "@/features/panel/ui/panelTypes";
 
 /** 欄の殻（大きさを持つ側）から Panel に渡すもの。大きさの変え方は欄ごとに違うので、殻に残す */
 export interface PanelFrame {

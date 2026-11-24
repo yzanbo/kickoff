@@ -11,7 +11,7 @@ import { promptListOf } from "@/features/conversation/ui/promptList/promptHistor
 import { collectTodoList } from "@/features/conversation/ui/todo/todoList";
 import { lastResultIdOf } from "@/features/conversation/ui/working/workingLabel";
 import { failedTurnOf } from "@/features/conversation/ui/rewind/retryActions";
-import { groupEvents, type TimelineItem } from "./timelineItems";
+import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timelineItems";
 import { itemIndexOfEvent } from "./timelineWindow";
 
 // chat の記録の範囲（索引 ＋ 末尾。@/features/chat/ui/store/chatLog.ts）から作った画面のものが、記録の全件から作ったものと同じか

@@ -11,8 +11,8 @@ import { terminalTargetOf } from "./externalTargets";
 import { kindOf } from "@/features/panel/ui/state/panelStore";
 import { OpenWithMenu } from "./OpenWithMenu";
 import { openTab } from "@/features/panel/ui/state/actions";
-import { terminalTab } from "@/features/panel/ui/tabs/tabData";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import { terminalTab } from "@/features/panel/ui/tabData";
+import type { TerminalTarget } from "@/features/panel/ui/panelTypes";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";

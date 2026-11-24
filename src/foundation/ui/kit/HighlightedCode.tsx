@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
+import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import { CodeLine } from "./CodeLine";
 
 /**

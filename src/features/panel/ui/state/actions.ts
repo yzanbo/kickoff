@@ -3,8 +3,8 @@
 import { findPane, focusedPane, type PaneLayout, type SplitDir, type SplitSide } from "@/features/panel/ui/layout/paneTree";
 import { focusPane as focusLayoutPane, moveTab as moveLayoutTab, returnToHome as returnLayoutToHome, splitPane as splitLayoutPane } from "@/features/panel/ui/layout/paneLayout";
 import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { newTabKey } from "@/features/panel/ui/tabs/tabData";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
+import { newTabKey } from "@/features/panel/ui/tabData";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { panelScreen } from "@/features/panel/ui/surfaces";
 import type { TabPatch } from "./panelState";

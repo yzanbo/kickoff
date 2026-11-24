@@ -4,7 +4,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { seedDevData } from "./devData";
-import { APPLICATION_ID } from "@/foundation/core/db/db";
+import { APPLICATION_ID } from "./db";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("seedDevData: 開発の保存先がなければ、本番のデータを一度だけ写す（起動中の印・キャッシュは写さない）", () => {

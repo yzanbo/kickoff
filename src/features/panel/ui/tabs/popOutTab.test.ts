@@ -5,7 +5,7 @@ import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
 import { openTab } from "@/features/panel/ui/state/actions";
-import { browserTab } from "./tabData";
+import { browserTab } from "@/features/panel/ui/tabData";
 import { popOutTab } from "./popOutTab";
 
 installMemoryStorage();

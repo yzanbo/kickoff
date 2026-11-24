@@ -13,7 +13,7 @@ import { layoutRects } from "@/features/panel/ui/layout/paneGeometry";
 import { leavesOf, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import { TabMenu } from "@/features/panel/ui/tabs/TabMenu";
 import { useTabRename } from "@/features/panel/ui/tabs/useTabRename";
-import { useTabDrag } from "@/features/panel/ui/layout/useTabDrag";
+import { useTabDrag } from "@/features/panel/ui/tabs/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
 import { OpenWithContext } from "@/features/panel/ui/openWith/OpenWithAdds";

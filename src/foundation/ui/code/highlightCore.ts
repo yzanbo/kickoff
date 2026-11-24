@@ -2,7 +2,7 @@
 // DOM に触れない
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
-import { findHeredocs } from "@/foundation/ui/lib/heredoc";
+import { findHeredocs } from "@/foundation/ui/code/heredoc";
 import type { HighlightLanguage } from "./highlightLanguages";
 import { isHighlightLanguage } from "./highlightLanguages";
 import type { CodeToken } from "@/foundation/ui/lib/tokenCodec";

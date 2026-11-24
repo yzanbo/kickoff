@@ -1,7 +1,7 @@
 import { CodeXml, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { ZOOM_STEP } from "@/foundation/ui/kit/imageViewer/imageZoom";

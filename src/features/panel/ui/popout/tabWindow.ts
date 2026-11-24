@@ -8,11 +8,11 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/panel/ui/storage";
 import type { TransferredTab } from "@/features/panel/ui/kind";
-import { loadTransferredTab } from "@/features/panel/ui/layout/tabTransfer";
+import { loadTransferredTab } from "@/features/panel/ui/tabs/tabTransfer";
 import { openTab, setPanelOpen, showTab } from "@/features/panel/ui/state/actions";
 import { kindOf, panelStateOf, setPanelOwnership, subscribePanels } from "@/features/panel/ui/state/panelStore";
 import { panelKey, windowScope } from "@/features/panel/ui/surface";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 
 /** タブの列のある別ウィンドウの行き先（ブラウザ・チャット） */
 export type TabWindowRoute = Extract<PopoutRoute, { kind: "browser" | "chats" }>;

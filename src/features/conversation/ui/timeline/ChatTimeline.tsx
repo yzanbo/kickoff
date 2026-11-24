@@ -11,7 +11,7 @@ import { useStickyPrompt } from "@/features/conversation/ui/promptList/useSticky
 import { useWorkingStatus } from "@/features/conversation/ui/working/useWorkingStatus";
 import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
-import { useChatDisplayMenu } from "@/features/conversation/ui/screen/useChatDisplayMenu";
+import { useChatDisplayMenu } from "@/features/conversation/ui/display/useChatDisplayMenu";
 import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { activeFloor, TimelineRows } from "./Timeline";

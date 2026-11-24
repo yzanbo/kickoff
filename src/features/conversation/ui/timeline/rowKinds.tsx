@@ -8,7 +8,7 @@ import { AssistantMessage } from "@/features/conversation/ui/messages/AssistantM
 import { SubagentCard, SubagentEndNote } from "@/features/subagents/ui";
 import { MemoVisualItem } from "@/features/visuals/ui";
 import { CompactedRow } from "@/features/compact/ui";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
 import { ROW_ESTIMATES, type EstimateContext, type EstimateKind } from "./rowEstimate";
 import { TurnEnd } from "./TurnEnd";
 import { Thinking } from "./rows/Thinking";

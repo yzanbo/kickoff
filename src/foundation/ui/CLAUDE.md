@@ -9,8 +9,8 @@
 - `navigation/`: ルーター `router.ts`（`useRoute`）・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・履歴 `navigationHistory.ts`
 - `points.ts`: 拡張点 `definePoint`（入れるのは `@/app/renderer/registry.ts` だけ。部品は `lazyPart`）
 - `kit/`: `IconButton`・`Popover`・`PopupMenu`・`ask.ts`・`Dialog`・`Field` ほか・`StatusDot`・`Markdown`・`dragGhost.ts`・`drag/`・`tabs/`・`usePageFind`・アイコン `icons.ts`
-- `hooks/`: `useWindowEvent`・`useLatest`・`useSizeObserver`・`useNearViewport`・`useAction`・`useRovingList`・`useTree`・`useDragSize`・`useOverflowCompact`・`useTicker`・`useCodeMirror`
-- `lib/`（`keys.ts`・`time.ts`・`textFind.ts`・アプリの中か `desktopApp.ts`）・`document/`（`useDocument`）・`workplace/`（ワークツリーの口 `worktreeSource`・ファイルの一覧 `listWorkplaceFiles` は持ち主の機能が登録）・`external/`・`code/`・`markdown/`・`diff/`・`theme/`・`shell/`（`appHosts`・`openAppDialog`・`footerItems`）・`testing/`
+- `hooks/`: `useWindowEvent`・`useLatest`・`useSizeObserver`・`useNearViewport`・`useAction`・`useRovingList`・`useTree`・`useDragSize`・`useOverflowCompact`・`useTicker`
+- `lib/`（`keys.ts`・`time.ts`・`textFind.ts`・アプリの中か `desktopApp.ts`）・`document/`（`useDocument`）・`workplace/`（ワークツリーの口 `worktreeSource`・ファイルの一覧 `listWorkplaceFiles` は持ち主の機能が登録）・`external/`・`code/`（`useCodeMirror`）・`markdown/`・`diff/`・`theme/`・`shell/`（`appHosts`・`openAppDialog`・`footerItems`）・`testing/`
 
 ## 決まり
 - 土台は機能・`app` を読まない。機能のものが要るときは拡張点か引数で受ける。

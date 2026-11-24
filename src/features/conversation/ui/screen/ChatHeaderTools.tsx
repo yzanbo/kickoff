@@ -7,9 +7,9 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { useActivityNav, useChatScreen, type ChatShowing } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
-import { useChatHeaderItems, useChatHeaderOrder } from "./ChatDisplayMenu";
-import { ChatFontSizeButton } from "./ChatFontSizeButton";
-import { TextWidthToggle } from "./TextWidthToggle";
+import { useChatHeaderItems, useChatHeaderOrder } from "@/features/conversation/ui/display/ChatDisplayMenu";
+import { ChatFontSizeButton } from "@/features/conversation/ui/display/ChatFontSizeButton";
+import { TextWidthToggle } from "@/features/conversation/ui/display/TextWidthToggle";
 
 /**
  * チャットの見出しの行の右の道具: 会話 / 動きの切り替え（同じタブの中で見え方を変える。動きの間は、会話だけに効く道具を出さない）・会話の横幅（パネルの大きさは変えず、発言の流れとチャット欄の幅の上限を外す。パネルが狭くて変わらないときは押せない）・

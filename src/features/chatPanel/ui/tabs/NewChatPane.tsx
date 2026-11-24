@@ -17,7 +17,7 @@ import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPicker } from "@/features/groups/ui/GroupPicker";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
-import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/screen/ChatDisplayMenu";
+import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { draftScope } from "@/features/panel/ui";
 import type { SidePanelHandle } from "@/features/chat/ui";

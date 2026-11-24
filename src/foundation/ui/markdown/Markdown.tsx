@@ -3,20 +3,20 @@ import { createContext, Fragment, memo, useContext, useState, useSyncExternalSto
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
-import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "@/foundation/ui/kit/markdown/markdownProcessor";
-import { MarkdownFileLinksContext } from "@/foundation/ui/kit/markdown/markdownFileLinks";
-import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/kit/markdown/markdownImages";
-import { MarkdownLinkOpenerContext } from "@/foundation/ui/kit/markdown/markdownLinks";
+import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "@/foundation/ui/markdown/markdownProcessor";
+import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
+import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
+import { MarkdownLinkOpenerContext } from "@/foundation/ui/markdown/markdownLinks";
 import { imageSourcesIn } from "@shared/foundation/markdown/images";
-import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
-import { codeBlockOf } from "@/foundation/ui/kit/markdown/mermaid/mermaidSource";
+import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
+import { codeBlockOf } from "@/foundation/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
-import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
+import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { fenceLanguage } from "@/foundation/ui/code/languages";
 import { convertTexDelimiters, mayContainMath } from "@shared/foundation/markdown/mathGuard";
-import { useMathPlugins } from "@/foundation/ui/kit/markdown/math/useMathPlugins";
+import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
 
 /**
  * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。

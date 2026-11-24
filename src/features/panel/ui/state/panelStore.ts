@@ -3,7 +3,7 @@ import { onServerEvent } from "@/foundation/ui/api/events";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { panelKey, parsePanelKey, type AnySurface, type PanelSurface } from "@/features/panel/ui/surface";
 import type { AnyTabKind, TabBase } from "@/features/panel/ui/kind";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./panelState";
 
 /**

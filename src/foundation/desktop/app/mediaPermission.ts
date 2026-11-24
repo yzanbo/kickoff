@@ -1,5 +1,5 @@
 import type { Session } from "electron";
-import { sameOrigin } from "./urls";
+import { sameOrigin } from "@/foundation/desktop/urls";
 
 // アプリ自身の画面のマイクの許可（チャット欄の音声入力）。埋め込みブラウザの webview は別のセッション（browser.ts）なので、ここでは扱わない
 

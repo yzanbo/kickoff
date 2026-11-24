@@ -6,7 +6,7 @@ import { relayMessage, relayedText } from "@shared/chat/prompts";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { eventSequence, makeEvent } from "@shared/chat/testing";
 import { scopeOf, subagentEvents } from "@/features/subagents/ui";
-import { groupEvents } from "./timelineItems";
+import { groupEvents } from "@/features/conversation/ui/timelineItems";
 
 // サブエージェントの流れの記録（subagents の subagentEvents）を、この流れの項目（groupEvents）に渡したときに、読み込んだ記録の全体から作ったものと同じか
 

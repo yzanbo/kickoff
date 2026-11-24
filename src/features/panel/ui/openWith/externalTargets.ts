@@ -1,7 +1,7 @@
 // パネルのタブの列からターミナルを開くときの、開く先の決め方（useOpenWithMenu が使う。押したペインで見せている表示中のタブの作業場所から決める）
 import { baseName } from "@/foundation/ui/lib/format";
 import type { WorkplaceAt } from "@/features/panel/ui/kind";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import type { TerminalTarget } from "@/features/panel/ui/panelTypes";
 
 /**
  * ターミナルを開く場所: 見せているタブの作業場所（種類の workplaceOf。ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）、

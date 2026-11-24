@@ -5,7 +5,7 @@ import { nextCorrection, type EstimateContext } from "./rowEstimate";
 import { estimateItem, estimateRaw, rowKindOf } from "./rowKinds";
 import { turnExtras } from "./selectors";
 import { itemIndexOfEvent } from "./timelineWindow";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
 import type { TimelineScroll } from "./timelineScroll";
 import { chatLog, timelineView } from "@/features/chat/ui";
 

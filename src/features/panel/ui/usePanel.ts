@@ -4,10 +4,10 @@ import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
 import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/state/panelStore";
 import { panelKey, type PanelScope, type PanelSurface, type SurfaceSpec } from "./surface";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
+import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabData";
 
-export type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+export type { PanelTab } from "@/features/panel/ui/panelTypes";
 
 export type PanelController = ReturnType<typeof usePanel>;
 

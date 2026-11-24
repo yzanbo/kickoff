@@ -3,7 +3,7 @@ import "@/foundation/ui/diff/DiffTable.css";
 import { useEffect, useMemo, useRef } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { languageOf } from "@/foundation/ui/code/languages";
-import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
+import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 
 /**

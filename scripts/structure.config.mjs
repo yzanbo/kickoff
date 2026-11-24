@@ -179,8 +179,8 @@ export default {
   ],
   // ほかの機能を読むのは、その機能の core/index.ts・ui/index.ts からだけ（app は全部を知る。テストは補助の core/testing.ts・ui/testing.ts も）
   publicApi: [{ name: "feature-entry", dirs: "src/features/*", entry: ["core/index.ts", "ui/index.ts"], testEntry: ["core/testing.ts", "ui/testing.ts"], except: ["src/app/**"] }],
-  // どの階層でも、兄弟のフォルダどうしは循環させない
-  siblingCycles: [{ name: "siblings", parents: ["src", "src/**"] }],
+  // どの階層でも、兄弟のフォルダどうしは循環させない（テストとテストの補助は除く: 補助は偽物を作る相手を読み、テストは補助を読むので、testing/ と隣のフォルダは互いに読む）
+  siblingCycles: [{ name: "siblings", parents: ["src", "src/**"], tests: "exclude" }],
   fileSize: {
     limit: 300,
     rules: [

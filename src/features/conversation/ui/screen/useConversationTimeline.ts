@@ -3,8 +3,8 @@ import { chatLog, chatWindow, timelineView } from "@/features/chat/ui";
 import type { ChatShellHandles } from "@/features/conversation/ui/screen/useChatShell";
 import { promptList } from "@/features/conversation/ui/promptList/selectors";
 import { usePromptKeys } from "@/features/conversation/ui/promptList/usePromptKeys";
-import { timelineItems } from "./selectors";
-import { useTimelineWindow } from "./useTimelineWindow";
+import { timelineItems } from "@/features/conversation/ui/timeline/selectors";
+import { useTimelineWindow } from "@/features/conversation/ui/timeline/useTimelineWindow";
 
 /**
  * 会話の流れの窓と、指示のキー（⌘⌥↑ / ↓）・検索から開いた発言の読み込み・遠い記録を読んだあとの続き。

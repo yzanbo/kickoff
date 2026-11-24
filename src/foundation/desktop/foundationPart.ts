@@ -11,7 +11,7 @@ import { loginItemHandlers } from "@/foundation/desktop/app/loginItem";
 import { popoutHandlers } from "@/foundation/desktop/app/popouts";
 import { foundationArgs } from "@/foundation/desktop/ipc/args";
 import { fromApp, registerIpcHandlers } from "@/foundation/desktop/ipc/register";
-import { notificationHandlers } from "@/foundation/desktop/notifications/notifications";
+import { notificationHandlers } from "@/foundation/desktop/app/notifications";
 import { defineDesktopPart, type MergedParts } from "@/foundation/desktop/parts";
 import { terminalHandlers } from "@/foundation/desktop/terminal/terminals";
 

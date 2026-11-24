@@ -6,7 +6,7 @@ import { isKey } from "@/foundation/ui/lib/keys";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useChatScreen, useTimelineNav, ChipWord, ComposerChip } from "@/features/chat/ui";
 import { chatComposerDraft, focusComposer } from "@/features/composer/ui";
-import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
+import { useChatHotkey } from "@/features/conversation/ui/chatHotkeys";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { FIRST_PANE, leavesOf, type PaneNode } from "@/features/panel/ui/layout/paneTree";
 import { splitPane } from "@/features/panel/ui/layout/paneLayout";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 import { defineSurface, type SurfaceExt } from "@/features/panel/ui/surface";
 import { emptyPanel as empty, isLinkedTab, panelReducer, type PanelAction, type PanelState } from "./panelState";
 

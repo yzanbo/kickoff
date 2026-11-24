@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { confirmTabClose } from "@/features/panel/ui/state/closeTabs";
 import { PanelTab } from "./PanelTab";
-import type { PanelTab as Tab } from "./panelTypes";
+import type { PanelTab as Tab } from "@/features/panel/ui/panelTypes";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
 import type { TabFace, TabGroupLookup } from "@/features/panel/ui/kind";
 import type { TabRename } from "./useTabRename";

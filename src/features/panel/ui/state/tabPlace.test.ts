@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./panelState";
 import { isTabShown, panelOfTab } from "./tabPlace";
 

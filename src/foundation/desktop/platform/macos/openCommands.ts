@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "@shared/foundation/ipc";
-import { isWebUrl } from "@/foundation/desktop/app/urls";
+import { isWebUrl } from "@/foundation/desktop/urls";
 
 // macOS: 外部のターミナル・ブラウザで開く open の引数と、この Mac に入っているアプリ。
 // Electron に依らないので、テストできる（実行は index.ts の macosDesktopPlatform）

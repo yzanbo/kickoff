@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { eventSequence, makeEvent } from "@shared/chat/testing";
 import { AI_CREATE_CHAT_TOOL, createdChatMark } from "@shared/chat/aiCreateChat";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import { groupEvents } from "./timelineItems";
+import { groupEvents } from "@/features/conversation/ui/timelineItems";
 import { createdChatsByUser, turnExtrasOf } from "./turnExtras";
 
 test("turnExtrasOf: 作業の終わり（result）に、その作業を始めた自分の発言の時刻と返答の文を付ける", () => {

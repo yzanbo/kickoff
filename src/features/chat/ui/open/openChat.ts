@@ -13,7 +13,7 @@ import { childTab, newChildTab, openTab } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui/places";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
 
-declare module "@/features/panel/ui/tabs/panelTypes" {
+declare module "@/features/panel/ui/panelTypes" {
   interface PanelTabValues {
     attachment: Attachment;
   }

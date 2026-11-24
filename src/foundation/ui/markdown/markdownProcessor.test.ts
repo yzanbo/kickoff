@@ -8,7 +8,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
-import { remarkMathGuard } from "@/foundation/ui/kit/markdown/math/remarkMathGuard";
+import { remarkMathGuard } from "@/foundation/ui/markdown/math/remarkMathGuard";
 import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
 
 /*

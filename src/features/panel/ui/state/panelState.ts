@@ -1,4 +1,4 @@
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 import { singlePane, type PaneLayout } from "@/features/panel/ui/layout/paneTree";
 import { addTabBehind, closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/ui/layout/paneLayout";
 import type { AnySurface } from "@/features/panel/ui/surface";

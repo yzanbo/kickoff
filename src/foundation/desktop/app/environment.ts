@@ -1,7 +1,7 @@
 import path from "node:path";
 import { app } from "electron";
 import { APP_ENVS } from "@/foundation/core/system/appEnv";
-import { seedDevData } from "@/foundation/core/system/devData";
+import { seedDevData } from "@/foundation/core/db/devData";
 
 // 起動したアプリの環境: 本番（インストールしたアプリ）と開発（npm run dev）で、名前・保存先・ポートを分ける（同時に動かせるように。core/system/appEnv.ts）
 

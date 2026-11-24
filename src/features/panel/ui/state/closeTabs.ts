@@ -1,5 +1,5 @@
 // 欄の種類をまたいでタブを閉じる（子チャットを親から外したときに、どのチャットの右の欄からもそのタブを閉じるなど）
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import type { PanelSurface } from "@/features/panel/ui/surface";
 import type { TabBase } from "@/features/panel/ui/kind";

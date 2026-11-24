@@ -4,7 +4,7 @@ import { PRELOAD_FILE } from "./environment";
 import { openLinksExternally } from "./externalLinks";
 import { watchWindowLoad } from "./startupLog";
 import { watchRendererHang } from "./hangWatch";
-import { markMain } from "@/foundation/desktop/diagnostics/bootRecorder";
+import { markMain } from "@/foundation/desktop/app/bootRecorder";
 
 // メインのウィンドウ（Kickoff の画面）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す
 

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { VisualThemeValues } from "@shared/visuals/visualDocument";
-import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 
 /** 図の中のテーマの変数を、画面の CSS の変数から読む（どの変数を読むかは tokens.css の末尾の一覧にも書く） */
 function readVisualTheme(): VisualThemeValues {

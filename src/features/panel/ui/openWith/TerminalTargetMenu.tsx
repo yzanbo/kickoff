@@ -1,7 +1,7 @@
 import { SquareTerminal } from "lucide-react";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import type { TerminalTarget } from "@/features/panel/ui/panelTypes";
 
 /**
  * どのプロジェクトでターミナルを開くかのメニュー（全プロジェクトの画面の、下のパネルの＋・タブがないときのボタン・▾ の「新しいタブで開く」）。

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MarkdownLinkOpenerContext, type MarkdownLinkOpener } from "@/foundation/ui/kit/markdown/markdownLinks";
+import { MarkdownLinkOpenerContext, type MarkdownLinkOpener } from "@/foundation/ui/markdown/markdownLinks";
 import { openWebLink } from "./linkOpen";
 
 /**

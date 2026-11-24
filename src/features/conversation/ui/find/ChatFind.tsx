@@ -8,7 +8,7 @@ import { useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { focusComposer } from "@/features/composer/ui";
 import { useCell } from "@/foundation/ui/store";
 import { chatTail } from "@/features/chat/ui";
-import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
+import { useChatHotkey } from "@/features/conversation/ui/chatHotkeys";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
 import { createFindMarks, findTextNodes } from "@/foundation/ui/kit/findMarks";

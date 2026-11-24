@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefO
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { SNAP_PX } from "@/features/chat/ui";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
+import { useChatHotkey } from "@/features/conversation/ui/chatHotkeys";
 import { jumpToEvent } from "./jumpToEvent";
 import type { TimelineScroll } from "./timelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";

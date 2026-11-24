@@ -1,7 +1,7 @@
 import "./FileIcon.css";
 import { File, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 
 type IconUrl = (name: string, dir: boolean, open: boolean, theme: "dark" | "light") => string | undefined;
 

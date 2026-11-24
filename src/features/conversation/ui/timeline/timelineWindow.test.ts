@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeEvent } from "@shared/chat/testing";
 import { itemIndexOfEvent } from "./timelineWindow";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
 
 // 位置を探すだけなので、中身は見ない
 const use = (id: number) => makeEvent(id, "tool_use", { id: `tu${id}`, name: "Read", input: {} });

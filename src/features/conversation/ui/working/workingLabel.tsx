@@ -9,7 +9,7 @@ import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui
 import { RetryLabel } from "./ConnectionStatus";
 import { isInheriting } from "./workPhase";
 import { compactingLabel } from "@/features/compact/ui";
-import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
+import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
 export interface ChatActivity {

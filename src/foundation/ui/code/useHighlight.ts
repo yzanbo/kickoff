@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { highlightLines, peekHighlight, type CodeToken } from "@/foundation/ui/code/highlight";
-import { useAppliedTheme } from "./useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 
 /**
  * コードの行ごとの色（VS Code と同じ配色。ダーク・ライトに合わせる）。lang はファイルなら languageOf(パス) で決める。

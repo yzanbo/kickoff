@@ -2,7 +2,7 @@ import { shell } from "electron";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { desktopPlatform } from "@/foundation/desktop/platform/index";
 import { existingFolder, vscodeFileUrl } from "./openCommands";
-import { isWebUrl } from "./urls";
+import { isWebUrl } from "@/foundation/desktop/urls";
 
 /** アプリの外で開く（IPC の externalApps）。OS ごとの開き方は platform/ の DesktopPlatform */
 export const externalAppHandlers: IpcHandlers["externalApps"] = {

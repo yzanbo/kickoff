@@ -1,14 +1,14 @@
 import { useState, type DragEvent, type PointerEvent } from "react";
-import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "./paneGeometry";
+import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "@/features/panel/ui/layout/paneGeometry";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { canPopOut, popOutTab } from "@/features/panel/ui/tabs/popOutTab";
 import { kindOf } from "@/features/panel/ui/state/panelStore";
 import { openTab } from "@/features/panel/ui/state/actions";
-import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
-import { endedOutsideWindow } from "./tabDragOut";
-import { discardTabThumbnail, prepareTabThumbnail, tabThumbnailOf } from "./tabThumbnail";
+import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "@/features/panel/ui/layout/externalTabDrag";
+import { endedOutsideWindow } from "@/features/panel/ui/layout/tabDragOut";
+import { discardTabThumbnail, prepareTabThumbnail, tabThumbnailOf } from "@/features/panel/ui/layout/tabThumbnail";
 import { movingMimeFor, parseMovingTab, takeMovingTab, useMovedOutTabs, writeMovingTab } from "./tabTransfer";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */

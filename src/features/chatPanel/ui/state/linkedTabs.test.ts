@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { closedLinks, linkedChatsExt, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui";
 
 const chatTab = (id: number): PanelTab => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
 const browser: PanelTab = { key: "browser:1", kind: "browser", url: "", title: "" };

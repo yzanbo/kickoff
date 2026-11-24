@@ -1,7 +1,7 @@
 import { useRef, type RefObject } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
+import { useChatHotkey } from "@/features/conversation/ui/chatHotkeys";
 import { adjacentPrompt, promptAround, promptTops } from "./promptNav";
 
 /** 中の吹き出しの位置を読む、流れの上端からの距離（行の上端の余白より広く） */

@@ -11,7 +11,7 @@ import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
-import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
+import { useChatHeaderItems } from "@/features/conversation/ui/display/ChatDisplayMenu";
 import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";

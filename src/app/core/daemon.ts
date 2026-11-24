@@ -2,7 +2,7 @@
 import path from "node:path";
 import { macosPlatform } from "@/foundation/core/platform/macos/index";
 import { APP_ENVS, appDataDir } from "@/foundation/core/system/appEnv";
-import { seedDevData } from "@/foundation/core/system/devData";
+import { seedDevData } from "@/foundation/core/db/devData";
 import { waitForShellPath } from "@/foundation/core/system/exec";
 import { macosParts } from "./platform";
 import { startCore } from "./startCore";

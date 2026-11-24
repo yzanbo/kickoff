@@ -7,7 +7,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { TREE_MAX_DEPTH, walkDown } from "@shared/foundation/tree";
 import { subagentState } from "@shared/chat/subagentState";
 import type { ToolCall } from "@/features/chat/ui";
-import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
+import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timelineItems";
 import { turnExtrasOf, type TurnExtras } from "@/features/conversation/ui/timeline/turnExtras";
 import { toolCallTexts } from "@/features/conversation/ui/tools/toolCallTexts";
 import { toolText } from "@/features/chat/ui";

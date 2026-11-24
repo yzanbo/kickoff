@@ -5,7 +5,7 @@ import * as monaco from "./monacoEditor";
 import type { EditorCursor } from "@/features/userView/ui";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { storage } from "./storage";

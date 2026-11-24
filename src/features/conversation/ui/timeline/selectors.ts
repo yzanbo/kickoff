@@ -1,7 +1,7 @@
 // 流れの項目と、項目に載せないで記録から作るもの（作業の終わりの付け足し・AI が作ったチャット）の取り出し口
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { defineChatSelector, memoLast } from "@/features/chat/ui";
-import { groupEvents, type TimelineItem } from "./timelineItems";
+import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timelineItems";
 import { createdChatsByUser, turnExtrasOf, type TurnExtras } from "./turnExtras";
 
 /**

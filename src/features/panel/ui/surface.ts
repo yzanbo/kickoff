@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { definePoint } from "@/foundation/ui/points";
 import type { SettingFamily } from "@/foundation/ui/storage";
-import type { PanelTab } from "./tabs/panelTypes";
+import type { PanelTab } from "./panelTypes";
 import type { PaneLayout, PaneLeaf } from "./layout/paneTree";
 import type { TabGroupLookup } from "./kind";
 import type { PanelController } from "./usePanel";

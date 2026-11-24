@@ -1,6 +1,6 @@
 import { app, session, type Session, type WebContents } from "electron";
 import { openLinksExternally } from "@/foundation/desktop/app/externalLinks";
-import { isEmbeddableUrl } from "@/foundation/desktop/app/urls";
+import { isEmbeddableUrl } from "@/foundation/desktop/urls";
 import { sendEvent } from "@/foundation/desktop/ipc/register";
 import { isBrowserFindKey } from "./keys";
 

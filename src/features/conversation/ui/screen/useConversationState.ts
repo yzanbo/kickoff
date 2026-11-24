@@ -4,7 +4,7 @@ import type { Project } from "@shared/projects/types";
 import { relativeOf } from "@/features/chat/ui";
 import { useChatSubagentsView } from "@/features/subagents/ui";
 import { useRetryChoices } from "@/features/conversation/ui/rewind/useRetryChoices";
-import { useConversationTimeline } from "@/features/conversation/ui/timeline/useConversationTimeline";
+import { useConversationTimeline } from "@/features/conversation/ui/screen/useConversationTimeline";
 import type { ChatShellHandles } from "./useChatShell";
 import { useChatSending } from "./useChatSending";
 

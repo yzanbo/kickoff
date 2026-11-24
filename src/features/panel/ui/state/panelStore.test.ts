@@ -5,7 +5,7 @@ import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { closePane, closeTab, openTab, patchTab, setPanelOpen, splitPane, togglePanel } from "./actions";
-import { browserTab, chatTab, terminalTab } from "@/features/panel/ui/tabs/tabData";
+import { browserTab, chatTab, terminalTab } from "@/features/panel/ui/tabData";
 import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
 import { panelStateOf, startPanelServerEvents } from "./panelStore";
 

@@ -5,7 +5,7 @@ import { defineTabKind, type AnyTabKind, type TabKind } from "./kind";
 import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { defineSurface, type AnySurface } from "./surface";
 import { createPanelStore, installPanelStore, type PanelStore } from "./state/panelStore";
-import type { PanelTab } from "./tabs/panelTypes";
+import type { PanelTab } from "./panelTypes";
 
 type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 

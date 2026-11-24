@@ -1,5 +1,5 @@
 import { createCell, useCell } from "@/foundation/ui/store";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 
 /**
  * パネルの外からタブにして落とすもの（ファイルタブの木の行など）のドラッグ。落とす先の欄（覚える名前）と、落としたら開くタブを持つ。

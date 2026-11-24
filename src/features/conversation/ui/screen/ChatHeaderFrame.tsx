@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useChatHeaderBadgeColors } from "./ChatDisplayMenu";
+import { useChatHeaderBadgeColors } from "@/features/conversation/ui/display/ChatDisplayMenu";
 
 /**
  * チャットの見出しの行の枠（チャットの画面と送る前のチャットで同じ形）: 左にバッジ（badges）・名前など（title）、右に道具（tools）と端のもの（end）。

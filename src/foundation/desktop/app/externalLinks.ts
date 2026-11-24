@@ -1,5 +1,5 @@
 import { shell, type WebContents } from "electron";
-import { isWebUrl } from "./urls";
+import { isWebUrl } from "@/foundation/desktop/urls";
 
 /**
  * 新しいウィンドウを開こうとしたら（target="_blank" のリンク・window.open）、http(s) のページだけ既定のブラウザで開き、

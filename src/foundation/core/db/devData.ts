@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { APPLICATION_ID, DB_FILE, USER_VERSION_BASE } from "@/foundation/core/db/db";
+import { APPLICATION_ID, DB_FILE, USER_VERSION_BASE } from "./db";
 
 /** 写さないもの（起動中の印・作り直せるキャッシュ。データベースは下で別に写す） */
 const SKIP = new Set([

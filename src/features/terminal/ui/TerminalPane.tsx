@@ -4,7 +4,7 @@ import "@xterm/xterm/css/xterm.css";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { TerminalTabMeta } from "@shared/terminal/types";
-import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
+import { useAppliedTheme } from "@/foundation/ui/theme/useAppliedTheme";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { nativeTerminal, type NativeTerminal } from "./native";
 import { createTerminalSession, type TerminalSession } from "./terminalSession";

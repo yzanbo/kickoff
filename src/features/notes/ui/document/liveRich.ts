@@ -6,14 +6,14 @@ import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } fr
 import type KaTeX from "katex";
 import { mathRanges, mayContainMath } from "@shared/foundation/markdown/mathGuard";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
-import { renderMermaid } from "@/foundation/ui/kit/markdown/mermaid/renderMermaid";
+import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
 import { mermaidBlocks } from "./mermaidBlocks";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
 let loading: Promise<void> | undefined;
 const loadKatex = () =>
-  (loading ??= Promise.all([import("katex"), import("@/foundation/ui/kit/markdown/math/katex.vendor.css")]).then(([m]) => {
+  (loading ??= Promise.all([import("katex"), import("@/foundation/ui/markdown/math/katex.vendor.css")]).then(([m]) => {
     katex = m.default;
   }));
 

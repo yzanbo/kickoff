@@ -8,7 +8,7 @@ import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
-import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
+import { MermaidDiagram } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useOptionalChatScreen, useOptionalTimelineNav, turnsApi } from "@/features/chat/ui";
 import type { ToolCall } from "@/features/chat/ui";

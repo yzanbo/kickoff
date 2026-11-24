@@ -5,12 +5,12 @@ import { useContext, useId, useRef, type ReactNode } from "react";
 import type { ProviderId } from "@shared/settings/types";
 import { TabVisibleContext } from "@/features/panel/ui/tabs/tabPageContext";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/display/ChatDisplayMenu";
 import { ChatHeaderFrame } from "./ChatHeaderFrame";
-import { useChatDisplayMenu } from "./useChatDisplayMenu";
+import { useChatDisplayMenu } from "@/features/conversation/ui/display/useChatDisplayMenu";
 import { useForegroundProvider } from "./useForegroundProvider";
-import { ChatFontSizeButton } from "./ChatFontSizeButton";
-import { TextWidthToggle, useWideText } from "./TextWidthToggle";
+import { ChatFontSizeButton } from "@/features/conversation/ui/display/ChatFontSizeButton";
+import { TextWidthToggle, useWideText } from "@/features/conversation/ui/display/TextWidthToggle";
 import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { RestrictionNotice } from "./RestrictionNotice";
 

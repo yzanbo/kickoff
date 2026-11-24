@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { makeEvent } from "@shared/chat/testing";
 import { estimateMarkdown, nextCorrection, textLines, wrappedLines, type EstimateContext } from "./rowEstimate";
 import { estimateItem } from "./rowKinds";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
 
 const ctx = (over: Partial<EstimateContext> = {}): EstimateContext => ({
   textWidth: 720,

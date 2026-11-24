@@ -9,7 +9,7 @@ import { tags } from "@lezer/highlight";
 import type { MutableRefObject } from "react";
 import type { DbEngine } from "@shared/database/types";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
-import { useCodeMirror } from "@/foundation/ui/hooks/useCodeMirror";
+import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { runTargetMark } from "./sqlRunMark";
 

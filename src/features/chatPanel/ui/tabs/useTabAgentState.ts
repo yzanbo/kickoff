@@ -5,7 +5,7 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { chatSubagents } from "@/features/subagents/ui";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui";
 
 /** タブの名前の前に出すエージェントの状態（印 StatusSlot と、未読・失敗の太字に使う） */
 export interface TabAgentState {

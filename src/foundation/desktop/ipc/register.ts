@@ -2,7 +2,7 @@ import type { IpcMainEvent, IpcMainInvokeEvent, WebContents } from "electron";
 import type { z } from "zod";
 import { eventChannelOf, ipcEntries, type InvokeSpec, type IpcArgs, type IpcGroup, type IpcMethodOf, type IpcSpec, type IpcTable, type SendSpec } from "@shared/foundation/ipc";
 import { timed } from "@/foundation/core/system/stallWatch";
-import { sameOrigin } from "@/foundation/desktop/app/urls";
+import { sameOrigin } from "@/foundation/desktop/urls";
 
 // IPC の取り決め（@shared/foundation/ipc の表。全部を並べた NATIVE_API は src/app/shared/ipc.ts）どおりに、メインの処理を登録し、画面へ知らせる。
 // Electron の実体は使わない（ipcMain は渡してもらう。テストでは偽物を渡す）

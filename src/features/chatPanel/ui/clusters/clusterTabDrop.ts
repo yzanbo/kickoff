@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import type { NewChatDraft } from "@/features/composer/ui";
 

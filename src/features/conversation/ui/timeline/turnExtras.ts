@@ -4,7 +4,7 @@ import { isEditTool } from "@shared/ai/claudeTools";
 import { lastReplyBefore } from "@shared/chat/handoff";
 import { createdChatIdOf, isCreateChatTool, relationOf } from "@shared/chat/aiCreateChat";
 import { changesOf, type EditCall, type FileChange } from "@/features/conversation/ui/tools/turnFileChanges";
-import { parentOf } from "./timelineItems";
+import { parentOf } from "@/features/conversation/ui/timelineItems";
 
 /**
  * 作業の終わりの、親チャットに渡すもの。reply: その作業の最後の返答（途中の「確認します」・サブエージェントの文は入れない。lastReplyBefore）、

@@ -7,7 +7,7 @@ import { useCommandKeys } from "@/foundation/ui/commands";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { homePane, leavesOf, topRightPane, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
-import type { TabDrag } from "@/features/panel/ui/layout/useTabDrag";
+import type { TabDrag } from "@/features/panel/ui/tabs/useTabDrag";
 import { confirmTabsClose } from "@/features/panel/ui/state/closeTabs";
 import { splitShownTab } from "@/features/panel/ui/state/actions";
 import { surfaceOf } from "@/features/panel/ui/state/panelStore";

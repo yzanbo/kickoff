@@ -15,8 +15,8 @@ import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundatio
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
 import { browserDesktop } from "@/features/browser/desktop";
 import { diagnosticsDesktop } from "@/features/diagnostics/desktop";
-import { watchMainStalls } from "@/foundation/desktop/diagnostics/stalls";
-import { markMain, startMetricsLog } from "@/foundation/desktop/diagnostics/bootRecorder";
+import { watchMainStalls } from "@/foundation/desktop/app/stalls";
+import { markMain, startMetricsLog } from "@/foundation/desktop/app/bootRecorder";
 import { coreDesktop, foundationDesktop, registerIpc } from "@/foundation/desktop/foundationPart";
 import { mergeParts, type DesktopPart } from "@/foundation/desktop/parts";
 import { NATIVE_API } from "@/app/shared/ipc";

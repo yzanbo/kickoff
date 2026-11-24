@@ -1,7 +1,7 @@
 // 差分の行の色付け（変更前と変更後をそれぞれ 1 つのコードとして色を付ける）
 import type { CodeToken } from "@/foundation/ui/code/highlight";
 import { languageOf } from "@/foundation/ui/code/languages";
-import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
+import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import type { DiffLine } from "./diffModel";
 
 /**

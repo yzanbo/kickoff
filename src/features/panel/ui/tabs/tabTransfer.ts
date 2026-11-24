@@ -7,7 +7,7 @@ import { panelTabs, type AnyTabKind, type TransferredTab } from "@/features/pane
 import { closeTab, openTab } from "@/features/panel/ui/state/actions";
 import { kindOf, panelStateOf, peekPanel, subscribePanels } from "@/features/panel/ui/state/panelStore";
 import type { PanelKind } from "@/features/panel/ui/surface";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/panelTypes";
 
 /** 渡すもの（どの欄のどのタブか） */
 interface MovingTab {

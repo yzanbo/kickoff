@@ -16,7 +16,7 @@ import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { chatRoleOf, useActivityNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
-import { useWideText } from "./TextWidthToggle";
+import { useWideText } from "@/features/conversation/ui/display/TextWidthToggle";
 import { useConversationState } from "./useConversationState";
 import { useForegroundProvider } from "./useForegroundProvider";
 import type { ChatShellHandles } from "./useChatShell";

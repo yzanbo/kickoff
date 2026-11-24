@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Lock } from "lucide-react";
 import { errorMessage } from "@shared/foundation/errors";
 import { isLocalImagePath, remoteImageOf, type RemoteImage } from "@shared/remoteImages/remoteImages";
-import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/kit/markdown/markdownImages";
+import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/markdown/markdownImages";
 import { useAttachmentViewer, uploadsApi } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui";
 import { useQuery } from "@/foundation/ui/query";

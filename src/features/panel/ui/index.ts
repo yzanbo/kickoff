@@ -1,7 +1,7 @@
 // panel の画面の口（ほかの機能から読むもの）
 import { storage } from "./storage";
 
-export type { PanelTab, TerminalTarget } from "./tabs/panelTypes";
+export type { PanelTab, TerminalTarget } from "./panelTypes";
 export type { PanelState } from "./state/panelState";
 export type { PaneLayout, PaneLeaf, PaneNode, SplitDir } from "./layout/paneTree";
 export { activeTabOf, focusedPane, homePane, isTabVisible, leavesOf, paneOfTab, singlePane } from "./layout/paneTree";
@@ -57,7 +57,7 @@ export {
   subagentTab,
   terminalTab,
   terminalTitle,
-} from "./tabs/tabData";
+} from "./tabData";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const panelSettings = {
