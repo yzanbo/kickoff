@@ -1,7 +1,7 @@
 // チャットの AI が読むだけのツールの中身（read.ts。同じプロジェクトのチャットの一覧・会話。ほかのプロジェクトは読めない）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, testUploads } from "@/app/core/testing/testCore";
 import { createAiChatReadTools } from "./read";
 

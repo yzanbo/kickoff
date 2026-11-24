@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore } from "@/app/core/testing/testCore";
 import { testStore } from "@/app/core/testing/testStore";
 import { tempDir } from "@/foundation/core/testing/tempDir";

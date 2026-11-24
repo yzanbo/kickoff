@@ -8,13 +8,13 @@ import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ChatRow } from "./ChatRow";
 import { DraftRow } from "./DraftRows";
 
-vi.mock("@/features/groups/ui/GroupChip", () => ({ GroupChip: () => null }));
+vi.mock("@/features/groups/ui/GroupChip", () => ({ GroupChip: () => null })); // test-rules-ignore: 行の部品を描いて確かめる（まわりの部品・店を空にする）
 vi.mock("@/foundation/ui/workplace/WorktreeChip", () => ({ WorktreeChip: () => null }));
-vi.mock("@/features/chat/ui/currentWorkStore", () => ({ useChatActivity: () => null }));
+vi.mock("@/features/chat/ui/currentWorkStore", () => ({ useChatActivity: () => null })); // test-rules-ignore: 行の部品を描いて確かめる（まわりの部品・店を空にする）
 vi.mock("@/foundation/ui/navigation/router", () => ({ href: () => "#chat", useRoute: () => ({ name: "project", id: 1, tab: "chats" }) }));
-vi.mock("@/features/projects/ui/page/chatPlacement", () => ({ useChatPlacement: () => ["separate"] }));
+vi.mock("@/features/projects/ui/page/chatPlacement", () => ({ useChatPlacement: () => ["separate"] })); // test-rules-ignore: 行の部品を描いて確かめる（まわりの部品・店を空にする）
 vi.mock("@/features/chatPanel/ui/drafts/DraftMenuItems", () => ({ DraftMenuItems: () => null, DraftSplitItems: () => null, DraftTitleInput: () => null }));
-vi.mock("@/features/chatPanel/ui/drafts/panelDrafts", () => ({ draftTitleOf: () => "New Chat", hasDraftAttachments: () => false, openDraft: () => {}, useAllDrafts: () => [] }));
+vi.mock("@/features/chatPanel/ui/drafts/panelDrafts", () => ({ draftTitleOf: () => "New Chat", hasDraftAttachments: () => false, openDraft: () => {}, useAllDrafts: () => [] })); // test-rules-ignore: 行の部品を描いて確かめる（まわりの部品・店を空にする）
 vi.mock("@/foundation/ui/kit/PopupMenu", () => ({ PopupMenu: () => null }));
 
 const renderChat = (patch: Partial<Chat>, rename = false) => renderToStaticMarkup(createElement(ChatRow, {

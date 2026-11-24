@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { LinkOpenTarget } from "@shared/settings/types";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { browserTurnParts } from "@/features/browser/core/index";
 import { setupCore, until } from "@/app/core/testing/testCore";
 

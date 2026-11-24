@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
 import { ChatDefaultsFields } from "./ChatDefaultsFields";
 
-vi.mock("@/features/ai/ui/stores/providers", () => ({ useModels: () => [] }));
+vi.mock("@/features/ai/ui/stores/providers", () => ({ useModels: () => [] })); // test-rules-ignore: 部品を描いて確かめる（AI の状態の店を空にする）
 
 test("プロジェクトの AI の既定: 書いていない項目は「アプリの設定に従う」とその値を出し、アプリの設定が届くまでは「…」", () => {
   const app = { model: "opus", effort: null, permission_mode: "auto" as const, fast_mode: true };

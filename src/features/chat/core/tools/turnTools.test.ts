@@ -2,7 +2,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";

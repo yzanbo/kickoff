@@ -6,7 +6,7 @@ import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { fileTabPlace } from "./fileTabs";
 
 // 中身・アイコンの部品（エディタ）は読まない（付け替えの決まりだけを確かめる）
-vi.mock("./fileTabPages", () => Object.fromEntries(["FilePage", "ProjectFilePage", "ProjectFileFace"].map((name) => [name, () => null])));
+vi.mock("./fileTabPages", () => Object.fromEntries(["FilePage", "ProjectFilePage", "ProjectFileFace"].map((name) => [name, () => null]))); // test-rules-ignore: 中身の部品はエディタを読む（付け替えの決まりだけを見る）
 vi.mock("./FileTabLead", () => ({ FileTabLead: () => null }));
 
 const move = { chatId: 1, from: { projectId: 7, worktree: null }, to: { projectId: 7, worktree: "/wt/feat" } };

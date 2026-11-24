@@ -23,6 +23,8 @@ function withCompose(s: ReturnType<typeof setup>, extra: { match: string; stdout
 }
 
 const list = async (s: ReturnType<typeof setup>) => (await s.api("GET /api/projects/:projectId/docker", { params: { projectId: s.project.id } })).body;
+/** どの compose にも動いている操作がなくなるまで待つ（一覧の operation） */
+const untilIdle = (s: ReturnType<typeof setup>) => until(async () => (await list(s)).composes.every((c) => c.operation === null));
 
 test("Docker: docker が入っていない・エンジンが止まっている", async () => {
   const s = setup({ features: ["docker"] });
@@ -71,7 +73,7 @@ test("Docker: すべて起動は作ってあるものを start（/ で）、作�
   // 始めたあとの一覧を返す（画面がそのまま出す）
   assert.equal((res.body as DockerList).composes[0].key, c.key);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const calls = s.dockerFake.calls().filter((x) => x.args[0] === "compose" && !x.args.includes("config"));
   assert.deepEqual(calls[0], { args: ["compose", "-p", "app", "start", "db"], cwd: "/" });
   assert.deepEqual(calls[1].args, ["compose", "-p", "app", "-f", path.join(fs.realpathSync(s.project.repo_path), "compose.yaml"), "up", "-d", "--no-deps", "redis"]);
@@ -96,7 +98,7 @@ test("Docker: 失敗は標準エラーの最後の行と流し直すコマンド
   withCompose(s, [{ match: "up -d", code: 1, stderr: "pulling...\nError: image not found\n" }]);
   const [c] = (await list(s)).composes;
   await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const failed = (await list(s)).composes[0].failure;
   assert.match(failed?.message ?? "", /image not found/);
   assert.match(failed?.command ?? "", /^docker compose -p app -f .* up -d$/);
@@ -117,7 +119,7 @@ test("Docker: 流れ続ける up -d は［中止］で止まり、失敗にし�
   assert.equal(again.status, 409);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "cancel", compose: c.key } })).status, 204);
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const after = (await list(s)).composes[0];
   assert.equal(after.operation, null);
   assert.equal(after.failure, null);
@@ -133,9 +135,9 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
   const [c] = (await list(s)).composes;
   s.dockerFake.clearCalls();
   await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "stop_all", compose: c.key } });
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "down", compose: c.key } });
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const ran = s.dockerFake
     .calls()
     .filter((x) => !["version", "context", "ps"].includes(x.args[0]) && !x.args.includes("config"))
@@ -143,14 +145,10 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
   assert.deepEqual(ran, ["/ compose -p app stop", "/ stop r1", "/ rm -f r1", "/ compose -p app down"]);
 });
 
-test("Docker: 見ていますで docker events を立てる。どこからも見られなくなったら止める", async () => {
+test("Docker: 見ていますで docker events を立てる（見られなくなったら止めるのは events.test）", async () => {
   const s = setup({ features: ["docker"] });
   await s.api("POST /api/projects/:projectId/docker/watch", { params: { projectId: s.project.id } });
   await until(() => s.dockerFake.calls().some((x) => x.args[0] === "events"));
-  const events = s.docker.parts.watch["events"];
-  assert.equal(events.running, true);
-  events.stop();
-  assert.equal(events.running, false);
 });
 
 test("Docker: ログのさらに前を読むは until より前の 500 行を時刻の順に（標準エラーも）。ほかの compose のコンテナは 404", async () => {
@@ -251,11 +249,12 @@ test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   assert.equal(s.dockerFake.calls().filter((x) => x.args.includes("up")).length, 1, "up は 1 回だけ流れる");
   await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "cancel", compose: c.key } });
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   // エンジンが止まっていて断った操作は予約を残さず、動いたら同じ compose の操作を受ける
   s.dockerFake.set([{ match: "version", code: 1, stderr: "Cannot connect to the Docker daemon" }]);
+  // 一覧の覚え（1 秒）が切れて、止まったエンジンが見えるまで待つ
+  await until(async () => (await list(s)).engine === "stopped", 5000);
   assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } })).status, 400);
-  assert.equal(s.docker.parts.operations["reserved"].size, 0);
   withCompose(s, [{ match: "up -d", code: 0 }]);
   assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } })).status, 202);
 });
@@ -268,7 +267,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
   ]);
   const [c] = (await list(s)).composes;
   await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const failure = (await list(s)).composes[0].failure;
   assert.deepEqual(
     failure?.conflicts.map((x) => [x.port, x.container_id, x.label]),
@@ -283,7 +282,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
   s.dockerFake.clearCalls();
   const res = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "stop_others_and_start", compose: c.key } });
   assert.equal(res.status, 202);
-  await until(() => !s.docker.parts.operations["running"].size);
+  await untilIdle(s);
   const ran = s.dockerFake.calls().filter((x) => x.args[0] === "stop" || x.args.includes("up")).map((x) => x.args.join(" "));
   assert.equal(ran[0], "stop x1 x2");
   // ぶつかったサービスは作り直す（ポートで失敗したコンテナは、あとで起動してもポートを出さないため）。そのあと元の起動をやり直す

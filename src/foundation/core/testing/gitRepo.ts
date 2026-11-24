@@ -57,3 +57,13 @@ export function commitFile(dir: string, file: string, content: string, message: 
   git("add", "-A");
   git("commit", "-q", "-m", message);
 }
+
+/** 変更のあるリポジトリ: a.txt を書き換え（未ステージ）・b.txt を書き換えてステージ・new.txt を足した（未追跡） */
+export function changedRepo(dir: string) {
+  const made = gitRepo({ dir, files: { "a.txt": "one\n", "b.txt": "bee\n" } });
+  fs.writeFileSync(path.join(made.dir, "a.txt"), "one\ntwo\n");
+  fs.writeFileSync(path.join(made.dir, "b.txt"), "bee!\n");
+  made.git("add", "b.txt");
+  fs.writeFileSync(path.join(made.dir, "new.txt"), "hello\n");
+  return made;
+}

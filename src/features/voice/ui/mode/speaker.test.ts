@@ -4,7 +4,7 @@ import { Speaker } from "./speaker";
 
 // OpenAI の声の音声を頼んだときの signal を控える（返事は返さない = 頼んでいる途中）
 const signals = vi.hoisted(() => [] as AbortSignal[]);
-vi.mock("@/features/voice/ui/api", () => ({
+vi.mock("@/features/voice/ui/api", () => ({ // test-rules-ignore: OpenAI の音声の頼みを控える（画面の API の口）
   voiceApi: (_route: string, _input: unknown, { signal }: { signal: AbortSignal }) => {
     signals.push(signal);
     return new Promise<never>(() => {});

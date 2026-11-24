@@ -26,7 +26,7 @@ import { UserViewRegistry } from "@/features/userView/core/registry";
 import { userViewToolGroup } from "@/features/userView/core/tools";
 import { visualToolGroup } from "@/features/visuals/core/tools";
 import type { AiWorktreeFinish } from "@/features/worktrees/core/index";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
 import { setupCore, until } from "@/app/core/testing/testCore";

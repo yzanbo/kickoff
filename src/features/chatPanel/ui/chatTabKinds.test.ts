@@ -5,9 +5,9 @@ import { agentTabKey, chatTab, subagentTab } from "@/features/panel/ui";
 import { chatTabKind, chatTabLabel, chatTabWorkplace, subagentTabKind } from "./chatTabKinds";
 
 // 中身・見た目・右クリックの部品（会話の画面など）は読まない（名前などの決まりだけを確かめる）
-vi.mock("./chatTabPages", () => Object.fromEntries(["ChatTabPage", "NewChatPage", "SubagentPage", "ChildPage", "NewChildPage"].map((name) => [name, () => null])));
+vi.mock("./chatTabPages", () => Object.fromEntries(["ChatTabPage", "NewChatPage", "SubagentPage", "ChildPage", "NewChildPage"].map((name) => [name, () => null]))); // test-rules-ignore: 中身・見た目の部品は会話の画面を読む（名前の決まりだけを見る）
 vi.mock("./chatTabFaces", () => Object.fromEntries(["ChatTabFace", "NewChatTabFace", "ChildTabFace", "SubagentTabFace"].map((name) => [name, () => null])));
-vi.mock("./chatTabMenus", () => Object.fromEntries(["ChatTabMenu", "ChildTabMenu", "NewChatTabMenu"].map((name) => [name, () => null])));
+vi.mock("./chatTabMenus", () => Object.fromEntries(["ChatTabMenu", "ChildTabMenu", "NewChatTabMenu"].map((name) => [name, () => null]))); // test-rules-ignore: 中身・見た目の部品は会話の画面を読む（名前の決まりだけを見る）
 
 test("名前: チャットは知っているチャットの最新の名前 → タブが覚えた名前 → 「チャット」", () => {
   const t = chatTab({ id: 1, project_id: 1, title: "前の名前" });

@@ -5,7 +5,7 @@ import { test, vi } from "vitest";
 import { buildTree } from "@/foundation/ui/kit/list/treeModel";
 
 // アイコンはテーマの店を読む（サーバーの描画では読めない）ので、空にする
-vi.mock("@/foundation/ui/code/FileIcon", () => ({ FileIcon: () => null }));
+vi.mock("@/foundation/ui/code/FileIcon", () => ({ FileIcon: () => null })); // test-rules-ignore: アイコンはテーマの店を読む（サーバーの描画では読めない）
 // 同じプロセスで先に流れたファイルが本物で読み込んでいても、モックで読み直す（あとのファイルにも残さない）
 vi.resetModules();
 const { FileTree } = await import("./FileTree");

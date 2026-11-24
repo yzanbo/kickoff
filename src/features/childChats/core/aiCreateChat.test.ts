@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { createdChatIdOf } from "@shared/chat/aiCreateChat";
 import type { Chat } from "@shared/chat/types";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { git } from "@/foundation/core/workplace/git";

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { LinkOpenTarget } from "@shared/settings/types";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";

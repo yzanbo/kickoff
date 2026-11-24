@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { collectVisuals, visualIdOf } from "@shared/visuals/aiVisual";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore } from "@/app/core/testing/testCore";
 import { createAiVisualTools } from "./aiVisual";
 

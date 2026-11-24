@@ -1,4 +1,4 @@
-// PostgreSQL・MySQL・MariaDB のドライバを本物の DB で確かめる（npm run test:db が Docker で DB を立てて流す。ポートの環境変数がなければ飛ばす）
+// PostgreSQL・MySQL・MariaDB のドライバを本物の DB で確かめる（npm run test:db が Docker で DB を立てて流す。ポートの環境変数がなければ飛ばす）。test-rules-ignore-file: エンジンごとの本物の DB サーバー（Docker）の筋書きを 1 つの準備で流す（db の組だけ）
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -106,7 +106,7 @@ for (const c of CASES) {
           break;
         } catch (e) {
           if (Date.now() > end) throw e;
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 1000)); // test-rules-ignore: 本物の DB サーバーが起きるまでの問い直しの間隔（db の組だけ・Docker の中）
         }
       }
       for (const statement of fixture(c.engine)) await sql(statement, "setup");
@@ -327,7 +327,7 @@ for (const c of CASES) {
       const id = nextId++;
       const startedAt = Date.now();
       const running = handler.handle({ id, method: "query", params: { session: "slow", target: target(), sql: c.sleep, max_rows: 10 } });
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 800)); // test-rules-ignore: 本物の DB サーバーで文が流れ始めたことを外から知る口がない（db の組だけ）
       await handler.cancel(id);
       await running;
       assert.ok(Date.now() - startedAt < 8000, "20 秒待たずに止まる");
@@ -361,7 +361,7 @@ for (const c of CASES) {
         const slowFile = join(dir, "slow.csv");
         const slowSql = c.engine === "postgres" ? "SELECT g, pg_sleep(0.01) FROM generate_series(1, 3000) g" : `SELECT s.n, SLEEP(0.01) FROM (${series(3000)}) s`;
         const running = handler.handle({ id, method: "export", params: { session: "export-slow", target: target(), sql: slowSql, file: slowFile, head_rows: 100 } });
-        await new Promise((r) => setTimeout(r, 2500));
+        await new Promise((r) => setTimeout(r, 2500)); // test-rules-ignore: 本物の DB サーバーで書き出しが流れ始めたことを外から知る口がない（db の組だけ）
         await handler.cancel(id);
         const res = await running;
         assert.equal(res.ok, false);
@@ -402,7 +402,7 @@ for (const c of CASES) {
     test("DB が接続を切ったら、次の頼みでつなぎ直す", async () => {
       await sql("SELECT 1", "drop");
       await sql(c.terminate, "drop").catch(() => {});
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300)); // test-rules-ignore: 本物の DB サーバーが接続を切り終えたことを外から知る口がない（db の組だけ）
       assert.equal(Number((await sql("SELECT 3", "drop")).rows[0][0]), 3);
     });
   });

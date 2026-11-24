@@ -11,7 +11,7 @@ const fake = vi.hoisted(() => ({
   stops: 0,
   onSpeaking: null as ((speaking: boolean) => void) | null,
 }));
-vi.mock("@/features/voice/ui/capture/recorder", () => ({
+vi.mock("@/features/voice/ui/capture/recorder", () => ({ // test-rules-ignore: マイクと声を出す部品を偽物にする（ブラウザーの API）
   openMic: async () => ({ getTracks: () => [] }),
   watchLevel: (_stream: unknown, fn: (level: number, now: number) => void) => {
     fake.level = fn;
@@ -23,7 +23,7 @@ vi.mock("@/features/voice/ui/capture/recorder", () => ({
     return { stop: async () => [new Blob(["声"])], cancel: () => void (rec.cancelled = true) };
   },
 }));
-vi.mock("./speaker", () => ({
+vi.mock("./speaker", () => ({ // test-rules-ignore: マイクと声を出す部品を偽物にする（ブラウザーの API）
   Speaker: class {
     constructor(_settings: unknown, onSpeaking: (speaking: boolean) => void) {
       fake.onSpeaking = onSpeaking;

@@ -11,22 +11,10 @@ import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import { createDbAiTools, type DbAiApprove } from "./aiTools";
 import type { SecretCipher } from "./secrets";
-import { databaseServiceOf } from "./testing";
+import { databaseServiceOf, sqliteBody } from "./testing";
 
-const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBody => ({
-  name: "開発",
-  engine: "sqlite",
-  environment: "dev",
-  host: null,
-  port: null,
-  database: null,
-  username: null,
-  file_path: "app.db",
-  ssl: null,
-  read_only: false,
-  ai_access: "allow",
-  ...patch,
-});
+/** このテストの接続（開発の SQLite） */
+const devBody = (patch: Partial<NewDbConnectionBody> = {}) => sqliteBody({ name: "開発", environment: "dev", ...patch });
 
 /** テストのコアと、同じ DB の上に組んだ DB クライアントのサービス（AI のツールが使う物） */
 function withService(secretCipher: SecretCipher | null = null) {
@@ -53,12 +41,12 @@ const allow: DbAiApprove = async () => null;
 test("AI の DB のツール: 見せない接続は一覧に出さず名前でも使えない。1 つだけなら名前を省ける", async () => {
   const { store, project, tools, databases } = prepare();
   assert.equal(databases.hasAiConnections(project.id), false);
-  store.dbConnections.create(project.id, sqliteBody({ name: "本番", ai_access: "none" }));
+  store.dbConnections.create(project.id, devBody({ name: "本番", ai_access: "none" }));
   assert.equal(databases.hasAiConnections(project.id), false);
   assert.match(tools.connections(), /AI に見せる DB の接続がありません/);
   await assert.rejects(tools.objects({ connection: "本番" }), /AI に見せる接続はありません/);
 
-  store.dbConnections.create(project.id, sqliteBody());
+  store.dbConnections.create(project.id, devBody());
   assert.equal(databases.hasAiConnections(project.id), true);
   const list = tools.connections();
   assert.match(list, /開発/);
@@ -74,15 +62,15 @@ test("AI の DB のツール: 見せない接続は一覧に出さず名前で�
 test("AI の DB のツール: つなぐときにコマンドを流す接続は使わない（準備だけの接続は使える）", async () => {
   const { store, project, tools } = prepare();
   const prep = { prepare: [], cleanup: [], tunnel: null, password: null, my_ip_url: null };
-  store.dbConnections.create(project.id, sqliteBody({ name: "準備だけ", prep: { ...prep, prepare: ["echo hi"] } }));
-  store.dbConnections.create(project.id, sqliteBody({ name: "ステージング", engine: "postgres", file_path: null, host: "db", prep: { ...prep, password: "op read x" } }));
+  store.dbConnections.create(project.id, devBody({ name: "準備だけ", prep: { ...prep, prepare: ["echo hi"] } }));
+  store.dbConnections.create(project.id, devBody({ name: "ステージング", engine: "postgres", file_path: null, host: "db", prep: { ...prep, password: "op read x" } }));
   await assert.rejects(tools.objects({ connection: "ステージング" }), /つなぐときにコマンドを流す接続なので、AI からは使えません/);
   assert.match(await tools.objects({ connection: "準備だけ" }), /- users（table）/);
 });
 
 test("AI の DB のツール: 読み取りの 1 文だけ流し、結果をデータの印で包む。履歴に AI の印で残る", async () => {
   const { store, project, tools } = prepare();
-  const c = store.dbConnections.create(project.id, sqliteBody());
+  const c = store.dbConnections.create(project.id, devBody());
   const text = await tools.query({ sql: "select id, name from users order by id" }, allow);
   assert.match(text, /<db_data>\nid\tname\n1\ta\n2\tb\n<\/db_data>/);
   await assert.rejects(tools.query({ sql: "delete from users" }, allow), /読み取りの文/);
@@ -113,7 +101,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
   const databases = databaseServiceOf(ctx, { client });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
-  const c = store.dbConnections.create(project.id, { ...sqliteBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });
+  const c = store.dbConnections.create(project.id, { ...devBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });
   await tools.query({ sql: "select 1" }, allow);
   await tools.query({ sql: "select 2" }, allow);
   const queries = calls.filter((x) => x.method === "export");
@@ -134,7 +122,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
 
 test("AI の DB のツール: 承認して見せる接続は、流す前に聞き、断られたら流さない（流せない文は聞かない）", async () => {
   const { store, project, tools } = prepare();
-  const c = store.dbConnections.create(project.id, sqliteBody({ ai_access: "ask" }));
+  const c = store.dbConnections.create(project.id, devBody({ ai_access: "ask" }));
   const asked: { connection: string; sql: string }[] = [];
   const deny: DbAiApprove = async (r) => {
     asked.push(r);
@@ -155,7 +143,7 @@ test("AI の DB のツール: 保存したパスワードをキーチェーン�
   const { store, project, databases } = withService(secretCipher);
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
-  const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
+  const body = await databases.vault.seal({ ...devBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
   store.dbConnections.create(project.id, body);
   await assert.rejects(tools.objects({}), /「本番」の保存したパスワードを読めませんでした.*利用者に DB タブから接続し直してもらってください/);
   await assert.rejects(tools.query({ sql: "select 1" }, allow), /DB タブから接続し直して/);
@@ -169,7 +157,7 @@ test("AI の DB のツール: 100 行を超えたら、すべての行を CSV �
   db.close();
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c2", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
-  const c = store.dbConnections.create(project.id, sqliteBody());
+  const c = store.dbConnections.create(project.id, devBody());
   const text = await tools.query({ sql: "select id, name from users order by id" }, allow);
   assert.match(text, /全 300 行のうち頭の 100 行/);
   const file = JSON.parse(/CSV に書き出した: (".*?")（/.exec(text)![1]) as string;
@@ -185,7 +173,7 @@ test("AI の DB のツール: 100 行を超えたら、すべての行を CSV �
 
 test("AI の DB のツール: timeout_minutes を付けたら、自由に見せる接続でも時間を添えて聞き、断られたら流さない。止めたチャットの SQL は流さない", async () => {
   const { store, project, tools } = prepare();
-  const c = store.dbConnections.create(project.id, sqliteBody({ ai_access: "allow" }));
+  const c = store.dbConnections.create(project.id, devBody({ ai_access: "allow" }));
   const asked: unknown[] = [];
   const deny: DbAiApprove = async (r) => {
     asked.push(r);
@@ -222,7 +210,7 @@ test("AI の DB のツール: キーチェーンの許可を待つ間にチャ�
   const { store, project, databases } = withService(secretCipher);
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
-  const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
+  const body = await databases.vault.seal({ ...devBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
   const c = store.dbConnections.create(project.id, body);
   const stop = new AbortController();
   const running = tools.query({ sql: "select 1" }, allow, stop.signal);

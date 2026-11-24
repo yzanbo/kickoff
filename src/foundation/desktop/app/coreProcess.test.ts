@@ -19,7 +19,7 @@ class FakeChild extends EventEmitter {
   }
 }
 const forked: FakeChild[] = [];
-vi.mock("electron", () => ({
+vi.mock("electron", () => ({ // test-rules-ignore: electron は Node のテストで読めない（子プロセスの作り方を偽物にする）
   utilityProcess: { fork: () => (forked.push(new FakeChild(1000 + forked.length)), forked.at(-1)) },
   MessageChannelMain: class {},
 }));

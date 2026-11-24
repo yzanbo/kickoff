@@ -9,7 +9,7 @@ import { fakeDocker } from "@/foundation/core/testing/fakeDocker";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { Invalid } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import { FakeProvider } from "@/features/ai/core/testing/fakeProvider";
+import { FakeProvider } from "@/features/ai/core/testing";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";
 import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { UsageMonitor } from "@/features/ai/core/usage/monitor";

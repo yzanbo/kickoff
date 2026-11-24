@@ -6,12 +6,12 @@ import { defaultsOf } from "@shared/foundation/contract/settings";
 import { aiSettings } from "@shared/ai/settings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 
-vi.mock("@/features/ai/ui/stores/providers", () => ({
+vi.mock("@/features/ai/ui/stores/providers", () => ({ // test-rules-ignore: 部品を描いて確かめる（AI の状態の店・設定の部品を空にする）
   useModels: () => [],
   useProviders: () => ({ data: [{ id: "codex", implemented: true, installed: true, logged_in: true }] }),
 }));
 
-vi.mock("@/features/settings/ui", () => ({
+vi.mock("@/features/settings/ui", () => ({ // test-rules-ignore: 部品を描いて確かめる（AI の状態の店・設定の部品を空にする）
   useAppSettings: () => ({ data: defaultsOf(aiSettings) }),
   applySettings: () => {},
 }));

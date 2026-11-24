@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { TerminalControl, TerminalTabInfo } from "./control";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore } from "@/app/core/testing/testCore";
 import { clipTail, createAiTerminalTools } from "./aiTerminal";
 

@@ -1,7 +1,7 @@
 // チャットの AI が同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外すツールの中身（家系の範囲・断る場合・省いた項目・渡し方）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { Chat } from "@shared/chat/types";

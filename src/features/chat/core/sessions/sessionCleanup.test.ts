@@ -4,7 +4,7 @@ import { testStore } from "@/app/core/testing/testStore";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ProviderId } from "@shared/settings/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, until } from "@/app/core/testing/testCore";
 
 test("AI を替えたチャットのセッションは、その時点の AI ごとに集める", () => {

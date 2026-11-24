@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, testUploads } from "@/app/core/testing/testCore";
 
 test("Runner の切り替えは待っている指示の ID と停止状態を保存し、AI を起動しない", async () => {

@@ -9,7 +9,7 @@ import type { HeadTable } from "./BucketTree";
 import type { ChatBucket } from "./buckets";
 
 // 開閉は覚えた値のない初めの形（アーカイブ済みだけ閉じる）
-vi.mock("@/foundation/ui/hooks/useFold", () => ({ useFolds: () => ({ isOpen: (_key: string, defaultOpen = true) => defaultOpen, set: () => {} }) }));
+vi.mock("@/foundation/ui/hooks/useFold", () => ({ useFolds: () => ({ isOpen: (_key: string, defaultOpen = true) => defaultOpen, set: () => {} }) })); // test-rules-ignore: 開閉の覚えを初めの形にして部品を描く
 // 同じプロセスで先に流れたファイルが本物の useFold で読み込んでいても、モックで読み直す（あとのファイルにも残さない）
 vi.resetModules();
 const { BucketTree } = await import("./BucketTree");

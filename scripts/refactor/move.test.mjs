@@ -60,7 +60,7 @@ test("中身: import type・export * from・動的 import・vi.mock を書き換
     'import type { A } from "./turn.js";',
     'export * from "./queue.js";',
     "const m = await import('../git/gitIndex.js');",
-    'vi.mock("./turn.js", () => ({}));',
+    'vi.mock("./turn.js", () => ({}));', // test-rules-ignore: 移動の道具が書き換える文字の例
     'type P = import("./queue.js").Q;',
     "// 例: 文字の中の './turn.js' は触らない",
   ].join("\n");
@@ -71,7 +71,7 @@ test("中身: import type・export * from・動的 import・vi.mock を書き換
       'import type { A } from "./turn";',
       'export * from "@/features/queue/core/queue";',
       "const m = await import('@/features/git/core/gitIndex');",
-      'vi.mock("./turn", () => ({}));',
+      'vi.mock("./turn", () => ({}));', // test-rules-ignore: 移動の道具が書き換える文字の例
       'type P = import("@/features/queue/core/queue").Q;',
       "// 例: 文字の中の './turn.js' は触らない",
     ].join("\n"),

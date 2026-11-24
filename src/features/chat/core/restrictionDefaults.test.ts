@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, until } from "@/app/core/testing/testCore";
 
 const bashSandbox = { rules: { tempDirs: [], writableDirs: async () => [], unsandboxedCommands: [] }, proxyPort: null, trashDir: null };

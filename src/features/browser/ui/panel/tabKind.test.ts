@@ -4,7 +4,7 @@ import { browserTab } from "@/features/panel/ui";
 import { browserTabKind } from "./tabKind";
 
 // 中身の部品（webview）は読まない
-vi.mock("./BrowserTabPage", () => ({ BrowserPage: () => null }));
+vi.mock("./BrowserTabPage", () => ({ BrowserPage: () => null })); // test-rules-ignore: 中身の部品は webview を読む（種類の決まりだけを見る）
 
 test("名前: ブラウザはタイトル → ホスト → 「新しいタブ」。乗せると URL", () => {
   const page = { ...browserTab("https://example.com/a"), title: "" };

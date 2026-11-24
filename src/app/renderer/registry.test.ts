@@ -6,7 +6,7 @@ import { userViewTabs } from "@/features/userView/ui";
 import { registryContributions } from "./registry";
 
 // GitHub の本文の部品は DOMPurify（画面のもの）を読み込みで使う（登録の網羅だけを確かめる）
-vi.mock("@/features/github/ui/GitHubHtml", () => ({ GitHubHtml: () => null }));
+vi.mock("@/features/github/ui/GitHubHtml", () => ({ GitHubHtml: () => null })); // test-rules-ignore: GitHub の本文の部品は読み込みで DOMPurify を使う（登録の網羅だけを見る）
 // 全部の機能の部品を読み込むので、同じプロセスで続けて流れるファイルのモック（vi.mock）が効くよう、読み込んだものを捨てる
 afterAll(() => vi.resetModules());
 

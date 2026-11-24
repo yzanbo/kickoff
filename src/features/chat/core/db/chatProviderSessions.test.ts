@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore } from "@/app/core/testing/testCore";
 
 test("AI ごとのセッションと引き継ぎ位置をチャットごとに分けて保存する", () => {
