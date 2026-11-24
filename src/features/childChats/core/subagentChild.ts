@@ -4,13 +4,12 @@ import { UNTITLED_CHAT_TITLE, type Attachment, type Chat, type ChatOptionsPatch 
 import type { ProviderId } from "@shared/settings/types";
 import { collectSubagents } from "@shared/chat/subagents";
 import { subagentAskMessage } from "@shared/chat/prompts";
-import type { ChatStoreDeps } from "@/features/chat/core/index";
+import { type ChatStoreDeps, workdirOf } from "@/features/chat/core";
 import { Invalid } from "@/foundation/core/errors";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunPort } from "@/features/chat/core/index";
-import type { UploadStore } from "@/features/attachments/core/uploads";
-import { sessionOfSubagent, subagentLogFromEvents, subagentTranscript, subagentTranscriptFileName } from "@/features/subagents/core/subagentTranscript";
-import { workdirOf } from "@/features/chat/core/workdir";
+import type { AgentProvider } from "@/features/ai/core";
+import type { UploadStore } from "@/features/attachments/core";
+import { sessionOfSubagent, subagentLogFromEvents, subagentTranscript, subagentTranscriptFileName } from "@/features/subagents/core";
 
 export interface SubagentChildInput {
   /** 聞くサブエージェント（Claude Code のサブエージェントの ID） */

@@ -9,3 +9,8 @@ export { askNewGroupName, confirmDeleteGroup } from "./groupDialogs";
 export { NO_GROUPS, useGroupsOf } from "./stores/groups";
 export { orderGroupBuckets, splitAtUngrouped, UNGROUPED_SORT_ID, ungroupedPosition } from "./groupOrder";
 export { groupsApi } from "./api/groups";
+export { GroupChip } from "./GroupChip";
+export { useGroupMenu } from "./GroupMenu";
+export { GroupPickMenu } from "./GroupPickMenu";
+export { GroupPicker } from "./GroupPicker";
+export { groupNameIn, useGroup, useGroups } from "./stores/groups";

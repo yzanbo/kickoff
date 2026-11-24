@@ -1,8 +1,8 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
-import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import type { ActivityFocus } from "./useActivityFocus";
 import { Notice } from "@/foundation/ui/kit/Notice";
+import { agentHueStyle } from "@/features/subagents/ui";
 
 /** 強調しているサブエージェントの帯（絞り込みのチップの下）: 名前・何件目か（上から）・上 / 下の行へ・強調をやめる */
 export function ActivityFocusBar({ focus, name, hue, onClear }: { focus: ActivityFocus; name: string; hue: number | undefined; onClear: () => void }) {

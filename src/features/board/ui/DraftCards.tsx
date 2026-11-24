@@ -1,13 +1,11 @@
 import { SquarePen } from "lucide-react";
 import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { openDraft, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
-import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
-import { ProjectChip } from "@/features/projects/ui/ProjectChip";
+import { useProjects, ProjectChip } from "@/features/projects/ui";
+import { openDraft, type PlacedDraft, DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui";
+import { NEW_CHAT_TITLE } from "@/features/chat/ui";
 
 /**
  * 列・グループに出す、送る前の新しいチャット（パネル・チャット欄で入力中）の下書き（押すとその欄で開き、表示中なら選択中に見せる。

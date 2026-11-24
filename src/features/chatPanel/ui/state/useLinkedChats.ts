@@ -2,9 +2,9 @@ import { useEffect, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { parsePanelKey, projectOfPanel, syncPanel, type PanelScope } from "@/features/panel/ui";
-import { useChats } from "@/features/chat/ui/store/knownChats";
+import { useVisibleProjects } from "@/features/projects/ui";
+import { useChats } from "@/features/chat/ui";
 
 /**
  * サイドバーに出ているチャット（パネルのチャットのタブをこれにそろえる）。アーカイブ済みは、タブの列の

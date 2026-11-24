@@ -1,10 +1,7 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { chatListSettings } from "@/features/chatList/ui";
-import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
-import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
-import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
+import { chatListSettings, BucketColorItem, type ChatGrouping, useBucketHueOf } from "@/features/chatList/ui";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 

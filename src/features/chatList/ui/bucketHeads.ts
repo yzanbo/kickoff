@@ -4,11 +4,11 @@ import { boardColumnOf } from "@shared/chat/state";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { BoardColumn, Chat } from "@shared/chat/types";
 import { URGENCY_ORDER } from "@shared/chatList/urgency";
-import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";
 import type { BucketBy, BucketContext, BucketHead, BucketOptions, DraftTarget } from "./buckets";
 import { NO_GROUP_LABEL } from "@shared/groups/labels";
+import { chatStateOf } from "@/features/chat/ui";
 
 /** プロジェクトのまとまりのキー（ほかのまとまりのキーの根） */
 export const projectKey = (projectId: number) => `p${projectId}`;

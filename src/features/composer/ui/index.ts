@@ -19,3 +19,5 @@ export { createNewChatDraft, discardNewChatDraft, draftTitleOf, newChatComposerD
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const composerSettings = { compact: storage.settings.compact } as const;
+export { useQueueMode } from "./QueueModeToggle";
+export type { SendWhen } from "./composerKeys";

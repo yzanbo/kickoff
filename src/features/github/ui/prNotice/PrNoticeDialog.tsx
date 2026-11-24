@@ -2,12 +2,10 @@ import "./PrNoticeDialog.css";
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import { chatsApi } from "@/features/chat/ui";
+import { chatsApi, useChatsWithChildren } from "@/features/chat/ui";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -28,6 +26,7 @@ import {
   type PrWorktreeAction,
 } from "./prNoticePlan";
 import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+import { useProjects } from "@/features/projects/ui";
 
 /**
  * 確認「PR #12 がマージされました」: ワークツリー（ブランチも消す / ワークツリーだけ消す / 残す）と、

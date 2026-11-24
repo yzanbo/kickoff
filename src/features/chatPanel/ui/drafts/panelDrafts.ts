@@ -2,8 +2,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { defineNewProjectAfter } from "@/features/projects/ui";
 import type { DraftRef, DraftTabSpot } from "@/features/chatList/ui";
-import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
-import { dispatchPanel, forwardPanelOp, isPanelMounted, newChatTab, newTabKey, openTab, panelScreen, panelStateOf, panelsVersion, restorePanelTabs, showTab, splitPane, type TabGroupBadge, type TabGroupLookup, type PanelTab } from "@/features/panel/ui";
+import { dispatchPanel, forwardPanelOp, isPanelMounted, newChatTab, newTabKey, openTab, panelScreen, panelStateOf, panelsVersion, restorePanelTabs, showTab, splitPane, type TabGroupBadge, type TabGroupLookup, type PanelTab, paneOfTab, type SplitDir } from "@/features/panel/ui";
 import { chatsPanel, type NewChatSeed } from "@/features/chat/ui";
 import {
   createNewChatDraft,

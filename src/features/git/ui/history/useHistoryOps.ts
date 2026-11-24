@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/git/ui/storage";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useExternalTerminal } from "@/foundation/ui/external/externalApps";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import type { WorktreeOps } from "./useWorktreeOps";
@@ -9,6 +8,7 @@ import type { BranchActions } from "./useBranchActions";
 import type { GitLogController } from "./useGitLog";
 import type { StashActions } from "./useStashActions";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+import { useProjects } from "@/features/projects/ui";
 
 /**
  * 履歴タブの上の帯と Git の操作の窓で共有する操作（一覧の開閉・フェッチ・プル・プッシュ・退避・ブランチ・外で開く）。

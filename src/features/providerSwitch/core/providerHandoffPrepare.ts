@@ -1,7 +1,7 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Attachment, FileAttachment } from "@shared/chat/types";
-import type { UploadStore } from "@/features/attachments/core/uploads";
 import { selectProviderHandoff } from "./providerHandoffSelection";
+import type { UploadStore } from "@/features/attachments/core";
 
 export interface PreparedProviderHandoff {
   /** 次に送る指示の文脈。利用者の過去の発言は資料であり、新たな指示とは区別する。 */

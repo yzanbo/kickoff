@@ -3,7 +3,6 @@ import type { GitBranchAction, GitBranchActionResult, GitOperation, GitRefs } fr
 import { GIT_OPERATION_LABELS } from "@shared/git/labels";
 import { errorMessage } from "@shared/foundation/errors";
 import { navigate } from "@/foundation/ui/navigation/router";
-import { useChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore, worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, choose, confirm, prompt } from "@/foundation/ui/kit/ask";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
@@ -14,6 +13,7 @@ import { gitApi } from "@/features/git/ui/api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 import type { BranchMenuItem } from "./branchMenuItems";
 import { BRANCH_ACTION_UI, fileList, type BranchActionContext, type PreparedBranchAction } from "./branchActionUi";
+import { useChats } from "@/features/chat/ui";
 
 /**
  * 履歴の右クリックのブランチ・タグの操作（チェックアウト・プッシュ・マージなど）。確かめ・入力は表 BRANCH_ACTION_UI（perform で引く）、

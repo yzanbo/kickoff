@@ -5,8 +5,8 @@ import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
-import { activityOf, latestOf, stalledAgents } from "@/features/chat/ui/state/stall";
 import { workingLabel } from "./workingLabel";
+import { activityOf, latestOf, stalledAgents } from "@/features/chat/ui";
 
 /**
  * 作業中の行と、一番下へ戻るボタンに出すいまの状態の文（1 回だけ組み立てて、両方で使う。作業中でなければ null）。

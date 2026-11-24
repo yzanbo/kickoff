@@ -1,8 +1,7 @@
 // プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files。開いたファイル・差分をタブで並べ、ドラッグで上下・左右に分けられる）の操作
-import { openInFocusedPane, panelStateOf, type PanelTab } from "@/features/panel/ui";
+import { openInFocusedPane, panelStateOf, type PanelTab, beginExternalTabDrag, endExternalTabDrag, EXTERNAL_TAB_MIME } from "@/features/panel/ui";
 import { confirmLeave as confirmUnsavedLeave, hasUnsaved, useHasUnsaved, type UnsavedEntry } from "@/foundation/ui/document/unsaved";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
-import { beginExternalTabDrag, endExternalTabDrag, EXTERNAL_TAB_MIME } from "@/features/panel/ui/layout/externalTabDrag";
 import type { DragEvent } from "react";
 import type { Selection } from "./tabSelection";
 

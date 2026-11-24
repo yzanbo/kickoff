@@ -2,7 +2,7 @@ import { Archive } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { PillGroup } from "@/foundation/ui/kit/PillGroup";
 import { cycleValue } from "@/foundation/ui/lib/cycleValue";
-import { ProjectMark } from "@/features/projects/ui/ProjectMark";
+import { ProjectMark } from "@/features/projects/ui";
 
 /** 絞り込むプロジェクト（"all" = すべて） */
 export type ProjectFilterValue = number | "all";

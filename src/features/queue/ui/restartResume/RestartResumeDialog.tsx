@@ -8,16 +8,15 @@ import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { restartResumesStore } from "./restartResumes";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { nextQueuedText } from "@/features/queue/ui/queuedHint";
 import { defaultResumeChoice, resumeActionsFor, resumeChoiceLabel, resumeChoiceTip, type RestartResumeChoice } from "./restartResumeChoices";
+import { useProjects, ProjectMark } from "@/features/projects/ui";
+import { chatTitle } from "@/features/chat/ui";
 
 /** 選んだ答えの内訳の名前（チャットごとの名前は送信待ちがあるかで変わるので、内訳は短い共通の名前にする） */
 const SUMMARY_LABELS: Record<RestartResumeChoice, string> = { send: "送る", continue: "続ける", pause: "止めておく", later: "あとで" };

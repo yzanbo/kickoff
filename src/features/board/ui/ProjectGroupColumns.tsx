@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { open } from "@/foundation/ui/navigation/open";
-import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { useGroups } from "@/features/groups/ui/stores/groups";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { GroupSections } from "./GroupSections";
 import { useGroupBoard } from "./useGroupBoard";
 import { useChatSort } from "./useChatSort";
 import { useBoard } from "./BoardContext";
+import { useChatBuckets } from "@/features/chatList/ui";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
+import { useGroups } from "@/features/groups/ui";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、1 つのプロジェクトの段の中身: そのプロジェクトのグループの列（自分で作ったグループ → No Group。

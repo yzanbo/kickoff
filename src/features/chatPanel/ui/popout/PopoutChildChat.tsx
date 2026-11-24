@@ -1,13 +1,11 @@
 import { useEffect, useEffectEvent, useRef } from "react";
-import { closeChatWithChoice } from "@/features/chat/ui/closeChat";
-import { ChildChatBar } from "@/features/childChats/ui/ChildChatBar";
 import { PopoutDockButton } from "@/foundation/ui/navigation/PopoutDockButton";
-import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
-import { useChatOf, rootChatOf, knownChat } from "@/features/chat/ui";
-import { SideScope } from "@/features/conversation/ui";
+import { useChatOf, rootChatOf, knownChat, closeChatWithChoice } from "@/features/chat/ui";
+import { SideScope, ChatScreen } from "@/features/conversation/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { closeSelf, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { onCloseRequested } from "@/foundation/ui/lib/desktopApp";
+import { ChildChatBar } from "@/features/childChats/ui";
 
 /**
  * 子チャットの別ウィンドウ: ふつうのチャットの画面（ChatScreen）に、上の帯（親を見る・親チャットに渡す・右の欄に戻す）を足す。

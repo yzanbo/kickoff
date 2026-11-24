@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { makeGroup } from "@shared/groups/testing";
-import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { bucketChats } from "./buckets";
 import { bucketScopes, byManual, draftAnchor, insertNear } from "./manualOrder";
+import { approvalIndex } from "@/features/chat/ui";
 
 test("byManual: まだ並べていない新しいチャットがいちばん上（新しい順）、そのあと position の順", () => {
   const chats = [makeChat(1, { position: 1 }), makeChat(2, { position: 0 }), makeChat(3), makeChat(4), makeChat(5, { position: 2 })];

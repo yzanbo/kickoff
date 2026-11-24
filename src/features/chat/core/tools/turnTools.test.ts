@@ -5,7 +5,7 @@ import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
-import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
+import type { ProviderTurnParams } from "@/features/ai/core";
 
 test("実行に、チャットのツールの口を渡し、そこから家系のチャットを読める。終わったら鍵を捨てる", async () => {
   const host = new McpToolHost(() => "http://127.0.0.1:1");

@@ -3,7 +3,6 @@ import "./DraftChatPage.css";
 import "./ChatColumn.css";
 import { useContext, useId, useRef, type ReactNode } from "react";
 import type { ProviderId } from "@shared/settings/types";
-import { TabVisibleContext } from "@/features/panel/ui/tabs/tabPageContext";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/display/ChatDisplayMenu";
 import { ChatHeaderFrame } from "./ChatHeaderFrame";
@@ -13,6 +12,7 @@ import { ChatFontSizeButton } from "@/features/conversation/ui/display/ChatFontS
 import { TextWidthToggle, useWideText } from "@/features/conversation/ui/display/TextWidthToggle";
 import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { RestrictionNotice } from "./RestrictionNotice";
+import { TabVisibleContext } from "@/features/panel/ui";
 
 /**
  * 送る前のチャット（新しいチャット・新しい子チャットのタブ）の画面の枠。チャットの画面（ChatPane・ChatHeader）と同じ決まりで描く:

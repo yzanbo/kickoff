@@ -21,15 +21,13 @@ import { filesGitImpl, useFilesGitStatus } from "./filesGit";
 import { FileTabsContext, type FileTabsEnv } from "./ProjectFileTab";
 import { useFileTabs } from "./useFileTabs";
 import { fileDragProps } from "./fileTabs";
-import { Panel } from "@/features/panel/ui/Panel";
-import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import type { PanelScope } from "@/features/panel/ui";
-import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
+import { type PanelScope, Panel, type PanelFrame } from "@/features/panel/ui";
 import { useFileOps } from "./useFileOps";
 import { FileTreeMenu } from "./FileTreeMenu";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { useSearchReplace } from "./useSearchReplace";
+import { GitInitNotice } from "@/features/projects/ui";
 
 /** 右のファイルのタブの欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
 const FIXED_FRAME: PanelFrame = { fixed: true };

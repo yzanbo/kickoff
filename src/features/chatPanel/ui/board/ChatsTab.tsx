@@ -1,8 +1,7 @@
 import "./ChatsTab.css";
 import type { ReopenRoute } from "@/foundation/ui/navigation/router";
-import { Panel } from "@/features/panel/ui/Panel";
-import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { useProjectChatsPanel } from "./useBoardPanel";
+import { Panel, type PanelFrame } from "@/features/panel/ui";
 
 /** チャットタブのパネルの枠（画面そのものなので閉じる・幅を変える・横幅いっぱいの切り替えを出さない） */
 const FIXED_FRAME: PanelFrame = { fixed: true };

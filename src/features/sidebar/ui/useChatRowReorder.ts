@@ -1,14 +1,13 @@
 import { useState, type DragEvent } from "react";
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { detachChild } from "@/features/childChats/ui/detachChild";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { alert } from "@/foundation/ui/kit/ask";
-import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { childRowDrop } from "./childRowDrop";
 import { dragAttrs, type DragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
-import { draggingChat, useChatOrder, useManualChatReorder } from "@/features/chatList/ui";
+import { draggingChat, useChatOrder, useManualChatReorder, useChatLayout } from "@/features/chatList/ui";
+import { detachChild } from "@/features/childChats/ui";
+import { knownChat } from "@/features/chat/ui";
 
 /** 行（ChatRow）に付ける、手動の並べ替えの落とし先 */
 export interface RowReorderProps {

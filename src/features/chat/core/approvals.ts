@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
-import type { ApprovalRequest } from "@/features/ai/core/providers/types";
 import type { Approval, ApprovalDecision } from "@shared/chat/approvalTypes";
 import { Conflict } from "@/foundation/core/errors";
+import type { ApprovalRequest } from "@/features/ai/core";
 
 interface Pending {
   approval: Approval;

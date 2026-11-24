@@ -2,15 +2,12 @@ import { useEffect, useEffectEvent, useRef } from "react";
 import type { Chat } from "@shared/chat/types";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { navigate, parse, type ReopenRoute } from "@/foundation/ui/navigation/router";
-import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { useBoardFocus } from "./useBoardFocus";
 import { shouldFollowShownTab } from "./shownTabUrl";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { openNewChat, useDraftsInPanels } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { chatTab, openTab, panelKey, reopenOf, panelSettings } from "@/features/panel/ui";
-import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { usePanel } from "@/features/panel/ui/usePanel";
+import { chatTab, openTab, panelKey, reopenOf, panelSettings, focusedPane, type PanelFrame, usePanel } from "@/features/panel/ui";
 import { usePanelWidth } from "./usePanelWidth";
 
 /** チャットを URL にする（サイドバーで強調され、戻る・進むで行き来できる） */

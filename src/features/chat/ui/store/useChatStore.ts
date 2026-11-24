@@ -2,7 +2,6 @@ import { useEffectEvent, useLayoutEffect, useRef, useSyncExternalStore } from "r
 import type { Chat } from "@shared/chat/types";
 import { chatsApi } from "@/features/chat/ui/api/chats";
 import { onServerEvent, onServerOpen } from "@/foundation/ui/api/events";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { CHAT_STORE_EVENTS } from "./chatDetail";
 import type { EdgeAsk } from "./chatPaging";
 import { createChatStore } from "./chatStore";
@@ -12,6 +11,7 @@ import { createHoverPrefetch } from "./hoverPrefetch";
 import { knownChatsForStore } from "./knownChats";
 import { approvalsOf, subscribeApprovals } from "./approvals";
 import type { ChatDetailView } from "./chatStoreTypes";
+import { useProjects } from "@/features/projects/ui";
 
 /*
  * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。サーバーの知らせの購読と document の見張りは startChatStore

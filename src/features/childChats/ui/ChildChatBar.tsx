@@ -3,11 +3,7 @@ import { ArrowUpLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
-import { latestAnswer, chatTitle, ChatStateMark, ancestorsOf, LineageTrail } from "@/features/chat/ui";
-import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
-import { useChatRename, type ChatTitleEditor } from "@/features/chat/ui/useChatRename";
-import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
-import { knownChat, useChatsValue, useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { latestAnswer, chatTitle, ChatStateMark, ancestorsOf, LineageTrail, ChatTitleInput, useChatRename, type ChatTitleEditor, knownChat, useChatsValue, useKnownChat } from "@/features/chat/ui";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { alert } from "@/foundation/ui/kit/ask";
@@ -17,6 +13,7 @@ import { requestHandoff } from "./handBack";
 import { DetachSubmenu } from "./DetachSubmenu";
 import { HandBackMenu, type HandBack } from "./HandBackMenu";
 import { useClickOrDouble } from "./clickOrDouble";
+import { PopOutTabButton } from "@/features/panel/ui";
 
 /** 系譜を出す数（これより深ければ、根と親の間を「…」にまとめる） */
 const MAX_CRUMBS = 2;

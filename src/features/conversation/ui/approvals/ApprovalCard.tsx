@@ -6,10 +6,9 @@ import { toolText } from "@/features/chat/ui";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
-import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { toolRowViewOf } from "@/features/conversation/ui/tools/toolRowViews";
+import { useSubagentsView, agentHueStyle } from "@/features/subagents/ui";
 
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
 export function ApprovalCard({ approval }: { approval: Approval }) {

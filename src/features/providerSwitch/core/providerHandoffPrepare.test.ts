@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import { test } from "vitest";
 import { eventSequence } from "@shared/chat/testing";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";
+import { UploadStore } from "@/features/attachments/core";
 
 test("切り替え先への会話は長文をファイルに保存し、添付は存在とパスだけ伝える", async () => {
   const uploads = new UploadStore(tempDir());

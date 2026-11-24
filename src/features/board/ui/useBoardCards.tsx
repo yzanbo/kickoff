@@ -1,14 +1,13 @@
 import { useState, type CSSProperties, type DragEvent } from "react";
 import type { Chat, FeedItem } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { cx } from "@/foundation/ui/lib/cx";
 import { startChatDrag } from "@/features/chatList/ui";
-import type { useChatRename } from "@/features/chat/ui/useChatRename";
-import type { PanelController } from "@/features/panel/ui/usePanel";
 import { ChatCardContent } from "./ChatCard";
 import { useCardFields } from "./CardFieldsMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { chatItemProps, type ChatSelection } from "@/features/chatList/ui";
+import { useChatStates, type useChatRename } from "@/features/chat/ui";
+import type { PanelController } from "@/features/panel/ui";
 
 /** ボードのカード・リストの行の、画面に出ている上からの並び（閉じている段・まとまりの中は除く。ボードで選ぶときの範囲） */
 export const boardCardIds = () =>

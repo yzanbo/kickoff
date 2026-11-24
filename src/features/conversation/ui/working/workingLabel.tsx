@@ -4,12 +4,12 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { activityOf, activityText, type Activity } from "@/features/chat/ui/state/stall";
 import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundText";
 import { RetryLabel } from "./ConnectionStatus";
 import { isInheriting } from "./workPhase";
 import { compactingLabel } from "@/features/compact/ui";
 import type { TimelineItem } from "@/features/conversation/ui/timelineItems";
+import { activityOf, activityText, type Activity } from "@/features/chat/ui";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
 export interface ChatActivity {

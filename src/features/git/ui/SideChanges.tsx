@@ -4,7 +4,6 @@ import { useRef } from "react";
 import type { GitFileChange } from "@shared/git/types";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -18,10 +17,10 @@ import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { changedFiles } from "@/features/git/ui/changes/changeGroups";
 import { useViewedFiles, type ViewedFiles } from "@/features/git/ui/diff/useViewedFiles";
 import { DiffStack, type StackFold } from "@/features/git/ui/diff/DiffStack";
-import { useCodeQuoteMenu } from "@/features/files/ui/useCodeQuoteMenu";
 import { useGitStatus } from "./useGitStatus";
-import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
-import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
+import { useProjects, GitInitNotice } from "@/features/projects/ui";
+import { useCodeQuoteMenu } from "@/features/files/ui";
+import { PopOutTabButton } from "@/features/panel/ui";
 
 interface Props {
   projectId: number;

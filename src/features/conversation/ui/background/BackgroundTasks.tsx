@@ -5,10 +5,10 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { ActivityNote } from "@/features/subagents/ui/SubagentChip";
 import { useActionButton, useOptionalActivityNav, useOptionalSubagentNav, turnsApi } from "@/features/chat/ui";
 import { useTaskOutput } from "./commandOutputs";
 import { backgroundCallTarget } from "./backgroundTarget";
+import { ActivityNote } from "@/features/subagents/ui";
 
 const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command: SquareTerminal, other: SquareTerminal };
 

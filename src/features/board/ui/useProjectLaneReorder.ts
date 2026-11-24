@@ -2,11 +2,9 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
-import { projectsSettings, projectsApi } from "@/features/projects/ui";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { PROJECT_DRAG_TYPE } from "@/features/chatList/ui";
-import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { projectsSettings, projectsApi, useVisibleProjects } from "@/features/projects/ui";
+import { PROJECT_DRAG_TYPE, type ChatBucket } from "@/features/chatList/ui";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 type Lane = ChatBucket<PlacedDraft>;
 

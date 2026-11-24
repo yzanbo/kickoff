@@ -1,6 +1,5 @@
 import { formatDuration, formatFullStamp, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
-import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
-import type { ToolCall } from "@/features/chat/ui";
+import { type ToolCall, Elapsed } from "@/features/chat/ui";
 import { callDuration, toolSpan } from "./toolTimes";
 
 /**

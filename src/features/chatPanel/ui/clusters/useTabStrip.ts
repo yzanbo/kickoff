@@ -1,9 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
-import type { PaneLeaf } from "@/features/panel/ui/layout/paneTree";
-import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useChatOrder, useManualChatReorder } from "@/features/chatList/ui";
-import { parsePanelKey } from "@/features/panel/ui";
+import { parsePanelKey, type PaneLeaf, type PanelController } from "@/features/panel/ui";
 import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";

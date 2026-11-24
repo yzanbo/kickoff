@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 import { STATE_LOOKS, type StateTone } from "@shared/chat/stateLooks";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import type { BucketHead } from "./buckets";
+import { StatusSlot } from "@/features/chat/ui";
 
 /**
  * 状態のまとまりの札の左の印: サイドバーのチャットの行と同じ状態の印（StatusSlot。作業中は回るリング・回答待ちは琥珀色の！・未読は緑の点・既読は薄い点）。

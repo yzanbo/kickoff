@@ -5,7 +5,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { AgentProvider } from "@/features/ai/core";
 
 /** チャットが覚えている離れた AI のセッション（providerSwitch の ProviderHandoffPort.sessionsOf） */
 export type RememberedSessions = (chatId: number) => { session_id: string; provider: ProviderId }[];

@@ -7,8 +7,8 @@ import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { AiChatRelation } from "@shared/chat/aiCreateChat";
 import { forkFrom, resumePointBefore, workdirOf, type ChatStoreDeps } from "@/features/chat/core/index";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
-import { CHILD_FORK_KEEP, type AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunPort } from "@/features/chat/core/index";
+import { CHILD_FORK_KEEP, type AgentProvider } from "@/features/ai/core";
 
 export interface ChildChatInput {
   /** 聞くこと */

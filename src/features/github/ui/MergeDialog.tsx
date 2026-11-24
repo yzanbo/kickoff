@@ -8,13 +8,13 @@ import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openDialog } from "@/foundation/ui/kit/openDialog";
 import { confirmRemoveWorktree, worktreesApi } from "@/features/worktrees/ui";
 import { mergeWarnings, pickMergeMethod } from "./githubMerge";
+import { useProjects } from "@/features/projects/ui";
 
 /** PR のマージの確認を開く（onMerged はマージできたとき） */
 export const openMergeDialog = (projectId: number, detail: GitHubPullDetail, onMerged: () => void) =>

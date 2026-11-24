@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useBoard } from "./BoardContext";
-import { groupNameIn, useGroupsOf } from "@/features/groups/ui/stores/groups";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { chatComparator, type ChatSort } from "./chatSort";
+import { useChatStates } from "@/features/chat/ui";
+import { groupNameIn, useGroupsOf } from "@/features/groups/ui";
+import { useProjects } from "@/features/projects/ui";
 
 const NO_IDS: readonly number[] = Object.freeze([]);
 

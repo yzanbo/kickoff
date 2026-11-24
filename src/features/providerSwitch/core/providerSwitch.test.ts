@@ -3,8 +3,8 @@ import { test } from "vitest";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore } from "@/app/core/testing/testCore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "./providerSwitch";
+import { UploadStore } from "@/features/attachments/core";
 
 const git = async () => ({ context: "Git の状態: main", warning: null });
 

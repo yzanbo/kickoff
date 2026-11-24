@@ -4,19 +4,16 @@ import type { DragEvent } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { changeProject, confirmRestoreProject } from "@/features/projects/ui/projectOrder";
 import { open } from "@/foundation/ui/navigation/open";
 import { href, navigate } from "@/foundation/ui/navigation/router";
-import { ProjectMark } from "@/features/projects/ui/ProjectMark";
-import { GroupPickMenu } from "@/features/groups/ui/GroupPickMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { ProjectTags } from "@/features/projects/ui/ProjectTags";
 import { HeadCounts } from "./HeadCounts";
 import { pressedLeftOfName } from "@/foundation/ui/kit/layout/FoldToggle";
-import { useProjectMenu } from "@/features/projects/ui/ProjectMenu";
-import { ActiveChatsButton } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
-import type { CountedColumn, StateCounts } from "@/features/chat/ui/state/chatState";
+import { changeProject, confirmRestoreProject, ProjectMark, ProjectTags, useProjectMenu } from "@/features/projects/ui";
+import { GroupPickMenu } from "@/features/groups/ui";
+import { ActiveChatsButton } from "@/features/chatList/ui";
+import type { CountedColumn, StateCounts } from "@/features/chat/ui";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。

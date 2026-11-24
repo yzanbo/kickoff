@@ -1,17 +1,13 @@
 import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
-import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
-import { chatHead, draftHead, groupHeads, workplaceHead } from "@/features/chatList/ui/bucketHeads";
-import { useBucketContext, useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
 import { OTHER_CLUSTER, tabClusterOf, type ClusterResolver } from "./tabClusters";
-import { kindOf, type PanelSurface } from "@/features/panel/ui";
+import { kindOf, type PanelSurface, type PanelController } from "@/features/panel/ui";
 import { useNewChatDrafts } from "@/features/composer/ui";
 import { knownChat } from "@/features/chat/ui";
-import type { PanelController } from "@/features/panel/ui/usePanel";
+import { useProjects } from "@/features/projects/ui";
+import { type ChatGrouping, type BucketHead, chatHead, draftHead, groupHeads, workplaceHead, useBucketContext, useBucketHueOf } from "@/features/chatList/ui";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
 export const useTabGrouping = (surface: PanelSurface) => useSetting(storage.settings.tabGrouping(surface));

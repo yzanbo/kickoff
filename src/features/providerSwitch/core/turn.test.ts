@@ -3,8 +3,8 @@ import { test } from "vitest";
 import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, until } from "@/app/core/testing/testCore";
-import { UploadStore } from "@/features/attachments/core/uploads";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { UploadStore } from "@/features/attachments/core";
 
 function switched(provider: ScriptedProvider, state: "ready" | "blocked" = "ready") {
   const ctx = setupCore(provider);

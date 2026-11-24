@@ -2,12 +2,10 @@ import { useEffect } from "react";
 import { followMain } from "@/foundation/ui/navigation/popout";
 import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { openNewProject } from "@/features/projects/ui/new/openNewProject";
 import { Sidebar } from "./Sidebar";
-import { useFallbackProject } from "@/features/projects/ui/currentProject";
 import { useMainWindowRoute } from "@/foundation/ui/navigation/useMainWindowRoute";
 import { openAppDialog } from "@/foundation/ui/shell/points";
+import { useProjects, openNewProject, useFallbackProject } from "@/features/projects/ui";
 
 /**
  * サイドバーの別ウィンドウの中身（メインのウィンドウと同じ Sidebar を、ウィンドウいっぱいに）。

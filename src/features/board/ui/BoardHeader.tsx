@@ -6,11 +6,11 @@ import { openContentSearch } from "@/features/palette/ui";
 import type { BoardViewState } from "./layout";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { PanelToggle } from "@/features/chatPanel/ui/board/PanelToggle";
-import type { PanelController } from "@/features/panel/ui/usePanel";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useWrapCompact } from "@/foundation/ui/hooks/useOverflowCompact";
+import { PanelToggle } from "@/features/chatPanel/ui";
+import type { PanelController } from "@/features/panel/ui";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる）・フィード（全プロジェクトのボードだけ） */
 type BoardView = BoardViewState["view"];

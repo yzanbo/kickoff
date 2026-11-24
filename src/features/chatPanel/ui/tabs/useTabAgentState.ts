@@ -1,11 +1,9 @@
 import { busyWithUnread } from "@shared/chat/state";
 import { subagentState } from "@shared/chat/subagentState";
 import type { AgentState } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { chatSubagents } from "@/features/subagents/ui";
-import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
+import { chatSubagents, subagentStatusLabel } from "@/features/subagents/ui";
 import type { PanelTab } from "@/features/panel/ui";
+import { useChatStates, useKnownChat } from "@/features/chat/ui";
 
 /** タブの名前の前に出すエージェントの状態（印 StatusSlot と、未読・失敗の太字に使う） */
 export interface TabAgentState {

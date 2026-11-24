@@ -7,7 +7,6 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { SelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/conversation/ui/timeline/ChatTimeline";
 import { ActivityView } from "@/features/conversation/ui/activity/ActivityView";
-import { SubagentsContext } from "@/features/subagents/ui/subagentsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { chatVisuals, VisualsContext } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
@@ -20,6 +19,7 @@ import { useWideText } from "@/features/conversation/ui/display/TextWidthToggle"
 import { useConversationState } from "./useConversationState";
 import { useForegroundProvider } from "./useForegroundProvider";
 import type { ChatShellHandles } from "./useChatShell";
+import { SubagentsContext } from "@/features/subagents/ui";
 
 interface ChatColumnProps {
   chat: Chat;

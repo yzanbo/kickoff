@@ -18,3 +18,7 @@ export { NowLine, SubagentChildren, SubagentKind, SubagentLinkActions, SubagentT
 export { SubagentPrompt, SubagentReport, SubagentSteps } from "./subagentBody";
 export { useSubagentScope } from "./useSubagentScope";
 export { SubagentsContext, type SubagentsView } from "./subagentsContext";
+export { ActivityNote, SubagentChip } from "./SubagentChip";
+export { subagentStatusLabel } from "./model/subagentList";
+export { flattenTree, subagentTree } from "./model/subagentTree";
+export { useSubagentsView } from "./subagentsContext";

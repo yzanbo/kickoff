@@ -1,8 +1,8 @@
 import { useEffectEvent, useLayoutEffect, useState, type RefObject } from "react";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 import { useOptionalActivityNav, usePortValue } from "@/features/chat/ui";
-import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentScope, focusedRowIndexes, type ActivityRow } from "./activityRows";
+import type { SubagentTree } from "@/features/subagents/ui";
 
 /** 動きの強調の様子（カードの「動きで見る」で強調したサブエージェントの行と、いま移っている行） */
 export interface ActivityFocus {

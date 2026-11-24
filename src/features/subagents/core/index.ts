@@ -8,3 +8,4 @@ export function createSubagents(deps: { chat: Pick<ChatApi, "store" | "addTurnCo
   deps.chat.addTurnContributor(subagentReportParts(deps.chat.store));
   return { name: "subagents", api: null };
 }
+export { sessionOfSubagent, subagentLogFromEvents, subagentTranscript, subagentTranscriptFileName } from "./subagentTranscript";

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ProviderId } from "@shared/settings/types";
 import { testStore } from "@/app/core/testing/testStore";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { SESSION_SWEEP_GRACE_MS, sessionLabel, sweepUnusedSessions } from "./sessionTrash";
+import type { AgentProvider } from "@/features/ai/core";
 
 test("使われなくなったセッションの片付け: 覚えたもののうち、どのチャットも使わず、ほかの Kickoff も使わないものだけをゴミ箱へ入れて忘れる", async () => {
   const store = testStore();

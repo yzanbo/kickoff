@@ -3,13 +3,12 @@ import { useMemo, useState } from "react";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { startDraftDrag } from "@/features/chatList/ui";
-import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { draftRowClass } from "./chatRowClass";
 import { ChatRowFace } from "@/features/chatList/ui";
 import { panelKey } from "@/features/panel/ui";
-import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
+import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type PlacedDraft, DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui";
+import { useChatPlacement } from "@/features/projects/ui";
 
 /**
  * 下書きのタブを、いまの画面のプロジェクトのチャットのパネルで表示しているか（サイドバーの行を選択中に見せる。チャットの行が URL で

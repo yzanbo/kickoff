@@ -9,17 +9,16 @@ import { HistoryMain } from "./HistoryMain";
 import { HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
-import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { RefMenu } from "./RefMenu";
 import type { RefTarget } from "./refTarget";
 import { useBranchActions } from "./useBranchActions";
 import { useWorktreeOps } from "./useWorktreeOps";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { HistoryToolbar } from "./HistoryToolbar";
 import { useHistoryOps } from "./useHistoryOps";
 import { useStashActions } from "./useStashActions";
+import { GitInitNotice, useProjects } from "@/features/projects/ui";
 
 /**
  * プロジェクトの「履歴」タブ（上に Git の操作の帯、左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。

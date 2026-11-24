@@ -17,3 +17,8 @@ export { holdChatsElsewhere } from "./state/windowChats";
 export { chatSideAdds, type ChatSideAdd, type ChatSideAddProps } from "./chatSideAdds";
 export { useDraftSide } from "./agents/draftSide";
 export { openSeededChat } from "./openSeededChat";
+export { PanelToggle } from "./board/PanelToggle";
+export { panelChats, useChatsTabLinks } from "./board/boardChats";
+export { useBoardPanel } from "./board/useBoardPanel";
+export { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "./drafts/DraftMenuItems";
+export { draftTitleOf, hasDraftAttachments, openDraft, setDraftGroup, useAllDrafts } from "./drafts/panelDrafts";

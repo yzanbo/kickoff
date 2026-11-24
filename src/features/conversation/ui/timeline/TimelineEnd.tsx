@@ -8,13 +8,13 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { ApprovalCard } from "@/features/conversation/ui/approvals/ApprovalCard";
 import { BackgroundTasks } from "@/features/conversation/ui/background/BackgroundTasks";
 import { ReconnectRow } from "@/features/conversation/ui/working/ConnectionStatus";
-import { Working } from "@/features/chat/ui/parts/Working";
 import { WorkingExecution } from "@/features/conversation/ui/working/WorkingExecution";
 import { CompactingRow, AfterCompactMessages, useSentCompactPrompt } from "@/features/compact/ui";
 import { afterCompactUntilOf, isWaitingCompact } from "@/features/conversation/ui/working/workPhase";
 import { VisualPending } from "@/features/visuals/ui";
 import { WorkplaceMoveRow } from "@/features/workplaceMove/ui";
 import { StreamingReply } from "@/features/conversation/ui/streaming/StreamingReply";
+import { Working } from "@/features/chat/ui";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・書いている途中の図の枠・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。

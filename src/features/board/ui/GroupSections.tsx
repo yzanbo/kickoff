@@ -1,18 +1,15 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import type { NewChatPlace } from "@/features/chat/ui";
-import { activeOf, ArchivableItems, ColumnBody } from "@/features/chatList/ui";
+import { activeOf, ArchivableItems, ColumnBody, type ChatBucket, bucketTone, BucketChip } from "@/features/chatList/ui";
 import { orderGroupBuckets, UNGROUPED_SORT_ID } from "@/features/groups/ui";
 import { DraftCards } from "./DraftCards";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
-import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
-import { BucketChip } from "@/features/chatList/ui/StateChip";
 import type { GroupBoardState } from "./useGroupBoard";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。

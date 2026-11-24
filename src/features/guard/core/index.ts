@@ -64,3 +64,4 @@ export function createGuard(deps: { trash: TrashApi; ai: Pick<AiApi, "providers"
     },
   };
 }
+export { normalizeCommand } from "./guard/selfProtection";

@@ -1,30 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { foldAll, useFolds } from "@/foundation/ui/hooks/useFold";
 import { useCommandHandler } from "@/foundation/ui/commands";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { projectsSettings, projectsApi } from "@/features/projects/ui";
-import { projectKey } from "@/features/chatList/ui/bucketHeads";
-import { loadCurrentProject, saveCurrentProject } from "@/features/projects/ui/currentProject";
-import { useProjectMenu } from "@/features/projects/ui/ProjectMenu";
-import { useAllDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { chatListSettings } from "@/features/chatList/ui";
-import { waitingChats } from "@/features/chat/ui";
-import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
+import { projectsSettings, projectsApi, useProjects, useVisibleProjects, loadCurrentProject, saveCurrentProject, useProjectMenu } from "@/features/projects/ui";
+import { chatListSettings, projectKey } from "@/features/chatList/ui";
+import { waitingChats, useChatStates, useChatSearch, useChatsWithChildrenByProject } from "@/features/chat/ui";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
 import { PROJECT_DRAG_TYPE } from "@/features/chatList/ui";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 import { projectMoves } from "./commands";
+import { useAllDrafts } from "@/features/chatPanel/ui";
 
 /**
  * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・要対応だけ・検索・

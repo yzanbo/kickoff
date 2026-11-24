@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { PanelTab } from "@/features/panel/ui";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
 import type { NewChatDraft } from "@/features/composer/ui";
+import type { BucketHead } from "@/features/chatList/ui";
 
 /** タブをまとまりに落としたときに変えるもの: チャットのグループ / 送る前の新しいチャット（下書き）の作成先のグループ（groupId が null ならグループなし） */
 export type ClusterTabDrop = { kind: "chat"; chatId: number; groupId: number | null } | { kind: "draft"; tabKey: string; groupId: number | null; groupName: string | undefined };

@@ -7,11 +7,11 @@ import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceB
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { listWorkplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chatFileLinksPort, type ChatFileSource } from "./fileLinks";
 import { memoLast } from "@/features/chat/ui/store/chatSelector";
 import { defineChatSelector } from "@/features/chat/ui/store/useChatStore";
+import { useProjects } from "@/features/projects/ui";
 
 const NO_BOUNDARIES: readonly WorkplaceBoundary[] = [];
 

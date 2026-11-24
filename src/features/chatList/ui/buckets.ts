@@ -23,10 +23,9 @@ import { byUrgency, URGENCY_ORDER } from "@shared/chatList/urgency";
 import type { GitWorktree } from "@shared/foundation/workplace";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
-import { stateCounts, type ApprovalIndex, type StateCounts } from "@/features/chat/ui/state/chatState";
 import { compareWorkplaces, type ChatWorkplace } from "@/foundation/ui/workplace/workplace";
-import { byActive } from "@/features/chat/ui/store/knownChats";
 import { chatHead, draftHead, seedHeads } from "./bucketHeads";
+import { stateCounts, type ApprovalIndex, type StateCounts, byActive } from "@/features/chat/ui";
 
 /** まとまりの分け方（1 段） */
 export type BucketBy = "project" | "group" | "worktree" | "status";

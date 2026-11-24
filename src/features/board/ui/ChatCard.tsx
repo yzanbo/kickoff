@@ -3,20 +3,16 @@ import { busyWithUnread } from "@shared/chat/state";
 import type { AgentState, Chat, FeedItem } from "@shared/chat/types";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ProviderId } from "@shared/settings/types";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { LinkedItemChip } from "@/features/chat/ui";
-import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
+import { LinkedItemChip, chatTitle, type ChatTitleEditor, ChatTitleInput, StatusSlot } from "@/features/chat/ui";
 import { ModelName } from "@/features/ai/ui";
 import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
-import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
-import { GroupChip } from "@/features/groups/ui/GroupChip";
-import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { cardStatText } from "./cardFields";
 import { feedPlainText } from "./feed";
 import { StateChip } from "@/features/chatList/ui";
 import type { ShowCardField } from "./CardFieldsMenu";
+import { GroupChip } from "@/features/groups/ui";
+import { ProjectChip } from "@/features/projects/ui";
 
 interface Props {
   chat: Chat;

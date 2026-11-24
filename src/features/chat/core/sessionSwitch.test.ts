@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { testStore } from "@/app/core/testing/testStore";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { switchAfterCompact } from "./sessionSwitch";
+import type { AgentProvider } from "@/features/ai/core";
 
 function setup() {
   const store = testStore();

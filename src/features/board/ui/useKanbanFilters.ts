@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useBoard } from "./BoardContext";
 import type { BoardViewState } from "./layout";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";
+import { useChatSearch } from "@/features/chat/ui";
 
 /** カンバンの絞り込み（アーカイブ（覚えておく）・作業場所・名前の検索） */
 export function useKanbanFilters() {

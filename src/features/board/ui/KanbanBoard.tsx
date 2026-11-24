@@ -1,15 +1,8 @@
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { open } from "@/foundation/ui/navigation/open";
 import type { ReopenRoute } from "@/foundation/ui/navigation/router";
-import { useBoardPanel } from "@/features/chatPanel/ui/board/useBoardPanel";
-import { panelChats, useChatsTabLinks } from "@/features/chatPanel/ui/board/boardChats";
-import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
-import { useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardContext, useBoard, useBoardContextValue } from "./BoardContext";
@@ -26,15 +19,16 @@ import { useChatSort } from "./useChatSort";
 import { SavedViewTabs } from "./SavedViewTabs";
 import { FeedList } from "./FeedList";
 import { useFeed } from "./useFeed";
-import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
 import { useKanbanChats } from "./useKanbanChats";
 import { useKanbanFilters, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
 import { boardCardIds, useBoardCards, useCardMenu } from "./useBoardCards";
-import { SelectionBar, useChatSelectionState } from "@/features/chatList/ui";
-import { useGroupsOf } from "@/features/groups/ui/stores/groups";
-import { useChats } from "@/features/chat/ui/store/knownChats";
+import { SelectionBar, useChatSelectionState, useChatBuckets } from "@/features/chatList/ui";
 import { RowBudgetScope, useProgressivePage } from "@/foundation/ui/hooks/useProgressiveRows";
+import { useChatRename, useChats } from "@/features/chat/ui";
+import { useProjects, useVisibleProjects, useChatPlacement } from "@/features/projects/ui";
+import { useBoardPanel, panelChats, useChatsTabLinks, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui";
+import { useGroupsOf } from "@/features/groups/ui";
 
 /**
  * プロジェクトのカンバン。チャットを開く先は設定の「チャットの置き方」で決まる: ボードと分ける（初め）なら、カードを押すと「チャット」タブへ移って開く。

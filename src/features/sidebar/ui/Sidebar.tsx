@@ -2,7 +2,6 @@ import "./Sidebar.css";
 import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
 import { useLayoutEffect } from "react";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -10,8 +9,6 @@ import { href, useRoute } from "@/foundation/ui/navigation/router";
 import { ProjectNav } from "./ProjectNav";
 import { chatListSettings } from "@/features/chatList/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useChatsByProject, useChatsLoaded } from "@/features/chat/ui/store/knownChats";
-import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "@/features/chatList/ui";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -19,6 +16,9 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { NewChatButton } from "./NewChatButton";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
+import { useProjects } from "@/features/projects/ui";
+import { useChatsByProject, useChatsLoaded } from "@/features/chat/ui";
+import { useGroupsOf } from "@/features/groups/ui";
 
 interface Props {
   /** 開閉と幅（メインのウィンドウ）。なければ別ウィンドウのサイドバー（ウィンドウいっぱいに出し、開閉・幅のつまみ・信号機ボタンの行を置かない） */

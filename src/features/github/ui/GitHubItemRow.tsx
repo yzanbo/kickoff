@@ -5,11 +5,11 @@ import type { Chat } from "@shared/chat/types";
 import type { CiState } from "@shared/github/ciTypes";
 import type { GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
 import { open } from "@/foundation/ui/navigation/open";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { CheckStateIcon } from "./CheckStateIcon";
 import { GitHubStateIcon } from "./GitHubStateIcon";
+import { chatTitle } from "@/features/chat/ui";
 
 /** ラベルの札（GitHub の色の点 ＋ 名前） */
 export function GitHubLabels({ labels }: { labels: GitHubLabel[] }) {

@@ -1,8 +1,6 @@
 import "./ChatHeaderTitle.css";
 import type { Chat } from "@shared/chat/types";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
-import { useChatRename } from "@/features/chat/ui/useChatRename";
+import { chatTitle, ChatTitleInput, useChatRename } from "@/features/chat/ui";
 
 /**
  * チャットの見出しの行の名前（子チャットの上の帯の名前と同じ見せ方。ダブルクリックでその場で名前を変える）。

@@ -72,3 +72,6 @@ export const panelSettings = {
 } as const;
 export { PopoutTabWindow } from "./popout/PopoutTabWindow";
 export { returnTabWindow } from "./popout/tabWindow";
+export { EXTERNAL_TAB_MIME, beginExternalTabDrag, endExternalTabDrag } from "./layout/externalTabDrag";
+export { TabVisibleContext } from "./tabs/tabPageContext";
+export { useCoverableWidth } from "./useCoverableWidth";

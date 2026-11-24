@@ -2,22 +2,18 @@ import { Folder, FolderGit2, GitBranch, Square, type LucideIcon } from "lucide-r
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
-import { ProjectMark } from "@/features/projects/ui/ProjectMark";
-import { hueStyle, projectHue } from "@/features/projects/ui/projectColor";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { BoardLane } from "./layout";
 import { WORKPLACE_KIND_LABELS } from "@/foundation/ui/workplace/workplace";
-import { newChatPlaceOf, type ChatBucket, type DraftTarget } from "@/features/chatList/ui/buckets";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
-import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
 import { FoldHead, type FoldLook } from "@/foundation/ui/kit/FoldHead";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
+import { ProjectMark, hueStyle, projectHue, useProjects } from "@/features/projects/ui";
+import { newChatPlaceOf, type ChatBucket, type DraftTarget, type ChatGrouping, useBucketHueOf } from "@/features/chatList/ui";
+import { NewChatItem } from "@/features/chat/ui";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   group: "グループ",

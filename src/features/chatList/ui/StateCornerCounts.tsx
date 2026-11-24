@@ -1,6 +1,6 @@
 import { cx } from "@/foundation/ui/lib/cx";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
-import type { StateCounts } from "@/features/chat/ui/state/chatState";
+import type { StateCounts } from "@/features/chat/ui";
 
 /** 角に出す順（左上 = 作業中・右上 = 未読・左下 = 回答待ち）と、data-state の値（styles/types/status.css） */
 const CORNERS = [

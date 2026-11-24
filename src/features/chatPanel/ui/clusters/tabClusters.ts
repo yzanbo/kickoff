@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
-import { sortBuckets, type BucketHead } from "@/features/chatList/ui/buckets";
 import type { PanelTab } from "@/features/panel/ui";
 import type { NewChatDraft } from "@/features/composer/ui";
+import { sortBuckets, type BucketHead } from "@/features/chatList/ui";
 
 /** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */
 export const OTHER_CLUSTER: BucketHead = { key: "other", kind: "other", label: "その他", title: "グループ・作業場所に入らないタブ（ブラウザなど）" };

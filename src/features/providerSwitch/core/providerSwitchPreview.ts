@@ -6,8 +6,7 @@ import type { ProviderId } from "@shared/settings/types";
 import { handoffBlocksSwitch } from "./db/handoffs";
 import type { SwitchStore } from "./store";
 import { Conflict, NotFound } from "@/foundation/core/errors";
-import type { ChatRunPort } from "@/features/chat/core/index";
-import { workdirOf } from "@/features/chat/core/workdir";
+import { type ChatRunPort, workdirOf } from "@/features/chat/core";
 import { providerCan } from "@shared/ai/providers";
 
 /** 確認画面と確定時で同じ条件を比較する。資料や API キーはトークンに含めない。 */

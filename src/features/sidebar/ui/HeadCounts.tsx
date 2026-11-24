@@ -1,7 +1,7 @@
 import "./HeadCounts.css";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import { cx } from "@/foundation/ui/lib/cx";
-import { COUNTED_COLUMNS, type CountedColumn, type StateCounts } from "@/features/chat/ui/state/chatState";
+import { COUNTED_COLUMNS, type CountedColumn, type StateCounts } from "@/features/chat/ui";
 
 /**
  * プロジェクトの見出しの、状態ごとのチャット数（作業中・回答待ち・未読。色はカンバンの列と同じ。0 のものは出さない）。

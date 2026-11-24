@@ -3,11 +3,11 @@ import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { errorMessage } from "@shared/foundation/errors";
 import type { SwitchStore } from "./store";
-import type { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";
 import { providerHandoffGit } from "./providerHandoffGit";
-import { workdirOf } from "@/features/chat/core/workdir";
 import { providerCan } from "@shared/ai/providers";
+import type { UploadStore } from "@/features/attachments/core";
+import { workdirOf } from "@/features/chat/core";
 
 export interface ProviderSwitchDeps {
   store: SwitchStore;

@@ -1,16 +1,12 @@
 import { Tag } from "lucide-react";
-import { ProjectSwitcher } from "@/features/projects/ui/page/ProjectSwitcher";
 import { StatusCard } from "@/foundation/ui/kit/StatusCard";
 import { AllProjectsKanban } from "./KanbanBoard";
-import { tagLabel } from "@/features/projects/ui/projectTagFilter";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
-import { useChats } from "@/features/chat/ui/store/knownChats";
 import { GitHubStatusCard, useGitHubStatus, useProviders } from "@/features/ai/ui";
 import { StateStats } from "@/features/chatList/ui";
-import { NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
+import { ProjectSwitcher, tagLabel, useVisibleProjects, TagFilterNotice, NoProjectsWelcome } from "@/features/projects/ui";
+import { useChats } from "@/features/chat/ui";
 
 /**
  * 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる）。

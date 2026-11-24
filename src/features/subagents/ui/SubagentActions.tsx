@@ -3,10 +3,9 @@ import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
-import { activityOf } from "@/features/chat/ui/state/stall";
 import { isSubagentHalted } from "@/features/subagents/ui/model/subagentList";
 import { HAND_OVER_NOW, resumeRequest, retryRequest } from "@shared/chat/prompts";
-import { useActionButton, turnsApi } from "@/features/chat/ui";
+import { useActionButton, turnsApi, activityOf } from "@/features/chat/ui";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。

@@ -1,17 +1,14 @@
 import { Fragment, type ReactNode } from "react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
-import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
 import { ClusterShortItem } from "@/features/chatPanel/ui/clusters/ClusterShortItem";
 import { useTabGrouping } from "@/features/chatPanel/ui/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/chatPanel/ui/clusters/HiddenGroupItems";
-import type { PanelController } from "@/features/panel/ui/usePanel";
-import { panelSettings } from "@/features/panel/ui";
+import { panelSettings, type PanelController } from "@/features/panel/ui";
 import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
 import { ArchivedChatsItem } from "./ArchivedChatsItem";
+import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS, BucketColorItem, CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/chatList/ui";
 
 const separator = <div className="menu-separator" role="separator" />;
 

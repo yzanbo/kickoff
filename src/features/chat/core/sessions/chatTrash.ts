@@ -11,12 +11,12 @@ import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { descendantsOf } from "@/features/chat/core/family";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatAttachments } from "@/features/chat/core/ports";
 import { collectChatSessions, discardUnusedSessions, type RememberedSessions } from "./sessionCleanup";
 import { tx } from "@/foundation/core/db/tx";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { StoredTrashItem, TrashApi, TrashKindDef } from "@/features/trash/core/index";
+import type { AgentProvider } from "@/features/ai/core";
 
 /** チャットをゴミ箱に入れるときに使うもの（作業中か確かめる・作業中の状態を捨てる） */
 export interface ChatTrashDeps {

@@ -1,6 +1,5 @@
 import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
-import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
-import type { DenyVerdict, GuardRule, GuardRuleSource } from "@/features/guard/core/index";
+import { type DenyVerdict, type GuardRule, type GuardRuleSource, normalizeCommand } from "@/features/guard/core";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */

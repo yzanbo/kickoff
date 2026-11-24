@@ -13,3 +13,4 @@ export type { BlameLines, ChangeMark, ChangeMarks, FileChange, FilesChangesPaneP
 export type { Selection } from "./tabSelection";
 export { FileTree, siblingNameError, type TreeMulti } from "./FileTree";
 export type { FileRename } from "./useFileOps";
+export { useCodeQuoteMenu } from "./useCodeQuoteMenu";

@@ -6,9 +6,9 @@ import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions, type RememberedSessions } from "./sessionCleanup";
 import { trashChat, type ChatTrashDeps } from "./chatTrash";
+import type { AgentProvider } from "@/features/ai/core";
 
 /**
  * 整理するチャットの組（いちばん上のチャットと、一緒にゴミ箱へ入る子孫）。アーカイブ済みで before より前から動いていないもの。

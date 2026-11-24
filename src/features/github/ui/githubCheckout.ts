@@ -4,13 +4,12 @@ import type { GitHubPullDetail } from "@shared/github/types";
 import { githubApi } from "@/features/github/ui/api/github";
 import { gitApi } from "@/features/git/ui";
 import { workdirInput } from "@/foundation/ui/api/workdir";
-import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { choose, confirm, reportFailure } from "@/foundation/ui/kit/ask";
-import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { mainCheckoutNotes } from "./githubMerge";
 import { linkOf } from "./githubPrompt";
+import { useChatsWithChildren, chatTitle } from "@/features/chat/ui";
+import { openSeededChat } from "@/features/chatPanel/ui";
 
 /** チェックアウトの流れ（running は本体で作業中のチャットの名前。呼ぶ側がチャットの店から渡す） */
 export async function checkoutPull(projectId: number, detail: GitHubPullDetail, running: string[]) {

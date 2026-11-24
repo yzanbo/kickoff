@@ -4,7 +4,7 @@
 // 画面に出る会話（DB の記録）はすべて残る。残した区切りより前の発言へは、巻き戻し・「ファイルを戻す」ができなくなる
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { ChatStoreDeps } from "./stores";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { AgentProvider } from "@/features/ai/core";
 
 /** 古い記録をゴミ箱へ入れる口（ほかの Kickoff が使っていれば入れない。index.ts が作る） */
 export type SessionTrash = (sessionId: string, file: string, ctx: { projectId: number; label: string }) => Promise<void>;

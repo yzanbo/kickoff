@@ -1,14 +1,14 @@
 import "./SideFileView.css";
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
 import { open } from "@/foundation/ui/navigation/open";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useChatFileLinks } from "@/features/chat/ui";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { FileView } from "./FileView";
 import { fileTabPlace } from "./fileTabs";
 import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useFilesGitStatus } from "./filesGit";
-import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
+import { useProjects } from "@/features/projects/ui";
+import { PopOutTabButton } from "@/features/panel/ui";
 
 interface Props {
   projectId: number;

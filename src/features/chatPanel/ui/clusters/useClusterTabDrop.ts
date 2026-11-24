@@ -3,9 +3,9 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { newChatDraft } from "@/features/composer/ui";
 import { knownChat, chatsApi } from "@/features/chat/ui";
-import type { PanelController } from "@/features/panel/ui/usePanel";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";
 import type { TabCluster } from "./tabClusters";
+import type { PanelController } from "@/features/panel/ui";
 
 /** まとまりの枠に付けるドロップの受け口 */
 interface DropHandlers {

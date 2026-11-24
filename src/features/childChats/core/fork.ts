@@ -1,9 +1,9 @@
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { forkFrom, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { Invalid } from "@/foundation/core/errors";
 import { lockedBefore } from "@shared/chat/boundaries";
+import type { AgentProvider } from "@/features/ai/core";
 
 /**
  * チャットを、作業の終わり（result イベント）の時点から分岐する（「Fork chat from here」）。

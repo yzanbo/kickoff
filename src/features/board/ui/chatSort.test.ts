@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/chat/testing";
-import { byActive } from "@/features/chat/ui/store/knownChats";
 import { chatComparator, DEFAULT_CHAT_SORT, nextChatSort, parseChatSort, type ChatSortContext } from "./chatSort";
+import { byActive } from "@/features/chat/ui";
 
 const chat = (id: number, extra: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-01-0${id}`, ...extra });
 const ids = (list: Chat[]) => list.map((c) => c.id);

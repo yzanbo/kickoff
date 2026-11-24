@@ -2,19 +2,15 @@ import { MessagesSquare, SquarePen, type LucideIcon } from "lucide-react";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
-import { openAskChild } from "@/features/chat/ui";
+import { openAskChild, useMainChat, knownChat, chatTargetName, quoteComment } from "@/features/chat/ui";
 import { appendToDraft } from "@/features/composer/ui";
 import { addTargetsOf, askInNewChatOf, chatRoleOf, useChatScreen } from "@/features/chat/ui";
-import { useMainChat } from "@/features/chat/ui/screen/mainChat";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { selectionWithin } from "./quotable";
-import { quoteComment } from "@/features/chat/ui/quote";
 import { currentRange, pickedInCode } from "@/features/attachments/ui";
 import { SelectionTargetButton } from "./SelectionTargetButton";
 import { preloadMessageActions, selectionActions, type SelectionContext } from "./messageActions";
 import { placeAbove, SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
+import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui";
 
 /** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（ノートにするとき）） */
 export interface Picked {

@@ -1,12 +1,12 @@
 import "./NewChatItem.css";
 import { SquarePen } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useGroup } from "@/features/groups/ui/stores/groups";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { useChatWorkplace } from "@/foundation/ui/workplace/useWorkplace";
 import { WORKPLACE_KIND_LABELS, WORKPLACE_SHORT_LABELS } from "@/foundation/ui/workplace/workplace";
 import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import type { NewChatPlace } from "@/features/chat/ui/screen/chatHost";
+import { useGroup } from "@/features/groups/ui";
 
 
 const hueStyle = (hue: number | null | undefined) => (hue === null || hue === undefined ? undefined : ({ "--hue": hue } as CSSProperties));

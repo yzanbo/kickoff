@@ -1,10 +1,7 @@
 import { Fragment } from "react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { appendToDraft } from "@/features/composer/ui";
-import { addTargetsOf, useOptionalChatScreen } from "@/features/chat/ui";
-import { useMainChat } from "@/features/chat/ui/screen/mainChat";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
+import { addTargetsOf, useOptionalChatScreen, useMainChat, knownChat, chatTargetName } from "@/features/chat/ui";
 
 /**
  * 右クリックのメニューの、チャットに足す組（足す先は addTargetsOf）。

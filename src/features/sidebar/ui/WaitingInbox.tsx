@@ -5,11 +5,11 @@ import { FOLD_ROW, FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useChatStates, useChatsWithChildrenByProject } from "@/features/chat/ui";
 import { BucketTree } from "@/features/chatList/ui";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { inboxBuckets, inboxByProject, inboxSections, waitingSince } from "./inboxOrder";
 import type { SidebarViewState } from "./viewFields";
 import { INBOX_HEADS } from "./sidebarHeads";
 import { useChatRowRenderer } from "./useChatRowRenderer";
+import { useVisibleProjects } from "@/features/projects/ui";
 
 /**
  * 要対応のチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。

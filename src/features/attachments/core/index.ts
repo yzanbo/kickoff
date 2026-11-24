@@ -11,7 +11,7 @@ import { uploadRoutes } from "./routes/uploads";
 import { chatAttachmentsOf } from "./chatAttachments";
 import type { ChatAttachments } from "@/features/chat/core/index";
 
-export type { UploadStore } from "./uploads";
+export { UploadStore } from "./uploads";
 export { chatAttachmentsOf } from "./chatAttachments";
 
 export interface AttachmentsEnv {

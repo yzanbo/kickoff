@@ -1,5 +1,5 @@
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { newChildTab, openTab, parsePanelKey, type PanelController } from "@/features/panel/ui";
+import { useKnownChat } from "@/features/chat/ui";
 
 /**
  * 右の欄の「新しい子チャット」を開く操作（右の欄の新しいタブのボタンと、タブがないときの案内が使う。欄のチャットが子チャットを作れるときだけ。ほかは null）。

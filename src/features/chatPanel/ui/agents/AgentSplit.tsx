@@ -2,16 +2,12 @@ import "./AgentSplit.css";
 import { useImperativeHandle, useMemo, type MutableRefObject, type ReactNode } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
 import { storage } from "@/features/chatPanel/ui/storage";
-import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { usePanel } from "@/features/panel/ui/usePanel";
-import { SideSelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
-import { MainChatContext } from "@/features/chat/ui/screen/mainChat";
-import { Panel, type DraftScope } from "@/features/panel/ui";
-import { chatSidePanel, type SidePanelHandle } from "@/features/chat/ui";
+import { Panel, type DraftScope, useCoverableWidth, type PanelFrame, usePanel } from "@/features/panel/ui";
+import { chatSidePanel, type SidePanelHandle, MainChatContext } from "@/features/chat/ui";
 import { DraftSideContext } from "./draftSide";
 import { AgentPanelFind } from "./AgentPanelFind";
+import { SideSelectionAttach } from "@/features/conversation/ui";
 
 /** 右の欄のいちばん狭い幅 */
 const MIN_AGENT_PANEL_WIDTH = 300;

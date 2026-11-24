@@ -2,12 +2,12 @@ import "./BoardShell.css";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { useChatRename } from "@/features/chat/ui/useChatRename";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { ChatMenu } from "@/features/chatList/ui/menu/ChatMenu";
-import { Panel } from "@/features/panel/ui/Panel";
-import type { useBoardPanel } from "@/features/chatPanel/ui/board/useBoardPanel";
 import type { useCardMenu } from "./useBoardCards";
+import type { useChatRename } from "@/features/chat/ui";
+import { ChatMenu } from "@/features/chatList/ui";
+import { Panel } from "@/features/panel/ui";
+import type { useBoardPanel } from "@/features/chatPanel/ui";
 
 /**
  * ボードの共通の外枠: 保存したビューのタブ → 見出し → 失敗の文 → ボードの中身と右側のパネル → カードの右クリックメニュー。

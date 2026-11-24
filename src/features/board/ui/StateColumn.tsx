@@ -1,17 +1,14 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
-import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
-import { bucketMark } from "@/features/chatList/ui/StateChip";
 import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
-import { activeOf, ArchivableItems, archivedOf, ColumnBody } from "@/features/chatList/ui";
+import { activeOf, ArchivableItems, archivedOf, ColumnBody, type ChatBucket, bucketTone, bucketMark } from "@/features/chatList/ui";
 import { ColumnHead } from "./ColumnHead";
 import { DraftCards } from "./DraftCards";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 /** カード（ボード）・行（リスト）の描き方 */
 type RenderChat = (chat: Chat) => ReactNode;

@@ -1,6 +1,4 @@
 import "./KanbanBody.css";
-import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useBoard } from "./BoardContext";
 import { BoardLanes } from "./BoardLanes";
 import { FlatTasks } from "./FlatTasks";
@@ -9,6 +7,8 @@ import { ProjectGroupColumns } from "./ProjectGroupColumns";
 import { ListSections, StateColumns } from "./StateColumn";
 import type { useBoardCards } from "./useBoardCards";
 import type { useProjectLaneReorder } from "./useProjectLaneReorder";
+import type { ChatBucket } from "@/features/chatList/ui";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 interface Props {
   buckets: ChatBucket<PlacedDraft>[];

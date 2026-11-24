@@ -1,14 +1,13 @@
 import { useCallback, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { chatsApi } from "@/features/chat/ui";
-import { addChats } from "@/features/chat/ui/store/knownChats";
+import { chatsApi, addChats } from "@/features/chat/ui";
 import { flattenBucketChats, type BucketBy, type BucketOptions } from "./buckets";
 import type { ChatGrouping } from "./chatGrouping";
 import { bucketScopes, byManual, insertNear } from "./manualOrder";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
 import { useChatBuckets } from "./useChatBuckets";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useChatLayout, type ChatOrder } from "./chatLayout";
+import { useVisibleProjects } from "@/features/projects/ui";
 
 /**
  * サイドバー・パネルのタブ（一覧のペイン）で同じ分け方: 段はまとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける

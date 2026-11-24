@@ -5,11 +5,11 @@ import type { ChatGroup } from "@shared/groups/types";
 import { useCommandHandler, useCommandKeys } from "@/foundation/ui/commands";
 import { selectionClears } from "./selectionClears";
 import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/ui";
-import { GroupPickMenu } from "@/features/groups/ui/GroupPickMenu";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { ChatSelection } from "./chatSelection";
+import { GroupPickMenu } from "@/features/groups/ui";
 
 /**
  * サイドバーで複数選んだチャットを、まとめて操作する欄（選んでいるときだけ、一覧の下に出す）と、選んだ行の右クリックのメニュー。

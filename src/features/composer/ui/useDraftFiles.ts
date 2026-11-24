@@ -1,12 +1,11 @@
-import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useEffect, useEffectEvent, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
 import { createFilePreviews } from "./filePreviews";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 import type { Attachment } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ComposerDraft } from "./composerDraft";
 import { uploadsApi } from "@/features/attachments/ui";
+import { chatTitle, useKeepAliveHold } from "@/features/chat/ui";
 
 export interface PendingFile {
   key: string;

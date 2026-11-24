@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { SideSelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
-import { MainChatContext } from "@/features/chat/ui/screen/mainChat";
+import { MainChatContext } from "@/features/chat/ui";
 
 /**
  * 別ウィンドウの中身を、チャットの画面の右の欄と同じく「メインのチャット」（mainChatId。別ウィンドウを開いたチャット）に足せるようにする:

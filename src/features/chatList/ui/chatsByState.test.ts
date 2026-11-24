@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/chat/testing";
-import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { chatsByState } from "./StateChatsPopover";
+import { approvalIndex } from "@/features/chat/ui";
 
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-0${id}T00:00:00Z`, ...patch });
 const chats = [chat(1, { status: "running" }), chat(2), chat(3, { archived_at: "2026-11-01T00:00:00Z" }), chat(4, { status: "running" }), chat(5)];

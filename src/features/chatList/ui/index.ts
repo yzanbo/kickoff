@@ -36,3 +36,11 @@ export const chatListSettings = {
   showArchived: storage.settings.showArchived,
   bucketColors: storage.settings.bucketColors,
 } as const;
+export { StateChatsPopover, bucketTone, chatsByState } from "./StateChatsPopover";
+export { BucketChip, bucketMark } from "./StateChip";
+export { ActiveChatsButton } from "./activeChats/ActiveChatsButton";
+export { chatHead, draftHead, groupHeads, workplaceHead } from "./bucketHeads";
+export { sortBuckets, type DraftTarget } from "./buckets";
+export { CHAT_GROUPING_LABELS, type ChatGrouping } from "./chatGrouping";
+export { draftAnchor } from "./manualOrder";
+export { useBucketContext, useBucketHueOf } from "./useChatBuckets";

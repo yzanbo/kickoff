@@ -245,3 +245,4 @@ function registerProjectHooks(projects: ProjectsApi, store: Pick<ChatStoreDeps, 
     for (const id of ids) runner.forget(id);
   });
 }
+export { chatTranscript, transcriptFileName } from "./transcript";

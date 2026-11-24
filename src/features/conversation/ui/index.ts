@@ -12,3 +12,6 @@ export { useTimelineScrollHandle } from "./timeline/timelineScroll";
 export { toolRowViews, type ToolRowProps } from "./tools/toolRowViews";
 export { messageActions, type MessageMenuContext, type SelectionContext } from "./messages/messageActions";
 export { SelectionAttachBox } from "./messages/SelectionAttach";
+export { SideSelectionAttach } from "./messages/SelectionAttach";
+export { DraftChatPage } from "./screen/DraftChatPage";
+export { windowSubagentNav } from "./screens/SubagentScreen";

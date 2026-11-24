@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent } from "react";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { useChatOf, useMainChat } from "@/features/chat/ui";
 import { useTabPage } from "@/features/panel/ui";
-import { ChildChatBar } from "@/features/childChats/ui/ChildChatBar";
+import { ChildChatBar } from "@/features/childChats/ui";
 
 /**
  * チャットの画面の右の欄に開いた子チャット: 上の帯（親を見る・親チャットに渡す）と、ふつうのチャットの画面（ChatScreen）。

@@ -6,11 +6,10 @@ import { makeChat } from "@shared/chat/testing";
 import { makeGroup } from "@shared/groups/testing";
 import { makeProject } from "@shared/projects/testing";
 import { makeWorktree } from "@shared/foundation/testing/data";
-import { approvalIndex } from "@/features/chat/ui/state/chatState";
-import { COUNTED_COLUMNS } from "@/features/chat/ui/state/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
 import { bucketChats, flattenBucketChats, newChatPlaceOf, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
 import { byManual } from "./manualOrder";
+import { approvalIndex, COUNTED_COLUMNS } from "@/features/chat/ui";
 
 // 並び順は id の順（新しいほど大きい）
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });

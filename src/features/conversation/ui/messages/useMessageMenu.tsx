@@ -3,14 +3,13 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyRich } from "@/features/conversation/ui/richCopy";
-import { useOptionalChatScreen, chatsApi } from "@/features/chat/ui";
+import { useOptionalChatScreen, chatsApi, quoteComment } from "@/features/chat/ui";
 import { MessageSquarePlus } from "lucide-react";
-import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
 import { AddToChatItems } from "./AddToChatItems";
 import { menuActions, preloadMessageActions } from "./messageActions";
 import { onEditable, quoteBlockAt, selectionWithin } from "./quotable";
-import { quoteComment } from "@/features/chat/ui/quote";
+import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui";
 
 /** 右クリックした項目の丸ごとの文（選んでいなければ、これを使う。text が空なら、選んだ部分だけを扱う） */
 interface QuoteSource {

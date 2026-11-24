@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";
 import { bucketChats, type BucketContext, type BucketHead, type BucketOptions, type ChatBucket, type DraftTarget } from "./buckets";
 import { bucketHueOf, bucketHuesOf } from "./bucketHues";
 import type { ChatGrouping } from "./chatGrouping";
+import { useChatStates } from "@/features/chat/ui";
+import { useGroupsOf } from "@/features/groups/ui";
 
 const NO_IDS: readonly number[] = Object.freeze([]);
 

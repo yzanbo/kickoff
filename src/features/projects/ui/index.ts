@@ -26,3 +26,17 @@ export { projectInView, useFallbackProject, useExistingProject } from "./current
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const projectsSettings = { listOrder: storage.settings.listOrder, sideView: storage.settings.sideView } as const;
 export { projectsApi } from "./api/projects";
+export { GitInitNotice } from "./GitInitNotice";
+export { ProjectChip } from "./ProjectChip";
+export { useProjectMenu } from "./ProjectMenu";
+export { ProjectTags } from "./ProjectTags";
+export { NoProjectsWelcome } from "./ProjectsEmpty";
+export { TagFilterNotice } from "./TagFilterNotice";
+export { loadCurrentProject, saveCurrentProject } from "./currentProject";
+export { ProjectSwitcher } from "./page/ProjectSwitcher";
+export { useChatPlacement } from "./page/chatPlacement";
+export { hueStyle, initialOf, projectHue } from "./projectColor";
+export { changeProject, confirmRestoreProject } from "./projectOrder";
+export { tagLabel, useProjectTagFilter } from "./projectTagFilter";
+export { deleteTag, renameTag } from "./tagActions";
+export { useVisibleProjects } from "./useVisibleProjects";

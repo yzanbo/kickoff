@@ -2,7 +2,7 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentReport } from "@shared/chat/subagentReport";
-import type { SubagentLogItem } from "@/features/ai/core/providers/types";
+import type { SubagentLogItem } from "@/features/ai/core";
 
 /** ツールの結果を書き写す長さの上限（長い出力は頭だけ。記録が大きくなりすぎて読めなくならないように） */
 const MAX_RESULT = 1500;

@@ -3,13 +3,13 @@ import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { SelectionBar, useChatSelection } from "@/features/chatList/ui";
 import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { ProjectList } from "./ProjectList";
 import { useProjectNav } from "./useProjectNav";
 import { WaitingInbox } from "./WaitingInbox";
 import { ProjectListHead } from "./ProjectListHead";
+import { tagLabel } from "@/features/projects/ui";
 
 interface Props {
   /** プロジェクトごとのチャット（アーカイブ済みは一覧の下に出すときだけ含む）とグループ（どちらも店 stores/ から） */

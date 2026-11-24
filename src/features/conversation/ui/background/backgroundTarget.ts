@@ -2,7 +2,7 @@
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BackgroundTask } from "@shared/ai/turnEvents";
-import { scopeOf } from "@/features/subagents/ui/model/subagentTree";
+import { scopeOf } from "@/features/subagents/ui";
 
 /** 移る先: 呼び出しの記録の ID と、サブエージェントの中で起動したものならそのサブエージェントの行のキー（メインなら null） */
 export interface BackgroundCallTarget {

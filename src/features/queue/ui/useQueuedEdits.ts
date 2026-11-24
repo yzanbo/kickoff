@@ -1,10 +1,9 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useState, type RefObject } from "react";
 import type { Attachment, QueuedMessage } from "@shared/chat/types";
 import { isQueueAction } from "@shared/chat/queueActions";
-import { chatQueueApi } from "@/features/chat/ui";
+import { chatQueueApi, useKeepAliveHold } from "@/features/chat/ui";
 import { useEditHold } from "@/features/composer/ui";
 import type { QueueController } from "./queueController";
-import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 
 /** 書き直している途中の 1 件（文と添付） */
 interface QueuedDraft {

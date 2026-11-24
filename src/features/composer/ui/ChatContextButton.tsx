@@ -2,16 +2,15 @@ import "./ChatContextButton.css";
 import { MessageSquare } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { useChats } from "@/features/chat/ui/store/knownChats";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Popover, usePopover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
+import { chatTitle, useChats } from "@/features/chat/ui";
+import { useProjects } from "@/features/projects/ui";
 
 /** 一覧に出すチャットの数（名前で絞り込めば、それより前のものも出る） */
 const MAX_ROWS = 50;

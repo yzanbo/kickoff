@@ -6,8 +6,8 @@ import { relayMessage } from "@shared/chat/prompts";
 import { eventSequence, makeSubagent } from "@shared/chat/testing";
 import { collectSubagents } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { subagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { activityRows, agentScope, agentTargetOf, filterActivity, focusedRowIndexes, type ActivityRow } from "./activityRows";
+import { subagentTree } from "@/features/subagents/ui";
 
 /** 2026-11-01 00:00:00 から sec 秒後の時刻 */
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, sec)).toISOString();

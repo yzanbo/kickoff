@@ -3,8 +3,8 @@ import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { makeGroup } from "@shared/groups/testing";
 import { browserTab, chatTab, newChatTab, terminalTab, type PanelTab } from "@/features/panel/ui";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { OTHER_CLUSTER, clusterInitial, tabClusterOf, type ClusterResolver, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
+import type { BucketHead } from "@/features/chatList/ui";
 
 const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });

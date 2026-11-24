@@ -1,5 +1,4 @@
-import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
-import { panelSettings } from "@/features/panel/ui";
+import { panelSettings, useCoverableWidth } from "@/features/panel/ui";
 
 const MIN_PANEL_WIDTH = 360;
 /** ボードとパネルの間隔（Panel.css の .board-body.with-panel の gap） */

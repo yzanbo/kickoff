@@ -7,7 +7,6 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { formatStamp } from "@/foundation/ui/lib/time";
 import { useActivityNav, useSubagentNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
-import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
 import { activityRows, agentName, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
 import { ActivityFilters } from "./ActivityFilters";
 import { useActivityWindow } from "./useActivityWindow";
@@ -15,6 +14,7 @@ import { flipRails, layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
 import { ActivityFocusBar } from "./ActivityFocusBar";
 import { useActivityFocus } from "./useActivityFocus";
+import { useSubagentsView } from "@/features/subagents/ui";
 
 /** 一番上を見ているとみなす、上端からの距離（ここにいる間は新しい行に付いていく） */
 const FOLLOW_SLACK_PX = 40;

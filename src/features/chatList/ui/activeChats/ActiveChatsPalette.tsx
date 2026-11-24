@@ -1,27 +1,23 @@
 import { Activity } from "lucide-react";
 import { Fragment, useEffect, useState, type KeyboardEvent } from "react";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { openChat } from "@/features/chat/ui";
+import { openChat, useChatStates, chatTitle } from "@/features/chat/ui";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { draftTitleOf } from "@/features/composer/ui";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import { ChatStateMark } from "@/features/chat/ui";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
 import { PaletteChatChips, PaletteProjectMark } from "@/features/chatList/ui/PaletteChatParts";
-import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { hiddenItemsOf, toggleHiddenItem } from "@/foundation/ui/lib/hiddenItems";
 import { paletteSettings } from "@/features/palette/ui";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterValue } from "./PaletteProjectFilter";
 import { ACTIVE_LOOKS, PaletteStateFilter } from "./PaletteStateFilter";
 import { ACTIVE_STATES, activeChatGroups, type ActiveDraft, type ActiveGroup, type ActiveItem, type ActiveState } from "./activeChatGroups";
 import { useAllProjectChats } from "./useAllWaiting";
+import { useProjects, useVisibleProjects, TagFilterNotice } from "@/features/projects/ui";
+import { ChildDepthMark } from "@/features/childChats/ui";
 
 
 /**

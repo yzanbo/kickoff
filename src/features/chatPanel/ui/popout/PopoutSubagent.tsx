@@ -1,10 +1,8 @@
 import { useInsertionEffect, useRef, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
-import { chatFileLinksPort, useChatFileSource } from "@/features/chat/ui";
-import { SubagentScreen, windowSubagentNav } from "@/features/conversation/ui/screens/SubagentScreen";
-import { SideScope } from "@/features/conversation/ui";
+import { chatFileLinksPort, useChatFileSource, useOpenChat } from "@/features/chat/ui";
+import { SideScope, SubagentScreen, windowSubagentNav } from "@/features/conversation/ui";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { ChatEnvironment, createRewindActions, useChatSending, useTimelineScrollHandle } from "@/features/conversation/ui";
 /** 別ウィンドウのサブエージェント（右の欄と同じく、開いたチャットを「メインのチャット」にする） */

@@ -1,13 +1,11 @@
 import { createElement, useState } from "react";
 import type { ChatGroup } from "@shared/groups/types";
-import { NewChatItem } from "@/features/chat/ui";
+import { NewChatItem, useChats } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { confirmDeleteGroup, groupsSettings, ungroupedPosition, groupsApi } from "@/features/groups/ui";
+import { confirmDeleteGroup, groupsSettings, ungroupedPosition, groupsApi, useGroupMenu } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
 import { useBoard } from "./BoardContext";
-import { useChats } from "@/features/chat/ui/store/knownChats";
 import { useGroupDropTargets } from "./useGroupDropTargets";
 
 export type GroupBoardState = ReturnType<typeof useGroupBoard>;

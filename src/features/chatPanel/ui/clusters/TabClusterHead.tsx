@@ -2,22 +2,18 @@ import "./TabClusterHead.css";
 import type { ReactNode } from "react";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { askNewGroupName, confirmDeleteGroup, groupsApi } from "@/features/groups/ui";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ChevronLeft } from "lucide-react";
-import { stateCounts } from "@/features/chat/ui/state/chatState";
-import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/StateCornerCounts";
-import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { clusterInitial, type TabCluster } from "./tabClusters";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { NO_GROUP_LABEL } from "@shared/groups/labels";
-import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
-import { newChatPlaceOf } from "@/features/chatList/ui/buckets";
+import { NewChatItem, type NewChatPlace, useChatStates, stateCounts } from "@/features/chat/ui";
+import { StateCornerCounts, stateCountsSummary, StateChatsPopover, chatsByState, newChatPlaceOf } from "@/features/chatList/ui";
 
 /**
  * タブのまとまりの頭（まとまりの色の名前の札と、中のタブの数）。札の角に、そのまとまり（グループ・作業場所）のチャットの状態ごとの数を重ね、

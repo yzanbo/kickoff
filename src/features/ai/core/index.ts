@@ -58,3 +58,4 @@ export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv)
     stop: () => usage.stop(),
   };
 }
+export { CHILD_FORK_KEEP, type SessionFileInfo, type SubagentLogItem } from "./providers/types";

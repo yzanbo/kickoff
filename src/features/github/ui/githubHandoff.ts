@@ -7,10 +7,10 @@ import { open } from "@/foundation/ui/navigation/open";
 import { currentChats, chatsApi } from "@/features/chat/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { appendToDraft } from "@/features/composer/ui";
 import { captureNameOf, reviewDocument, reviewFixText, sourceOf } from "./githubPrompt";
 import { uploadsApi } from "@/features/attachments/ui";
+import { openSeededChat } from "@/features/chatPanel/ui";
 
 /**
  * レビューコメントで直す: PR のブランチのワークツリー（なければその場で作る。fork の PR も）で作業しているチャットの入力欄に、

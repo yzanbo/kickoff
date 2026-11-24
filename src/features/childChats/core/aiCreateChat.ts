@@ -15,13 +15,12 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
-import { depthOf, type ChatStoreDeps } from "@/features/chat/core/index";
+import { depthOf, type ChatStoreDeps, workdirOf } from "@/features/chat/core";
 import { git } from "@/foundation/core/workplace/git";
 import { changedCount, isGitWorkTree } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { ChildChatInput } from "./children";
-import { workdirOf } from "@/features/chat/core/workdir";
 
 /** 作ったチャットと、作る側の会話を引き継いだか（写し終えた・いま写している） */
 export interface StartedChild {

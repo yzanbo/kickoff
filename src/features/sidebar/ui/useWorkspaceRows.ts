@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
 import { boardColumnOf, needsAttention } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui";
-import { useChatSearch } from "@/features/chat/ui/chatSearch";
-import type { CountedColumn } from "@/features/chat/ui/state/chatState";
+import { useChatStates, useChatSearch, type CountedColumn } from "@/features/chat/ui";
 import { splitAtUngrouped } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { PlacedDraft } from "@/features/chatPanel/ui";

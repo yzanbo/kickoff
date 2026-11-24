@@ -1,8 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { GroupChip } from "@/features/groups/ui/GroupChip";
-import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorkplaceMoveChip } from "@/features/workplaceMove/ui";
 import { ChatFind } from "@/features/conversation/ui/find/ChatFind";
 import { useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "@/features/conversation/ui/display/ChatDisplayMenu";
@@ -12,6 +10,8 @@ import { ChatHeaderTools } from "./ChatHeaderTools";
 import { ChatHeaderTitle } from "./ChatHeaderTitle";
 import { LinkedItemChip, useActivityNav, useChatScreen } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
+import { GroupChip } from "@/features/groups/ui";
+import { ProjectChip } from "@/features/projects/ui";
 
 /**
  * チャットの見出し: プロジェクト・グループ・作業場所のバッジとチャットの名前（親のないチャットだけ。ダブルクリックで名前を変える）、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。

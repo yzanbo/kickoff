@@ -1,4 +1,3 @@
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunner } from "@/features/chat/core/run/runner";
 import type { ChatStoreDeps } from "./stores";
 import { providerFeatureMissing, type FileRewindResult } from "@shared/ai/types";
@@ -8,6 +7,7 @@ import type { ProviderId } from "@shared/settings/types";
 import { lockedBefore } from "@shared/chat/boundaries";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { forkFrom, resumePointBefore, sessionAt } from "./sessionPoints";
+import type { AgentProvider } from "@/features/ai/core";
 
 type RewindDeps = { store: Pick<ChatStoreDeps, "chats" | "events" | "projects">; runner: ChatRunner; providers: Record<ProviderId, AgentProvider> };
 

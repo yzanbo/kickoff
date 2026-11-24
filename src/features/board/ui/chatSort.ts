@@ -1,5 +1,5 @@
 import type { AgentState, Chat } from "@shared/chat/types";
-import { byActive } from "@/features/chat/ui/store/knownChats";
+import { byActive } from "@/features/chat/ui";
 
 // ボードのチャットの並び順（ツールバーの「並び順」で選び、ボード・リストの列・まとまりの中を同じ順に並べる）。
 // 決まり: 同じ値どうしは最後に動いた順（byActive）。値のないもの（グループなし・モデル不明・コンテキスト不明）は、向きによらずいちばん後ろ

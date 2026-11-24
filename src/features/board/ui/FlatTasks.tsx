@@ -2,8 +2,8 @@ import "./FlatTasks.css";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { ArchivableItems } from "@/features/chatList/ui";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftCards } from "./DraftCards";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
 
 /**
  * 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。段に分けたときは段ごと）。

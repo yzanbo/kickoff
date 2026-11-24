@@ -3,8 +3,8 @@ import { errorMessage } from "@shared/foundation/errors";
 import { formatBytes } from "@shared/foundation/text/bytes";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { useAttachmentViewer, uploadsApi } from "@/features/attachments/ui";
-import { usePastWorkplaceAt } from "@/features/chat/ui/screen/pastWorkplace";
 import { readImageHeight, readImageKey, rememberReadImageHeight } from "./readImageHeights";
+import { usePastWorkplaceAt } from "@/features/chat/ui";
 
 /** 読み込んだ画像（画面で使う URL・大きさ・最後に変えた時刻） */
 interface Loaded {

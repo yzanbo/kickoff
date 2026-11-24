@@ -1,7 +1,7 @@
 import { SquarePen } from "lucide-react";
 import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { NewChatPlaceBadges, useNewChatPlace } from "@/features/chat/ui";
+import { useProjects } from "@/features/projects/ui";
 
 /**
  * サイドバーの上の「新しいチャット」（⌘N と同じ）。押したらいまどんなチャットができるかが分かるよう、

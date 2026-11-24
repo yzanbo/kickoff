@@ -19,7 +19,7 @@ import { SubagentActions, SubagentTellComposer, agentHueStyle, SubagentStatusTex
 import { chatVisuals, VisualsContext } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
-import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
+import { PopOutTabButton } from "@/features/panel/ui";
 
 /**
  * 別ウィンドウのサブエージェントの画面の口: メインの会話・右の欄が要る操作はこのウィンドウにないので、ほかのサブエージェントの画面は別ウィンドウで開き、

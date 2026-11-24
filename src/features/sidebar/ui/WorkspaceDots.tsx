@@ -2,12 +2,12 @@ import { Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { initialOf } from "@/features/projects/ui/projectColor";
-import type { StateCounts } from "@/features/chat/ui/state/chatState";
-import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/StateCornerCounts";
 import type { ProjectReorder } from "./useProjectNav";
 import { useProjectChatDrops } from "./projectChatDrop";
 import { useCommandKeyList } from "@/foundation/ui/commands";
+import { initialOf } from "@/features/projects/ui";
+import type { StateCounts } from "@/features/chat/ui";
+import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・ほかのプロジェクトのチャットを落とすと確かめて移す・右クリックでメニュー）。

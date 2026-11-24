@@ -4,9 +4,9 @@
 import { systemClock } from "@/foundation/core/clock";
 import type { ProviderId } from "@shared/settings/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
 import type { TrashApi } from "@/features/trash/core/index";
+import type { AgentProvider } from "@/features/ai/core";
 
 /** 覚えてからこれだけたったものだけを見る（作ったばかりで、まだチャット・記録に書いていないものを片付けないように） */
 export const SESSION_SWEEP_GRACE_MS = 60 * 60 * 1000;

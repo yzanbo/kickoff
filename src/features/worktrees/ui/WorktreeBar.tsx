@@ -18,9 +18,9 @@ import type { WorkplaceBarProps } from "@/foundation/ui/workplace/workplaceDecor
 import { useWorktreeEnv } from "./envStore";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { openPrNotice, useWorktreePrLookup } from "./prNoticeStore";
-import { addChat } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
 import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+import { addChat } from "@/features/chat/ui";
 
 /**
  * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。

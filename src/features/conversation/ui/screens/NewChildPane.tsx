@@ -3,19 +3,14 @@ import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
-import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
 import { ChatProviderContext, ProviderPicker, useChatOptions } from "@/features/ai/ui";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { useActionButton } from "@/features/chat/ui";
-import { ProjectChip } from "@/features/projects/ui/ProjectChip";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { useActionButton, useKnownChat, addChat, chatTitle, quoteComment } from "@/features/chat/ui";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/display/ChatDisplayMenu";
 import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@/features/composer/ui";
-import { quoteComment } from "@/features/chat/ui/quote";
-import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
-import { childChatsApi, InheritChoice } from "@/features/childChats/ui";
+import { childChatsApi, InheritChoice, NewChildBar } from "@/features/childChats/ui";
+import { ProjectChip, useProjects } from "@/features/projects/ui";
 
 /** 作ったときに渡すもの（always: 聞かずに「引き継いで開く」で作ったとき。設定が「開かない」でも開く） */
 type OnCreated = (child: Chat, opts: { always: boolean }) => void;

@@ -3,14 +3,13 @@ import { ChevronRight, MessageSquare, PanelRight } from "lucide-react";
 import { memo, type MouseEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
-import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
 import { callDuration } from "@/features/conversation/ui/tools/toolTimes";
-import { toolText } from "@/features/chat/ui";
-import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
+import { toolText, Elapsed } from "@/features/chat/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { agentTargetOf } from "./activityRows";
 import type { ActivityRow } from "./activityRows";
 import type { RailRow } from "./activityRails";
+import { agentHueStyle } from "@/features/subagents/ui";
 
 /** 線の 1 列の幅（px。CSS の .activity-rails の列と同じ） */
 const RAIL_COL = 14;

@@ -4,14 +4,12 @@ import { useState } from "react";
 import { MAX_TAG_LENGTH, UNTAGGED } from "@shared/projects/tags";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { tagLabel, useProjectTagFilter } from "@/features/projects/ui/projectTagFilter";
-import { deleteTag, renameTag } from "@/features/projects/ui/tagActions";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
+import { useProjects, tagLabel, useProjectTagFilter, deleteTag, renameTag } from "@/features/projects/ui";
 
 /** ドラッグで運ぶタグの種類（ほかのドラッグと見分ける） */
 const TAG_DRAG_TYPE = "application/x-kickoff-project-tag";

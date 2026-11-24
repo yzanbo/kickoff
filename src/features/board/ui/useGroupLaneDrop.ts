@@ -1,8 +1,8 @@
-import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { useGroups } from "@/features/groups/ui/stores/groups";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useGroupDropTargets } from "./useGroupDropTargets";
+import type { ChatBucket } from "@/features/chatList/ui";
+import type { PlacedDraft } from "@/features/chatPanel/ui";
+import { useGroups } from "@/features/groups/ui";
 
 type Lane = ChatBucket<PlacedDraft>;
 

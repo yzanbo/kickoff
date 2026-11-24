@@ -12,10 +12,8 @@ import { turnExtrasOf, type TurnExtras } from "@/features/conversation/ui/timeli
 import { toolCallTexts } from "@/features/conversation/ui/tools/toolCallTexts";
 import { toolText } from "@/features/chat/ui";
 import { toolSpan } from "@/features/conversation/ui/tools/toolTimes";
-import { childrenOf, scopeOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
-import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
 import type { ActivityFilter } from "@/features/chat/ui";
-import { subagentEvents } from "@/features/subagents/ui";
+import { subagentEvents, childrenOf, scopeOf, type SubagentTree, subagentStatusLabel } from "@/features/subagents/ui";
 
 /** 行の種類（指示・返答・ツールのまとまり・サブエージェントの起動・その終わり・お知らせ・作業の終わり・中の手順が届かないもののいまの動き） */
 type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";

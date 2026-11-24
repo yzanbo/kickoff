@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { makeGroup } from "@shared/groups/testing";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
 import type { PanelTab } from "@/features/panel/ui";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";
 import { OTHER_CLUSTER } from "./tabClusters";
+import type { BucketHead } from "@/features/chatList/ui";
 
 const g5: BucketHead = { key: "p1/g5", kind: "group", label: "実装", projectId: 1, group: makeGroup(5, { name: "実装" }) };
 const none: BucketHead = { key: "p1/ungrouped", kind: "ungrouped", label: "No Group", projectId: 1 };

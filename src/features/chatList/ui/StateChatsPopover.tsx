@@ -2,17 +2,15 @@ import "./StateChatsPopover.css";
 import type { ReactNode, RefObject } from "react";
 import type { Chat } from "@shared/chat/types";
 import { ACTIVE_URGENCY, URGENCY_ORDER } from "@shared/chatList/urgency";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import type { ApprovalIndex } from "@/features/chat/ui/state/chatState";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { COLUMN_LOOKS, type StateTone } from "@shared/chat/stateLooks";
 import { Popover } from "@/foundation/ui/kit/Popover";
-import { ChatStateMark } from "@/features/chat/ui";
+import { ChatStateMark, chatTitle, type ApprovalIndex } from "@/features/chat/ui";
 import { bucketChats, type BucketHead, type ChatBucket } from "./buckets";
 import { BucketChip } from "./StateChip";
+import { ChildDepthMark } from "@/features/childChats/ui";
+import { useProjects } from "@/features/projects/ui";
 
 /** 状態のまとまりの色（カンバンの列と同じ。いちばん下の「アーカイブ済み」は控えめな灰。画面の見出しの状態ごとの数 StateStats でも使う） */
 export const bucketTone = (bucket: Pick<BucketHead, "column">): StateTone => (bucket.column ? COLUMN_LOOKS[bucket.column].tone : "read");

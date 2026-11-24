@@ -1,12 +1,9 @@
 import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { chatStateOf } from "@/features/chat/ui/state/chatState";
-import { waitingChats } from "@/features/chat/ui";
-import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
+import { waitingChats, useChatStates, chatStateOf, useChatsWithChildren } from "@/features/chat/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { paletteSettings } from "@/features/palette/ui";
-import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
+import { useVisibleProjects } from "@/features/projects/ui";
 
 /** ボタンの右上に重ねる要対応の数（回答待ち・未読。urgent = 回答待ちがあるか。色を回答待ちのオレンジにする） */
 export interface WaitingBadge {

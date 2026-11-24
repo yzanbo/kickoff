@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { draftAnchor } from "@/features/chatList/ui/manualOrder";
 import { useDraftTabSpots, type PlacedDraft } from "@/features/chatPanel/ui";
-import { useChatOrder } from "@/features/chatList/ui";
+import { useChatOrder, draftAnchor } from "@/features/chatList/ui";
 
 /** 下書きと、その下書きを並べるまとまりのチャット（match があれば、そのうち下書きと同じまとまりに出すものだけ） */
 export interface DraftSlot {

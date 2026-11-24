@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
+import { useProjects } from "@/features/projects/ui";
 
 /**
  * チャットのタブに乗せたときの説明: 名前（プロジェクト · グループ: 名前 · ブランチ）。

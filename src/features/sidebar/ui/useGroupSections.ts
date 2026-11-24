@@ -1,20 +1,17 @@
 import { createElement, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
-import { moveDroppedChatToProject } from "@/features/chat/ui/chatActions";
-import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
 import { NO_GROUP_LABEL } from "@shared/groups/labels";
-import { detachBlockReason, detachChild } from "@/features/childChats/ui/detachChild";
 import { errorMessage } from "@shared/foundation/errors";
 import { alert } from "@/foundation/ui/kit/ask";
-import { NewChatItem, chatsApi } from "@/features/chat/ui";
+import { NewChatItem, chatsApi, moveDroppedChatToProject, busyBlockReason } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
-import { confirmDeleteGroup, groupsSettings, UNGROUPED_SORT_ID, ungroupedPosition, groupsApi } from "@/features/groups/ui";
+import { confirmDeleteGroup, groupsSettings, UNGROUPED_SORT_ID, ungroupedPosition, groupsApi, useGroupMenu } from "@/features/groups/ui";
 import { restoreDroppedChat, useGroupDrop } from "@/features/chatList/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
-import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { detachBlockReason, detachChild } from "@/features/childChats/ui";
+import { setDraftGroup } from "@/features/chatPanel/ui";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {
