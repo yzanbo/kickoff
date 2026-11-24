@@ -1,10 +1,19 @@
-# スマホ連携（ペアリング・端末・Tailscale・プッシュ）（`src/features/devices`）
+# スマホ連携（`features/devices`）
 
-## 端末とペアリング（`@/foundation/core/http/caller.ts`・`@/foundation/core/http/deviceAccess.ts`・`core/`）
+ペアリング・端末・Tailscale の案内・プッシュ。スマホのアプリは `mobile/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `MOB-`。
 
-- 呼び主はトークンだけで決める（本体のトークン = この Mac、端末のトークン = hash で引いた端末（`core/auth.ts` の `deviceAuth` が土台の `DeviceAuth` を実装）、ほかは 401）。呼び主は端末の ID だけを持ち、中身は店で引き直す。相手のアドレス・Tailscale の見出しは信じない。本体のトークンは画面の外に出さない。
-- スマホ連携（設定 `mobile_enabled`）がオフなら、端末のトークンでも 403 `MOBILE_DISABLED`（断る印は `@shared/foundation/api/deviceRefusals`。つないでいる SSE も切る）。
-- 端末が使えるのは取り決めの `access` と、まだ乗せていない口の表（`deviceAccess.ts` の `LEGACY_DEVICE_ROUTES`）の口だけ（見るだけの端末は GET と `deviceRead`）。開いた口は記録 `device-routes.txt`。この機能の口は `@shared/devices/contract.ts`（`/pairing/…` は `public`、端末だけの口は `deviceCaller` で 400）。
-- 端末の SSE には、機能の SSE の表で `access: "device"` の種類だけ届ける（`open_view`・`chat_draft` と閉じた口の知らせは届けない）。
-- 下の帯の接続の札（`ui/footer/ConnectionFooterItem.tsx`。状態は土台の `useConnectionState`）は、つながらないまま少し経ってから出す（`useConnectionNotice`。一瞬の切断でちらつかせない）。設定の「接続」のサーバーのカードは `settingsItems` に足し、ai の「再確認」を `useConnectionRecheck` で受ける。画面の呼び手は `ui/api.ts` の `devicesApi`、ログイン時に起動は `ui/native.ts`。
-- ペアリング（`core/pairing.ts`）の番号と頼みはメモリだけ。端末のトークンは表に hash だけを置き（hash にするのは店 `core/db/devices.ts`。`core/token.ts`）、1 回だけ渡す。取り消したら SSE とターミナルの WebSocket もすぐ切る。Tailscale は案内だけ（`core/tailscale.ts`）。プッシュは通知の届け先（`core/pushSink.ts` を notifications の `addSink` に足す）。
+## 地図
+- `core/auth.ts`（`deviceAuth`。土台の `@/foundation/core/http/caller.ts` の `DeviceAuth`）・`core/pairing.ts`・`core/token.ts`・`core/db/devices.ts`・`core/tailscale.ts`・`core/pushSink.ts`
+- 端末に開く口: 取り決めの `access` と `@/foundation/core/http/deviceAccess.ts`。この機能の口は `@shared/devices/contract.ts`
+- `ui/footer/`（接続の札 `ConnectionFooterItem`・`useConnectionNotice`・`connectionLabel.ts`）・`ui/settings/`・`ui/api.ts`・`ui/native.ts`
+
+## 決まり
+- 呼び主はトークンだけで決める（本体 = この Mac、端末 = hash で引いた端末、ほかは 401）。相手のアドレス・Tailscale の見出しは信じない。本体のトークンは画面の外に出さない。
+- 端末に開く口は取り決めの `access` から作る（既定で閉じる）。見るだけの端末は GET と `deviceRead` だけで、送れない。SSE も `access: "device"` の種類だけ届ける。
+- スマホ連携がオフなら端末のトークンでも 403 `MOBILE_DISABLED`（つないでいる SSE も切る）。
+- ペアリングの番号と頼みはメモリだけ。端末のトークンは表に hash だけを置き、1 回だけ渡す。
+
+## 落とし穴
+- 取り消したら SSE とターミナルの WebSocket もすぐ切る。
+- 接続の札は、つながらないまま少し経ってから出す（一瞬の切断でちらつかせない）。
+- テスト: `core/routes.test.ts`・`src/app/core/net/deviceAccess.test.ts`（記録 `device-routes.txt`）・`ui/footer/connectionLabel.test.ts`。
