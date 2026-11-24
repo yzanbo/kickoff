@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeEvent } from "@shared/chat/testing";
-import { collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
+import { collectSubagents, isOutputLimitError, networkStoppedSubagents, unfinishedSubagents } from "./subagents";
+import { subagentReport } from "./subagentReport";
 
 test("fork のサブエージェント: 自分の中の頭に届く起動の呼び出しへの仮の結果では完了にせず、起動した流れに結果が返るまで作業中", () => {
   const events = [

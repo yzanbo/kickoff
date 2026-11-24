@@ -474,16 +474,7 @@
       "siblings:src/shared:ai,chat,foundation,git,github,projects,settings,visuals,worktrees",
       "siblings:src:app,features,foundation"
     ],
-    "size": {
-      "src/features/chat/core/db/chats.ts": 347,
-      "src/features/chat/ui/store/chatStore.ts": 359,
-      "src/features/conversation/ui/streaming/markdownReveal.ts": 435,
-      "src/features/database/worker/drivers.dbtest.ts": 409,
-      "src/features/notes/ui/tree/NoteTab.tsx": 338,
-      "src/features/trash/core/service.ts": 329,
-      "src/shared/chat/subagents.ts": 301,
-      "src/shared/database/sqlStatements.ts": 315
-    },
+    "size": {},
     "native": [],
     "sql": [],
     "css": [],

@@ -5,7 +5,8 @@ import { makeEvent } from "@shared/chat/testing";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { collectVisuals } from "@shared/visuals/aiVisual";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";
-import { collectSubagents, subagentReport } from "./subagents";
+import { collectSubagents } from "./subagents";
+import { subagentReport } from "./subagentReport";
 import { subagentAskers } from "./subagentState";
 
 /** 記録の中の呼び出しから、回答待ち・裏の作業が指す呼び出しを種で決めて選ぶ（R3 を確かめる） */

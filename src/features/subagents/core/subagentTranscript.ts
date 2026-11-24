@@ -1,6 +1,7 @@
 // サブエージェントの会話の記録（Markdown。「サブエージェントに子チャットで聞く」で子チャットに添付し、AI が Read で読む。Node 依存なし）
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { subagentReport, type SubagentEntry } from "@shared/chat/subagents";
+import type { SubagentEntry } from "@shared/chat/subagents";
+import { subagentReport } from "@shared/chat/subagentReport";
 import type { SubagentLogItem } from "@/features/ai/core/providers/types";
 
 /** ツールの結果を書き写す長さの上限（長い出力は頭だけ。記録が大きくなりすぎて読めなくならないように） */

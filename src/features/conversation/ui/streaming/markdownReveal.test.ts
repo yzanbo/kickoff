@@ -5,7 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createBlockScanner } from "@/foundation/ui/markdown/streaming/markdownBlocks";
-import { createMarkdownRevealLimit, cutText, MAX_BLOCK_HOLD, MAX_INLINE_HOLD, MAX_SCAN, revealCut } from "./markdownReveal";
+import { createMarkdownRevealLimit, cutText, MAX_SCAN, revealCut } from "./markdownReveal";
+import { MAX_BLOCK_HOLD, MAX_INLINE_HOLD } from "./markdownRevealInline";
 
 /** text の shown 文字目まで出したいときに描く文（読み取りは新しく作る） */
 const reveal = (text: string, shown = text.length) => cutText(text, revealCut(text, shown, createBlockScanner()));

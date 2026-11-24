@@ -182,6 +182,15 @@ export default {
   fileSize: {
     limit: 300,
     rules: [
+      // 例外（分けない理由を 1 行ずつ。大きくしたら分ける）
+      // 表 1 つの店。行の読み替え・1 列の書き換え・知らせを閉じた中で共有する関数の束で、分けると店の中の補助を外へ出す
+      { glob: "src/features/chat/core/db/chats.ts", limit: 360 },
+      // チャットごとの店。読み込み・SSE の当て方・書いている途中の返答が 1 つの閉じた状態を書き換える（読み足しは chatPaging.ts に分けてある）
+      { glob: "src/features/chat/ui/store/chatStore.ts", limit: 370 },
+      // ゴミ箱の 1 つのクラス。掃除の重なり・消している途中の印を、入れる・戻す・消す・掃除のすべてが見る
+      { glob: "src/features/trash/core/service.ts", limit: 340 },
+      // 本物の DB サーバー（Docker）の筋書きを、エンジンごとの 1 つの準備（つながるまで待つ・表を作る）で流す
+      { glob: "src/features/database/worker/drivers.dbtest.ts", limit: 420 },
       { glob: "**/*.test.{ts,tsx,mjs}", limit: 400 },
       // 型・表の宣言だけのファイル
       { glob: "**/{schema,types,contract,events,settings,storage}.ts", limit: 500 },
