@@ -1,4 +1,4 @@
-// API のテスト: 認証・本文の読み取り・URL の :id の引き当て・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
+// API のテスト: 認証・本文の読み取り・URL の :id の引き当て・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は各機能の core/routes.test.ts（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

@@ -33,4 +33,4 @@ AI の kickoff-trash で入れたものの元の場所の引き当て（`addOrig
 - AI の kickoff-trash は画面を通らずに入れ、コアが一覧を読むときに取り込む（守りは `src/features/guard/CLAUDE.md`）。店は SSE `trash` と窓に戻ったときに取り直す。
 - 会話記録を片付ける前に、ほかの Kickoff の DB も使っていないか確かめる（`siblingSessions.ts`。製品版と開発版は同じ `~/.claude/projects`）。使っていない会話記録はターミナルで使った Claude Code の分も出るので、自動では消さない・入れない（選んで確かめてから）。
 - 会話の中の行は、呼び出しを開いたときに 1 回だけゴミ箱にあるかを聞く（閉じたままでは聞かない）。
-- テストは `core/routes/server.trash.test.ts`（`trashBin`・`trashClock`）。
+- テストは `core/routes.trash.test.ts`（`trashBin`・`trashClock`）。

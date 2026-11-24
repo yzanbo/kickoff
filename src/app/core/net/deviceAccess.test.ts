@@ -1,5 +1,5 @@
 // 端末に開く口は書いたものだけ: 全部の機能を組み立てたアプリで、端末のトークンで閉じた口・DB の口が 403 になり、開いた口の表がいまあるルートと合う
-// （機能ごとの端末の振る舞いは features/devices/core/routes/server.devices.test.ts）
+// （機能ごとの端末の振る舞いは features/devices/core/routes.test.ts）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { DEVICE_FORBIDDEN } from "@shared/foundation/api/deviceRefusals";

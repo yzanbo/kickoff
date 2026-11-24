@@ -6,7 +6,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo, bareRemote, cloneOf, commitFile, changedRepo } from "@/foundation/core/testing/gitRepo";
-import { gitLog } from "../history";
+import { gitLog } from "./history";
 import { chatOf } from "@/features/chat/core/testing";
 
 test("Git の変更の API（状態・ファイルごとの差分・ステージ・元に戻す・コミット・プッシュ）", async () => {

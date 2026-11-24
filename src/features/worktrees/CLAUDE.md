@@ -26,4 +26,4 @@
 - ［AI で整える］は `untrackedOnly` のチャットで始める（`src/features/guard/CLAUDE.md`）。
 - 作業場所を移したら右の欄のタブを付け替える（`workplace_moved` の知らせで。自動で移ったときも）。
 - 開発版の Kickoff は保存先とポートが 1 つなので、同時に起動できるのは 1 つのワークツリーだけ。
-- テストは `core/routes/server.worktreeEnv.test.ts`・`@/features/guard/core/guard/scope.test.ts`。
+- テストは `core/routes.worktreeEnv.test.ts`・`@/features/guard/core/guard/scope.test.ts`。

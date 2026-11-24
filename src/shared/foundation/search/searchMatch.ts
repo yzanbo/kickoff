@@ -1,5 +1,5 @@
 // ファイルの中の検索の探し方・置き換え方。画面（結果の印・置換の見込み）とコア（core/git/search.ts の置換）が同じこの関数を使う。
-// 変えたら searchMatch.test.ts と server.git.test.ts の置換を通す
+// 変えたら searchMatch.test.ts と files の core/routes.test.ts の置換を通す
 /** プロジェクトのファイルの中を探すときの指定（VS Code の検索と同じ 3 つの切り替え） */
 export interface ProjectSearchQuery {
   query: string;

@@ -34,4 +34,4 @@
 - ログの色は土台の `ansi/`（`ansiSpans`・`AnsiText`）。CI のタブのログも使う（変えたら CI のログも見る）。
 - 操作の前後・docker events の変化では、覚えた一覧のもとを捨ててから `docker_changed` を出す（`createDocker` の `changed`）。
 - 受け口は `@shared/docker/contract.ts`（`…/docker/db` は database）。events の貸し出しは土台の `Lease`。
-- テストは `server.docker.test.ts`・database の `server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。
+- テストは `core/routes.test.ts`・database の `routes.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

@@ -10,7 +10,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { canWatchDirectory } from "@/foundation/core/testing/canWatchDirectory";
-import { NOTE_SNAPSHOT_HEADING } from "@/features/attachments/core/attachmentNotes";
+import { NOTE_SNAPSHOT_HEADING } from "@/features/attachments/core/testing";
 import { chatOf, eventsOf } from "@/features/chat/core/testing";
 
 test("ノートの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {

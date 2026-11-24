@@ -125,7 +125,7 @@ test("見出しの参照は、どれかの候補の見出しの行にあれば�
   );
 });
 
-const FEATURE_FILES = new Set(["src/core/http/server.projects.test.ts", "src/renderer/src/A.test.tsx", "scripts/e2e/scenarios/sidebar.mjs"]);
+const FEATURE_FILES = new Set(["src/core/http/server.projects.test.ts", "src/features/notes/core/routes.test.ts", "src/renderer/src/A.test.tsx", "scripts/e2e/scenarios/sidebar.mjs"]);
 
 test("機能の一覧: 正しい表は通す。列は見出しの名前で引き、知らない列と ID のない表は読み飛ばす", () => {
   const text = [
@@ -138,6 +138,7 @@ test("機能の一覧: 正しい表は通す。列は見出しの名前で引き
     "| 作る | PRJ-001 | M | projects | 何か |",
     "| 取り込む | PRJ-002 | T:server.projects,A | projects | |",
     "| 開く | NOTE-001 | `E:sidebar`, T:A, M | notes | |",
+    "| 書く | NOTE-002 | T:notes/routes | notes | |",
     "",
     "| ID | 要件 | 確かめ方 |",
     "|---|---|---|",

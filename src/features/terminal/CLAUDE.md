@@ -19,4 +19,4 @@
 - `open` はあればつなぎ直していまの画面（`snapshot`）を返す。snapshot は書き終えるのを待ってから取り、取る間の出力は返したあとに送る。
 - つなぐまでの出力は最初の snapshot に入っているので画面は捨てる。画面に出す注意も snapshot に入れる。
 - タブを別ウィンドウへ移す・戻すときは、受け取った側が `claimTerminal` で持ち主になってから渡した側を閉じる。
-- テストは `core/routes/server.terminals.test.ts`（`core/testing/fakeTerminal.ts`）。
+- テストは `core/routes.test.ts`（`core/testing/fakeTerminal.ts`）。

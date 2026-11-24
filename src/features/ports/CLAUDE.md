@@ -15,4 +15,4 @@
 ## 落とし穴
 
 - 調べるのは 1 つずつ（`watch.ts` の約束の鎖）。止めたあとの調べ直しは前の調べが終わってから流す（終わる前の一覧を返さない）。
-- テストは `core/routes/server.ports.test.ts`（`portsFake`）。
+- テストは `core/routes.test.ts`（`portsFake`）。

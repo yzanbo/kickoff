@@ -396,7 +396,6 @@
       "feature-entry:src/features/github/ui/githubPrompt.ts -> src/features/chat/ui/quote.ts",
       "feature-entry:src/features/github/ui/prNotice/PrNoticeDialog.tsx -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/github/ui/prNotice/PrNoticeDialog.tsx -> src/features/projects/ui/stores/projects.ts",
-      "feature-entry:src/features/notes/core/routes/server.notes.test.ts -> src/features/attachments/core/attachmentNotes.ts",
       "feature-entry:src/features/projects/ui/changeProjectFolder.ts -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/projects/ui/new/afterNewProject.ts -> src/features/chat/ui/chatActions.ts",
       "feature-entry:src/features/projects/ui/new/afterNewProject.ts -> src/features/chat/ui/store/knownChats.ts",

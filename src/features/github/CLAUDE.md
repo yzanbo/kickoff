@@ -37,4 +37,4 @@
 - 動いている実行がある間は短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。失敗を知らせるかは `src/features/notifications/CLAUDE.md`。
 - PR の状態の名前は `@shared/git/prState` の `PR_STATE_LABELS`（帯・知らせ・印で同じ。gh の大文字は `prStateOf`）。
 - レビューの行は `reviewLines.ts` が差分の表の `DIFF_ROW_ATTRS` で読む。
-- テストは `setup()` の `ghFake`（`server.github.test.ts`・`server.ci.test.ts`）と `ciView.test.ts`。
+- テストは `setup()` の `ghFake`（`routes.github.test.ts`・`routes.ci.test.ts`）と `ciView.test.ts`。

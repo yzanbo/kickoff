@@ -31,7 +31,7 @@
 - 安全の決まり 12 段（括弧はテスト。変えるなら先に見る）:
   - 文の判定（知らない文は書く文・MySQL の `/*! */` の中も文。`sqlStatements.test.ts`）・DB 側の読み取り専用（`worker/drivers.dbtest.ts`。Docker で `npm run test:db`）・読み取り専用の SQLite は ATTACH も DB 側で断る（`handler.test.ts`）
   - AI: 呼び出しごとの新しい接続・AI 用のユーザー・時間の上限 2 段（止めたら流さない）・見せない接続は名前も出さない・つなぐときにコマンドを流す接続は使わない（`aiTools.test.ts`・`tools.test.ts`・`hiddenDb.test.ts`）・`<db_data>` で包む（`aiFormat.test.ts`）
-  - パスワードの暗号化（`secrets.test.ts`）・Kickoff 自身の DB を登録させない（`server.databases.test.ts`）。ほかに端末に開かない（`server.devices.test.ts`）・日時と大きな整数は文字（`values.test.ts`）
+  - パスワードの暗号化（`secrets.test.ts`）・Kickoff 自身の DB を登録させない（`routes.databases.test.ts`）。ほかに端末に開かない（`server.devices.test.ts`）・日時と大きな整数は文字（`values.test.ts`）
 - 文の判定は SELECT の中の関数を見ない（`pg_terminate_backend` は READ ONLY でも通る。AI 用の読み取り専用ユーザーを勧める理由）。
 - コアはドライバと `yaml` を読み込まない（`testing/inProcessWorker.ts` を core から読まない。ドライバは使うときに `import()`）。ssh・シェルは `spawnTracked` で起こす。
 - 同じ接続の名前への頼みは `handler.ts` の `serial` で 1 つずつ流す（並べると二重に開く）。

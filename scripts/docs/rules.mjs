@@ -54,7 +54,11 @@ function testNamesOf(files) {
   const names = new Set();
   for (const file of files) {
     const m = /(?:^|\/)([^/]+)\.test\.tsx?$/.exec(file);
-    if (m) names.add(m[1]);
+    if (!m) continue;
+    names.add(m[1]);
+    // 機能の中のテストは「機能/名前」でも引ける（routes.test.ts のように同じ名前が機能ごとにあるもの）
+    const feature = /^src\/features\/([^/]+)\//.exec(file);
+    if (feature) names.add(`${feature[1]}/${m[1]}`);
   }
   return names;
 }

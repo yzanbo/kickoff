@@ -17,4 +17,4 @@
 
 - 長押しを離したのは window の pointerup で受ける（録音中はボタンが描き替わる）。
 - 長い録音は `PART_BYTES` ごとに、次の録音を先に始めてから止めて区切る（文字起こしの 1 回は 25MB まで）。
-- テストは `engines` / `findTools` / `speech` / `fetch` を差し替える（`core/routes/server.voice.test.ts`）。
+- テストは `engines` / `findTools` / `speech` / `fetch` を差し替える（`core/routes.test.ts`）。
