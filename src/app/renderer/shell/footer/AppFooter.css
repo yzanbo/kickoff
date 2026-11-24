@@ -55,6 +55,8 @@
 
   .footer-button {
     display: inline-flex;
+    /* 狭い窓でも 2 行に折らない（詰めるのは右の使用状況。FooterUsage.css） */
+    flex: none;
     align-items: center;
     gap: 5px;
     height: 100%;
@@ -62,6 +64,7 @@
     border: none;
     font: inherit;
     color: var(--muted);
+    white-space: nowrap;
     background: transparent;
     cursor: pointer;
   }

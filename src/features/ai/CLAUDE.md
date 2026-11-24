@@ -22,4 +22,5 @@
 - 確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。AI を足したら適合テストの adapter（`core/testing/providerAdapters.ts`）も足す。
 - その AI にない機能は `useFeatureBlock` で理由を読んで止める（文はコアと同じ `providerFeatureMissing`）。前に出しているチャットの AI は裏のタブで上書きしない。
 - 使用状況は 1 つが失敗・遅れても、ほかは出す。
+- 下の帯の使用状況は窓の幅で詰める（`FooterUsage.css`。1000px 以下でバー、820px 以下で枠の名前を見た目だけ隠し、名前は乗せたときの説明に出す）。それでも入らなければ帯の中で切り、窓の外へはみ出させない（画面の横幅が広がる）。
 - テスト: `core/providers/contract.test.ts`（7 つの筋書き × 4 つの AI）・`core/**/*.test.ts`。

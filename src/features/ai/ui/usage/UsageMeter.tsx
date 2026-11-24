@@ -85,7 +85,8 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
     return (
       <span
         className={`meter meter-inline meter-${severity}`}
-        title={[status, detail, w.utilization !== null && resetShort && `${resetShort}にリセット`].filter(Boolean).join("\n") || undefined}
+        // 枠の名前も先頭に入れる（狭い窓では帯で名前を隠すため。FooterUsage.css）
+        title={[label, status, detail, w.utilization !== null && resetShort && `${resetShort}にリセット`].filter(Boolean).join("\n")}
       >
         <span className="meter-label">{label}</span>
         {bar}

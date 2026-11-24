@@ -5,15 +5,20 @@
   .footer-usages {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 4px;
     height: 100%;
     min-width: 0;
+    /* 下の詰め方でも入らないとき（左の札が多い・AI が 3 つ以上）は、帯の中で切る（窓の外へはみ出して画面の横幅を広げないように）。
+       右寄せなので、切れるのは左端の AI の札の側。詳細はポップオーバー（body に出す）なので切れない */
+    overflow: hidden;
   }
 
   /* 1 つの AI のボタン（札 ＋ 枠のメーター） */
 
   .footer-usage {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 10px;
     height: 100%;
@@ -53,5 +58,35 @@
 
   .footer-usage .meter.meter-inline .meter-value {
     min-width: 2.2em;
+  }
+
+  /*
+   * 狭い窓では詰める（帯は窓の幅いっぱいなので、窓の幅で決める）。まずバーを、さらに狭ければ枠の名前（5時間・週）を見た目だけ隠す
+   * （% と色は残す。名前は乗せたときの説明に出し、バーと名前は読み上げには残す）
+   */
+
+  @media (max-width: 1000px) {
+    .footer-usage .meter.meter-inline .meter-track {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+
+  @media (max-width: 820px) {
+    .footer-usage {
+      gap: 8px;
+    }
+
+    .footer-usage .meter.meter-inline .meter-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 }
