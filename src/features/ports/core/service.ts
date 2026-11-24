@@ -2,6 +2,7 @@
 // 待っているソケット・プロセスの表・作業フォルダは OS の口（HostPlatform）から受け取り、テストでは probe を差し替える
 import path from "node:path";
 import type { PortProcess } from "@shared/ports/types";
+import { isListedProject } from "@shared/projects/kinds";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreeStores } from "@/features/worktrees/core/index";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
@@ -95,9 +96,9 @@ export class PortProcessService {
     return true;
   }
 
-  /** プロジェクトの作業場所（本体とワークツリー。アーカイブしたプロジェクトは除く。Git でなければ本体だけ） */
+  /** プロジェクトの作業場所（本体とワークツリー。アーカイブしたプロジェクトと見えないプロジェクトは除く。Git でなければ本体だけ） */
   private async workplaces(): Promise<Workplace[]> {
-    const projects = this.store.projects.list().filter((p) => p.archived_at === null);
+    const projects = this.store.projects.list().filter((p) => p.archived_at === null && isListedProject(p));
     const lists = await Promise.all(
       projects.map(async (p): Promise<Workplace[]> => {
         const worktrees = await listWorktrees(p.repo_path).catch(() => null);

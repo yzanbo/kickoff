@@ -26,6 +26,7 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
     github_remote: null,
     pr_watch: true,
     ci_watch: true,
+    kind: null,
     created_at: TEST_TIME,
     ...patch,
   };

@@ -1,3 +1,4 @@
+import type { ProjectKind } from "@shared/projects/kinds";
 import type { ProjectReference } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { NOW } from "@/foundation/core/db/db";
@@ -37,6 +38,12 @@ CREATE TABLE projects (
 ) STRICT;
 `;
 
+/**
+ * v2: プロジェクトの種類（NULL ならふつうのプロジェクト、'common' は共通のノートの見えないプロジェクト）。
+ * 値の一覧は @shared/projects/kinds の配列で、CHECK にしない（種類を増やすたびに表を作り直さないため）
+ */
+export const PROJECTS_SCHEMA_V2 = "ALTER TABLE projects ADD COLUMN kind TEXT CHECK (kind <> '');";
+
 /** projects の表の列（行の型は Project。ゴミ箱に入れたもの = trashed_at がある行は既定で隠す。並びは 1 始まり） */
 export const projectsTable = table(
   "projects",
@@ -59,6 +66,7 @@ export const projectsTable = table(
     github_remote: col.text().nullable(),
     pr_watch: col.bool(),
     ci_watch: col.bool(),
+    kind: col.text<ProjectKind>().nullable(),
     position: col.int(),
     pinned: col.bool(),
     archived_at: col.time().nullable(),

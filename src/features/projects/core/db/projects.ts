@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Notify } from "@/foundation/core/db/common";
 import { pickProjectHue } from "@shared/projects/colors";
 import { normalizeTags } from "@shared/projects/tags";
+import type { ProjectKind } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { projectsTable } from "@/features/projects/core/schema";
@@ -12,6 +13,8 @@ export interface NewProject {
   description?: string | null;
   repo_path: string;
   provider: ProviderId;
+  /** 見えないプロジェクトの種類（省けばふつうのプロジェクト。HTTP の作る口からは渡さず、Kickoff が用意するときだけ使う） */
+  kind?: ProjectKind;
 }
 
 /** プロジェクトの変えられる項目（番号・並び・作った時刻は変えない。並びは reorder） */
@@ -37,7 +40,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewProject): Project {
       // ほかのプロジェクト（しまったもの・ゴミ箱のものも含む）と被らない色。並びは最後
       const hue = pickProjectHue(rows.raw.list().map((p) => p.hue));
-      return rows.insert({ name: input.name, description: input.description || null, repo_path: input.repo_path, provider: input.provider, hue });
+      return rows.insert({ name: input.name, description: input.description || null, repo_path: input.repo_path, provider: input.provider, hue, kind: input.kind ?? null });
     },
     update(id: number, patch: ProjectPatch): Project {
       return rows.update(id, patch.tags === undefined ? patch : { ...patch, tags: normalizeTags(patch.tags) });

@@ -1,4 +1,5 @@
 import type { ProviderId } from "@shared/settings/types";
+import type { ProjectKind } from "./kinds";
 
 /** 圧縮前指示・圧縮後指示の長さの上限（文字。設定の共通の指示・プロジェクトのそれぞれ） */
 export const COMPACT_PROMPT_MAX = 4000;
@@ -42,6 +43,8 @@ export interface Project {
   pr_watch: boolean;
   /** 作業場所でいま取り出しているブランチと既定のブランチの CI（GitHub Actions）が落ちたら知らせるか */
   ci_watch: boolean;
+  /** 種類（null ならふつうのプロジェクト。種類があれば Kickoff が用意する見えないプロジェクトで、一覧に並べるかは isListedProject で決める） */
+  kind: ProjectKind | null;
   created_at: string;
 }
 

@@ -16,11 +16,11 @@ const BUNDLE = "/Applications/Kickoff.app/";
 const MAIN = 100;
 const CORE = 101;
 
-function setup() {
+function setup(kind?: "common") {
   const repo = tempDir({ real: true });
   const store = testStore();
   afterTest(() => store.close());
-  const project = store.projects.create({ name: "p", repo_path: repo, provider: "claude" });
+  const project = store.projects.create({ name: "p", repo_path: repo, provider: "claude", kind });
   const rows: ProcessRow[] = [
     { pid: 1, ppid: 0, elapsed: 9999, command: "/sbin/launchd" },
     { pid: MAIN, ppid: 1, elapsed: 600, command: `${BUNDLE}Contents/MacOS/Kickoff` },
@@ -60,4 +60,10 @@ test("コアのプロセス・メインは止めさせない（一覧にない�
   await assert.rejects(service.stop(MAIN, "x"), /もう動いていないか/);
   assert.equal(await service.stop(103, "node node_modules/.bin/vite --port 3000"), true);
   assert.deepEqual(killed, [103]);
+});
+
+test("見えないプロジェクト（共通のノート）のフォルダで動くものは、そのプロジェクトのものとして数えない", async () => {
+  const { service, project } = setup("common");
+  const list = await service.list();
+  assert.ok(list.every((p) => p.project_id !== project.id));
 });

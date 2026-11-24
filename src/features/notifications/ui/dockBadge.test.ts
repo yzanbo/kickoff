@@ -18,3 +18,9 @@ test("dockBadgeCount: アーカイブしていないプロジェクトの回答�
   assert.equal(dockBadgeCount(chats, projects, new Set([1])), 3);
   assert.equal(dockBadgeCount([], projects, new Set()), 0);
 });
+
+test("dockBadgeCount: 見えないプロジェクト（共通のノート）のチャットは数えない", () => {
+  const projects = [makeProject(1), makeProject(2, { kind: "common" })];
+  const chats = [makeChat(1, { project_id: 1, status: "completed", unread: true }), makeChat(2, { project_id: 2, status: "completed", unread: true })];
+  assert.equal(dockBadgeCount(chats, projects, new Set()), 1);
+});

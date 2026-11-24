@@ -1,5 +1,6 @@
 import "./ProjectSwitcher.css";
 import { Check, ChevronDown, Trash2 } from "lucide-react";
+import { isListedProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { archivedProjects, sidebarOrder } from "@/features/projects/ui/projectOrder";
 import { hueStyle, useProjectHue } from "@/features/projects/ui/projectColor";
@@ -34,7 +35,8 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
       <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
-  if (projects.length === 0) {
+  // 見えないプロジェクトだけのときも、プロジェクトがないのと同じに押せなくする
+  if (!projects.some(isListedProject)) {
     return (
       <span className={className} style={hue}>
         {identity}

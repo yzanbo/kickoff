@@ -9,7 +9,7 @@ import { implement, type Param } from "@/foundation/core/http/implement";
 import { idsBody } from "@/foundation/core/http/zodParts";
 import { ABSOLUTE_FOLDER, isAbsoluteFolder } from "@/foundation/core/http/zodParts";
 import { compactPrompt, projectDescription, projectName } from "./schemas";
-import { changeProjectFolder, createProject, importProject, inspectFolder, startProjectGit, trashProjectById, updateProject, type ProjectsCtx } from "./service";
+import { changeProjectFolder, createProject, importProject, inspectFolder, reorderProjects, startProjectGit, trashProjectById, updateProject, type ProjectsCtx } from "./service";
 
 // 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）
 const noteDirFields = {
@@ -89,7 +89,7 @@ export function projectRoutes(ctx: ProjectsCtx, projectParam: Param<Project>) {
     "PATCH /api/projects/:projectId": { body: projectPatchSchema, run: ({ projectId, body }) => updateProject(ctx, projectId, body) },
     "PUT /api/projects/:projectId/repo-path": { body: repoPathSchema, run: ({ projectId, body }) => changeProjectFolder(ctx, projectId, body) },
     "POST /api/projects/:projectId/git/init": { run: ({ projectId }) => startProjectGit(ctx, projectId) },
-    "PUT /api/projects/order": { body: idsBody, run: ({ body }) => ctx.projects.reorder(body.ids) },
+    "PUT /api/projects/order": { body: idsBody, run: ({ body }) => reorderProjects(ctx, body.ids) },
     "DELETE /api/projects/:projectId": { run: ({ projectId }) => trashProjectById(ctx, projectId) },
   });
 }

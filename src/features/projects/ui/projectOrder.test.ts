@@ -41,3 +41,15 @@ test("archivedProjects: しまったものだけを名前順に", () => {
     [3, 1],
   );
 });
+
+test("sidebarOrder・archivedProjects: 見えないプロジェクト（共通のノート）は、しまっていても出さない", () => {
+  const projects = [project(1), project(2, { kind: "common" }), project(3, { archived_at: "x" }), project(4, { kind: "common", archived_at: "x", pinned: true })];
+  assert.deepEqual(
+    sidebarOrder(projects).map((p) => p.id),
+    [1],
+  );
+  assert.deepEqual(
+    archivedProjects(projects).map((p) => p.id),
+    [3],
+  );
+});

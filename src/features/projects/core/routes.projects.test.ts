@@ -207,6 +207,38 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal((await api("POST /api/projects/import", { body: { path: plain, name: "dup" } })).status, 409);
 });
 
+test("見えないプロジェクト（共通のノート）: 一覧の API には出すが、設定の変更・アーカイブ・固定・フォルダの変更・git の管理・並べ替え・削除は 409 で断る（店からは変えられる）", async () => {
+  const { api, call, project, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
+  const folder = tempDir();
+  const common = store.projects.create({ name: "共通のノート", repo_path: folder, provider: "claude", kind: "common" });
+  assert.equal(common.kind, "common");
+  assert.equal(project.kind, null);
+  // チャットの画面が店から引くので、一覧の API では外さない
+  assert.deepEqual(
+    (await api("GET /api/projects")).body.map((p) => [p.id, p.kind]),
+    [
+      [project.id, null],
+      [common.id, "common"],
+    ],
+  );
+  const params = { projectId: common.id };
+  for (const body of [{ name: "別の名前" }, { archived: true }, { pinned: true }, { note_dir: tempDir() }]) {
+    const refused = await call("PATCH", `/api/projects/${common.id}`, body);
+    assert.equal(refused.status, 409, JSON.stringify(body));
+    assert.match(refused.body.error, /Kickoff が用意したプロジェクトなので/);
+  }
+  assert.equal((await api("PUT /api/projects/:projectId/repo-path", { params, body: { path: tempDir() } })).status, 409);
+  assert.equal((await api("POST /api/projects/:projectId/git/init", { params })).status, 409);
+  assert.equal((await api("PUT /api/projects/order", { body: { ids: [common.id, project.id] } })).status, 409);
+  assert.equal((await api("DELETE /api/projects/:projectId", { params })).status, 409);
+  const after = store.projects.get(common.id)!;
+  assert.deepEqual([after.name, after.archived_at, after.pinned, after.repo_path, after.note_dir], ["共通のノート", null, false, folder, null]);
+  // ふつうのプロジェクトだけの並べ替えは通る
+  assert.equal((await api("PUT /api/projects/order", { body: { ids: [project.id] } })).status, 200);
+  // 持ち主の機能（ノート）が店で直に変えるのは断らない
+  assert.equal(store.projects.update(common.id, { note_dir: folder }).note_dir, folder);
+});
+
 test("git で管理しない新しいプロジェクト・取り込み、あとから git の管理を始める（もう管理していれば 409）", async () => {
   const { call, api } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const parent = tempDir();

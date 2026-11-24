@@ -1,3 +1,4 @@
+import { isListedProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -6,11 +7,11 @@ import { errorMessage } from "@shared/foundation/errors";
 /**
  * サイドバーに出すプロジェクトの並び: 上に固定したものを先に、そのあとドラッグで並べ替えた順（同じなら作成順）。
  * lastActive を渡すと、固定したものの次は最近動いた順（サイドバーの「最近動いた順」）。
- * しまった（アーカイブした）プロジェクトは出さない（切り替え・全プロジェクトの画面でも同じ）
+ * しまった（アーカイブした）プロジェクトと見えないプロジェクト（isListedProject）は出さない（切り替え・全プロジェクトの画面でも同じ）
  */
 export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => string) =>
   projects
-    .filter((p) => !p.archived_at)
+    .filter((p) => !p.archived_at && isListedProject(p))
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
 
 /**
@@ -23,8 +24,8 @@ export function recentOrder(projects: Project[], chats: readonly { project_id: n
   return sidebarOrder(projects, (p) => latest.get(p.id) ?? p.created_at);
 }
 
-/** しまった（アーカイブした）プロジェクト（名前順） */
-export const archivedProjects = (projects: Project[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));
+/** しまった（アーカイブした）プロジェクト（名前順。見えないプロジェクトは除く） */
+export const archivedProjects = (projects: Project[]) => projects.filter((p) => p.archived_at && isListedProject(p)).sort((a, b) => a.name.localeCompare(b.name));
 
 /** 上に固定する・やめる、しまう・戻す、タグを付け外す（右クリックのメニュー・見出しのピン・戻すボタンで共通。失敗はお知らせのダイアログで出す） */
 export const changeProject = (id: number, patch: { pinned?: boolean; archived?: boolean; tags?: string[] }) =>

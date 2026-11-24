@@ -1,3 +1,4 @@
+import { isListedProject } from "@shared/projects/kinds";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
@@ -17,8 +18,8 @@ export function useFallbackProject(): number | undefined {
   return fallbackOf(current, useProjects());
 }
 
-/** fallback の決め方（もうないものは飛ばして、サイドバーで最後に選んでいたもの → 先頭） */
-const fallbackOf = (current: number | undefined, { projects, missing }: ReturnType<typeof useProjects>): number | undefined => (missing(current) ? undefined : current) ?? projects[0]?.id;
+/** fallback の決め方（もうないものは飛ばして、サイドバーで最後に選んでいたもの → 一覧に並べるものの先頭。見えないプロジェクトを作成先にしない） */
+const fallbackOf = (current: number | undefined, { projects, missing }: ReturnType<typeof useProjects>): number | undefined => (missing(current) ? undefined : current) ?? projects.find(isListedProject)?.id;
 
 /**
  * いま見ている画面のプロジェクト（URL のプロジェクト。もうないとわかったもの・URL にないときは useFallbackProject と同じ決め方）。

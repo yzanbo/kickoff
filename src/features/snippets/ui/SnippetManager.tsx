@@ -2,6 +2,7 @@ import "./SnippetManager.css";
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
+import { isListedProject } from "@shared/projects/kinds";
 import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets";
 import { useAllSnippets } from "@/features/snippets/ui/store";
 import { useProjects } from "@/features/projects/ui";
@@ -31,7 +32,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
             { value: null, label: "共通（すべてのプロジェクト）" },
             { value: projectId, label: "このプロジェクトだけ" },
           ]
-        : [{ value: null, label: "共通（すべてのプロジェクト）" }, ...projects.filter((p) => !p.archived_at).map((p) => ({ value: p.id, label: p.name }))];
+        : [{ value: null, label: "共通（すべてのプロジェクト）" }, ...projects.filter((p) => !p.archived_at && isListedProject(p)).map((p) => ({ value: p.id, label: p.name }))];
   const nameOf = (id: number) => projectName(id) || undefined;
   const move = (id: number, delta: number) => {
     const ids = moveWithin(

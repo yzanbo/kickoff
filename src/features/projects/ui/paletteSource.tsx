@@ -1,11 +1,13 @@
 import { SquarePen } from "lucide-react";
+import { isListedProject } from "@shared/projects/kinds";
 import type { PaletteItem } from "@/features/palette/ui";
 import { ProjectMark } from "./ProjectMark";
 import { useProjects } from "./stores/projects";
 
 
 export function useProjectItems(enabled: boolean, query: string): readonly PaletteItem[] {
-  const { projects } = useProjects();
+  // 見えないプロジェクトは選べる先に出さない（しまったものは今どおり出す）
+  const projects = useProjects().projects.filter(isListedProject);
   const typed = query.trim() !== "";
   if (!enabled) return NONE;
   const items: PaletteItem[] = [];
