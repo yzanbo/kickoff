@@ -138,6 +138,11 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
         onChange({ type: "chat", chat: get(chat.id)! });
       }
     },
+    /** ノートのチャットのノートを指し直す（ノートをほかのプロジェクトへ動かし、チャットも移したとき。並び順は変えない） */
+    setNotePath(id: number, notePath: string): void {
+      db.prepare("UPDATE chats SET note_path = ? WHERE id = ?").run(notePath, id);
+      onChange({ type: "chat", chat: get(id)! });
+    },
     /**
      * Kickoff のゴミ箱に入れる（ids のチャットに入れた時刻と一緒に入れたゴミ箱の行を書く。ふだんの読み取りから外れるので、消したのと同じに知らせる）。
      * 子孫も入れるなら呼ぶ側が ids に入れる

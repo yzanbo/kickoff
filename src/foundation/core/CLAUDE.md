@@ -8,7 +8,7 @@ Electron に依存しないサーバー（HTTP・SQLite・外部コマンド・A
 - `http/`: `implement.ts`（取り決めを受ける）・`mount.ts`・`lookups.ts`（`withProject` / `withWorkdir`）・`input.ts`（`jsonBody`・`queryOf`）・`sseData.ts`・`deviceAccess.ts`
 - `aiTools/`: `defineAiTool`・`AiToolRegistry`・`McpToolHost`（1 つの MCP サーバー `/mcp/<名前>`）
 - `system/`: `runCommand`・`streamCommand`・`paths.ts`（`toApiPath`）・`appEnv.ts`・`stallWatch.ts`・`childProcesses.ts`。`platform/`: `HostPlatform`（macOS は `macos/`）
-- `workplace/`（git・ワークツリー・`carry.ts`）・`files/`（`folderFiles`）・`shell/shellWords.ts`・`watch/`（`Poller`・`Lease`）・`host/`（メインとの RPC）
+- `workplace/`（git・ワークツリー・`carry.ts`）・`files/`（`folderFiles`。別のディスクへも移す `movePath`）・`shell/shellWords.ts`・`watch/`（`Poller`・`Lease`）・`host/`（メインとの RPC）
 - `testing/`: `memoryDb`・`until`・`manualClock`・`tempDir`・`gitRepo`・`sse`・`testClient`・`quietShell`・`record`
 
 ## 決まり

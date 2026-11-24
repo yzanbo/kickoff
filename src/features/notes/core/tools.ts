@@ -1,6 +1,6 @@
 // チャットの AI がノートを開く・名前を変える／移すツール（kickoff_chat の open_note・move_note）と、ノートが 1 回の実行に足すもの（contributor "notes"）。
 // 開く・動かすだけで消さないので、聞かずに行う（権限モード・Auto mode によらず承認カードを出さない。ノートは利用者がいつでも戻せる）。
-// open_note は確かめてから SSE の open_view で画面に頼む（開けたかは待たない）。move_note は上書きしない（つながりの付け替えは NoteService.move）
+// open_note は確かめてから SSE の open_view で画面に頼む（開けたかは待たない）。move_note は上書きしない（つながりの付け替え・欄をまたぐときのチャットの移動は noteTransfer.ts）
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { lineageOf, openPlaceInput, toolChat, type ChatStoreDeps } from "@/featu
 import type { Project } from "@shared/projects/types";
 import type { CommonNotes } from "./commonNotes";
 import type { NoteDirs } from "./noteDir";
-import type { NoteService } from "./service";
+import type { NoteTransfer } from "./noteTransfer";
 
 /**
  * AI が渡したパスを、ノートのフォルダからの相対パス（「/」区切り）にする。絶対パスはノートのフォルダの中だけ（リンクを解いた形でも比べる）。
@@ -38,7 +38,9 @@ type NoteScope = (typeof NOTE_SCOPES)[number];
 interface NoteToolDeps {
   /** チャットの店（chat はノートより先に作る） */
   store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">;
-  notes: Pick<NoteDirs, "dirOf"> & Pick<NoteService, "move">;
+  dirOf: NoteDirs["dirOf"];
+  /** 動かす（欄をまたぐときは、ノートのチャットも行き先のプロジェクトへ移す。作業中のチャットがあれば断る） */
+  transfer: NoteTransfer;
   /** 共通のノート（使えなければ project が null で、理由は unavailable） */
   common: Pick<CommonNotes, "project" | "unavailable">;
   /** 画面に頼む（SSE） */
@@ -59,7 +61,7 @@ interface NoteTarget {
 function noteTarget(d: NoteToolDeps, chatId: number, scope: NoteScope | undefined, given: string, verb: string): NoteTarget {
   const self = toolChat(d.store.chats, chatId).self();
   const common = d.common.project();
-  const commonDir = common ? d.notes.dirOf(common) : null;
+  const commonDir = common ? d.dirOf(common) : null;
   const inCommon = commonDir !== null && path.isAbsolute(given.trim()) && [commonDir, realPathOrSelf(commonDir)].some((dir) => isInside(dir, given.trim()) || isInside(dir, realPathOrSelf(given.trim())));
   if (inCommon || scope === "common") {
     if (!common || !commonDir) throw new Error(`共通のノートを使えないため、ノートを${verb}（${d.common.unavailable()?.message ?? "共通のノートをまだ用意していません"}）`);
@@ -67,9 +69,12 @@ function noteTarget(d: NoteToolDeps, chatId: number, scope: NoteScope | undefine
   }
   const project = d.store.projects.get(self.project_id);
   if (!project) throw new Error(`このプロジェクトのノートのフォルダが分からないため、ノートを${verb}`);
-  const dir = d.notes.dirOf(project);
+  const dir = d.dirOf(project);
   return { project, dir, rel: notePathIn(dir, given) };
 }
+
+/** 欄の呼び名（AI への返事） */
+const placeName = (d: NoteToolDeps, project: Project) => (project.id === d.common.project()?.id ? "共通のノート" : `プロジェクト「${project.name}」のノート`);
 
 /** scope の引数（AI が読む説明つき） */
 const scopeInput = () => z.enum(NOTE_SCOPES).optional().describe("どのノートか: project（このプロジェクトのノート。省いたとき）か common（共通のノート。どのプロジェクトにも属さないノート）。共通のノートのフォルダの中の絶対パスなら、省いても共通のノート");
@@ -106,32 +111,34 @@ export function moveNoteToolGroup(d: NoteToolDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 61,
-    instructions: ["move_note は、このプロジェクトのノート（ノートのフォルダの .md・.html とフォルダ）か、共通のノート（scope: common）の名前を変える・同じノートのフォルダの中の別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。ノートの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとノートのチャットとのつながりが切れる）。"],
+    instructions: [
+      "move_note は、このプロジェクトのノート（ノートのフォルダの .md・.html とフォルダ）か、共通のノート（scope: common）の名前を変える・別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。ノートの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとノートのチャットとのつながりが切れる）。",
+      "共通のノートとこのプロジェクトのノートの間でも移せる（from と to の片方を共通のノートのフォルダの中の絶対パスにする）。そのノートのチャットも移った先へ移る。ノートのチャット（か、その子チャット）が作業中なら断られる（このチャット自身がそのノートのチャットなら、いまは移せない）。",
+    ],
     open: ({ chatId }) => [
       defineAiTool({
         server: "kickoff_chat",
         name: "move_note",
-        description: "このプロジェクトのノート・共通のノート（ファイル・フォルダ）の名前を変える・移す（上書きしない）",
+        description: "このプロジェクトのノート・共通のノート（ファイル・フォルダ）の名前を変える・移す（上書きしない。共通のノートとこのプロジェクトのノートの間も、ノートのチャットごと）",
         input: {
           from: notePath.describe("いまのノートのパス（ノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス）"),
-          to: notePath.describe("新しいパス（同じ形。途中のフォルダはなければ作る）"),
+          to: notePath.describe("新しいパス（同じ形。途中のフォルダはなければ作る。共通のノートとプロジェクトのノートの間で移すときは、片方を共通のノートのフォルダの中の絶対パスにする）"),
           scope: scopeInput(),
         },
         async run(input) {
           const source = noteTarget(d, chatId, input.scope, input.from, "動かせません");
           // to が相対パスで scope を省いたら、from と同じ欄（共通のノートの絶対パスから相対パスへ名前を変えるとき）
           const dest = noteTarget(d, chatId, input.scope ?? (source.project.id === d.common.project()?.id ? "common" : undefined), input.to, "動かせません");
-          // いまは同じ欄の中だけ（欄をまたぐとノートのチャットも別のプロジェクトへ移すことになる）
-          if (source.project.id !== dest.project.id) throw new Error("共通のノートとプロジェクトのノートの間では動かせません。同じノートのフォルダの中で名前と場所を変えてください");
-          const { project } = source;
+          const across = source.project.id !== dest.project.id;
           const from = source.rel;
           const to = dest.rel;
           // ファイルの種類（Markdown / HTML）が変わらないよう、拡張子は変えさせない（フォルダは拡張子なし同士）
           if (path.extname(from).toLowerCase() !== path.extname(to).toLowerCase()) {
             throw new Error(`拡張子は変えられません（${path.extname(from) || "なし"} → ${path.extname(to) || "なし"}）。名前と場所だけを変えてください`);
           }
-          if (from === to) return `ノート「${from}」は、もともとその名前です。`;
-          await d.notes.move(project, from, to);
+          if (!across && from === to) return `ノート「${from}」は、もともとその名前です。`;
+          await d.transfer(source.project, from, dest.project.id, to);
+          if (across) return `ノート「${from}」を${placeName(d, dest.project)}の「${to}」に動かしました（ノートのチャットも移りました）。`;
           return `ノート「${from}」を「${to}」に動かしました（ノートのチャットなどのつながりも付け替えました）。`;
         },
       }),

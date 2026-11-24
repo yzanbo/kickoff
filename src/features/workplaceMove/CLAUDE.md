@@ -8,7 +8,7 @@
 - `ui/`: 札 `WorkplaceMoveChip`・予約の行 `WorkplaceMoveRow`・右クリック `WorkplaceMoveItem`
 
 ## 決まり
-- 作業場所が変わる道はすべて `workplaceMove.api.move`（`withIdleChat` → `moveChatWorkplace`）を通す。道を足すときも通す。
+- 作業場所が変わる道はすべて `workplaceMove.api.move`（`withIdleChat` → `moveChatWorkplace`）を通す。道を足すときも通す（ほかのプロジェクトへ: 右クリックの「プロジェクトを移動」・ノートを欄の間で動かす notes の `noteTransfer.ts`）。
 - 区切りより前へは戻れない: 巻き戻し・分岐・ファイルを戻すは断り（`@shared/chat/boundaries`）、起点は区切りで止まる。画像はそのときの作業場所から解く。
 - 移したあと最初の実行にだけ知らせを添える（知らせたかは保存せず `store.events.pendingWorkplaceMove` で決める）。
 - AI の移動は予約（`reserveAtTurnEnd`）だけで、作業が最後まで終わってから移す（続きは `placeContinuation`）。取り消しは AI にも伝える。

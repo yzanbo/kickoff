@@ -240,3 +240,15 @@ test("チャットを作るツール: Git でないプロジェクトではワ�
   const { tools } = await finishedTurn(ctx);
   await assert.rejects(tools.createChat!.create({ relation: "root", text: "x", worktree_branch: "feat/a" }, allow), /Git で管理していない/);
 });
+
+test("チャットを作るツール: 見えないプロジェクト（共通のノート）のチャットからは親のないチャットを作れない（子チャットは作れる）", async () => {
+  const ctx = setup();
+  const hidden = ctx.store.projects.create({ name: "共通のノート", repo_path: fs.realpathSync(ctx.project.repo_path) + "-common", provider: "claude", kind: "common" });
+  fs.mkdirSync(hidden.repo_path, { recursive: true });
+  const chat = await ctx.runner.start({ projectId: hidden.id, prompt: "ノートの依頼", notePath: "a.md" });
+  await until(() => ctx.store.chats.get(chat.id)?.status === "completed");
+  const tools = createChatOf(ctx)!;
+  await assert.rejects(tools.create({ relation: "root", text: "x" }, allow), /どのプロジェクトにも属さないので、親のないチャット/);
+  const child = await created(ctx, await tools.create({ relation: "child", text: "y" }, allow));
+  assert.equal(child.project_id, hidden.id);
+});

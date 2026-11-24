@@ -15,6 +15,7 @@ import { folderPath, optionalId, repoPath } from "@/foundation/core/http/zodPart
 import type { CommonNotes } from "@/features/notes/core/commonNotes";
 import type { NoteDirs } from "@/features/notes/core/noteDir";
 import type { NoteService } from "@/features/notes/core/service";
+import type { NoteTransfer } from "@/features/notes/core/noteTransfer";
 import { MAX_NOTE_SOURCE_CHARS, type createNoteAi } from "@/features/notes/core/noteAi";
 import type { createNoteChat } from "@/features/notes/core/noteChat";
 
@@ -27,7 +28,7 @@ const MAX_NOTE_CHARS = 5_000_000;
 const pathQuery = z.object({ path: repoPath });
 const writeSchema = z.object({ path: repoPath, content: z.string().max(MAX_NOTE_CHARS), base_hash: z.string().max(100).nullable() }) satisfies z.ZodType<NoteWriteBody>;
 const createSchema = z.object({ path: repoPath, dir: z.boolean().optional(), content: z.string().max(MAX_NOTE_CHARS).optional() }) satisfies z.ZodType<NoteCreateBody>;
-const moveSchema = z.object({ from: repoPath, to: repoPath }) satisfies z.ZodType<NoteMoveBody>;
+const moveSchema = z.object({ from: repoPath, to: repoPath, to_project_id: z.number().int().positive().optional() }) satisfies z.ZodType<NoteMoveBody>;
 const fromChatSchema = z.object({
   chat_id: z.number().int().positive(),
   text: z.string().trim().min(1).max(MAX_NOTE_SOURCE_CHARS),
@@ -47,13 +48,15 @@ export interface NoteRouteDeps {
   chatParam: Param<Chat>;
   dirs: NoteDirs;
   notes: NoteService;
+  /** 動かす（行き先がほかの欄なら、ノートのチャットごと） */
+  transfer: NoteTransfer;
   common: Pick<CommonNotes, "defaultDir" | "project" | "unavailable">;
   ai: ReturnType<typeof createNoteAi>;
   chat: ReturnType<typeof createNoteChat>;
   uploads: UploadStore;
 }
 
-export function noteRoutes({ projectParam, chatParam, dirs, notes, common, ai, chat, uploads }: NoteRouteDeps) {
+export function noteRoutes({ projectParam, chatParam, dirs, notes, transfer, common, ai, chat, uploads }: NoteRouteDeps) {
   return implement(notesContract, {
     context: { projectId: projectParam, "*": rawRest },
     "GET /api/notes/defaults": {
@@ -75,7 +78,7 @@ export function noteRoutes({ projectParam, chatParam, dirs, notes, common, ai, c
     },
     "PUT /api/projects/:projectId/note": { body: writeSchema, run: ({ projectId: project, body }) => notes.write(project, body.path, body.content, body.base_hash) },
     "POST /api/projects/:projectId/notes": { body: createSchema, run: ({ projectId: project, body }) => notes.create(project, body.path, { dir: body.dir ?? false, content: body.content }) },
-    "POST /api/projects/:projectId/notes/move": { body: moveSchema, run: ({ projectId: project, body }) => notes.move(project, body.from, body.to) },
+    "POST /api/projects/:projectId/notes/move": { body: moveSchema, run: ({ projectId: project, body }) => transfer(project, body.from, body.to_project_id ?? project.id, body.to) },
     "DELETE /api/projects/:projectId/note": { query: pathQuery, run: async ({ projectId: project, query }) => ({ trash_id: await notes.trash(project, query.path) }) },
     // 送るときは写しと元のノートのパスを AI に伝える
     "POST /api/projects/:projectId/note/snapshot": {

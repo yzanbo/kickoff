@@ -13,6 +13,7 @@ import {
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
+import { isListedProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { depthOf, type ChatStoreDeps, workdirOf } from "@/features/chat/core";
@@ -126,6 +127,8 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       const self = requireSelf();
       const project = store.projects.get(self.project_id);
       if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
+      // 見えないプロジェクト（共通のノート）の親のないチャットは、サイドバーにもどの一覧にも出ず、利用者が開けなくなる
+      if (relation === "root" && !isListedProject(project)) throw new Error('このチャットはどのプロジェクトにも属さないので、親のないチャット（relation: "root"）は作れません（作っても一覧に出ず、利用者が開けません）。子チャット（"child"）なら作れます');
       const mode = store.settings.get().ai_create_chat;
       if (mode === "off") throw new Error("利用者が設定（チャット →「AI がチャットを作るとき」）で、AI がチャットを作るのを止めています");
       const generation = store.chats.aiGeneration(self.id) + 1;

@@ -27,7 +27,7 @@ export const notesContract = {
   "PUT /api/projects/:projectId/note": route<NoteWriteBody, SavedFile>(device),
   /** 新しいノート・フォルダ（同じ名前があれば 409。途中のフォルダも作る） */
   "POST /api/projects/:projectId/notes": route<NoteCreateBody, NoteRef>({ ...device, status: 201 }),
-  /** 名前を変える・ほかのフォルダへ動かす（行き先に同じ名前があれば 409） */
+  /** 名前を変える・ほかのフォルダへ動かす（行き先に同じ名前があれば 409）。to_project_id でほかの欄へ（ノートのチャットごと。作業中なら 409） */
   "POST /api/projects/:projectId/notes/move": route<NoteMoveBody, NoteRef>(device),
   /** Kickoff のゴミ箱へ入れる（3 日は元に戻せる） */
   "DELETE /api/projects/:projectId/note": route<never, TrashedResult, PathQuery>(device),

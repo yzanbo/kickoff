@@ -19,6 +19,8 @@ export interface NoteCreateBody {
 export interface NoteMoveBody {
   from: string;
   to: string;
+  /** ほかの欄（プロジェクト・共通のノート）へ動かすときの行き先のプロジェクト（省けば同じプロジェクト）。ノートのチャットも一緒に移す */
+  to_project_id?: number;
 }
 
 /**

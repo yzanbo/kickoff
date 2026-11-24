@@ -11,6 +11,7 @@ import type { ProjectsApi } from "@/features/projects/core/index";
 import type { SettingsUpdateHook } from "@/features/settings/core/index";
 import { Conflict } from "@/foundation/core/errors";
 import { expandHome, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
+import type { NoteDirs } from "./noteDir";
 
 /** 見えないプロジェクトの名前（画面には出さないが、チャットの画面などがプロジェクト名で引くので、画面の言葉と同じにしておく） */
 const COMMON_NOTES_NAME = "共通のノート";
@@ -36,6 +37,8 @@ export function createCommonNotes(d: {
   settings(): AppSettings;
   /** ノートの親フォルダの既定（設定の notes_dir が null のとき） */
   defaultRoot: string;
+  /** そのフォルダをノートのフォルダにしているプロジェクト（_common を予約する前に note_folder が _common になったもの・note_dir で選んだもの） */
+  noteDirUsers: NoteDirs["usersOf"];
 }): CommonNotes {
   const store = d.projects.store;
   const rootOf = (s: FolderSettings) => expandHome(s.notes_dir ?? d.defaultRoot);
@@ -45,8 +48,8 @@ export function createCommonNotes(d: {
   /** そのフォルダ（実体）を本体にしている、共通のノートでないプロジェクト（ゴミ箱のものも。repo_path は 1 つのプロジェクトにだけ登録できる） */
   const clashAt = (real: string, except: number | undefined) =>
     [...store.list(), ...store.trashed()].find((p) => p.id !== except && (p.repo_path === real || realPathOrSelf(p.repo_path) === real));
-  const clashMessage = (p: Project, real: string) =>
-    `共通のノートのフォルダ（${real}）は、プロジェクト「${p.name}」${store.get(p.id) ? "" : "（Kickoff のゴミ箱にあります）"}のフォルダと同じなので、共通のノートを使えません。設定の「共通のノートのフォルダ」で別のフォルダを選んでください`;
+  const clashMessage = (p: Project, real: string, what: string) =>
+    `共通のノートのフォルダ（${real}）は、プロジェクト「${p.name}」${store.get(p.id) ? "" : "（Kickoff のゴミ箱にあります）"}の${what}と同じなので、共通のノートを使えません。設定の「共通のノートのフォルダ」で別のフォルダを選んでください`;
   let unavailable: CommonNotesUnavailable | null = null;
 
   const syncNow = async () => {
@@ -62,9 +65,11 @@ export function createCommonNotes(d: {
     }
     const current = owned();
     const clash = clashAt(real, current?.id);
-    if (clash) {
+    // ノートのフォルダが重なると、同じファイルが 2 つの欄に出て、ノートのチャットがどちらのものか分からなくなる
+    const noteUser = clash ? undefined : d.noteDirUsers(real, current?.id).find((p) => p.kind === null);
+    if (clash || noteUser) {
       // 作らない・付け替えない（利用者のプロジェクトを優先し、起動は止めない）
-      unavailable = { message: clashMessage(clash, real), project_id: clash.id };
+      unavailable = clash ? { message: clashMessage(clash, real, "フォルダ"), project_id: clash.id } : { message: clashMessage(noteUser!, real, "ノートのフォルダ"), project_id: noteUser!.id };
       return;
     }
     if (!current) {

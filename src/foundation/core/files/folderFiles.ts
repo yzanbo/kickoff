@@ -34,6 +34,10 @@ export interface FolderFiles {
   rename(rel: string, name: string): Promise<string>;
   /** ほかのフォルダへ動かす（フォルダをその中へは動かさない。行き先に同じ名前があれば Conflict。大文字・小文字だけなら動かす。行き先の途中のフォルダのリンクが外を指せば Invalid） */
   move(from: string, to: string): Promise<void>;
+  /** ほかのフォルダ（dest）の中へ動かす（名前の決まりは move と同じ。行き先に同じ名前があれば Conflict。片方がもう片方の中なら Invalid。別のディスクなら写してから消す） */
+  moveTo(from: string, dest: FolderFiles, to: string): Promise<void>;
+  /** 動かす先の用意: 名前を確かめ、同じ名前があれば Conflict、いまある途中のフォルダのリンクが外を指せば Invalid。途中のフォルダを作り、絶対パスを返す（moveTo が行き先の側で呼ぶ） */
+  placeFor(rel: string): Promise<string>;
   /** 中身をそのまま（実体も中・上限まで。ファイルでなければ NotFound） */
   asset(rel: string): Promise<Buffer>;
   /** ゴミ箱へ（なければ NotFound。入れ方は put に任せる） */
@@ -53,6 +57,17 @@ const notFound = (rel: string) => (e: unknown) => {
 };
 
 const lstatOrNull = (abs: string) => fs.lstat(abs).catch(() => null);
+
+/** 移す（同じディスクなら名前の変更、別のディスクなら写してから消す） */
+export async function movePath(from: string, to: string): Promise<void> {
+  try {
+    await fs.rename(from, to);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "EXDEV") throw e;
+    await fs.cp(from, to, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true, errorOnExist: true, force: false });
+    await fs.rm(from, { recursive: true, force: true });
+  }
+}
 
 /** 区切り・「.」「..」・空の段は名前に使えない */
 const badSegment = (part: string) => !part.trim() || part === "." || part === ".." || /[\\\0]/.test(part);
@@ -154,6 +169,22 @@ export function folderFiles(root: string, opts: FolderFilesOptions): FolderFiles
       await assertParentsInside(target);
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.rename(source, target);
+    },
+    async placeFor(rel) {
+      const target = await named(rel);
+      if (await lstatOrNull(target)) throw new Conflict(`行き先に同じ名前の「${baseName(rel)}」があります`);
+      await assertParentsInside(target);
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      return target;
+    },
+    async moveTo(from, dest, to) {
+      const source = await named(from);
+      if (!(await lstatOrNull(source))) throw new NotFound(`ファイルが見つかりません: ${from}`);
+      // 2 つのフォルダが重なっている（片方がもう片方の中にある）と、フォルダをその中へ写すことになる
+      const target = path.resolve(await fs.realpath(dest.root), to);
+      const realSource = path.resolve(await realRoot(), from);
+      if (isInside(realSource, target) || realSource === target) throw new Invalid("フォルダを、その中へは動かせません");
+      await movePath(source, await dest.placeFor(to));
     },
     async asset(rel) {
       // ページが読むもの（CSS・画像）なので、フォルダを指したときも「ない」にする

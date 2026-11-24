@@ -121,3 +121,21 @@ test("「.」の名前: rejectDotNames なら作る・動かす・ゴミ箱へ�
   }
   assert.equal((await files.asset(".hidden.css")).toString(), "x");
 });
+
+test("moveTo: ほかのフォルダへ動かす（途中のフォルダを作る）。同じ名前・中へ・「.」の名前は断る", async () => {
+  const { root, outside, files } = setup({ rejectDotNames: true });
+  const dest = folderFiles(outside, { outsideMessage: OUTSIDE, maxAssetBytes: 1024, rejectDotNames: true });
+  await files.moveTo("a.md", dest, "新/a.md");
+  assert.equal(fs.readFileSync(path.join(outside, "新", "a.md"), "utf8"), "a\n");
+  assert.ok(!fs.existsSync(path.join(root, "a.md")));
+  // 行き先に同じ名前があれば上書きしない
+  fs.writeFileSync(path.join(root, "secret.txt"), "mine\n");
+  await assert.rejects(files.moveTo("secret.txt", dest, "secret.txt"), /同じ名前/);
+  assert.equal(fs.readFileSync(path.join(outside, "secret.txt"), "utf8"), "secret\n");
+  await assert.rejects(files.moveTo("secret.txt", dest, ".隠し.txt"), /「\.」で始まる/);
+  await assert.rejects(files.moveTo("ない.md", dest, "x.md"), /見つかりません/);
+  // 行き先のフォルダが動かすフォルダの中（重なったフォルダ）なら断る
+  const inner = folderFiles(path.join(root, "sub"), { outsideMessage: OUTSIDE, maxAssetBytes: 1024 });
+  const parent = folderFiles(path.dirname(root), { outsideMessage: OUTSIDE, maxAssetBytes: 1024 });
+  await assert.rejects(parent.moveTo("root", inner, "y"), /その中へは/);
+});

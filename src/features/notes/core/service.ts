@@ -154,6 +154,20 @@ export class NoteService {
     return { path: to };
   }
 
+  /**
+   * ほかのプロジェクト（共通のノートを含む）のノートのフォルダへ動かす（行き先に同じ名前があれば 409）。ノートのチャットの付け替えは呼ぶ側
+   * （noteTransfer.ts。チャットもプロジェクトを移す）。DB の接続の手順ノートは元のプロジェクトの接続なので onMoved で付いていかせない
+   */
+  async moveAcross(source: Project, from: string, target: Project, to: string): Promise<void> {
+    const files = noteFiles(await this.existingDir(source, true));
+    // 行き先のノートのフォルダは、まだなければフォルダ名を決めて作る
+    const dir = this.opts.dirs.ensureNoteDir(target);
+    await fs.mkdir(dir, { recursive: true });
+    await files.moveTo(from, noteFiles(dir), to);
+    this.changed(source, null);
+    this.changed(target, to);
+  }
+
   /** Kickoff のゴミ箱へ入れる（3 日は元に戻せる）。入れたゴミ箱の ID を返す（画面の「元に戻す」） */
   async trash(project: Project, file: string): Promise<string> {
     const files = noteFiles(await this.existingDir(project, true));

@@ -116,3 +116,18 @@ test("共通のノート: 親フォルダを変えて _common が利用者のプ
   await call("PUT", "/api/settings", { notes_dir: null });
   assert.equal((await defaults()).common_project_id, common.id);
 });
+
+test("共通のノート: _common を予約する前からノートのフォルダが _common のプロジェクトがあれば、重ねずに使えない状態にし、理由を返す", async () => {
+  const ctx = setup({ features: FEATURES });
+  const old = ctx.store.projects.create({ name: "前からある", repo_path: tempDir(), provider: "claude" });
+  ctx.store.projects.update(old.id, { note_folder: "_common" });
+  await ctx.notes.syncCommon();
+  const now = (await ctx.api("GET /api/notes/defaults")).body;
+  assert.equal(now.common_project_id, null);
+  assert.equal(now.common_unavailable?.project_id, old.id);
+  assert.match(now.common_unavailable?.message ?? "", /「前からある」のノートのフォルダと同じ/);
+  // そのプロジェクトのノートのフォルダを変えれば、使える
+  ctx.store.projects.update(old.id, { note_folder: "前からある" });
+  await ctx.notes.syncCommon();
+  assert.ok((await ctx.api("GET /api/notes/defaults")).body.common_project_id);
+});

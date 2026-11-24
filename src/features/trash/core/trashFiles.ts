@@ -2,19 +2,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+/** 移す（同じディスクなら名前の変更、別のディスクなら写してから消す） */
+export { movePath as move } from "@/foundation/core/files/folderFiles";
+
 /** 大きさを数えるときに見るファイルの数の上限（node_modules などで時間をかけすぎない） */
 const MEASURE_MAX_ENTRIES = 500_000;
-
-/** 移す（同じディスクなら名前の変更、別のディスクなら写してから消す） */
-export async function move(from: string, to: string): Promise<void> {
-  try {
-    await fs.rename(from, to);
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "EXDEV") throw e;
-    await fs.cp(from, to, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true, errorOnExist: true, force: false });
-    await fs.rm(from, { recursive: true, force: true });
-  }
-}
 
 export const exists = (p: string) => fs.lstat(p).then(() => true, () => false);
 

@@ -9,6 +9,7 @@ import { testStore } from "@/app/core/testing/testStore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { callDef, testTurn } from "@/foundation/core/testing/toolCalls";
 import { createNoteDirs } from "./noteDir";
+import { createNoteTransfer } from "./noteTransfer";
 import { NoteService } from "./service";
 import { moveNoteToolGroup, notePathIn, openNoteToolGroup } from "./tools";
 
@@ -28,7 +29,6 @@ function setup() {
   const service = new NoteService({ dirs, projects: store.projects, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
   // 動かしたらノートのチャットを付け替える（組み立てと同じ）
   service.onMoved((e) => store.chats.remapNotePath(e.project_id, e.from, e.to));
-  const notes = { dirOf: dirs.dirOf, move: service.move.bind(service) };
   const dir = dirs.dirOf(store.projects.get(project.id)!);
   fs.mkdirSync(path.join(dir, "機能の仕様"), { recursive: true });
   fs.mkdirSync(path.join(dir, "済"), { recursive: true });
@@ -46,8 +46,12 @@ function setup() {
   const commonState = { available: true };
   const common = { project: () => (commonState.available ? store.projects.get(commonProject.id)! : null), unavailable: () => (commonState.available ? null : { message: "重なっています", project_id: null }) };
   const published: BusEvent[] = [];
-  const deps = { store, notes, common, publish: (e: BusEvent) => published.push(e) };
-  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps) };
+  // チャットを移す口の代わり（区切り・セッションの写しは workplaceMove のテストで見る。ここはプロジェクトだけ移す）
+  const busy = new Set<number>();
+  const moveChat = async (chatId: number, input: { projectId?: number }) => store.chats.move(chatId, input.projectId!);
+  const transfer = createNoteTransfer({ notes: service, store, isBusy: (chatId) => busy.has(chatId), moveChat, common });
+  const deps = { store, dirOf: dirs.dirOf, transfer, common, publish: (e: BusEvent) => published.push(e) };
+  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, busy, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps) };
 }
 
 test("notePathIn: 相対・中の絶対パスはノートのフォルダからの相対パスに、外・フォルダそのもの・「.」で始まる名前は断る", () => {
@@ -122,14 +126,24 @@ test("open_note: scope common か共通のノートのフォルダの中の絶�
   await assert.rejects(callIn(open, child.id, { path: "覚え書き.md", scope: "common" }), /共通のノートを使えないため.*重なっています/);
 });
 
-test("move_note: 共通のノートの中で動かせる。共通のノートとプロジェクトのノートの間は断る", async () => {
-  const { root, commonDir, move } = setup();
+test("move_note: 共通のノートの中で動かせる。共通のノートとプロジェクトのノートの間は、ノートのチャットごと移す（作業中なら断る）", async () => {
+  const { ctx, root, noteChat, dir, commonDir, commonProject, busy, move } = setup();
   const moveNote = (args: Record<string, unknown>) => callIn(move, root.id, args);
   assert.match(await moveNote({ from: "覚え書き.md", to: "メモ/覚え書き.md", scope: "common" }), /動かしました/);
   assert.ok(fs.existsSync(path.join(commonDir, "メモ", "覚え書き.md")));
   // from が共通のノートの絶対パスなら、相対パスの to も共通のノート
   await moveNote({ from: path.join(commonDir, "メモ", "覚え書き.md"), to: "覚え書き.md" });
   assert.ok(fs.existsSync(path.join(commonDir, "覚え書き.md")));
-  await assert.rejects(moveNote({ from: path.join(commonDir, "覚え書き.md"), to: "済/覚え書き.md", scope: "project" }), /間では動かせません/);
-  assert.ok(fs.existsSync(path.join(commonDir, "覚え書き.md")));
+  // 共通のノートからプロジェクトのノートへ（to は scope の project）
+  assert.match(await moveNote({ from: path.join(commonDir, "覚え書き.md"), to: "済/覚え書き.md", scope: "project" }), /プロジェクト「p」のノートの「済\/覚え書き.md」に動かしました/);
+  assert.ok(fs.existsSync(path.join(dir, "済", "覚え書き.md")) && !fs.existsSync(path.join(commonDir, "覚え書き.md")));
+  // ノートのチャットが作業中なら、ファイルを動かさずに理由を返す
+  busy.add(noteChat.id);
+  await assert.rejects(moveNote({ from: "案.md", to: path.join(commonDir, "案.md") }), /ノートのチャット（か、その子チャット）が作業中/);
+  assert.ok(fs.existsSync(path.join(dir, "案.md")));
+  busy.clear();
+  // プロジェクトのノートから共通のノートへ: チャットも共通のノートのプロジェクトへ移る
+  assert.match(await moveNote({ from: "案.md", to: path.join(commonDir, "メモ", "案.md") }), /共通のノートの「メモ\/案.md」に動かしました/);
+  const chat = ctx.store.chats.get(noteChat.id)!;
+  assert.deepEqual([chat.project_id, chat.note_path], [commonProject.id, "メモ/案.md"]);
 });
