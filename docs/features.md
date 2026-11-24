@@ -625,7 +625,7 @@
 ### ターミナル
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| TERM-001 | 内蔵ターミナルを使う | terminal | M |
+| TERM-001 | 内蔵ターミナルを使う | terminal | E:terminal-open |
 | TERM-002 | ターミナルの文をチャットに追加する | terminal | M |
 | TERM-003 | 決まったコマンドを流すタブ | terminal | M |
 
@@ -1003,7 +1003,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | BASE-013 | 消したものを 3 日取っておき、元に戻す（Kickoff のゴミ箱） | trash | T:trash/routes.trash |
-| BASE-014 | プロジェクトの「ゴミ箱」タブで見て戻す | trash | M |
+| BASE-014 | プロジェクトの「ゴミ箱」タブで見て戻す | trash | E:trash-restore |
 | BASE-015 | 消した直後の知らせから元に戻す | trash | M |
 | BASE-016 | AI が消すときもゴミ箱へ（kickoff-trash） | trash | T:command,trash/routes.trash |
 | BASE-017 | ゴミ箱のプロジェクトを設定から戻す | trash | M |
