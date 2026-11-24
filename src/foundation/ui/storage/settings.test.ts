@@ -8,6 +8,7 @@ import {
   familyVersion,
   flag,
   list,
+  noteOtherWindowChange,
   number,
   optionalFlag,
   readSetting,
@@ -136,4 +137,21 @@ test("宣言: キーは kickoff: で始め、ID ごとの頭は \":\" で終え�
   assert.throws(() => defineSettingFamily("kickoff:t-no-colon", flag()));
   // 同じキーをもう一度作っても投げない（作るだけで登録しない）
   assert.equal(defineSetting("kickoff:t-open", flag()).key, OPEN.key);
+});
+
+test("ほかのウィンドウが localStorage をすべて消したら、キーごとの設定だけでなく ID ごとの設定（仲間）の購読にも知らせる", () => {
+  writeSetting(groupClosed(1), true);
+  let familyCalls = 0;
+  let keyCalls = 0;
+  const offFamily = subscribeFamily(groupClosed, () => familyCalls++);
+  const offKey = subscribeSetting(WIDTH, () => keyCalls++);
+  const before = familyVersion(groupClosed);
+  local.clear();
+  noteOtherWindowChange(null);
+  offFamily();
+  offKey();
+  assert.equal(familyCalls, 1);
+  assert.equal(keyCalls, 1);
+  assert.ok(familyVersion(groupClosed) > before);
+  assert.equal(readSetting(groupClosed(1)), false);
 });

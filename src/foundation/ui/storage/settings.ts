@@ -233,15 +233,31 @@ function notify(area: Area, key: string) {
  */
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
-    if (e.storageArea !== storageOf("local")) return;
-    // すべて消した（clear）ときは、読んでいた値を捨てて、どの設定にも知らせる
-    const keys = e.key === null ? [...keyListeners.keys()].map((id) => id.slice(id.indexOf("\n") + 1)) : [e.key];
-    for (const key of keys) {
-      if (!key.startsWith(KEY_PREFIX)) continue;
-      cache.delete(idOf("local", key));
-      notify("local", key);
-    }
+    if (e.storageArea === storageOf("local")) noteOtherWindowChange(e.key);
   });
+}
+
+/**
+ * ほかのウィンドウが localStorage の key を書き換えた（null はすべて消した）ことを、このウィンドウで読んでいるものに知らせる。
+ * すべて消したときは、キーごとの設定と ID ごとの設定（仲間）のどちらにも知らせる（仲間のキーは読んでいる ID が分からないので、仲間ごとに 1 回）
+ */
+export function noteOtherWindowChange(key: string | null): void {
+  if (key !== null) {
+    if (!key.startsWith(KEY_PREFIX)) return;
+    cache.delete(idOf("local", key));
+    notify("local", key);
+    return;
+  }
+  for (const id of [...cache.keys()]) if (id.startsWith(idOf("local", ""))) cache.delete(id);
+  for (const id of [...keyListeners.keys()]) {
+    if (!id.startsWith(idOf("local", ""))) continue;
+    for (const listener of [...(keyListeners.get(id) ?? [])]) listener();
+  }
+  for (const [id, watched] of watchedFamilies) {
+    if (watched.area !== "local") continue;
+    familyVersions.set(id, (familyVersions.get(id) ?? 0) + 1);
+    for (const listener of [...(familyListeners.get(id) ?? [])]) listener();
+  }
 }
 
 /** その設定が書き換わったら listener を呼ぶ（やめるときは返り値を呼ぶ） */
