@@ -6,8 +6,9 @@
 
 アプリ開発を、AI エージェントとのチャットで進めるための Mac デスクトップアプリ。プロジェクトごとに、作業場所（git のワークツリー）・グループ・状態でチャットを並べ、並行して進める。
 
-- 機能: [docs/features.md](docs/features.md)
-- 設計（語彙・名前の決まり・構成）: [docs/architecture.md](docs/architecture.md)
+- 機能の一覧（受け入れの一覧と前提）: [docs/features.md](docs/features.md)
+- 設計（構成・機能の一覧と向き・語彙）: [docs/architecture.md](docs/architecture.md)
+- 書き方の決まり: `CLAUDE.md`（ルートと各フォルダ）
 
 ## 使い方
 
@@ -16,78 +17,85 @@
 ![全プロジェクトのボード。チャットが状態（下書き・作業中・回答待ち・未読・既読）の列に並ぶ](docs/images/board.png)
 
 1. **プロジェクトを作る**: サイドバーの「＋」から、新しいフォルダを作る（`git init` まで）か、既存のフォルダを取り込む。
-2. **チャットで頼む**: 「新しいチャット」（⌘N）に指示を書いて送る。入力欄の下で、モデル・考える深さ・権限モード（毎回確認・編集は自動で承認・Auto mode・計画）を選ぶ。作業ごとにワークツリー（ブランチ）を分ければ、複数のチャットを並行して進められる。
+2. **チャットで頼む**: 「新しいチャット」（⌘N）に指示を書いて送る。入力欄の下で、AI・モデル・考える深さ・権限モード（毎回確認・編集は自動で承認・Auto mode・計画）を選ぶ。作業ごとにワークツリー（ブランチ）を分ければ、複数のチャットを並行して進められる。
 3. **自分の番を拾う**: チャットは状態ごとに並ぶ。「全プロジェクト」のボードや、サイドバーの「要対応」（回答待ち・エラー・未読）で、返事が要るものだけを順に開く。チャットはグループでまとめられる。
 4. **答える・足す**: AI の承認依頼・質問には、チャットの中で答える（下の画面は、計画の承認待ち）。作業中でも、入力欄の「いま」で止めずに伝えるか、「あとで」で送信待ちに積める。
 
 ![チャットの画面。計画モードの AI が出した計画に「許可」か「拒否」で答える](docs/images/chat.png)
 
-5. **確かめて出す**: 「変更」タブで差分を見てコミット・プッシュし、ワークツリーの帯から GitHub に PR を作る（マージは GitHub で）。ターミナル・ブラウザ・ノートもアプリの中で開ける。外出中は、スマホのブラウザから承認・回答・次の指示ができる（同じ Wi-Fi か Tailscale。QR でペアリング）。
+5. **確かめて出す**: 「変更」タブで差分を見てコミット・プッシュし、ワークツリーの帯から GitHub に PR を作る（マージは GitHub か GitHub タブで）。ターミナル・ブラウザ・ノート・DB クライアントもアプリの中で開ける。外出中は、スマホから承認・回答・次の指示ができる（同じ Wi-Fi か Tailscale。QR でペアリング）。
 
 ## 前提
 
 - macOS（Apple Silicon）、Node.js 22.13 以上
-- Claude Code にログイン済み（Kickoff は Agent SDK に同梱された Claude Code を使い、そのログインで動く。API キーは不要）
-- GitHub CLI にログイン済み（`brew install gh && gh auth login`）
+- Claude Code にログイン済み（Kickoff は Agent SDK に同梱された Claude Code を使い、そのログインで動く。API キーは要らない）。ほかの AI（Codex・GitHub Copilot・Cursor・Gemini）は、それぞれのログインか API キーで選べる
+- GitHub CLI にログイン済み（`brew install gh && gh auth login`）。開発するアプリのリポジトリは GitHub に自分で作り、remote（origin）を設定しておく（Kickoff はリポジトリを作らない）
 
 ## 開発
 
 ```sh
 npm install
-npm run dev        # Electron アプリを開発モードで起動
-npm run dev:cdp    # 同じく、CDP のポート 9333 を開いて起動（画面の確かめ。scripts/ui-*.mjs が使う）
-npm run test:changed           # 変えたファイルに関係するテストだけを 1 プロセスで（作業中。ファイルを渡せばそのファイルに関係するもの）
-npm run test:changed:isolated  # 同じ範囲を、ファイルごとに新しいプロセスで（ほかのファイルが残した値に頼るテストを見つける）
-npm test                       # 全体を 1 プロセスで、ファイルの順番を毎回入れ替えて（Vitest。同時に流すファイルは 6 つまで）
-npm run test:isolated          # 全体を、ファイルごとに新しいプロセスで（npm test で落ちたときの切り分け）
-npm run test:db    # DB クライアントのドライバ（PostgreSQL・MySQL・MariaDB）を Docker で立てた本物の DB で確かめる（Docker が要る。終わったらコンテナを消す）
-npm run typecheck  # 型チェック（使っていない import・変数も見る）
-npm run daemon     # Electron なしでコア（API サーバー）だけを起動（ブラウザで開くときは、出した一度だけのログインの URL から）
-npm run dist       # .app / .dmg を作成
-npm run install-app  # ビルドして /Applications/Kickoff.app（本番）を入れ替える（動いていれば終了して開き直す。実行中のチャットがあればやめる）
-npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す
-npm run knip       # 使っていない export・ファイル・依存を調べる（入口と CLI スクリプトは knip.json の entry）
-node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）の画面の DOM と計算後のスタイルを記録する。diff <前> <後> で比べ、css <名前> で CSS の規則の順を記録する
+npm run dev                    # 開発版（Kickoff Dev）を起動
+npm run dev:cdp                # 同じく、CDP のポート 9333 を開いて起動（画面の確かめ。scripts/ui-*.mjs が使う）
+npm run fixture:seed           # 決まったデータを /private/tmp/kickoff-fixture に作る（scripts/devtools/fixture.mjs）
+npm run dev:fixture            # そのデータで開発版を起動（コア 4319・CDP 9335。通しの確かめ node scripts/e2e/run.mjs が使う）
+npm run typecheck              # 型（tsconfig をプロセスごとに。使っていない import・変数も見る）
+npm run test:changed           # 変えたファイルに関係するテストだけ（作業中）
+npm test                       # 全体を 1 プロセスで、ファイルの順番を毎回入れ替えて（Vitest）
+npm run test:isolated          # 全体を、ファイルごとに新しいプロセスで（:changed にも :isolated を付けられる）
+npm run test:db                # DB クライアントのドライバを Docker で立てた本物の DB で確かめる（Docker が要る）
+npm run knip                   # 使っていない export・ファイル・依存
+npm run build                  # ビルド（out/）
+npm run mobile:typecheck       # スマホのアプリ（mobile/）の型
+npm run daemon                 # Electron なしでコアだけを起動（データは KICKOFF_DATA_DIR）
+npm run dist                   # .app / .dmg を作る
+npm run install-app            # ビルドして /Applications/Kickoff.app（製品版）を入れ替える
+npm run icon                   # build/icon.svg・icon-dev.svg からアイコンを作り直す
+node scripts/ui-snapshot.mjs take <名前>   # 開発版の画面の DOM と計算後のスタイルを記録する（diff <前> <後> で比べる）
 ```
 
-コミットと push のたびに git のフック（`.githooks/`。`npm install` が `git config core.hooksPath .githooks` を設定する）が確かめを流し、落ちたら止める。コミット時はコミットするファイルについて型・knip・テストの書き方の見張り（`scripts/check-test-rules.mjs`）・関係するテスト（`npm run test:changed:isolated`）、push 時は `npm test` とビルド（一時フォルダに出す）。コミットしない変更が混ざっていると、コミット時のフックは確かめずに止まる（コミットする中身だけにしてから）。
+コミットと push のたびに git のフック（`.githooks/`。`npm install` が設定する）が確かめを流し、落ちたら止める。コミット時は文書の検査と、コードを含めば構造の検査・型・knip・テストの書き方の見張り・関係するテスト。push 時は文書と構造の検査・`npm test`・ビルド。コミットしない変更が混ざっていると止まる。
 
-インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/foundation/core/system/appEnv.ts`）。
+インストールしたアプリ（製品版）と開発版は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/foundation/core/system/appEnv.ts`）。開発版のデータは、初めて起動したときに製品版のデータから一度だけ写す。
 
-| | 本番（`/Applications/Kickoff.app`） | 開発 |
+| | 製品版（`/Applications/Kickoff.app`） | 開発版 |
 |---|---|---|
 | 名前（Dock・メニューバー） | Kickoff | Kickoff Dev（アイコンに DEV の帯） |
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（300 ＋ 版）で持つ（`src/foundation/core/db/db.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
+製品版を入れ替えるときは、macOS のターミナルで流す（Kickoff の中のチャット・ターミナルからは流さない）:
 
-開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/foundation/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
+1. 製品版で作業中のチャットがないことを確かめ、⌘Q で終える。
+2. データを引き継がない版へ上げるときは、古いデータを消さずに退避する（知らない版の DB は開かずに止まる）: `mv "$HOME/Library/Application Support/Kickoff" "$HOME/Library/Application Support/Kickoff.old"`。開発版の `Kickoff Dev` も同じ。
+3. `git pull && npm install && npm run install-app`
+4. 引き継がない版なら、起動してプロジェクトを取り込み直し、設定・定型文・DB の接続を入れ直し、スマホはペアリングし直す。
 
-このリポジトリの `.claude/settings.json` の SessionStart フックで、Kickoff に入っている Claude Code（`@anthropic-ai/claude-agent-sdk` の `claudeCodeVersion`）に新しい版が出たら、このリポジトリのチャット（製品版の Kickoff の kickoff プロジェクトも）のエージェントに知らせる（`scripts/check-agent-updates.mjs`。npm に聞くのは 24 時間に 1 回、同じ版の知らせは 1 日 1 回まで。覚えは `node_modules/.cache/kickoff/claude-update.json`）。`npm run install-app` の最後にも、新しい版があれば 1 行出す。
+`.claude/settings.json` の SessionStart フックは、Kickoff に入っている Claude Code に新しい版が出たら、このリポジトリのチャットのエージェントに知らせる（`scripts/check-agent-updates.mjs`）。
 
-`npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを「Kickoff Dev」に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
+| 環境変数 | 説明 |
+|---|---|
+| `KICKOFF_PORT` | コアのポート（既定は製品版 4317・開発版 4318） |
+| `KICKOFF_DATA_DIR` | `npm run daemon` のデータの置き場所（既定は開発版の `Kickoff Dev`） |
+| `KICKOFF_HOST` | `npm run daemon` の待ち受けの住所 |
+| `KICKOFF_REMOTE_DEBUG` | 開発版で CDP を開くポート |
+| `KICKOFF_USER_DATA_DIR` | 開発版の保存先を変える（製品版では見ない） |
+| `KICKOFF_ALLOW_API_KEY` | `1` のときだけ `ANTHROPIC_API_KEY` を Claude Code に渡す（既定はログインを使う） |
+| `KICKOFF_EXPERIMENTAL_PROVIDERS` | 本物で確かめる前の AI を使う（`,` 区切りの ID。開発のとき） |
+| `KICKOFF_RUN_TRACE` | `1` のとき、チャットの実行の出来事と命令をログに書く |
 
 ## 構成
 
 | ディレクトリ | 役割 |
 |---|---|
-| `src/shared` | 純粋な型と関数（Node・DOM・Electron・React に依らない）。コア・画面・メイン・preload・スマホが読む（import は `@shared/…`） |
-| `src/foundation` | 機能の言葉を持たない土台（コア `core/`・画面 `ui/`・メインプロセスと preload `desktop/`） |
-| `src/features` | 機能ごとのフォルダ（チャット・AI・パネル・Git・DB クライアントなど。中は `core/`・`ui/`・`desktop/`・`worker/` と `CLAUDE.md`） |
-| `src/app` | 組み立て（コアの起動 `core/`・メインの起動と preload の入口 `desktop/`・画面の入口と CSS `renderer/`）。ここだけが全部の機能を知る |
-| `mobile` | スマホのアプリ（Android。Expo。別の npm のまとまり） |
-| `native` | 音声入力の「macOS の音声認識」の補助コマンド（Swift の `kickoff-speech`。ビルドのときに `out/native` へ作る。Xcode の Command Line Tools の `swiftc` が要り、なければ作らずにビルドを続ける） |
-| `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
-| `scripts`・`docs` | 道具（製品版の入れ替え `install-app`・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検 `ui-audit-buttons`・`ui-snapshot`・補助コマンドのビルドの差し込み `speech-helper.ts`・文書と構造の検査）と文書 |
+| `src/shared` | 純粋な型と関数（Node・DOM・Electron・React に依らない）。コア・画面・メイン・preload・スマホが読む |
+| `src/foundation` | 機能の言葉を持たない土台（コア `core/`・画面 `ui/`・メインと preload `desktop/`） |
+| `src/features` | 機能ごとのフォルダ（中は `core/`・`ui/`・`desktop/`・`worker/` と `CLAUDE.md`） |
+| `src/app` | 組み立て（コア・メイン・画面の入口）。ここだけが全部の機能を知る |
+| `mobile` | スマホのアプリ（Android・Expo。別の npm のまとまり） |
+| `native`・`build`・`scripts` | 音声認識の補助コマンド（Swift。`swiftc` がなければ作らずにビルドを続ける）・アイコン・道具 |
 
-設計（語彙・名前の決まり・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
-
-| 環境変数 | 説明 |
-|---|---|
-| `KICKOFF_PORT` | API サーバーのポート（既定は本番 4317・開発 4318） |
-| `KICKOFF_DATA_DIR` | `npm run daemon` のデータ保存先（既定は開発の `Kickoff Dev`） |
-| `KICKOFF_ALLOW_API_KEY` | `1` のときだけ `ANTHROPIC_API_KEY` をエージェントに渡す（既定はプランのログインを使用） |
+詳しくは [docs/architecture.md](docs/architecture.md)。
 
 ## ライセンス
 

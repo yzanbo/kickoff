@@ -1,12 +1,6 @@
 {
   "version": 1,
   "files": {
-    "README.md": {
-      "bytes": 10516,
-      "longLines": 2,
-      "forbidden": 0,
-      "brokenRefs": 1
-    },
     "mobile/README.md": {
       "bytes": 4189,
       "longLines": 1,
