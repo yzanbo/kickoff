@@ -11,6 +11,7 @@ import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { connectionScope } from "@/features/database/ui/dbFormat";
+import { copySourcesOf } from "./copySources";
 
 /**
  * ほかのプロジェクトの DB の接続を、このプロジェクトに写すダイアログ（接続はプロジェクトごとなので、同じ DB を使うときに写す）。
@@ -20,11 +21,16 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
   const { ref: dialogRef, ...dialog } = useModalDialog();
   const { projects } = useProjects();
   const others = projects.filter((p) => p.id !== projectId && !p.archived_at);
-  const lists = useQuery(["CopyConnectionDialog.lists", others.map((p) => p.id).join(",")], () => Promise.all(others.map(async (p) => ({ project: p, connections: await dbApi("GET /api/projects/:projectId/db-connections", { params: { projectId: p.id } }).catch(() => [] as DbConnection[]) }))), { keepPrevious: true });
+  // 読めなかったプロジェクトは null にして、一覧の下に名前を出す（黙って出さないと「接続がない」と見分けられない）
+  const lists = useQuery(
+    ["CopyConnectionDialog.lists", others.map((p) => p.id).join(",")],
+    () => Promise.all(others.map(async (p) => ({ project: p, connections: await dbApi("GET /api/projects/:projectId/db-connections", { params: { projectId: p.id } }).catch((): DbConnection[] | null => null) }))),
+    { keepPrevious: true },
+  );
   const [picked, setPicked] = useState<number | null>(null);
   const [withPassword, setWithPassword] = useState(false);
   const action = useAction<"submit">();
-  const groups = (lists.data ?? []).filter((g) => g.connections.length > 0);
+  const { groups, failed } = copySourcesOf(lists.data ?? []);
   const pickedConnection = groups.flatMap((g) => g.connections).find((c) => c.id === picked);
 
   const submit = async (e: FormEvent) => {
@@ -40,7 +46,8 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">ほかのプロジェクトの接続を写す</h2>
         {lists.loading && <p className="muted small">読み込み中…</p>}
-        {!lists.loading && groups.length === 0 && <p className="muted small">ほかのプロジェクトに DB の接続がありません。</p>}
+        {!lists.loading && groups.length === 0 && failed.length === 0 && <p className="muted small">ほかのプロジェクトに DB の接続がありません。</p>}
+        {failed.length > 0 && <ErrorText message={`接続の一覧を読めなかったプロジェクト: ${failed.join("・")}`} />}
         <div className="db-copy-list">
           {groups.map((g) => (
             <fieldset key={g.project.id} className="db-copy-group">
