@@ -3,7 +3,7 @@ import { matchesTags } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { useChatsValue } from "@/features/chat/ui/store/knownChats";
+import { useProjectChatsValue } from "./projectChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";
 import { useProjectTagFilter } from "./projectTagFilter";
@@ -19,7 +19,7 @@ export function useVisibleProjects() {
   const { projects } = useProjects();
   const tagFilter = useProjectTagFilter();
   const [order] = useSetting(storage.settings.listOrder);
-  const recentIds = useChatsValue(
+  const recentIds = useProjectChatsValue(
     (chats) =>
       recentOrder(projects, chats)
         .map((p) => p.id)

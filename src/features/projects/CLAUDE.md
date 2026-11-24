@@ -15,8 +15,8 @@
 - 操作は右クリックの `useProjectMenu` に入れる。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`（付いているすべてのプロジェクトに効く）。
 - フォルダの被りは、どこでも `folderOverlaps.ts`（ノートは `NoteOverlapNotice`）の判定と文で知らせる。
-- 部品からは `openNewProject(request)` で開く（作ったあとの処理は値で渡す。理由は `NewProjectAfter`）。プロジェクトがなければ先に `NoProjectsGuide`。
-- 上の機能の力は `ProjectsApi` に口を足して登録してもらう（作業中か・ゴミ箱は chat、フォルダを変えたあとは workplaceMove、設定を変えたあとは github）。GitHub の連携のルートは github、Git の様子は口 `projectGit`。
+- 部品からは `openNewProject(request)` で開く（作ったあとの処理は値で渡す）。プロジェクトがなければ先に `NoProjectsGuide`。
+- 上の機能の力は `ProjectsApi` に口を足して登録してもらう（作業中か・ゴミ箱は chat、フォルダを変えたあとは workplaceMove、設定を変えたあとは github）。GitHub の連携のルートは github、Git の様子は口 `projectGit`、チャット・グループは口 `projectChats`・`projectGroups`、作ったあとの処理は `newProjectAfters`（値の形は `NewProjectAfterMap` に持ち主が足す）。
 
 ## 落とし穴
 

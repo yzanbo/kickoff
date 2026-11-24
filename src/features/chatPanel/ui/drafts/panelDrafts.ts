@@ -1,5 +1,6 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
+import { defineNewProjectAfter } from "@/features/projects/ui";
 import type { DraftRef, DraftTabSpot } from "@/features/chatList/ui";
 import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
 import {
@@ -227,3 +228,13 @@ export function forgetDraftsOfMissingProjects(projectIds: ReadonlySet<number>) {
   const placed = new Map(placedDrafts().map((d) => [d.key, d.panel]));
   for (const d of readNewChatDrafts()) if (!projectIds.has(d.projectId)) discardDraft({ panel: placed.get(d.key) ?? chatsPanel(d.projectId), key: d.key });
 }
+
+declare module "@/features/projects/ui/new/openNewProject" {
+  interface NewProjectAfterMap {
+    /** その下書きを作ったプロジェクトへ移す（下書きのメニューの「プロジェクトを変更」→「新規プロジェクト」） */
+    moveDraft: { draft: DraftRef };
+  }
+}
+
+/** 新しいプロジェクトを作ったあとに、頼んだ下書きをそこへ移す（projects の newProjectAfters に登録する） */
+export const moveDraftAfterNewProject = defineNewProjectAfter("moveDraft", (after, project) => moveDraftToProject(after.draft, project.id));

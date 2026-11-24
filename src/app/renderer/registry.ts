@@ -13,6 +13,7 @@ import { contributes as database } from "@/features/database/ui/contributes";
 import { contributes as docker } from "@/features/docker/ui/contributes";
 import { contributes as files } from "@/features/files/ui/contributes";
 import { contributes as git } from "@/features/git/ui/contributes";
+import { contributes as groups } from "@/features/groups/ui/contributes";
 import { contributes as github } from "@/features/github/ui/contributes";
 import { contributes as notes } from "@/features/notes/ui/contributes";
 import { contributes as projects } from "@/features/projects/ui/contributes";
@@ -50,7 +51,7 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
  * AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...settings, ...panel, ...palette, ...trash, ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...subagents, ...childChats, ...remoteImages, ...workplaceMove, ...queue, ...userView, ...notifications, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...worktrees, ...github, ...notes, ...database, ...terminal, ...browser, ...ports, ...voice, ...devices, ...diagnostics, ...sidebar, ...board,
+  ...settings, ...panel, ...palette, ...trash, ...projects, ...groups, ...ai, ...chat, ...composer, ...snippets, ...compact, ...subagents, ...childChats, ...remoteImages, ...workplaceMove, ...queue, ...userView, ...notifications, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...worktrees, ...github, ...notes, ...database, ...terminal, ...browser, ...ports, ...voice, ...devices, ...diagnostics, ...sidebar, ...board,
   ...appCommands, settingsItems.item(footerModeItem), footerItems.item(offlineFooterItem), ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 

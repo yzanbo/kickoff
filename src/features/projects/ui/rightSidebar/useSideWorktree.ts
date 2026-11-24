@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { useKnownProjectChat } from "@/features/projects/ui/projectChats";
 
 /** プロジェクトごとの、右サイドバーのコードの画面が見ている作業場所と、そのとき付いていったチャット（とその作業場所） */
 export interface Followed {
@@ -31,7 +31,7 @@ const setState = (projectId: number, next: Followed) => {
  */
 export function useSideWorktree(projectId: number): [string | undefined, (worktree: string | undefined) => void] {
   const route = useRoute();
-  const chat = useKnownChat(route.name === "chat" ? route.chatId : 0);
+  const chat = useKnownProjectChat(route.name === "chat" ? route.chatId : 0);
   const stored = useSyncExternalStore(subscribe, () => states.get(projectId) ?? NOT_FOLLOWING);
   // 付いていく先が変わったら、描くときから切り替えた値を使い（effect を待たずに 1 回で描く）、覚えるのは描いたあと（知らせは要らない = この部品が読んだ値）
   const state = followWorktree(stored, chat, projectId);

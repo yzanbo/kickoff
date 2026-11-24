@@ -1,4 +1,3 @@
-import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { openAppDialog } from "@/foundation/ui/shell/points";
 
 export interface NewProjectRequest {
@@ -14,11 +13,13 @@ export interface NewProjectRequest {
  * 新しいプロジェクトを作ったあとの処理。関数ではなく値で持つ（別ウィンドウ（サイドバーなど）の中から頼んだときも、
  * メインのウィンドウの App に知らせとして渡せるように。関数は渡せない）
  */
-export type NewProjectAfter =
-  /** そのチャットを作ったプロジェクトへ移す（確かめてから。チャットのメニューの「プロジェクトを変更」→「新規プロジェクト」） */
-  | { kind: "moveChat"; chatId: number }
-  /** その下書きを作ったプロジェクトへ移す（下書きのメニューの「プロジェクトを変更」→「新規プロジェクト」） */
-  | { kind: "moveDraft"; draft: DraftRef };
+export type NewProjectAfter = { [K in keyof NewProjectAfterMap]: { kind: K } & NewProjectAfterMap[K] }[keyof NewProjectAfterMap];
+
+/**
+ * 作ったあとの処理の種類ごとの値。持ち主の機能が declare module で足し、処理を afterNewProject.ts の newProjectAfters に登録する
+ * （moveChat = そのチャットを作ったプロジェクトへ移す: chat。moveDraft = その下書きを作ったプロジェクトへ移す: chatPanel）
+ */
+export interface NewProjectAfterMap {}
 
 /** 新しいプロジェクトの作り方 */
 export type NewProjectMode = "create" | "import";

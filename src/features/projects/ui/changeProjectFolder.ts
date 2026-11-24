@@ -1,6 +1,6 @@
 import type { Project } from "@shared/projects/types";
 import { projectsApi } from "@/features/projects/ui/api/projects";
-import { currentChats } from "@/features/chat/ui/store/knownChats";
+import { currentProjectChats } from "./projectChats";
 import { currentProjects } from "@/features/projects/ui/stores/projects";
 import { worktreesStore, worktreeSource } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
@@ -81,7 +81,7 @@ const WORKTREE_MAIN = (count: number) => `ワークツリーで作業してい�
 
 /** ワークツリーで作業しているチャットの数と、新しいフォルダがいまと同じリポジトリか（同じなら、同じワークツリーの中の新しいフォルダで続く） */
 async function worktreeChats(project: Project, nextRoot: string | null): Promise<{ count: number; sameRepo: boolean }> {
-  const count = currentChats({ projectId: project.id }).filter((chat) => chat.worktree_path).length;
+  const count = currentProjectChats(project.id).filter((chat) => chat.worktree_path).length;
   if (count === 0) return { count, sameRepo: false };
   const top = (await worktreeSource().list(project.id).catch(() => [])).find((w) => w.main)?.root;
   return { count, sameRepo: Boolean(top && top === nextRoot) };

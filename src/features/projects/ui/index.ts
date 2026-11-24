@@ -16,6 +16,8 @@ export { canShowProjectView, projectViewOf, projectViews } from "./projectViews"
 export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats";
 export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
+export { defineNewProjectAfter, newProjectAfters } from "./new/afterNewProject";
+export { projectChats, projectGroups, type ProjectChat, type ProjectChats, type ProjectGroups } from "./projectChats";
 export { newProjectNoteField, type NewProjectNoteFieldProps } from "./new/NoteDirField";
 export { useEditedProject } from "./settings/editedProject";
 export { projectGit, type ProjectGit } from "./projectGit";

@@ -1,6 +1,8 @@
 // chat が拡張点に出すもの（app/renderer/registry.ts が入れる）
 import { settingsItems, settingsSections } from "@/features/settings/ui";
 import { trashKinds } from "@/features/trash/ui";
+import { newProjectAfters, projectChats } from "@/features/projects/ui";
+import { chatsForProjects, moveChatAfterNewProject } from "./projectsPort";
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { chatTarget } from "./openTargets";
 import { chatSection } from "./settings/appSettings";
@@ -16,4 +18,6 @@ export const contributes = [
   trashKinds.item(sessionTrashKind),
   settingsItems.item(archiveCleanupItem),
   settingsItems.item(orphanSessionsItem),
+  projectChats.item(chatsForProjects),
+  newProjectAfters.item(moveChatAfterNewProject),
 ];

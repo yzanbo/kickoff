@@ -4,7 +4,7 @@
 
 ## 地図
 - `@shared/groups/contract.ts`・`core/routes.ts`・`core/db/groups.ts`・`core/index.ts`（`requireGroupOf`）
-- `ui/groupDialogs.ts`（名前を聞く・削除を確かめる）・`splitAtUngrouped`。グループへのドラッグ（`useGroupDrop`）は chatList
+- `ui/groupDialogs.ts`（名前を聞く・削除を確かめる）・`splitAtUngrouped`・projects の口 `projectGroups`（`ui/projectsPort.ts`）。グループへのドラッグ（`useGroupDrop`）は chatList
 
 ## 決まり
 - ほかの機能は `core/index.ts` だけを読む。チャットを入れるグループは同じプロジェクトのもの（`requireGroupOf`）。
