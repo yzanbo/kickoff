@@ -3,7 +3,8 @@ import { useConnectionState } from "@/foundation/ui/api/serverConnection";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { cx } from "@/foundation/ui/lib/cx";
 import { openSettings } from "@/features/settings/ui";
-import { ConnectionPopover, connectionLabel } from "./ConnectionPopover";
+import { ConnectionPopover } from "./ConnectionPopover";
+import { connectionLabel } from "./connectionLabel";
 import { useConnectionNotice } from "./useConnectionNotice";
 
 /**
