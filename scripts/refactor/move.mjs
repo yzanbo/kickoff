@@ -21,7 +21,7 @@ const DEFAULT_TABLE = "scripts/refactor/moves.tsv";
 /** 中身を書き換えるファイル（src の全部と、src を読む mobile/src・scripts。このフォルダの道具は除く） */
 const REWRITE_RANGE = /^(src\/|mobile\/src\/|scripts\/)(?!refactor\/).*\.(ts|tsx|mts|mjs|js|cjs|css|html)$/;
 /** パスの文字（"src/…"）を表で書き換える設定のファイル（旧のパス）。react-compiler-skips のキーは「パス:関数名」 */
-const PATH_STRING_FILES = ["src/app/renderer/react-compiler-skips.json", "scripts/structure-baseline.json", "scripts/docs-baseline.json", "scripts/docs-limits.mjs"];
+const PATH_STRING_FILES = ["src/app/renderer/react-compiler-skips.json"];
 /** 残りを探さないファイル（移動表そのもの・このフォルダ・文書。文書のパスは別に直す） */
 const NO_LEFTOVERS = /^scripts\/refactor\/|\.md$|\.tsv$|^test-records\/|\.(png|svg|icns|ico|jpg|woff2?)$/;
 const SKIP_LEFTOVERS = (file) => NO_LEFTOVERS.test(file);

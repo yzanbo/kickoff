@@ -1,5 +1,5 @@
 // 構造の検査（scripts/check-structure.mjs）の決まり。層と依存の向き（ルートの CLAUDE.md）と機能の並び（下の FEATURES）を書く。
-// いまある違反は基準線（scripts/structure-baseline.json）に載せ、作り直しの段ごとに減らす。禁じる書き方（patterns）・SQL・CSS の持ち主は、持ち主の段が足す
+// 違反は 1 つも残さない（基準線は持たない。決まりの例外は、その決まりに理由つきで書く）。禁じる書き方（patterns）・SQL・CSS の持ち主は、持ち主の段が足す
 
 /**
  * @typedef {Object} StructureConfig
@@ -16,7 +16,7 @@
  * @property {CssRule} cssClasses        CSS のクラスの持ち主
  * @property {PatternRule[]} patterns     禁じる書き方
  * @property {PlacementRule[]} placement  置かないファイル
- * @property {SingleUseRule} [singleUse]  1 つの機能だけが読む土台のファイル（警告だけ。基準線に載せない）
+ * @property {SingleUseRule} [singleUse]  1 つの機能だけが読む土台のファイル（警告だけ。落とさない）
  *
  * @typedef {Object} ImportRule
  * @property {string} name               決まりの名前（違反の鍵と、出す文に使う）

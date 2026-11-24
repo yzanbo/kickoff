@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
-  baselineFrom,
   buildGraph,
   checkCssClasses,
   checkFileSizes,
@@ -11,7 +10,6 @@ import {
   checkPlacement,
   checkPublicApi,
   checkSqlTables,
-  compareWithBaseline,
   countLines,
   cssSelectorsIn,
   firstCssClass,
@@ -217,39 +215,6 @@ test("行の数は、最後の改行のあとを数えない", () => {
   assert.equal(countLines("a"), 1);
   assert.equal(countLines("a\nb\n"), 2);
   assert.equal(countLines("a\nb"), 2);
-});
-
-const imp = (key) => ({ kind: "import", key: `import:${key}`, message: key });
-const size = (file, value) => ({ kind: "size", key: `size:${file}`, value, message: file });
-
-test("基準線と比べる: 新しい違反・直ったのに残る・増えた・減った（通す）", () => {
-  const baseline = baselineFrom([imp("r:a -> b"), imp("r:c -> d"), size("big.ts", 500), size("fixed.ts", 400), size("less.ts", 450)]);
-  assert.deepEqual(baseline.violations.import, ["r:a -> b", "r:c -> d"]);
-  assert.deepEqual(baseline.violations.size, { "big.ts": 500, "fixed.ts": 400, "less.ts": 450 });
-  const now = [imp("r:a -> b"), imp("r:e -> f"), size("big.ts", 520), size("less.ts", 420), size("new.ts", 310)];
-  const result = compareWithBaseline(now, baseline);
-  assert.deepEqual(
-    result.added.map((v) => v.key),
-    ["import:r:e -> f", "size:new.ts"],
-  );
-  assert.deepEqual(result.stale, ["import:r:c -> d", "size:fixed.ts"]);
-  assert.deepEqual(result.grown, [{ key: "size:big.ts", from: 500, to: 520 }]);
-  assert.deepEqual(result.shrunk, [{ key: "size:less.ts", from: 450, to: 420 }]);
-});
-
-test("基準線と比べる: 循環の輪からフォルダが抜けただけなら減った（通す）。フォルダが増えた・別の親の輪は新しい", () => {
-  const cyc = (key) => ({ kind: "cycle", key: `cycle:${key}` });
-  const baseline = { version: 1, violations: { cycle: ["siblings:src:app,features,foundation,shared", "siblings:src/a:x,y"] } };
-  const result = compareWithBaseline([cyc("siblings:src:app,features,foundation"), cyc("siblings:src/a:x,y,z"), cyc("siblings:src/b:x,y")], baseline);
-  assert.deepEqual(result.shrunk, [{ key: "cycle:siblings:src:app,features,foundation", from: "siblings:src:app,features,foundation,shared", to: "siblings:src:app,features,foundation" }]);
-  assert.deepEqual(keys(result.added), ["cycle:siblings:src/a:x,y,z", "cycle:siblings:src/b:x,y"]);
-  assert.deepEqual(result.stale, ["cycle:siblings:src:app,features,foundation,shared", "cycle:siblings:src/a:x,y"]);
-});
-
-test("基準線と比べる: 基準線がなければ、いまの違反が全部新しい", () => {
-  const result = compareWithBaseline([imp("r:a -> b")], { version: 1, violations: {} });
-  assert.equal(result.added.length, 1);
-  assert.deepEqual(result.stale, []);
 });
 
 const keys = (violations) => violations.map((v) => v.key);

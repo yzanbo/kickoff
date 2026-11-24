@@ -1,5 +1,5 @@
 // 構造の検査（scripts/check-structure.mjs）の種類のうち、import のグラフ・行の数・ファイルの置き場所で見るもの。
-// どれも違反 { kind, key, message, value? } の並びを返す。key は基準線に載る文字
+// どれも違反 { kind, key, message, value? } の並びを返す。key は違反を見分ける文字（--list で出す）
 import { expandLayers, matchesAny } from "./parse.mjs";
 
 /** テストとして扱うファイルを、決まりの tests（既定 include）に合わせて外すか */
@@ -164,7 +164,7 @@ export function checkPlacement(files, config) {
 const featureOf = (file) => /^src\/features\/([^/]+)\//.exec(file)?.[1] ?? "";
 
 /**
- * 1 つの機能だけが読む土台のファイル（警告。基準線に載せない）: テストでない読み手が 1 つの機能のファイルだけで、
+ * 1 つの機能だけが読む土台のファイル（警告。落とさない）: テストでない読み手が 1 つの機能のファイルだけで、
  * ほかの土台・組み立てが読まないもの。keep に合うものは外す。{ file, feature } の並びを返す
  */
 export function findSingleUse(graph, config) {
