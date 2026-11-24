@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { FileContent } from "@shared/foundation/fileTypes";
 import { baseName } from "@shared/foundation/path";
 import { safeNoteName } from "@shared/notes/names";
@@ -8,6 +9,7 @@ import { writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
 import { notesStore } from "@/features/notes/ui/store";
 import { noteDocKey, noteFileRoot } from "@/features/notes/ui/noteLeave";
+import { isNoteMoving, trackOpenNote } from "@/features/notes/ui/noteMoving";
 import { renamedPath } from "@/features/notes/ui/notePaths";
 
 /**
@@ -23,12 +25,15 @@ export function useNoteDocument(projectId: number, path: string) {
       read: (signal) => notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path } }, { signal }),
       write: (content, hash) => notesApi("PUT /api/projects/:projectId/note", { params: { projectId }, body: { path, content, base_hash: hash } }),
     },
-    refetchOn: { notes: (e) => e.project_id === projectId && (e.path === null || e.path === path) },
+    // 欄の間で動かしている途中は元の場所を読み直さない（もうないので 404。タブを付け替えたら行き先のノートとして開き直す）
+    refetchOn: { notes: (e) => e.project_id === projectId && (e.path === null || e.path === path) && !isNoteMoving(projectId, path) },
     draft: storage.settings.draft,
     title: baseName(path),
     surface: "notes",
     file: { root: noteFileRoot(projectId), path },
   });
+  // 欄の間で動かした印は、元の場所で開いていた文書がすべて外れるまで残す（noteMoving.ts）
+  useEffect(() => trackOpenNote(projectId, path), [projectId, path]);
   return {
     ...doc,
     loadError: doc.file === undefined && doc.error ? errorText(doc.error) : null,

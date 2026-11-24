@@ -4,6 +4,7 @@ import { alert } from "@/foundation/ui/kit/ask";
 import { notesApi } from "@/features/notes/ui/api";
 import { notesStore } from "@/features/notes/ui/store";
 import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteLeave";
+import { whileNoteMoves } from "@/features/notes/ui/noteMoving";
 import { crossMoves, type NoteDragData } from "./noteMoveModel";
 import { followMovedNote } from "./useNoteActions";
 
@@ -16,13 +17,18 @@ export async function transferNotes(fromProjectId: number, paths: readonly strin
   try {
     for (const { from, to } of crossMoves(paths, folder)) {
       if (!(await confirmLeaveNotesUnder(fromProjectId, from))) return;
-      try {
+      // 付け替えより前に届く元の欄の知らせで、開いているノートが元の場所を読み直さないよう、動かしている途中にする
+      const failure = await whileNoteMoves(fromProjectId, from, async () => {
         await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId: fromProjectId }, body: { from, to, to_project_id: toProjectId } });
-      } catch (e) {
-        await alert("動かせませんでした", errorMessage(e));
+        followMovedNote(fromProjectId, from, to, toProjectId);
+      }).then(
+        () => null,
+        (e: unknown) => errorMessage(e),
+      );
+      if (failure !== null) {
+        await alert("動かせませんでした", failure);
         return;
       }
-      followMovedNote(fromProjectId, from, to, toProjectId);
     }
   } finally {
     // 知らせを待たずに両方の欄を取り直す

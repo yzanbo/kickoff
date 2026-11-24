@@ -31,4 +31,5 @@
 - 右のタブの欄の「入れ替える」確かめは、入れ替えられるタブのプロジェクトで聞く。
 - 最後に表示したノート（`selected`）はそのプロジェクトのノートだけを覚える。
 - 欄の「…」のゴミ箱は共通のノートだけ（`showTrash`）。
-- テスト: `tree/noteMoveModel.test.ts`・`notePanel.test.ts`・`openNote.test.ts`・`allNotes/allNotesModel.test.ts`。
+- 欄の間で動かすと、コアは応答より前に元の欄の `notes` を知らせる。付け替えて元の場所の文書が外れるまで読み直さないよう、`noteMoving.ts` の `whileNoteMoves` で印を付ける（印は開いている文書がすべて外れたら外す）。
+- テスト: `tree/noteMoveModel.test.ts`・`notePanel.test.ts`・`noteMoving.test.ts`・`openNote.test.ts`・`allNotes/allNotesModel.test.ts`。
