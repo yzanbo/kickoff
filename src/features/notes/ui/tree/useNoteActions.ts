@@ -16,6 +16,7 @@ import { movedNoteTab } from "@/features/notes/ui/notePanel";
 import { mapTabs } from "@/features/panel/ui";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { foldersAfterTransfer } from "./noteMoveModel";
+import { isHiddenProject } from "@/features/notes/ui/commonNotes";
 
 /** 新しく作るノート・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。ノートは頭に作った日の日付を付ける（datedNoteName） */
 const UNTITLED_NOTE = "無題のノート";
@@ -30,6 +31,12 @@ export type NoteRenameResult = "done" | "taken";
  * 書いた名前がそのままファイル名になる。同じフォルダに同じ名前があれば、番号を付けずに知らせて書き直してもらう。拡張子が違えば同じ題名でも作れる）。
  * 終わったら一覧を取り直し（知らせを待たない）、開いているノート・フォルダを付いていかせる（onMoved）。失敗はお知らせで出す
  */
+/** ゴミ箱に入れる前の確かめの、戻せる期間と場所（共通のノートはプロジェクトの「ゴミ箱」タブがないので、欄の「…」から開く） */
+function trashNotice(projectId: number): string {
+  const where = isHiddenProject(projectId) ? "共通のノートの欄の「…」の「ゴミ箱を開く」" : "プロジェクトの「ゴミ箱」";
+  return `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間は${where}から戻せます。`;
+}
+
 export function useNoteActions(
   projectId: number,
   {
@@ -115,7 +122,7 @@ export function useNoteActions(
   const trash = async (path: string, dir: boolean) => {
     const ok = await confirm({
       title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
-      message: dir ? `中のノートもすべてゴミ箱に入ります。Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。` : `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
+      message: `${dir ? "中のノートもすべてゴミ箱に入ります。" : ""}${trashNotice(projectId)}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -182,7 +189,7 @@ export function useNoteActions(
     if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
     const ok = await confirm({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
-      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のノートもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のノートもすべてゴミ箱に入ります。" : ""}${trashNotice(projectId)}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
