@@ -13,3 +13,4 @@
 - コアの帯は App と別ウィンドウに置く（ブラウザの画面には出さない）。
 - 時刻は epoch ms でそろえる。ログを回すのはメインだけ（コアが書き足す前に）。
 - 画面で数えるクラス名（`desktop/profileSummary.ts` の `RENDERER_PROBE`）は、部品の名前を変えたら直す（`profileSummary.test.ts` が確かめる）。
+- テスト: `desktop/*.test.ts`・`ui/overviewLines.test.ts`。

@@ -1,5 +1,7 @@
 # チャット欄の外の画像とリンク（`features/remoteImages`）
 
+返答に出る外の画像とリンク（許可したホストの画像だけをコアが取る）。
+
 ## 地図
 
 - `core/`: 受け口 `routes/chatImages.ts`（取り決め `@shared/remoteImages/contract.ts`）・取る `fetchImage.ts`・手元と社内の宛先の見分け `addresses.ts`・取った画像の覚え `service.ts`・許可のホスト（チャットごとに DB）。
@@ -16,3 +18,4 @@
 - 画像は `<p>` の中に描かれるので、中に置けない要素は body に出し（`Popover` の `portal`）、中の押す操作は包むリンクに届かせない。失敗の文も span。
 - 許可を外したら、そのホストの blob も捨てる（`forgetRemoteImages`）。
 - 取った画像は分岐で `copyChat`、チャットを本当に消すときに `forgetChats`。
+- テスト: `core/routes.test.ts`・`core/remoteImages.test.ts`・`ui/imageGroups.test.ts`。

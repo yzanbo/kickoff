@@ -1,5 +1,7 @@
 # 添付と「AI に渡す」（`features/attachments`）
 
+チャットに付けるファイル・画像・外から来た中身（札）の置き場と表示、各タブから「AI に渡す」の渡し先。
+
 ## 地図
 
 - `core/uploads.ts`: 添付の置き場 `UploadStore`（保存先の `uploads/<id>/`）。表示のルートは `core/routes/uploads.ts`、ツールの画像は `core/toolImage.ts`（読んでよいフォルダは作業場所・添付の置き場と、上の機能が `addImageDir` で足すもの = ノートのフォルダ）。片付けは `core/attachmentsCleanup.ts`（`core/index.ts` の `createAttachments` がゴミ箱の片付けの段に足す）。送る文の見出しは `core/chatAttachments.ts`（chat の口 `ChatAttachments`）。
@@ -18,3 +20,4 @@
 ## 落とし穴
 
 - どこからも使われない添付（`store.events.uploadInUse`）は 30 日で片付ける。添付を指す所を足したら `uploadInUse` も直す。
+- テスト: `core/routes.test.ts`・`core/*.test.ts`・`ui/**/*.test.ts`。

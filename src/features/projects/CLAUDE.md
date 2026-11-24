@@ -24,3 +24,4 @@
 - もうないプロジェクト（`useProjects().missing`）の画面は中身の部品を出さない（グループ・Git の状態を読まない）。
 - プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（置き場所の違いは中身が `place` で決める。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。枠は道具の画面（線で囲む）かページか。並べ替えは `ui/page/tabOrder.ts`。書きかけの確かめは `viewLeave.ts`。
 - 名前の行の「寄せたときだけ表示」はドラッグ領域にしない（理由は `ProjectHeader.css`）。
+- テスト: `core/routes.projects.test.ts`・`core/*.test.ts`・`ui/**/*.test.ts`。

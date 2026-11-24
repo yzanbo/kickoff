@@ -1,5 +1,7 @@
 # 音声入力・音声モード・読み上げ（`features/voice`）
 
+音声入力・音声モード・読み上げ（声を文字にする先は設定で選ぶ）。
+
 ## 地図
 
 - `core/service.ts`: `VoiceService` が設定の `voice_provider` で `local`（`whisper-cli`＋`ffmpeg`）/ `macos`（`core/macos.ts` の `macosSpeech`）/ `openai` に振り分ける。準備の確かめは `readiness.ts`、WebM は `webmToOgg.ts` で Ogg に詰め替える。

@@ -1,5 +1,7 @@
 # 圧縮と、圧縮前・圧縮後の指示（`features/compact`）
 
+会話の圧縮（手で圧縮する・自動の圧縮）と、その前後に足す指示・右下のメーター。
+
 ## 地図
 
 - `core/routes.ts`: 手で圧縮する・消去（預かった指示を外す・書き直すのは送信待ちの命令。取り決めは `@shared/compact/contract.ts`。段取りは chat の殻）。
@@ -21,3 +23,4 @@
 
 - 配る順は 圧縮後指示 → 預かった「いま」→ 送信待ち（`@/features/chat/core/run/machine/outbox.ts` の `pumpNow`・`deliverNow`）。圧縮したやり取りの途中は、圧縮後指示でない指示の所で止める。
 - 通信の切断・使用枠の上限・アプリの終了で終わったら、圧縮後指示だけ預かりに残し（`parkNow`）、ほかは送信待ちの先頭へ。
+- テスト: `core/prompts.snapshot.test.ts`・`ui/*.test.ts`。

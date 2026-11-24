@@ -1,5 +1,7 @@
 # ポートを使っているプロセス（`features/ports`）
 
+プロジェクトのフォルダでポートを待っているプロセスを調べて止める、下の帯の一覧。
+
 ## 地図
 
 - `core/service.ts`: プロジェクトのフォルダでポートを待っているプロセスを調べる・止める（`PortProcessService`。DB には持たない。OS の読み取りは `ProcessProbe`）。調べる時は `watch.ts`。

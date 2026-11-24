@@ -28,3 +28,4 @@
 - フィードは届いた返答を 1 フレームの分まとめて `upsertFeedItems` で当てる（1 件ごとに描き直さない）。
 - グループの並びは DB（`groupsApi.reorderGroups`）、「No Group」の位置は画面に覚える（`groups:ungrouped-at`。サイドバーと共通。並べ方は `@/features/groups/ui/groupOrder.ts`）。
 - 段・グループの数は下書きも 1 つと数える（サイドバーと同じ）。
+- テスト: `ui/*.test.ts`（並べ方・カードの項目・保存したビュー）。

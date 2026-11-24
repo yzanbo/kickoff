@@ -1,8 +1,10 @@
 # Git（`features/git`）
 
+作業場所の Git とその画面。
+
 ## 地図
 
-- `core/index.ts` が入口（`GitApi`。状態 `status.ts`・差分とコミット `changes.ts`・`blame.ts`・`history.ts`・ブランチ `branches.ts`・順番 `repoLock.ts`）。受け口は取り決め `@shared/git/contract.ts`（ブランチの PR は github）、画面は `ui/api.ts`。ファイルと検索は `@/features/files/core/`、プロジェクトの作成と取り込みは `@/features/projects/core/workspace.ts`。
+- `core/index.ts` が入口（`GitApi`。状態 `status.ts`・差分とコミット `changes.ts`・`history.ts`・`branches.ts`・`repoLock.ts`）。受け口は取り決め `@shared/git/contract.ts`（ブランチの PR は github）、画面は `ui/api.ts`。ファイルと検索は files、作成と取り込みは projects の `core/workspace.ts`。
 - `core/tools.ts`: AI の `open_diff`（パスは files の `workPathIn`）。
 - `ui/`: files の口の実装 `filesGit.ts`・変更・差分・コミット（`ChangesPane`・`DiffView`・`ChangedFiles`・`DiffStack`。表は土台 `diff/`）と、履歴（`ui/history/`。確かめの表 `BRANCH_ACTION_UI`・操作の窓 `GitCommandPalette`。ワークツリーを作る・消す・印は土台の `workplaceDecor`）。
 
@@ -14,7 +16,7 @@
 - リポジトリの中のフォルダを本体にしたプロジェクト（`gitPrefix`）は、そのフォルダから見たパスで返す。コミットは、外にもステージしたファイルがあれば 409。
 - 取り込みとフォルダの変更は `prepareImportedWorkspace` の決まり。登録済みかは実体のパスでも比べる（`projectAt`）。フォルダを変えたら、チャットは `workplaceMove.api.move` で移す（`src/features/workplaceMove/CLAUDE.md`）。
 - プロジェクトの GitHub のアカウントは `runAsGitHubAccount` の中で gh に渡す（github が `k.workplace.projectScopes` に登録し、プロジェクトの引き当てが包むので、ルートで渡さない。gh の有効なアカウントは切り替えない）。git は remote に触る操作（`k.workplace.git`。github が `gitEnv` に登録）だけにトークンを足す。
-- GitHub として扱うホストは `@shared/foundation/codeHost.ts` の `GITHUB_HOSTS` だけ（Enterprise の手順はその JSDoc）。
+- GitHub として扱うホストは `@shared/foundation/codeHost.ts` の `GITHUB_HOSTS` だけ（手順は JSDoc）。
 - 変更する操作はコアの `withRepoLock`（鍵は共通の .git）の中で。自動のフェッチ（`auto: true`）を飛ばすかもコア（ぶつかると「cannot lock ref」）。
 - ファイルが入れ替わる操作は、作業中のチャット・コミットしていない変更があれば注意を添えて確かめる。マージ・リベースは先に見込みを出す。衝突したら「変更タブで解決する」か「取りやめる」を利用者が選ぶ。
 - 作者の印に外の画像を取りに行かない。対話式のリベースは置かない。
@@ -26,3 +28,4 @@
 - Git の外・未追跡には行の横の帯・変更の記録を出さない。記録は保存した中身で取るので、未保存の間は出さない。
 - 確認済みの印は差分の指紋（`diffFingerprint`）で覚え、差分が変わったら外す。
 - 操作の窓は閉じてから実行する（確かめのダイアログを重ねない）。終わったら Git の状態（応答の状態は `applyStatus`）と履歴を取り直す。
+- テスト: `core/routes.*.test.ts`・`ui/**/*.test.ts`。

@@ -1,5 +1,7 @@
 # 埋め込みブラウザ（`features/browser`）
 
+パネルのブラウザのタブ（webview）と、AI がそのタブを開く・読む・操作するツール。
+
 ## 地図
 
 - `desktop/`: メインの部品 `browserDesktop`（`index.ts`）。webview の守り `hardenWebviews`・`isOurWebview`（`browser.ts`）・開発者ツール・拡張・AI の操作 `agent/`（登録簿・画面への頼み・ページの操作）。
@@ -16,3 +18,4 @@
 
 - 開発者ツールは webview の中に出さず、埋め込みブラウザのセッションの WebContents に出す。どこに出したかは画面が持つ（Electron の知らせは遅れる）。
 - 開発者ツールの重ねた表示は HTML より上に描く。メニュー・ダイアログが重なる間は撮った絵に替える（`devtoolsBox.ts`）。
+- テスト: `core/*.test.ts`・`desktop/*.test.ts`・`ui/**/*.test.ts`。

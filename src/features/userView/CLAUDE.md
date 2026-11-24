@@ -13,3 +13,4 @@ AI の `get_user_view` が読む、この Mac の画面のウィンドウごと�
 - プロジェクトの画面（DB・GitHub）の中身は、持ち主が土台の `viewDescribers` に出す。
 - 送った時点の様子を覚えるのは、この Mac の画面から送ったときだけ（端末からは覚えない）。口は端末に開かない。
 - ほかのプロジェクトを見ているときは、中身を AI に返さない。
+- テスト: `core/routes.test.ts`・`core/userView.test.ts`・`ui/viewDetails.test.ts`。
