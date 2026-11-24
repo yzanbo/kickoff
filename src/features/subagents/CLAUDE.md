@@ -21,3 +21,4 @@
 - カードの中の流れは描く側から `renderScope` で渡す（流れの部品を読むと輪になる）。
 - 手順の記録は `subagentEvents.ts` で選び（中身が同じなら同じ配列）、`renderScope` に渡す（`subagentEvents.test.ts` で全体と比べる）。
 - 伝える入力欄を開いている間は一番下への付いていきを止める。Esc はパネルを閉じる Esc に渡さない。
+- 数え方 `collectSubagents`（`@shared/chat/subagents.ts`）はコア（終わりのお知らせ・再開・報告の受け渡し）と画面が同じ関数（変えたら `subagents.test.ts`・`chatIndex.test.ts` を通す）。
