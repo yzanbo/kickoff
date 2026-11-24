@@ -1,4 +1,4 @@
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { workplaceActions, type WorkplaceActions } from "@/foundation/ui/workplace/workplaceDecor";
 import type { GitLogController } from "./useGitLog";

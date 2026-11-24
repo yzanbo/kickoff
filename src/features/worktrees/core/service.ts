@@ -1,5 +1,6 @@
 // ワークツリーの手続き（一覧・作る・ブランチ名の案・［AI で整える］）。受け口・作業場所の土台の「作る人」・PR の取り出し・ゴミ箱から戻すは、ここを通って作る
-import type { BranchSuggestions, GitWorktree } from "@shared/git/types";
+import type { BranchSuggestions } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Project } from "@shared/projects/types";
 import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { gitRefs } from "@/features/git/core/index";

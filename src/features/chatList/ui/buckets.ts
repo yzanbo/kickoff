@@ -20,7 +20,7 @@
  */
 import type { AgentState, BoardColumn, Chat } from "@shared/chat/types";
 import { byUrgency, URGENCY_ORDER } from "@shared/chatList/urgency";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { stateCounts, type ApprovalIndex, type StateCounts } from "@/features/chat/ui/state/chatState";

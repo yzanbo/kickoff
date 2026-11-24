@@ -1,7 +1,7 @@
 // ワークツリーを消す手順（画面の「消す」と AI の後始末が通る）: 作業中か → 確かめ → 控え → 追いかけ先・実行環境の覚えを先に読む → 消す（失敗時の戻し）
 // → チャットを本体へ → 実行環境を空ける（Docker の組の片付けの結果を文に使うので待つ）→ リモート → 消した知らせ
 import path from "node:path";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { WorktreeTrashDetails } from "@shared/trash/types";

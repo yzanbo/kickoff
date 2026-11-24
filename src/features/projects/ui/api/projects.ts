@@ -1,5 +1,4 @@
-import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
-import type { FolderInspection, Project } from "@shared/projects/types";
+import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody, FolderInspection, Project } from "@shared/projects/types";
 import type { TrashedResult } from "@shared/trash/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 

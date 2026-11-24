@@ -1,5 +1,6 @@
 // まとまりの色（色相）。サイドバーのまとまりの見出しと、パネルのタブのまとまりの札・タブの線で同じ色にする
-import { PROJECT_HUES, pickProjectHue } from "@shared/projects/colors";
+import { pickProjectHue } from "@shared/projects/colors";
+import { PROJECT_HUES } from "@shared/foundation/hues";
 import type { BucketContext, BucketHead } from "./buckets";
 import { archivedKey, groupKey, pinnedKey, workplaceHead } from "./bucketHeads";
 

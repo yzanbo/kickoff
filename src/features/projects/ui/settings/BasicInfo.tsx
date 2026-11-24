@@ -1,6 +1,6 @@
 import "./BasicInfo.css";
 import type { CSSProperties } from "react";
-import { PROJECT_HUES } from "@shared/projects/colors";
+import { PROJECT_HUES } from "@shared/foundation/hues";
 import type { Project } from "@shared/projects/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";

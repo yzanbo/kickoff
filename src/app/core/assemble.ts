@@ -55,7 +55,7 @@ export interface AppAssembly extends AssembledCore {
     github: GitHubApi;
     notes: NotesApi;
   };
-  runningChats(): { id: number; title: string | null }[];
+  runningChats(): { id: number; title: string }[];
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   terminals: TerminalApi;
 }

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { git } from "@/foundation/core/workplace/git";
 

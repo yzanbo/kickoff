@@ -1,5 +1,4 @@
-import type { Chat } from "@shared/chat/types";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { baseName } from "@/foundation/ui/lib/format";
 
 /** どこで作業するか（プロジェクトと、ワークツリーのフォルダ。null = 本体）。画面の中の形で、API には query の worktree で渡す */
@@ -47,7 +46,11 @@ export const WORKPLACE_SHORT_LABELS: Record<WorkplaceKind, string> = {
 };
 
 /** 作業場所を決めるのに使うチャットの項目（片付けた印は、まだ送っていない新しいチャットなどにはないので省ける） */
-export type WorkplaceChat = Pick<Chat, "worktree_path" | "branch"> & Partial<Pick<Chat, "finished_worktree_branch">>;
+export interface WorkplaceChat {
+  worktree_path: string | null;
+  branch: string | null;
+  finished_worktree_branch?: string | null;
+}
 
 export interface ChatWorkplace {
   /** まとめるときのキー（同じ作業場所なら同じ） */
@@ -94,7 +97,7 @@ export const compareWorkplaces = (a: ChatWorkplace, b: ChatWorkplace) => KIND_OR
  * 同じ作業場所（worktreePath。null = 本体）で作業中のチャットの数（except のチャットは数えない）。
  * 同じフォルダで同時に作業すると、ファイルがぶつかることがあるので知らせるのに使う（チャットの画面・新しいチャットで共通）
  */
-export function countBusyAt(chats: readonly Pick<Chat, "id" | "worktree_path" | "status">[], worktreePath: string | null, except?: number): number {
+export function countBusyAt(chats: readonly { id: number; worktree_path: string | null; status: string }[], worktreePath: string | null, except?: number): number {
   let count = 0;
   for (const chat of chats) if (chat.id !== except && chat.worktree_path === worktreePath && chat.status === "running") count++;
   return count;

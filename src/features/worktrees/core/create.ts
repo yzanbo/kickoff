@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { runCommand } from "@/foundation/core/system/exec";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { git } from "@/foundation/core/workplace/git";

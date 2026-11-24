@@ -3,7 +3,7 @@ import { z } from "zod";
 import { projectContract } from "@shared/projects/contract";
 import type { Project } from "@shared/projects/types";
 import { PROVIDER_IDS } from "@shared/settings/types";
-import { PROJECT_HUES } from "@shared/projects/colors";
+import { PROJECT_HUES } from "@shared/foundation/hues";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { idsBody } from "@/foundation/core/http/zodParts";

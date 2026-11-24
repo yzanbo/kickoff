@@ -1,7 +1,7 @@
 // projects ⇄ notes の口: 新しいプロジェクト・取り込むプロジェクトのダイアログの「ノートの保存先」の欄（notes が contributes.ts で 1 つだけ登録する。
 // 登録がなければ欄なし）。送る形（noteDirBody）は projects の API の本文なので、ここに置く
 import type { ComponentType } from "react";
-import type { NewProjectNoteDir } from "@shared/foundation/apiTypes";
+import type { NewProjectNoteDir } from "@shared/projects/types";
 import { definePoint } from "@/foundation/ui/points";
 
 /** base = 自動で決めるときのフォルダ名、custom = 手で決めた場所（null なら自動） */

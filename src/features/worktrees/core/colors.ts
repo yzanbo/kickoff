@@ -1,5 +1,6 @@
-import type { GitWorktree } from "@shared/git/types";
-import { pickProjectHue, workplaceDefaultHue } from "@shared/projects/colors";
+import type { GitWorktree } from "@shared/foundation/workplace";
+import { pickProjectHue } from "@shared/projects/colors";
+import { workplaceDefaultHue } from "@shared/foundation/hues";
 import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 
 /**

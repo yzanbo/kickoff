@@ -87,7 +87,7 @@ test("RPC: メインがコアに作業中のチャットを聞く runningChats �
   const timers = { setTimeout: (fn: () => void, ms: number) => (limits.push(ms), clock.setTimeout(fn, ms)), clearTimeout: clock.clearTimeout };
   const main = createRpc<Record<string, never>, Core, Record<string, never>, Record<string, never>>(a, { handlers: {}, clock: timers, timeoutOf: (method) => timeoutOf(RPC_TIMEOUTS, method) });
   // コアの答え（呼ばれるたびに、答える関数を入れ替える）
-  const core = { answer: null as ((chats: { id: number; title: string | null }[]) => void) | null };
+  const core = { answer: null as ((chats: { id: number; title: string }[]) => void) | null };
   createRpc<Core, Record<string, never>, Record<string, never>, Record<string, never>>(b, { handlers: { runningChats: () => new Promise((r) => (core.answer = r)) } });
 
   // 答えが返らない（コアが詰まっている）: 1 秒で失敗にする（メインはそのとき聞かずに終える）

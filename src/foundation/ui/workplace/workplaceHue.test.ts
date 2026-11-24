@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PROJECT_HUES, workplaceDefaultHue } from "@shared/projects/colors";
+import { PROJECT_HUES, workplaceDefaultHue } from "@shared/foundation/hues";
 import { makeWorktree } from "@shared/foundation/testing/data";
 import { workplaceOf } from "./workplace";
 import { workplaceHue } from "./workplaceHue";

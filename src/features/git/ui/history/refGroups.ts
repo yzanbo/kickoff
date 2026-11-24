@@ -1,4 +1,5 @@
-import type { GitRefs, GitWorktree } from "@shared/git/types";
+import type { GitRefs } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 
 type Branch = GitRefs["branches"][number];
 

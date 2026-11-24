@@ -2,8 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
-import type { FolderInspection, Project } from "@shared/projects/types";
+import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody, FolderInspection, Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";

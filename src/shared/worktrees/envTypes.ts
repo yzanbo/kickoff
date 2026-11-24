@@ -1,6 +1,6 @@
 // ワークツリーの実行環境（ワークツリーごとにポートの帯と Docker の組の名前を分ける）
 import type { Chat } from "@shared/chat/types";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 
 /** 帯の中の 1 つの番号の割り当て（+00 は開発サーバー、+01 から先は Docker の公開ポート） */
 export interface WorktreePortSlot {
@@ -67,4 +67,11 @@ export interface WorktreeEnvSetupBody {
 export interface WorktreeEnvSetupResult {
   chat: Chat;
   worktrees: GitWorktree[];
+}
+
+declare module "@shared/foundation/workplace" {
+  interface GitWorktree {
+    /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。覚えのないワークツリー（Kickoff の外で作ったものなど）・本体は null） */
+    env?: WorktreeEnv | null;
+  }
 }

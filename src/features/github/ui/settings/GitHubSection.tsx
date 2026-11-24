@@ -1,4 +1,4 @@
-import type { ProjectPatch } from "@shared/foundation/apiTypes";
+import type { ProjectPatch } from "@shared/projects/types";
 import { githubApi } from "@/features/github/ui/api/github";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";

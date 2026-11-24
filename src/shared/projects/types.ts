@@ -66,3 +66,52 @@ export interface FolderInspection {
   suggested_name: string;
   registered_project_id?: number | null;
 }
+
+// ---- HTTP API の本文と応答（コアのルートと画面で同じものを使う） ----
+
+/** 新しいプロジェクト（POST /api/projects）。description は README の「アイデア」にも書く（空・null はなし）。provider を省けば設定の既定 */
+export type NewProjectBody = {
+  name: string;
+  description?: string | null;
+  parent_dir: string;
+  folder_name: string;
+  provider?: ProviderId;
+  /** git リポジトリとして初期化するか（省くと初期化する） */
+  init_git?: boolean;
+} & NewProjectNoteDir;
+
+/**
+ * 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）。
+ * note_folder: 設定のノートの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ note_dir: このプロジェクトだけ別の場所（絶対パス。note_folder より優先）
+ */
+export interface NewProjectNoteDir {
+  note_folder?: string;
+  note_dir?: string;
+}
+
+/** 既存のフォルダを取り込む（POST /api/projects/import）。init_git なら Git のリポジトリにしてから取り込む */
+export type ImportProjectBody = {
+  path: string;
+  name: string;
+  description?: string | null;
+  init_git?: boolean;
+  provider?: ProviderId;
+} & NewProjectNoteDir;
+
+/**
+ * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・reference_paths は送った内容で置き換える。
+ * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
+ */
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
+  archived?: boolean;
+  reference_paths?: Pick<ProjectReference, "path">[];
+};
+
+/**
+ * プロジェクトのフォルダ（本体）を変える（PUT /api/projects/:id/repo-path）。取り込みと同じ決まりで、git のルートのフォルダを指す。
+ * git でない・コミットがないフォルダは init_git で初期化に同意したときだけ
+ */
+export interface ProjectRepoPathBody {
+  path: string;
+  init_git?: boolean;
+}

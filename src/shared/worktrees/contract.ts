@@ -1,7 +1,8 @@
 // ワークツリーの取り決め（一覧・ブランチ名の案・作る・［AI で整える］・消す前の確かめ・消す）。受け口は src/features/worktrees/core/routes/worktrees.ts
 // 作る・消すと、そのあとの一覧（実行環境と作業場所の色つき）を返す。PR の知らせ（/api/worktree-prs）はまだ取り決めの外（P8-2d で github へ）
 import { route, type Contract } from "@shared/foundation/contract";
-import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import type { BranchSuggestBody, BranchSuggestions, WorktreeRemovalInfo } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { WorktreeEnvSetupBody, WorktreeEnvSetupResult } from "./envTypes";
 
 /**

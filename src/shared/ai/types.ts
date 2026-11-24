@@ -107,3 +107,10 @@ export interface EffortDefault {
   effort: EffortLevel | null;
   source: "env" | "local" | "project" | "user" | null;
 }
+
+// ---- HTTP API の本文と応答（コアのルートと画面で同じものを使う） ----
+
+/** AI のブラウザでのログインを始めた答え（POST /api/providers/:id/login。画面は auth_url を既定のブラウザで開き、provider_login の知らせを待つ） */
+export interface ProviderLoginStart {
+  auth_url: string;
+}

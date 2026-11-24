@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PROJECT_HUES, pickProjectHue } from "./colors";
+import { pickProjectHue } from "./colors";
+import { PROJECT_HUES } from "@shared/foundation/hues";
 
 test("プロジェクトの色: いちばん使われていない色の中で、使われている色からいちばん離れた色を選ぶ", () => {
   assert.equal(pickProjectHue([]), PROJECT_HUES[0]);

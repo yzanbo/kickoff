@@ -285,3 +285,77 @@ export interface GitHubReviewDraftComment {
 /** PR のチェックアウトの行き先（新しいワークツリー / 本体） */
 export const GITHUB_CHECKOUT_PLACES = ["worktree", "main"] as const;
 export type GitHubCheckoutPlace = (typeof GITHUB_CHECKOUT_PLACES)[number];
+
+// ---- HTTP API の本文と応答（コアのルートと画面で同じものを使う） ----
+
+/** PR のブランチのワークツリー（POST /api/projects/:id/github/pulls/:number/worktree の応答。いまあればそれ、なければ作ったもの） */
+export interface GitHubPullWorktree {
+  /** 作業場所（本体で取り出しているなら null） */
+  worktree_path: string | null;
+  /** 手元のブランチ（元のブランチを remote に持っていればその名前、ほかの人の fork なら pr-N） */
+  branch: string;
+}
+
+/** GitHub の issue・PR へのコメント（POST /api/projects/:id/github/items/:number/comments。Markdown） */
+export interface GitHubCommentBody {
+  body: string;
+}
+
+/** issue・PR を閉じる / 開き直す（POST …/github/issues|pulls/:number/state。reason は issue を閉じるときだけ） */
+export interface GitHubStateBody {
+  state: "open" | "closed";
+  reason: GitHubCloseReason | null;
+}
+
+/** issue・PR のラベルを置き換える（PUT …/github/items/:number/labels。付けるラベルすべて） */
+export interface GitHubLabelsBody {
+  labels: string[];
+}
+
+/** 新しい issue（POST …/github/issues） */
+export interface GitHubNewIssueBody {
+  title: string;
+  body: string;
+  labels: string[];
+  assignees: string[];
+}
+
+/** 作った issue */
+export interface GitHubCreatedIssue {
+  number: number;
+  url: string;
+}
+
+/** PR のレビューを送る（POST …/github/pulls/:number/reviews。commit_id は見ていた最新のコミット） */
+export interface GitHubReviewBody {
+  event: GitHubReviewEvent;
+  body: string;
+  comments: GitHubReviewDraftComment[];
+  commit_id: string | null;
+}
+
+/** 行のスレッドへの返信（POST …/github/pulls/:number/threads/:thread/replies） */
+export interface GitHubThreadReplyBody {
+  body: string;
+}
+
+/** 行のスレッドを解決済みにする / 戻す（POST …/github/pulls/:number/threads/:thread/resolve） */
+export interface GitHubThreadResolveBody {
+  resolved: boolean;
+}
+
+/** PR をマージする（POST …/github/pulls/:number/merge。sha は確認で見ていた最新のコミット。その後に積まれていたら GitHub が断る） */
+export interface GitHubMergeBody {
+  method: GitHubMergeMethod;
+  sha: string | null;
+}
+
+/** マージの結果（sha はできたコミット） */
+export interface GitHubMergeResult {
+  sha: string | null;
+}
+
+/** PR のチェックアウト（POST …/github/pulls/:number/checkout。応答は GitHubPullWorktree） */
+export interface GitHubCheckoutBody {
+  place: GitHubCheckoutPlace;
+}

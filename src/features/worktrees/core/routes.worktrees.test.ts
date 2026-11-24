@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "vitest";
-import { PROJECT_HUES, workplaceDefaultHue } from "@shared/projects/colors";
-import type { GitWorktree } from "@shared/git/types";
+import { PROJECT_HUES, workplaceDefaultHue } from "@shared/foundation/hues";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { BusEvent } from "@shared/foundation/contract";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";

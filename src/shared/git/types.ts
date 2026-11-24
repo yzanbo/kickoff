@@ -1,5 +1,4 @@
 // Git の状態・差分・履歴・ブランチの操作（とまだ分けていないワークツリー・PR・GitHub の形。P8-2 で worktrees・github へ）
-import type { WorktreeEnv } from "@shared/worktrees/envTypes";
 import type { GitChangeKind, GitOperation } from "./labels";
 
 export type { GitChangeKind, GitOperation };
@@ -109,26 +108,6 @@ export interface BranchSuggestBody {
 /** ブランチ名の案（Git のブランチ名に使える形にそろえ、いまあるブランチと同じものは除いたもの） */
 export interface BranchSuggestions {
   branches: string[];
-}
-
-/** git のワークツリー（同じリポジトリの別のブランチを、別のフォルダに取り出したもの） */
-export interface GitWorktree {
-  /** 作業するフォルダ（プロジェクトのフォルダがリポジトリの中のフォルダなら、ワークツリーの中の同じ位置のフォルダ。チャットの worktree_path・?worktree= はこれ） */
-  path: string;
-  /** ワークツリーの一番上のフォルダ（git が取り出している場所。プロジェクトのフォルダがリポジトリの一番上なら path と同じ） */
-  root: string;
-  /** 取り出しているブランチ（ブランチから外れていれば null） */
-  branch: string | null;
-  head: string;
-  /** 本体（最初に作ったフォルダ。消せない） */
-  main: boolean;
-  locked: boolean;
-  /** フォルダがなくなっていて、片付けられる */
-  prunable: boolean;
-  /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。覚えのないワークツリー（Kickoff の外で作ったものなど）・本体は null） */
-  env?: WorktreeEnv | null;
-  /** この作業場所に保存された色相 */
-  hue?: number;
 }
 
 /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット） */

@@ -22,7 +22,7 @@ import type { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { Log } from "@/foundation/core/kernel";
 import type { ChatLive, PrepareReason, QueueState } from "@shared/chat/chatLive";
-import type { Chat } from "@shared/chat/types";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
 import type { ProviderId } from "@shared/settings/types";
 import { compactPromptFor } from "@shared/chat/prompts";
@@ -193,14 +193,14 @@ export function createChatRunner(deps: RunnerDeps) {
       forgetHooks.push(fn);
     },
 
-    /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順） */
-    busyChats(): { id: number; title: string | null }[] {
+    /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順。名前がなければ既定の名前） */
+    busyChats(): { id: number; title: string }[] {
       return shell.runs
         .all()
         .filter((r) => r.busy)
         .map((r) => deps.store.chats.get(r.chatId))
         .filter((c): c is Chat => c !== undefined)
-        .map((c) => ({ id: c.id, title: c.title }))
+        .map((c) => ({ id: c.id, title: c.title.trim() || UNTITLED_CHAT_TITLE }))
         .sort((a, b) => a.id - b.id);
     },
 

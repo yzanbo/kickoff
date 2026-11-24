@@ -1,9 +1,9 @@
 // GitHub タブ（読む・書く）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
 // 中身は DB に持たない（正しいのはいつも GitHub）。一覧は少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す。
 // issue・PR の中身も最後に取ったものを少しの間覚え、開き直したときのつなぎに出す（開いたときは必ず GitHub に聞き直す）
-import type { GitHubPullWorktree } from "@shared/foundation/apiTypes";
-import type { GitHubRemote, GitWorktree } from "@shared/git/types";
-import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItem, GitHubItemPage, GitHubKind, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta, GitHubUser } from "@shared/github/types";
+import type { GitHubPullWorktree, GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItem, GitHubItemPage, GitHubKind, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta, GitHubUser } from "@shared/github/types";
+import type { GitHubRemote } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Project } from "@shared/projects/types";
 import { githubSearchQuery } from "@shared/github/searchQuery";
 import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";

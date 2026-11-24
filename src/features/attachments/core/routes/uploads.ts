@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { TOOL_IMAGE_MTIME_HEADER } from "@shared/attachments/toolImage";
-import type { CaptureBody } from "@shared/foundation/apiTypes";
+import type { CaptureBody } from "@shared/attachments/sources";
 import type { Project } from "@shared/projects/types";
 import { readToolImage } from "@/features/attachments/core/toolImage";
 import { chatTranscript, transcriptFileName } from "@/features/chat/core/transcript";

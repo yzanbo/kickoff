@@ -1,7 +1,7 @@
 // ワークツリーの PR の知らせの組み立て（純粋な関数）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { makeWorktree } from "@shared/foundation/testing/data";
 import type { BranchPullRequest } from "./pulls";
 import { noticesFor } from "./prWatch";

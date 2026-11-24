@@ -1,5 +1,6 @@
 import { Check, ChevronRight } from "lucide-react";
-import type { GitRefs, GitWorktree } from "@shared/git/types";
+import type { GitRefs } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

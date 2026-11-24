@@ -1,5 +1,4 @@
-import type { ProviderStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
-import type { ProviderLoginStart } from "@shared/foundation/apiTypes";
+import type { ProviderStatus, SlashCommandOption, EffortDefault, ModelOption, ProviderLoginStart } from "@shared/ai/types";
 import type { GitHubStatus } from "@shared/foundation/server";
 import type { ProviderId } from "@shared/settings/types";
 import { request } from "@/foundation/ui/api/http";

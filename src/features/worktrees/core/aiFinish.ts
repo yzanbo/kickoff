@@ -1,5 +1,5 @@
 // AI の finish_worktree: 本体のチャットからは指したワークツリーをその場で消し、ワークツリー自身のチャットからは作業の終わりに消す予約をする（ほかのワークツリーのチャットからは断る）
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
 import { Conflict } from "@/foundation/core/errors";

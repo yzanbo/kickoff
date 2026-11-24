@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PROJECT_HUES } from "@shared/projects/colors";
+import { PROJECT_HUES } from "@shared/foundation/hues";
 import { makeGroup } from "@shared/groups/testing";
 import { makeWorktree } from "@shared/foundation/testing/data";
 import type { BucketHead } from "./buckets";

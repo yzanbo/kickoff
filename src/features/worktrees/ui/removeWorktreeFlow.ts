@@ -1,5 +1,6 @@
 // ワークツリーを消す流れ（画面から消す所はどれもここを通る: 消す確認・WorktreeBar の「片付ける」・PR の知らせ・マージのあとの片付け）
-import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import type { WorktreeRemovalInfo } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { errorMessage } from "@shared/foundation/errors";
 import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 import { gitApi } from "@/features/git/ui";

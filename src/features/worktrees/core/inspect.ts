@@ -1,6 +1,7 @@
 // ワークツリーを消す前の確かめ: 画面の確認の材料（removalInfo）と、後始末の確かめ（inspectWorktree = コミットしていない変更・取り込み済みか・取り込んでいないコミット）
 import path from "node:path";
-import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import type { WorktreeRemovalInfo } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Project } from "@shared/projects/types";
 import { NotFound } from "@/foundation/core/errors";
 import { git } from "@/foundation/core/workplace/git";

@@ -68,7 +68,7 @@ export interface Core {
   /** ブラウザからこの Mac の画面として入る、一度だけ使える URL（npm run daemon が端末に出す） */
   browserLoginUrl(): string;
   /** 作業中のチャット（送る準備・親の会話を写している途中も。メインプロセスが、終了してよいかを聞くダイアログに名前を並べる） */
-  runningChats(): { id: number; title: string | null }[];
+  runningChats(): { id: number; title: string }[];
   /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら turns の知らせか bus の settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   /** チャットの作業を動かし始めた・1 回の実行が終わった知らせ（chat の殻） */

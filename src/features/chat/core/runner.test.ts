@@ -7,6 +7,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setupCore, testUploads, until } from "@/app/core/testing/testCore";
 import { judgeFileWrite } from "@/features/guard/core/guard/writeScope";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 
 /** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
 const setup = (script: Script, uploads?: ReturnType<typeof testUploads>) => setupCore(new ScriptedProvider(script), { uploads });
@@ -253,6 +254,9 @@ test("送った指示は数に関係なくすぐ動き、中断すると承認�
   const chats = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, prompt })));
   await until(() => chats.every((r) => approvals.list({ chatId: r.id }).length === 1));
   assert.equal(runner.stats().running, 3);
+  // 作業中のチャットの名前（終了の確かめに並べる）。名前がなければ既定の名前
+  store.chats.update(chats[1].id, { title: " " });
+  assert.deepEqual(runner.busyChats().map((c) => c.title), ["a", UNTITLED_CHAT_TITLE, "c"]);
 
   runner.cancel(chats[0].id);
   await until(() => store.chats.get(chats[0].id)?.status === "cancelled");

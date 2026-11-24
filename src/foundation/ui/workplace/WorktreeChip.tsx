@@ -1,7 +1,6 @@
 import "@/foundation/ui/kit/ChipPicker.css";
 import "./WorktreeChip.css";
 import type { CSSProperties } from "react";
-import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useWorktrees } from "./worktreesStore";
 import { useChatWorkplace } from "./useWorkplace";
@@ -16,7 +15,7 @@ import { WorkplaceMarks, workplaceDecorLines } from "./workplaceDecor";
  * 札の後ろの印（PR がマージされた・閉じられた印。狭い所は markIconOnly でアイコンだけ）と、乗せたときの説明に添える行（実行環境のアプリの URL と
  * ポートの対応表）は、作業場所の飾り（workplaceDecor）に持ち主の機能が登録したもの
  */
-export function WorktreeChip({ chat, markIconOnly }: { chat: WorkplaceChat & Pick<Chat, "project_id">; markIconOnly?: boolean }) {
+export function WorktreeChip({ chat, markIconOnly }: { chat: WorkplaceChat & { project_id: number }; markIconOnly?: boolean }) {
   const { place, hue } = useChatWorkplace(chat);
   const decorLines = workplaceDecorLines(chat.project_id, chat.worktree_path, useWorktrees(chat.project_id));
   if (!place.name) return null;

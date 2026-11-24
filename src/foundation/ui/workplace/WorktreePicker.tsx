@@ -1,7 +1,7 @@
 import "./WorktreePicker.css";
 import { GitBranch } from "lucide-react";
 import { useEffect } from "react";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useWorktrees, worktreesStore } from "./worktreesStore";

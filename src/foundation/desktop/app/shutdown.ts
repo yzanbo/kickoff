@@ -67,7 +67,7 @@ export function registerShutdown(core: () => CoreProcess | undefined) {
 }
 
 /** 作業中のチャットがあるときに、終了してよいかを聞く（Return =［終了する］・Esc =［やめる］）。終了するなら true */
-async function confirmQuit(chats: { title: string | null }[]): Promise<boolean> {
+async function confirmQuit(chats: { title: string }[]): Promise<boolean> {
   const { message, detail } = quitConfirmText(chats);
   const options = { type: "warning" as const, message, detail, buttons: ["終了する", "やめる"], defaultId: 0, cancelId: 1, noLink: true };
   // 前にあるウィンドウのシートにする（なければ、アプリのダイアログ）

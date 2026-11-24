@@ -1,4 +1,4 @@
-import type { AttachmentSourceType } from "@shared/chat/types";
+import type { AttachmentSource, AttachmentSourceType } from "@shared/chat/types";
 
 /**
  * capture の添付の出どころの見え方（label は札の説明と AI への見出しで同じ名前）。
@@ -18,3 +18,19 @@ export const ATTACHMENT_SOURCE_LOOKS: Record<AttachmentSourceType, { label: stri
   docker_logs: { label: "Docker のログ", external: false },
   ci_log: { label: "CI の失敗ログ", external: true },
 };
+
+// ---- HTTP API の本文と応答（コアのルートと画面で同じものを使う） ----
+
+/**
+ * 「AI に渡す」で取る中身（POST /api/captures）。コアが鍵らしい値を伏せ、添付の上限を超えれば頭と終わりを残して切ってから保存し、CaptureAttachment を返す。
+ * tail_share は残す分のうち終わりに回す割合（ログは多め。省けば半分）。
+ * 中身は文 text か、画像 image_base64（ブラウザの画面など。mime は画像の形式。伏せず・切らず、添付の上限を超えれば 400）のどちらか 1 つ
+ */
+export interface CaptureBody {
+  name: string;
+  mime?: string;
+  text?: string;
+  image_base64?: string;
+  source: AttachmentSource;
+  tail_share?: number;
+}

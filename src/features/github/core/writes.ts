@@ -1,8 +1,7 @@
 // GitHub タブの書き込み: コメント・閉じる / 開き直す・ラベル・issue の作成・PR のレビューの送信・
 // 行のスレッドへの返信と解決・マージ。どれもプロジェクトのアカウントで連携先に送る（GitHubService.within の中で呼ぶ）。
 // 断られたら GitHub の理由（保護ルール・権限など）を文にして 400（ghApi の send）
-import type { GitHubCreatedIssue, GitHubLabelsBody, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
-import type { GitHubLabel } from "@shared/github/types";
+import type { GitHubCreatedIssue, GitHubLabelsBody, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadResolveBody, GitHubLabel } from "@shared/github/types";
 import { Invalid } from "@/foundation/core/errors";
 import type { GitHubContext } from "./ghApi";
 import { RESOLVE_THREAD_MUTATION, THREAD_REPLY_MUTATION, UNRESOLVE_THREAD_MUTATION } from "./queries";

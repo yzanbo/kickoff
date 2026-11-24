@@ -1,6 +1,6 @@
 import { TOOL_IMAGE_MTIME_HEADER } from "@shared/attachments/toolImage";
 import type { Attachment, CaptureAttachment, FileAttachment } from "@shared/chat/types";
-import type { CaptureBody } from "@shared/foundation/apiTypes";
+import type { CaptureBody } from "@shared/attachments/sources";
 import { postForm, request, requestBlob, withQuery } from "@/foundation/ui/api/http";
 
 /** 添付ファイル（アップロード・画面での表示・ほかのチャットのやり取りの記録）とツールの結果の画像。コアの routes/uploads.ts */

@@ -1,7 +1,6 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import type { GitHubCheckoutBody, GitHubCommentBody, GitHubLabelsBody, GitHubMergeBody, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadReplyBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
-import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERGE_METHODS, GITHUB_MINE_FILTERS, GITHUB_REVIEW_EVENTS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubListFilter } from "@shared/github/types";
+import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERGE_METHODS, GITHUB_MINE_FILTERS, GITHUB_REVIEW_EVENTS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubCheckoutBody, type GitHubCommentBody, type GitHubLabelsBody, type GitHubMergeBody, type GitHubNewIssueBody, type GitHubReviewBody, type GitHubStateBody, type GitHubThreadReplyBody, type GitHubThreadResolveBody, type GitHubListFilter } from "@shared/github/types";
 import type { ProjectGitHub } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";

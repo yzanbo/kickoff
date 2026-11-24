@@ -2,7 +2,7 @@
 // ブランチは Kickoff の外でも変わるので、コアの HEAD の見張りの知らせ（worktrees_changed）ですぐ取り直す。見張りが漏れたときの備えに、
 // 表示している間は 30 秒ごと・ウィンドウに戻ったときにも取り直す（届くまでは前の一覧を出す）。
 // ワークツリーを作る・消す API はそのあとの一覧を返すので、それを set で入れる（作った・片付けたあとは invalidate ですぐ取り直す）
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { definePoint } from "@/foundation/ui/points";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useKeyedStores } from "@/foundation/ui/store/useStore";

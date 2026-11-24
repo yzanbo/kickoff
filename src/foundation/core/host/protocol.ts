@@ -101,7 +101,7 @@ export interface BaseCoreMethods {
   /** 応答の見張り（コアの時刻を返す） */
   ping(): Promise<number>;
   /** 作業中のチャット（終了してよいかを聞くダイアログに名前を並べる） */
-  runningChats(): Promise<{ id: number; title: string | null }[]>;
+  runningChats(): Promise<{ id: number; title: string }[]>;
   /** コアのプロセスのメモリ（60 秒ごとの metrics.jsonl） */
   metrics(): Promise<{ heapUsedMB: number; rssMB: number }>;
 }

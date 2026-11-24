@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { GitWorktree } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { Project } from "@shared/projects/types";
 import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";

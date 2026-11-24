@@ -1,4 +1,5 @@
-import type { BranchSuggestions, GitWorktree, WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
+import type { BranchSuggestions, WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { request, withQuery } from "@/foundation/ui/api/http";
 

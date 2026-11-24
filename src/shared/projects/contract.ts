@@ -1,6 +1,6 @@
 // プロジェクトの取り決め（受け口は src/features/projects/core/routes.ts）。GitHub の連携の様子（GET /api/projects/:projectId/github）は github の機能の口
 import { empty, route, type Contract } from "@shared/foundation/contract";
-import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
+import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/projects/types";
 import type { FolderInspection, Project } from "./types";
 
 export const projectContract = {

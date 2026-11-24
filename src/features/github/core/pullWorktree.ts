@@ -1,5 +1,6 @@
 // PR のブランチを手元のワークツリーに取り出す（GitHub タブの「レビューコメントで直す」）
-import type { GitHubRemote, GitWorktree } from "@shared/git/types";
+import type { GitHubRemote } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { Invalid } from "@/foundation/core/errors";
 import { git } from "@/foundation/core/workplace/git";
 import { hasRef } from "@/foundation/core/workplace/reads";

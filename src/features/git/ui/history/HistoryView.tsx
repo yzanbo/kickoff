@@ -1,7 +1,8 @@
 import "./HistoryView.css";
 import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
-import type { GitRefs, GitWorktree } from "@shared/git/types";
+import type { GitRefs } from "@shared/git/types";
+import type { GitWorktree } from "@shared/foundation/workplace";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
