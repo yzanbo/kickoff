@@ -114,6 +114,25 @@
     border-radius: var(--radius-sm);
   }
 
+  /* 欄（共通のノート・このプロジェクト）の見出し: 名前とフォルダをまとめて開閉するボタン */
+
+  .note-chip-section-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 2px;
+  }
+
+  .note-chip-section-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-11);
+    font-weight: 600;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .note-chip-row.more {
     margin-top: 4px;
     border-top: 1px solid var(--border);

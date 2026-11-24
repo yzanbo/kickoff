@@ -8,17 +8,20 @@ import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { OpenPlaceButtons, type OpenPlace } from "@/features/chat/ui";
 import { isDraggingNote, useNoteRowDrag } from "./noteDrag";
+import type { NoteDragData } from "./noteMoveModel";
 
 interface Props {
+  /** 木の欄（プロジェクト。共通のノートなら見えないプロジェクト） */
+  projectId: number;
   nodes: TreeNode[];
   /** 開いているフォルダ（ノートのタブと同じ覚え方） */
   open: ReadonlySet<string>;
   onToggle: (path: string) => void;
   /** 閉じたフォルダを開く（ドラッグを重ねて待ったとき） */
   onExpand: (path: string) => void;
-  /** ノート・フォルダを、フォルダ（"" は直下）へ落とした */
-  onDropInto: (paths: string[], folder: string) => void;
-  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。木の段をまたいで 1 つなので、NoteChip が持つ */
+  /** ノート・フォルダ（ほかの欄からのこともある）を、この木のフォルダ（"" は直下）へ落とした */
+  onDropInto: (drag: NoteDragData, folder: string) => void;
+  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。木の段をまたいで 1 つなので、NoteChipSection が持つ */
   dropTarget: string | null;
   onDropTarget: (folder: string | null) => void;
   /** ノートを開く（place を省けば設定の開き方） */
@@ -36,8 +39,8 @@ interface Props {
  * 行をドラッグしてフォルダへ落とすと動かす（ノートのタブの木と同じ `useNoteRowDrag`。落とす先のフォルダは行と中身をまとめて囲む）
  */
 export function NoteChipTree(props: Props) {
-  const { nodes, open, onToggle, onExpand, onDropInto, dropTarget, onDropTarget, onOpen, onAttach, places, depth = 0 } = props;
-  const { rowProps } = useNoteRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget });
+  const { projectId, nodes, open, onToggle, onExpand, onDropInto, dropTarget, onDropTarget, onOpen, onAttach, places, depth = 0 } = props;
+  const { rowProps } = useNoteRowDrag({ projectId, isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget });
   return (
     <ul className="note-chip-tree" role={depth === 0 ? "tree" : "group"}>
       {nodes.map((node) => {
@@ -50,7 +53,7 @@ export function NoteChipTree(props: Props) {
               <button
                 type="button"
                 className="note-chip-row tree-indent note-chip-dir"
-                data-drag-source={isDraggingNote(node.path) ? "" : undefined}
+                data-drag-source={isDraggingNote(projectId, node.path) ? "" : undefined}
                 style={style}
                 title={node.path}
                 onClick={() => onToggle(node.path)}
@@ -73,7 +76,7 @@ export function NoteChipTree(props: Props) {
               role="button"
               tabIndex={0}
               className="note-chip-row tree-indent"
-              data-drag-source={isDraggingNote(node.path) ? "" : undefined}
+              data-drag-source={isDraggingNote(projectId, node.path) ? "" : undefined}
               style={style}
               title={node.path}
               onClick={() => onOpen(node.path)}

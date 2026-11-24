@@ -13,10 +13,10 @@ type NoteTab = Extract<PanelTab, { kind: "note" }>;
 
 /**
  * 名前を変えた・動かしたノート（フォルダならその中のノート）のタブの付け替え（パネルの mapTabs に渡す。ノートのタブの右・右サイドバー・チャットの右の欄のどれでも。
- * チャットの右の欄のタブはそのチャットに付けたまま）
+ * チャットの右の欄のタブはそのチャットに付けたまま）。toProjectId は欄の間で動かしたときの行き先（タブのキーにプロジェクトが入るので、新しいタブに置き換わる）
  */
-export const movedNoteTab = (projectId: number, from: string, to: string) => (t: NoteTab): NoteTab =>
-  t.projectId === projectId && isUnder(t.path, from) ? noteTab({ chatId: t.chatId, projectId, path: remapPrefix(t.path, from, to) }) : t;
+export const movedNoteTab = (projectId: number, from: string, to: string, toProjectId = projectId) => (t: NoteTab): NoteTab =>
+  t.projectId === projectId && isUnder(t.path, from) ? noteTab({ chatId: t.chatId, projectId: toProjectId, path: remapPrefix(t.path, from, to) }) : t;
 
 /** ゴミ箱に入れたノート（フォルダならその中のノート）のタブを閉じる（パネルの mapTabs に渡す。どの欄でも） */
 export const trashedNoteTab = (projectId: number, path: string) => (t: NoteTab): NoteTab | null => (t.projectId === projectId && isUnder(t.path, path) ? null : t);
@@ -27,5 +27,6 @@ export const trashedNoteTab = (projectId: number, path: string) => (t: NoteTab):
  */
 export function openNoteInPanel(projectId: number, path: string, newTab: boolean, key = notePanelKey(projectId)): Promise<void> {
   // タブの中身（チャットなし = 開いたチャットへの添付はない）
-  return openInFocusedPane(key, noteTab({ chatId: null, projectId, path }), { newTab, confirmReplace: (current) => confirmLeaveNote(projectId, current.path) });
+  // 入れ替えるタブは別の欄（共通のノート）のノートのこともあるので、そのタブのプロジェクトで聞く
+  return openInFocusedPane(key, noteTab({ chatId: null, projectId, path }), { newTab, confirmReplace: (current) => confirmLeaveNote(current.projectId, current.path) });
 }

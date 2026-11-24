@@ -17,9 +17,38 @@
     color: var(--accent-fg);
   }
 
-  /* 直下へ落とすときは一覧ごと（木の外側）を囲む */
+  /* 欄を縦に並べ、最後の欄（いまのプロジェクト）が下の空いている所まで伸びる（空いている所への右クリック・ドラッグもその欄が受ける） */
 
-  .note-list.drop-target,
+  .note-sections {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .note-section {
+    flex: none;
+    padding-bottom: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .note-section:last-child {
+    flex: 1 0 auto;
+  }
+
+  .note-section-head {
+    margin: 2px 4px 0;
+  }
+
+  /* 見出しの右の操作（新しいノート・フォルダ・「…」）は小さく並べる */
+
+  .note-section-tools {
+    display: inline-flex;
+    flex: none;
+    gap: 2px;
+  }
+
+  /* 欄の根へ落とすときは欄ごと（見出しと木の外側）を囲む */
+
+  .note-section.drop-target,
   .note-chip-list.drop-target {
     background: color-mix(in srgb, var(--accent) 8%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);

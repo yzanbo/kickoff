@@ -8,12 +8,14 @@ import { notesStore } from "@/features/notes/ui/store";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
-import { ancestorsOf, baseName, joinPath, remapPrefix } from "@shared/foundation/path";
+import { ancestorsOf, baseName, isUnder, joinPath, remapPrefix } from "@shared/foundation/path";
 import { noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "@/features/notes/ui/notePaths";
 import { showTrashedManyToast, showTrashedToast } from "@/features/trash/ui";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
 import { movedNoteTab } from "@/features/notes/ui/notePanel";
 import { mapTabs } from "@/features/panel/ui";
+import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { foldersAfterTransfer } from "./noteMoveModel";
 
 /** 新しく作るノート・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。ノートは頭に作った日の日付を付ける（datedNoteName） */
 const UNTITLED_NOTE = "無題のノート";
@@ -205,17 +207,22 @@ export function useNoteActions(
 
 /**
  * 名前を変えた・動かしたあとに、プロジェクトごとに覚えている「ノートのタブで選んでいるノート」と「開いているフォルダ」を付け替え、動かした先を見せるよう親のフォルダを開く
- * （ノートのタブと入力欄の上の「ノート」の木で共通。どちらも同じ覚えを読む）。まとめて動かすと続けて呼ばれるので、いま覚えている値から付け替える（前の付け替えを上書きしないように）
+ * （ノートのタブと入力欄の上の「ノート」の木で共通。どちらも同じ覚えを読む）。まとめて動かすと続けて呼ばれるので、いま覚えている値から付け替える（前の付け替えを上書きしないように）。
+ * toProjectId は欄の間で動かしたときの行き先（元の欄の覚えからは外し、行き先の欄に移す）。開いているタブと、ほかのウィンドウで開いているノートも付け替える
  */
-export function followMovedNote(projectId: number, from: string, to: string) {
+export function followMovedNote(projectId: number, from: string, to: string, toProjectId = projectId) {
   const selected = readSetting(storage.settings.selected(projectId));
-  if (selected) writeSetting(storage.settings.selected(projectId), remapPrefix(selected, from, to));
-  writeSetting(storage.settings.openFolders(projectId), [...new Set([...remapPaths(readSetting(storage.settings.openFolders(projectId)), from, to), ...ancestorsOf(to)])]);
+  const fromFolders = readSetting(storage.settings.openFolders(projectId));
+  if (toProjectId === projectId) {
+    if (selected) writeSetting(storage.settings.selected(projectId), remapPrefix(selected, from, to));
+    writeSetting(storage.settings.openFolders(projectId), [...new Set([...fromFolders.map((p) => remapPrefix(p, from, to)), ...ancestorsOf(to)])]);
+  } else {
+    if (selected && isUnder(selected, from)) writeSetting(storage.settings.selected(projectId), "");
+    const folders = foldersAfterTransfer(fromFolders, readSetting(storage.settings.openFolders(toProjectId)), from, to);
+    writeSetting(storage.settings.openFolders(projectId), folders.from);
+    writeSetting(storage.settings.openFolders(toProjectId), folders.to);
+  }
   // 開いているタブも付け替える（ノートのタブの右・右サイドバー・チャットの右の欄）
-  mapTabs("note", movedNoteTab(projectId, from, to));
-}
-
-/** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */
-function remapPaths(paths: readonly string[], from: string, to: string): string[] {
-  return paths.map((p) => remapPrefix(p, from, to));
+  mapTabs("note", movedNoteTab(projectId, from, to, toProjectId));
+  postWindowMessage("noteMoved", { projectId, from, toProjectId, to });
 }

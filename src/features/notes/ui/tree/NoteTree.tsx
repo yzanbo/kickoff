@@ -10,6 +10,7 @@ import { TreeView, type TreeRenaming } from "@/foundation/ui/kit/list/TreeView";
 import { useTree } from "@/foundation/ui/kit/list/useTree";
 import { isDraggingNote, useNoteRowDrag } from "./noteDrag";
 import { noteTitle } from "@/features/notes/ui/notePaths";
+import type { NoteDragData } from "./noteMoveModel";
 
 /** 一覧の行で名前を変えているノート・フォルダ（initial: 書き直してもらうときの、前に書いた名前。round: 書き直すたびに増やして欄を作り直す） */
 export interface NoteRenaming {
@@ -22,6 +23,8 @@ export interface NoteRenaming {
 type Modifiers = Pick<MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">;
 
 interface Props {
+  /** 木の欄（プロジェクト。ドラッグで運ぶものに添え、ほかの欄へ落とされたら欄の間で動かす） */
+  projectId: number;
   nodes: TreeNode[];
   open: ReadonlySet<string>;
   /** フォルダを開く・閉じる（← →） */
@@ -30,15 +33,15 @@ interface Props {
   onExpand: (path: string) => void;
   /** 選んでいる行か（背景の色。⌘ / Shift ＋クリックで選んだいくつかの行も） */
   isSelected: (path: string) => boolean;
-  /** 行を押した・Space（修飾キーを見て、選ぶ・開く・開閉するかは一覧（NoteTab）が決める） */
+  /** 行を押した・Space（修飾キーを見て、選ぶ・開く・開閉するかは欄（NoteSection）が決める） */
   onRowClick: (node: TreeNode, e: Modifiers) => void;
   /** 行の右クリック（行のメニュー） */
   onMenu: (e: MouseEvent, node: TreeNode) => void;
-  /** ノート・フォルダ（まとめて運んだらいくつも）を、フォルダ（"" は直下）へ落とした */
-  onDropInto: (paths: string[], folder: string) => void;
+  /** ノート・フォルダ（まとめて運んだらいくつも。ほかの欄からのこともある）を、この木のフォルダ（"" は直下）へ落とした */
+  onDropInto: (drag: NoteDragData, folder: string) => void;
   /** その行をつかんだときに運ぶもの（選んだ行をつかめば、選んだものすべて） */
   dragPaths: (node: TreeNode) => string[];
-  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。一覧の空いている所でも付くので、一覧（NoteTab）が持つ */
+  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。一覧の空いている所でも付くので、欄（NoteSection）が持つ */
   dropTarget: string | null;
   onDropTarget: (folder: string | null) => void;
   /** 名前を変えている行 */
@@ -68,11 +71,11 @@ const rowsOf = (nodes: readonly TreeNode[], byPath: Map<string, TreeNode>): Note
  * 押す・Space で開く / 開閉、↑↓←→ で行を移る・開閉する。ダブルクリック・Enter（と右クリックの「名前を変更」・新しく作ったとき）で、
  * 行の名前の所がそのまま入力欄になる（ノートは拡張子を除いた部分を書く）
  */
-export function NoteTree({ nodes, open, onToggle, onExpand, isSelected, onRowClick, onMenu, onDropInto, dragPaths, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd }: Props) {
+export function NoteTree({ projectId, nodes, open, onToggle, onExpand, isSelected, onRowClick, onMenu, onDropInto, dragPaths, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd }: Props) {
   const byPath = new Map<string, TreeNode>();
   const roots = rowsOf(nodes, byPath);
   // 行のドラッグ（落とす先の印・閉じたフォルダに重ねて待つと開く。入力欄の上の「ノート」の木と共通）
-  const { rowProps: dragProps } = useNoteRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget, dragPaths });
+  const { rowProps: dragProps } = useNoteRowDrag({ projectId, isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget, dragPaths });
   const tree = useTree<string, NoteRow>({
     roots,
     open: { isOpen: (path) => open.has(path), set: (path, next) => open.has(path) !== next && onToggle(path) },
@@ -112,7 +115,7 @@ export function NoteTree({ nodes, open, onToggle, onExpand, isSelected, onRowCli
         ...dragProps(note),
         title: key,
         className: dropTarget ? (key === dropTarget ? "drop-target" : isUnder(key, dropTarget) ? "drop-inside" : undefined) : undefined,
-        "data-drag-source": isDraggingNote(key) || undefined,
+        "data-drag-source": isDraggingNote(projectId, key) || undefined,
         onDoubleClick: () => onStartRename(note),
         onContextMenu: (e) => {
           e.stopPropagation();

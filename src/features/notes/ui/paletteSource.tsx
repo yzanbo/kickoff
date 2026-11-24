@@ -6,6 +6,10 @@ import { Highlight } from "@/foundation/ui/kit/Highlight";
 import { notesStore } from "./store";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
+import type { Project } from "@shared/projects/types";
+import { isListedProject } from "@shared/projects/kinds";
+import { noteOwnerName } from "./commonNotes";
+import { showInNoteTab } from "./openNote";
 import type { PaletteItem } from "@/features/palette/ui";
 import { parentOf } from "./notePaths";
 
@@ -14,7 +18,7 @@ const noteIcon = (path: string) => (noteKindOf(path) === "html" ? <FileCode2 siz
 
 
 export function usePaletteNotes(enabled: boolean): readonly PaletteItem[] {
-  const { projects, projectName } = useProjects();
+  const { projects, projectsById } = useProjects();
   const ids = projects.map((p) => p.id);
   const lists = useKeyedStores(notesStore, enabled ? ids : [], { active: enabled });
   if (!enabled) return NONE;
@@ -23,13 +27,15 @@ export function usePaletteNotes(enabled: boolean): readonly PaletteItem[] {
     for (const e of lists(id).data?.entries ?? []) {
       if (e.dir || !noteExtensionOf(e.path)) continue;
       const folder = parentOf(e.path);
+      const project = projectsById.get(id);
+      const owner = noteOwnerName(project);
       items.push({
         key: `note-${id}-${e.path}`,
         label: baseName(e.path),
         text: e.path,
-        hint: folder ? `${folder} · ${projectName(id)}` : projectName(id),
+        hint: folder ? `${folder} · ${owner}` : owner,
         icon: noteIcon(e.path),
-        route: { name: "project", id, tab: "notes", note: e.path },
+        ...openNoteItem(project, id, e.path),
       });
     }
   }
@@ -38,14 +44,24 @@ export function usePaletteNotes(enabled: boolean): readonly PaletteItem[] {
 
 const NONE: readonly PaletteItem[] = [];
 
+/**
+ * ⌘K の行を押したときの開き方: ふつうはそのプロジェクトのノートのタブへ移る URL。見えないプロジェクト（共通のノート）にはその画面がないので、
+ * 移らずにノートを開く口（showInNoteTab。いま見ているプロジェクトのノートのタブに開く）を呼ぶ
+ */
+function openNoteItem(project: Project | undefined, id: number, path: string, line?: number): Pick<PaletteItem, "route" | "run"> {
+  if (project && !isListedProject(project)) return { run: () => showInNoteTab(id, path, { line }) };
+  return { route: { name: "project", id, tab: "notes", note: path, ...(line ? { noteLine: line } : {}) } };
+}
+
 /** ノートの中の文で見つかった 1 行を、⌘K の行にする（押すとそのプロジェクトのノートのタブでノートを開き、その行へ移る） */
-export function noteTextItem(hit: NoteSearchHit, projectName: (id: number) => string): PaletteItem {
+export function noteTextItem(hit: NoteSearchHit, projectsById: ReadonlyMap<number, Project>): PaletteItem {
+  const project = projectsById.get(hit.project_id);
   return {
     key: `mt-${hit.project_id}-${hit.path}-${hit.line}`,
     label: <Highlight text={hit.text} marks={[[hit.match_start, hit.match_end]]} />,
     text: hit.text,
-    hint: `${baseName(hit.path)}:${hit.line} · ${projectName(hit.project_id)}`,
+    hint: `${baseName(hit.path)}:${hit.line} · ${noteOwnerName(project)}`,
     icon: noteIcon(hit.path),
-    route: { name: "project", id: hit.project_id, tab: "notes", note: hit.path, noteLine: hit.line },
+    ...openNoteItem(project, hit.project_id, hit.path, hit.line),
   };
 }

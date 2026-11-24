@@ -8,8 +8,12 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { storage } from "./storage";
 import { readSetting } from "@/foundation/ui/storage";
 import { chatSidePanel, knownChat, openInRootSide } from "@/features/chat/ui";
-import { trySideOpen } from "@/features/projects/ui";
-import { noteTab, openTab, type DraftScope } from "@/features/panel/ui";
+import { isSideViewShown, trySideOpen } from "@/features/projects/ui";
+import { noteTab, openTab, sidePanelsHandedOut, type DraftScope } from "@/features/panel/ui";
+import { isHiddenProject, screenProjectFor } from "./commonNotes";
+import { notePanelKey, openNoteInPanel, sideNoteScope } from "./notePanel";
+import { requestNoteReveal } from "./noteReveal";
+import { revealNoteFolders } from "./tree/useNoteFolders";
 
 /** チャットからノートを開く先（noteOpenWay が決める。rootSide に置けなければノートのタブ） */
 export type NoteOpenWay = "window" | "draftSide" | "mainWindow" | "rootSide" | "noteTab";
@@ -34,8 +38,24 @@ export function noteOpenWay(at: {
 
 /** このウィンドウのノートのタブ（右サイドバーがノートを見せていればそこ）で開く。line はそのノートで移る行 */
 export function showInNoteTab(projectId: number, path: string, { line, replace }: { line?: number; replace?: boolean } = {}) {
+  if (isHiddenProject(projectId)) return showHiddenProjectNote(projectId, path, { line, replace });
   if (trySideOpen(projectId, { kind: "note", path, ...(line ? { line } : {}) })) return;
   navigate({ name: "project", id: projectId, tab: "notes", note: path, ...(line ? { noteLine: line } : {}) }, { replace });
+}
+
+/**
+ * 見えないプロジェクト（共通のノート）のノートを開く先。そのプロジェクトの画面はないので、いま見ているプロジェクトのノートのタブ
+ * （右サイドバーがノートを見せていればそこ）に、見えないプロジェクトのノートのタブとして開く。URL の ?note= はそのプロジェクトのノートを指すので使わず、
+ * 右のタブの欄に直に開いてから画面を移る（右サイドバーの頼み trySideOpen と同じく、右サイドバーを別ウィンドウへ移しているときは真ん中）
+ */
+function showHiddenProjectNote(projectId: number, path: string, { line, replace }: { line?: number; replace?: boolean }) {
+  const host = screenProjectFor(projectId);
+  if (host === undefined) return;
+  if (line) requestNoteReveal(projectId, path, line);
+  const side = !sidePanelsHandedOut() && isSideViewShown(host, "notes");
+  void openNoteInPanel(projectId, path, true, notePanelKey(host, side ? sideNoteScope(host) : undefined));
+  revealNoteFolders(projectId, path);
+  if (!side) navigate({ name: "project", id: host, tab: "notes" }, { replace });
 }
 
 /** ノートのタブでそのノートを開く（DB クライアントの手順ノートのタブの「ノートのタブで開く」。別ウィンドウの中からはメインのウィンドウに頼む） */

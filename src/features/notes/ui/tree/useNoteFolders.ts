@@ -2,7 +2,7 @@
 // 書くときはいつもいま覚えている値から（作る・開くのを待ったあとでも、待つ間に開け閉めしたものを戻さない）
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { isUnder } from "@shared/foundation/path";
+import { ancestorsOf, isUnder } from "@shared/foundation/path";
 import { storage } from "@/features/notes/ui/storage";
 
 export function useNoteFolders(projectId: number) {
@@ -18,4 +18,10 @@ export function useNoteFolders(projectId: number) {
     /** path とその中のフォルダを閉じる（ゴミ箱に入れたとき） */
     forget: (path: string) => write((now) => now.filter((p) => !isUnder(p, path))),
   };
+}
+
+/** そのノートを見せるよう親のフォルダを開く（部品の外から。ノートのタブを描く前に開くとき） */
+export function revealNoteFolders(projectId: number, path: string) {
+  const key = storage.settings.openFolders(projectId);
+  writeSetting(key, [...new Set([...readSetting(key), ...ancestorsOf(path)])]);
 }

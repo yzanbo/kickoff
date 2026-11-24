@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `core/service.ts`・`noteDir.ts`・`noteAi.ts`・`noteChat.ts`・`noteWatcher.ts` | 一覧・読み書き・移動・ゴミ箱・場所（書く前に `ensureNoteDir`）・AI・チャット・外の変更 |
-| `ui/tree/` | ノートのタブ `NoteTab`（一覧・右のタブ 欄 `notes`。状態は `useNoteTab`）・木 `NoteTree`・`noteDrag.ts`・操作 `useNoteActions` |
+| `ui/tree/` | ノートのタブ `NoteTab`・欄 `NoteSection`・木 `NoteTree`・操作 `useNoteActions`（画面の決まりは `ui/CLAUDE.md`） |
 | `ui/document/` | 開いたノート `NoteView`・編集 `NoteEditor`（CodeMirror）・保存 `useNoteDocument`・HTML のページ `HtmlNotePage`（読むファイルは `@/foundation/core/http/assets.ts` の `assetResponse`） |
 | `ui/chat/`・`ui/links/` | ノートのチャット `NoteChat`・チャットの文をノートにする `addToNote.ts`・ノートを足す `attachNote.ts`（開き方は `ui/openNote.ts`） |
 
@@ -31,5 +31,4 @@
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。
-- 開いているフォルダ（`useNoteFolders`）とドラッグの決まり（`noteDrag.ts`）は、タブの木と入力欄の上の `NoteChipTree` で共通。
 - テスト: `core/routes.test.ts`（`noteFake`）。

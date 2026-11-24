@@ -8,6 +8,13 @@ export interface NoteMenuTarget {
   many: readonly { path: string; dir: boolean }[] | null;
 }
 
+/** 右クリックの「〜へ移す」の行き先の欄（ドラッグできない場面のため。動かす先は欄の根） */
+export interface NoteMoveTarget {
+  projectId: number;
+  /** メニューの文（「共通のノートへ移す」など） */
+  label: string;
+}
+
 interface Props {
   at: Placement;
   target: NoteMenuTarget;
@@ -22,21 +29,33 @@ interface Props {
   /** ノートを新しいタブで開く（いくつもなら順に） */
   onOpenInNewTabs: (paths: string[]) => void;
   onTrash: (nodes: readonly { path: string; dir: boolean }[]) => void;
+  /** ほかの欄へ移す行き先（ノートのチャットも一緒に移る） */
+  moveTargets: readonly NoteMoveTarget[];
+  onMoveTo: (projectId: number, nodes: readonly { path: string; dir: boolean }[]) => void;
 }
 
 /**
  * ノートのタブの一覧の右クリックのメニュー。空いている所・フォルダは新しいノート・フォルダを作る組、行は名前の変更・Finder・パスのコピー・ゴミ箱。
- * ⌘ / Shift ＋クリックで選んだ行の 1 つを右クリックしたら、選んでいるものすべてに効く組（新しいタブで開く・パスをコピー・ゴミ箱に入れる）
+ * ⌘ / Shift ＋クリックで選んだ行の 1 つを右クリックしたら、選んでいるものすべてに効く組（新しいタブで開く・パスをコピー・ほかの欄へ移す・ゴミ箱に入れる）。
+ * 行には、ほかの欄（共通のノート・プロジェクト）の根へ移す項目も出す
  */
-export function NoteListMenu({ at, target, dir, onClose, onCreate, onRename, onReveal, onOpenInNewTabs, onTrash }: Props) {
+export function NoteListMenu({ at, target, dir, onClose, onCreate, onRename, onReveal, onOpenInNewTabs, onTrash, moveTargets, onMoveTo }: Props) {
   const { node, many } = target;
   const fullPath = (path: string) => `${dir}/${path}`;
+  const moveItems = (nodes: readonly { path: string; dir: boolean }[]) =>
+    moveTargets.map((t) => (
+      <MenuItem key={t.projectId} onSelect={() => onMoveTo(t.projectId, nodes)}>
+        {t.label}
+        {nodes.length > 1 && `（${nodes.length} 件）`}
+      </MenuItem>
+    ));
   if (many) {
     const notes = many.filter((n) => !n.dir).map((n) => n.path);
     return (
       <PopupMenu at={at} label={`選んだ ${many.length} 件の操作`} onClose={onClose}>
         {notes.length > 0 && <MenuItem onSelect={() => onOpenInNewTabs(notes)}>新しいタブで開く（{notes.length} 件）</MenuItem>}
         <MenuItem onSelect={() => void navigator.clipboard.writeText(many.map((n) => fullPath(n.path)).join("\n"))}>パスをコピー（{many.length} 件）</MenuItem>
+        {moveItems(many)}
         <MenuItem danger onSelect={() => onTrash(many)}>
           ゴミ箱に入れる…（{many.length} 件）
         </MenuItem>
@@ -56,6 +75,7 @@ export function NoteListMenu({ at, target, dir, onClose, onCreate, onRename, onR
       {node && <MenuItem onSelect={() => onRename(node.path)}>名前を変更</MenuItem>}
       {onReveal && <MenuItem onSelect={() => onReveal(node?.path ?? "")}>Finder で表示</MenuItem>}
       {node && <MenuItem onSelect={() => void navigator.clipboard.writeText(fullPath(node.path))}>パスをコピー</MenuItem>}
+      {node && moveItems([node])}
       {node && (
         <MenuItem danger onSelect={() => onTrash([node])}>
           ゴミ箱に入れる…

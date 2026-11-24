@@ -11,11 +11,12 @@ import type { NoteChatHandle } from "@/features/notes/ui/chat/NoteChat";
 import type { NoteChatTarget, NoteChatTargets, NoteNewChat } from "./useNoteEditMenu";
 import { notesApi } from "@/features/notes/ui/api";
 import { openSeededChat } from "@/features/chatPanel/ui";
+import { screenProjectFor } from "@/features/notes/ui/commonNotes";
 
 /**
  * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければノート全体の写しを札で足す（AI は保存したファイルを読むので、
  * 書きかけは先に保存する）。addPath はノートのファイルのフルパスを足す。main は attachTo（開いたチャット）があるときだけ。
- * ノートのチャットに足すときは、その欄を開く（openNoteChat）。newChat は選んだ文の引用を入れた新しいチャットを、ノートのプロジェクトのチャットのパネルに開く
+ * ノートのチャットに足すときは、その欄を開く（openNoteChat）。newChat は選んだ文の引用を入れた新しいチャットを、ノートのプロジェクト（共通のノートなら、いま見ているプロジェクト）のチャットのパネルに開く
  * （本体・グループなしから。作業場所・グループは新しいチャットの見出しで選び直せる。送るのは自分で）。
  * 中で hook は使わないが、ノートのチャットの欄の ref を受け取るので hook の名前にする（React Compiler は、ふつうの関数に ref を渡すと描く中で読むとみなして部品を最適化から外す）
  */
@@ -59,7 +60,11 @@ export function useNoteChatTargets({
     addQuote: (quote) => toNoteChat(quote),
     addPath: () => toNoteChat(file),
   };
-  const startQuote = (quote: string) => openSeededChat(projectId, { kind: "main" }, { text: quote });
+  // 共通のノート（見えないプロジェクト）にはチャットのパネルがないので、いま見ているプロジェクトで始める
+  const startQuote = (quote: string) => {
+    const chatProject = screenProjectFor(projectId);
+    if (chatProject !== undefined) openSeededChat(chatProject, { kind: "main" }, { text: quote });
+  };
   const newChat: NoteNewChat = {
     start: (selection, lines) => {
       if (selection.trim()) startQuote(quoteOf(selection, lines));
