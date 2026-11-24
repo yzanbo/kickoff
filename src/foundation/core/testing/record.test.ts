@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { maskVolatile, shapeOf } from "./record";
+import { maskVolatile } from "./record";
 
 test("maskVolatile: 時刻・UUID・鍵らしい並びを伏せ、ふつうの言葉と数は残す", () => {
   const value = {
@@ -39,28 +39,4 @@ test("maskVolatile: paths で渡したパスは名前にする（長いパスか
   const worktree = "/work/project-worktrees/feat";
   const out = maskVolatile({ cwd: `${worktree}/src`, repo, nested: [{ p: `${repo}/a` }] }, { paths: { REPO: repo, WT: worktree } });
   assert.deepEqual(out, { cwd: "<WT>/src", repo: "<REPO>", nested: [{ p: "<REPO>/a" }] });
-});
-
-test("shapeOf: 値を型の名前にし、オブジェクトのキーを並べ替える", () => {
-  assert.deepEqual(shapeOf({ b: 1, a: "x", c: null, d: false }), { a: "string", b: "number", c: "null", d: "boolean" });
-  assert.equal(JSON.stringify(Object.keys(shapeOf({ z: 1, a: 1, m: 1 }) as object)), '["a","m","z"]');
-});
-
-test("shapeOf: 配列は要素の形を重ねた 1 要素の配列、空なら []", () => {
-  assert.deepEqual(shapeOf([]), []);
-  assert.deepEqual(shapeOf([1, 2, 3]), ["number"]);
-  assert.deepEqual(shapeOf({ list: [[], []] }), { list: [[]] });
-  assert.deepEqual(shapeOf([[], [1]]), [["number"]]);
-});
-
-test("shapeOf: 同じ場所で形が違う値は A | B、いくつかの要素にしかないキーは「?」", () => {
-  assert.deepEqual(shapeOf([{ id: 1, name: "a" }, { id: 2, name: null, extra: true }]), [{ "extra?": "boolean", id: "number", name: "null | string" }]);
-  assert.deepEqual(shapeOf([1, "a", 2]), ["number | string"]);
-  // 種類の違う形（オブジェクトと null）は、オブジェクトを JSON の文字にして並べる
-  assert.deepEqual(shapeOf([{ live: null }, { live: { phase: "x" } }]), [{ live: 'null | {"phase":"string"}' }]);
-});
-
-test("shapeOf: 要素の並びが変わっても同じ形になる", () => {
-  const items = [{ a: 1 }, null, { a: "x", b: [1] }, { a: 2, b: [] }];
-  assert.deepEqual(shapeOf(items), shapeOf([...items].reverse()));
 });

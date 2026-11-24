@@ -1,5 +1,5 @@
 // プロバイダーの適合テストの adapter: 共通の台本（FakeAgentScript）の出来事を、各 AI の偽物（偽の SDK・偽の app-server・偽のクライアント・偽の ACP のエージェント）の手続きへ写す。テストからだけ使う
-import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
+import { fakeClaudeSdk, type FakeClaudeSdk } from "./fakeClaudeSdk";
 import { fakeCodexServer, fakeAcpAgent, type FakeAcpAgent, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { fakeCopilotClient, type FakeCopilotSession } from "@/features/ai/core/testing/fakeCopilotClient";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";

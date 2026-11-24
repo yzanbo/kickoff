@@ -4,6 +4,7 @@ import { isBusyPhase, type ChatLive } from "@shared/chat/chatLive";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatDetail } from "@shared/chat/detail";
 import type { Chat } from "@shared/chat/types";
+import { maskVolatile } from "@/foundation/core/testing/record";
 import { until } from "@/foundation/core/testing/until";
 
 /** 補助が使うテストのコアの口（createTestCore の返す物が満たす） */
@@ -63,4 +64,18 @@ export async function sendAndWait(core: ChatTestCore, opts: { projectId: number;
     return detail.chat.status === "completed" && !isBusyPhase(detail.live.phase);
   });
   return id;
+}
+
+/** 文の中のチャット・記録の ID（「ID: 3」「チャット 3」「記録 3」の形）を <ID> に替える（作る順が変わっても記録を変えない） */
+function maskIds(text: string, ids: readonly number[]): string {
+  const known = new Set(ids.map(String));
+  return text.replace(/(ID: |チャット |記録 )(\d+)/g, (whole, head: string, id: string) => (known.has(id) ? `${head}<ID>` : whole));
+}
+
+/** AI への指示の文の記録（prompts.snapshot.test.ts）: 見出しごとの文（ないものは「（なし）」）。一時フォルダ・時刻などと ids のチャット・記録の ID を伏せる */
+export function promptRecord(parts: Record<string, string | null | undefined>, ids: readonly number[]): string {
+  const text = Object.entries(parts)
+    .map(([name, value]) => `=== ${name} ===\n${value ?? "（なし）"}\n`)
+    .join("\n");
+  return maskIds(maskVolatile(text), ids);
 }

@@ -154,7 +154,7 @@ export function createChatRunner(deps: RunnerDeps) {
     withIdleChat: <T>(chatId: number, why: PrepareReason, action: string, fn: (h: IdleChat) => Promise<T>, opts?: IdleChatOptions) => withIdleChat(shell, chatId, why, action, fn, opts),
     /** 作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */
     live: (chatId: number): ChatLive => shell.runs.live(chatId),
-    /** 移り変わる状態（読むだけ。網の筋書きが送る準備・足している途中かを見る） */
+    /** 移り変わる状態（読むだけ。筋書きのテストが送る準備・足している途中かを見る） */
     state: (chatId: number): ChatRunState | undefined => shell.runs.peek(chatId)?.run,
     onTurnStarted: (fn: (chatId: number) => void) => shell.onTurnStarted(fn),
     onTurnEnded: (fn: (chatId: number, outcome: TurnOutcome) => void) => shell.onTurnEnded(fn),

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { fakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
+import { fakeClaudeSdk } from "@/features/ai/core/testing";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("createTestCore: 偽の Claude の SDK を渡すと、API から送ったチャットが本物の ClaudeProvider を通って終わる（ほかの AI は偽のプロバイダーのまま）", async () => {

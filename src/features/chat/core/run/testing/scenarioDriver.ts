@@ -1,4 +1,4 @@
-// 筋書きの表を、いまの Runner（偽物で本物と同じ組み立てを通したコア）に HTTP の口から流す。
+// 筋書きの表を、偽物で本物と同じ組み立てを通したコアに HTTP の口から流す。
 // 待つのは「出来事が届いた」（実行が始まった・作業中でなくなった・見えるものが合った）で、決め打ちの時間では待たない。テストからだけ使う
 import path from "node:path";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";

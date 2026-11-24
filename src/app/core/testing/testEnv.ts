@@ -11,7 +11,7 @@ import { Invalid } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { FakeProvider } from "@/features/ai/core/testing";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";
-import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
+import type { FakeClaudeSdk } from "@/features/ai/core/testing";
 import { UsageMonitor } from "@/features/ai/core/usage/monitor";
 import type { ProviderUsage } from "@shared/ai/usage";
 import type { SecretCipher } from "@/features/database/core/secrets";

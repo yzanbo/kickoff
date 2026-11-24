@@ -1,20 +1,17 @@
-// 網の記録（作り直しの前の振る舞いを固定する test-records/ のファイル）を比べる補助。テストからだけ使う。
+// 網の記録（AI に見せるもの・ルート・スキーマ・SSE の種類・守りの答えを固定するファイル）を比べる補助。テストからだけ使う。
 // テストのファイルは expect を読まず、ここの matchRecord を通す（expect を使うのはこのファイルだけ）
 import fs from "node:fs";
 import os from "node:os";
-import path from "node:path";
 import { expect } from "vitest";
 
-/** 記録の置き場所（リポジトリの直下の test-records。テストはリポジトリの直下で流す） */
-export const RECORDS_DIR = path.resolve("test-records");
-
 /**
- * 値を test-records/<name> の記録と比べる（なければ書く。違えば落ちる。直すときは npx vitest run <ファイル> --update。--update を前に書くと、次の引数を更新の種類として読み、全部のテストを流す）。
- * 文字ならそのまま、ほかは 2 字下げの JSON（最後に改行）にして比べる
+ * 値を記録のファイルと比べる（なければ書く。違えば落ちる。直すときは npx vitest run <ファイル> --update。--update を前に書くと、次の引数を更新の種類として読み、全部のテストを流す）。
+ * file はテストのファイルからの相対パス（`__snapshots__/<名前>`）。文字ならそのまま、ほかは 2 字下げの JSON（最後に改行）にして比べる。
+ * 記録が変わる変更は、記録の更新を同じコミットに含める（差分で、AI・端末・DB に見える変化を見せる）
  */
-export async function matchRecord(name: string, value: unknown): Promise<void> {
+export async function matchRecord(file: string, value: unknown): Promise<void> {
   const text = typeof value === "string" ? value : `${JSON.stringify(value, null, 2)}\n`;
-  await expect(text).toMatchFileSnapshot(path.join(RECORDS_DIR, name));
+  await expect(text).toMatchFileSnapshot(file);
 }
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -54,52 +51,4 @@ export function maskVolatile<T>(value: T, opts: { paths?: Record<string, string>
     return v;
   };
   return walk(value) as T;
-}
-
-/** 値の形（文字は型の名前、配列は要素の形を重ねた 1 要素の配列、オブジェクトはキーごとの形） */
-export type Shape = string | Shape[] | { [key: string]: Shape };
-
-const byKey = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-
-/** いくつかの値（同じ場所に現れる別々の値）の形を 1 つに重ねる */
-function shapeOfAll(values: readonly unknown[]): Shape {
-  const primitives = new Set<string>();
-  const arrays: unknown[][] = [];
-  const objects: Record<string, unknown>[] = [];
-  for (const v of values) {
-    if (v === null) primitives.add("null");
-    else if (Array.isArray(v)) arrays.push(v);
-    else if (typeof v === "object") objects.push(v as Record<string, unknown>);
-    else primitives.add(typeof v);
-  }
-  const alternatives: Shape[] = [...primitives].sort(byKey);
-  if (arrays.length > 0) {
-    const items = arrays.flat();
-    alternatives.push(items.length > 0 ? [shapeOfAll(items)] : []);
-  }
-  if (objects.length > 0) {
-    const keys = [...new Set(objects.flatMap((o) => Object.keys(o)))].sort(byKey);
-    const shape: Record<string, Shape> = {};
-    for (const key of keys) {
-      const having = objects.filter((o) => Object.hasOwn(o, key));
-      // いくつかの要素にしかないキーは「?」を付ける
-      shape[having.length === objects.length ? key : `${key}?`] = shapeOfAll(having.map((o) => o[key]));
-    }
-    alternatives.push(shape);
-  }
-  if (alternatives.length === 1) return alternatives[0];
-  // 種類の違う形が重なったら "A | B"（配列・オブジェクトの形は JSON の文字にして並べる）
-  return alternatives
-    .map((s) => (typeof s === "string" ? s : JSON.stringify(s)))
-    .sort(byKey)
-    .join(" | ");
-}
-
-/**
- * 値の「形」だけを取り出す（応答の形の記録）: 文字 → "string"、数 → "number"、真偽 → "boolean"、null → "null"、
- * 配列 → 要素の形を重ねた 1 要素の配列（空なら []）、オブジェクト → キーを並べ替えた形（いくつかの要素にしかないキーは "キー?"）。
- * 同じ場所で形が違う値は "A | B" にまとめる
- */
-export function shapeOf(value: unknown): Shape {
-  return shapeOfAll([value]);
 }

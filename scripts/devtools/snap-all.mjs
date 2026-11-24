@@ -1,4 +1,4 @@
-// 決まったデータの開発版（npm run dev:fixture。CDP 9335）で主な画面を順に記録し、作り直しの前後で比べる。
+// 決まったデータの開発版（npm run dev:fixture。CDP 9335）で主な画面を順に記録し、変更の前後で比べる。
 //
 //   node scripts/devtools/snap-all.mjs take <名前> [--only <画面>,<画面>]
 //   node scripts/devtools/snap-all.mjs diff <前> <後> [--style] [--limit 40]

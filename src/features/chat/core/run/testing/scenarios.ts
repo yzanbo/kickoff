@@ -1,4 +1,4 @@
-// チャットの実行の振る舞いの表（筋書き）のすべて。01 の 8 章の 1〜33 のうち状態の移り変わりに関わるものを 1 行ずつ（34〜38 はいまのテストを網にする）
+// チャットの実行の振る舞いの表（筋書き）のすべて。状態の移り変わりに関わる振る舞いを 1 行ずつ（behavior は振る舞いのまとまりの番号）
 import { COMPACT_SCENARIOS } from "./scenariosCompact";
 import { QUEUE_SCENARIOS } from "./scenariosQueue";
 import { RECOVERY_SCENARIOS } from "./scenariosRecovery";

@@ -1,5 +1,5 @@
-// チャットの実行の振る舞いの表（筋書き）を、いまの Runner に HTTP の口から流して比べる（作り直しの網。表は testing/scenarios.ts、流し方は testing/scenarioDriver.ts）。
-// いまの不具合の行（known）は正しい振る舞いを書いてあり、いまは落ちることを test.fails で確かめる（直すのは別の fix）
+// チャットの実行の振る舞いの表（筋書き）を、組み立てたコアに HTTP の口から流して比べる（表は testing/scenarios.ts、流し方は testing/scenarioDriver.ts）。
+// 直していない不具合の行（known）は正しい振る舞いを書き、落ちることを test.fails で確かめる（直すのは別の fix）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { SCENARIOS } from "./testing/scenarios";

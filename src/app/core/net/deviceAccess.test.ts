@@ -69,5 +69,5 @@ test("端末に開く口の記録（取り決めの access と、まだ乗せて
   const open = deviceRoutes(routes);
   for (const { method, path } of open) assert.ok(existing.has(`${method} ${path}`), `${method} ${path} がありません`);
   // 開け忘れ・閉め忘れは記録の差分で見える
-  await matchRecord("core/device-routes.txt", `${open.map((r) => `${r.method} ${r.path} ${r.access}`).sort().join("\n")}\n`);
+  await matchRecord("__snapshots__/device-routes.txt", `${open.map((r) => `${r.method} ${r.path} ${r.access}`).sort().join("\n")}\n`);
 });

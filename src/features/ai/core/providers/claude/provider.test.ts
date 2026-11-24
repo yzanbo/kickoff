@@ -3,7 +3,7 @@ import { test, vi } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { PERMISSION_MODES } from "@shared/settings/types";
-import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
+import { fakeClaudeSdk, type FakeClaudeSdk } from "@/features/ai/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
 import { withGate } from "@/app/core/testing/testGate";

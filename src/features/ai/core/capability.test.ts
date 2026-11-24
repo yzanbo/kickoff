@@ -2,7 +2,7 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { PROVIDER_IDS } from "@shared/settings/types";
 import { PROVIDERS, providerCan, type ProviderCapability } from "@shared/ai/providers";
-import { fakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
+import { fakeClaudeSdk } from "@/features/ai/core/testing/fakeClaudeSdk";
 import { fakeCopilotClient } from "@/features/ai/core/testing/fakeCopilotClient";
 import { fakeAcpAgent, fakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";

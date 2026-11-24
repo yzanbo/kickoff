@@ -1,5 +1,5 @@
 // 端末（スマホ）から使える口。既定は「この Mac だけ」で、取り決めの access と、まだ取り決めに乗せていない口の表（下の LEGACY_DEVICE_ROUTES。見るだけの端末は GET だけ）に
-// 書いたものだけを端末に開く（新しい口は、書き足すまで端末からは使えない。開いた口の一覧は test-records/core/device-routes.txt の記録。
+// 書いたものだけを端末に開く（新しい口は、書き足すまで端末からは使えない。開いた口の一覧は src/app/core/net/__snapshots__/device-routes.txt の記録。
 // 届ける知らせの種類は、機能の SSE の表の access から組み立てが作る = ServeHooks.deviceMaySee）
 import { TrieRouter } from "hono/router/trie-router";
 import type { Method } from "@shared/foundation/contract";
