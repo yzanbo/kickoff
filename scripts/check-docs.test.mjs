@@ -2,10 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
   ancestorDocs,
-  baselineFrom,
   checkFeatures,
   commentViolations,
-  compareWithBaseline,
   countForbidden,
   countLongLines,
   headingRefsIn,
@@ -26,7 +24,7 @@ const FORBIDDEN = [
   { pattern: "\\b20\\d\\d-\\d\\d-\\d\\d\\b", label: "日付" },
 ];
 
-test("上限は上から最初に合ったもの。差し替えの { path, max } も読む", () => {
+test("上限は上から最初に合ったもの", () => {
   const limits = [
     { glob: "CLAUDE.md", bytes: 8192 },
     { glob: "src/foundation/*/CLAUDE.md", bytes: 6144 },
@@ -36,8 +34,6 @@ test("上限は上から最初に合ったもの。差し替えの { path, max }
   assert.equal(limitFor("src/foundation/ui/CLAUDE.md", limits), 6144);
   assert.equal(limitFor("src/features/chat/CLAUDE.md", limits), 4096);
   assert.equal(limitFor("docs/notes.md", limits), null);
-  assert.equal(limitFor("src/core/CLAUDE.md", [{ path: "src/core/CLAUDE.md", max: 9000 }, ...limits]), 9000);
-  assert.equal(limitFor("src/core/CLAUDE.md", [{ glob: "src/core/**", max: 7000 }, ...limits]), 7000);
 });
 
 test("祖先の CLAUDE.md は、ある分だけ近い順にリポジトリの直下まで", () => {
@@ -236,71 +232,7 @@ test("機能の並び: 見出しの下の表の名前が並びと同じなら空
   assert.deepEqual(order(["settings", "chat", "board"]), ["docs/a.md: 「機能の一覧」の表の 3 番目が （ない）（並びは board）"]);
 });
 
-/** 比べる・書き直すための小さな数 */
-function measuredOf(overrides = {}) {
-  return {
-    files: { "CLAUDE.md": { bytes: 100, ancestors: 100, longLines: 0, forbidden: 0, brokenRefs: 0 } },
-    limits: { "CLAUDE.md": { bytes: 200, ancestors: 300 } },
-    comments: {},
-    vocabulary: 0,
-    forbiddenFiles: [],
-    features: [],
-    details: [],
-    ...overrides,
-  };
-}
-
-const fileOf = (values) => ({ "CLAUDE.md": { bytes: 100, ancestors: 100, longLines: 0, forbidden: 0, brokenRefs: 0, ...values } });
-
-test("基準線と比べる: 上限の中なら通し、基準線にない違反・増えた違反を落とす", () => {
-  assert.deepEqual(compareWithBaseline(measuredOf(), { files: {} }), { added: [], stale: [], grown: [], shrunk: [] });
-  const over = measuredOf({ files: fileOf({ bytes: 250, forbidden: 2 }) });
-  assert.deepEqual(compareWithBaseline(over, {}).added, ["bytes:CLAUDE.md: 250（上限 200）", "forbidden:CLAUDE.md: 2（上限 0）"]);
-  const base = { files: { "CLAUDE.md": { bytes: 240, ancestors: 100, longLines: 0, forbidden: 3, brokenRefs: 0 } } };
-  const result = compareWithBaseline(over, base);
-  assert.deepEqual(result.added, []);
-  assert.deepEqual(result.grown, ["bytes:CLAUDE.md: 240 → 250"]);
-  assert.deepEqual(result.shrunk, ["forbidden:CLAUDE.md: 3 → 2"]);
-  // 基準線の値より大きくても、上限の中なら通す
-  assert.deepEqual(compareWithBaseline(measuredOf({ files: fileOf({ bytes: 150, forbidden: 1 }) }), base).grown, []);
-});
-
-test("基準線と比べる: 直ったのに残る項目・なくなったファイルを落とす", () => {
-  const base = {
-    files: { "CLAUDE.md": { bytes: 250 }, "gone/CLAUDE.md": { bytes: 9000 } },
-    comments: { "src/a.ts": 2 },
-    vocabulary: 3,
-    forbiddenFiles: ["src/shared/CLAUDE.md"],
-  };
-  assert.deepEqual(compareWithBaseline(measuredOf(), base).stale, ["files:CLAUDE.md", "files:gone/CLAUDE.md", "comments:src/a.ts", "vocabulary", "forbiddenFiles:src/shared/CLAUDE.md"]);
-});
-
-test("基準線と比べる: コメント・語彙・置かない CLAUDE.md・機能の一覧の誤り", () => {
-  const measured = measuredOf({ comments: { "src/a.ts": 3, "src/b.ts": 1 }, vocabulary: 4, forbiddenFiles: ["src/features/CLAUDE.md"], features: ["docs/features.md:3: 誤り"] });
-  const result = compareWithBaseline(measured, { comments: { "src/a.ts": 2 }, vocabulary: 5, forbiddenFiles: [] });
-  assert.deepEqual(result.added, ["comments:src/b.ts: 1（上限 0）", "forbiddenFiles: src/features/CLAUDE.md", "features: docs/features.md:3: 誤り"]);
-  assert.deepEqual(result.grown, ["comments:src/a.ts: 2 → 3"]);
-  assert.deepEqual(result.shrunk, ["vocabulary: 5 → 4"]);
-});
-
-test("基準線を作る: 上限を超えたファイルだけ、全部の数を載せる", () => {
-  const measured = measuredOf({
-    files: { ...fileOf({ forbidden: 1 }), "README.md": { bytes: 10, longLines: 0, forbidden: 0, brokenRefs: 0 } },
-    limits: { "CLAUDE.md": { bytes: 200, ancestors: 300 }, "README.md": { bytes: 100 } },
-    comments: { "src/b.ts": 1, "src/a.ts": 2 },
-    vocabulary: 2,
-  });
-  assert.deepEqual(baselineFrom(measured), {
-    version: 1,
-    files: { "CLAUDE.md": { bytes: 100, ancestors: 100, longLines: 0, forbidden: 1, brokenRefs: 0 } },
-    comments: { "src/a.ts": 2, "src/b.ts": 1 },
-    vocabulary: 2,
-    forbiddenFiles: [],
-  });
-  assert.deepEqual(compareWithBaseline(measured, baselineFrom(measured)), { added: [], stale: [], grown: [], shrunk: [] });
-});
-
-test("読んだ中身から数える: 大きさ・祖先との合計・差し替えの上限・置かない CLAUDE.md・語彙・コメント", () => {
+test("読んだ中身から数える: 大きさ・祖先との合計・置かない CLAUDE.md・語彙・コメント", () => {
   const docs = new Map([
     ["CLAUDE.md", "a".repeat(50)],
     ["src/x/CLAUDE.md", `${"b".repeat(30)}\n前は\n<!-- 行き先: 前は -->`],
@@ -312,7 +244,7 @@ test("読んだ中身から数える: 大きさ・祖先との合計・差し替
     ["src/a.test.ts", "// 前は"],
   ]);
   const config = {
-    limits: [{ glob: "**/CLAUDE.md", bytes: 40 }],
+    limits: [{ glob: "CLAUDE.md", bytes: 60 }, { glob: "**/CLAUDE.md", bytes: 40 }],
     ancestorsLimit: 70,
     lineLimit: 600,
     forbidden: FORBIDDEN,
@@ -323,7 +255,7 @@ test("読んだ中身から数える: 大きさ・祖先との合計・差し替
     vocabulary: { file: "docs/architecture.md", heading: "語彙", column: 2, search: ["src"] },
   };
   const files = new Set([...docs.keys(), ...code.keys()]);
-  const measured = measureDocs({ docs, code, files, config, extraLimits: [{ path: "CLAUDE.md", max: 60 }] });
+  const measured = measureDocs({ docs, code, files, config });
   assert.deepEqual(measured.files["CLAUDE.md"], { bytes: 50, ancestors: 50, longLines: 0, forbidden: 0, brokenRefs: 0 });
   assert.deepEqual(measured.files["src/x/CLAUDE.md"], { bytes: 64, ancestors: 114, longLines: 0, forbidden: 1, brokenRefs: 0 });
   assert.deepEqual(measured.files["docs/architecture.md"].ancestors, undefined);
@@ -344,4 +276,36 @@ test("読んだ中身から数える: 大きさ・祖先との合計・差し替
     total: 6,
   });
   assert.deepEqual(measureDocs({ docs, code, files, config, only: "comments" }).files, {});
+});
+
+/** 決まりの値ごとに「通る・止まる」を見るための、小さな決まりと文書 */
+function verdict(docs, { code = new Map(), limits = [{ glob: "**/CLAUDE.md", bytes: 10 }], ancestorsLimit = 100 } = {}) {
+  const config = { limits, ancestorsLimit, lineLimit: 40, forbidden: FORBIDDEN, commentForbidden: COMMENT_RULES, commentFiles: ["src/**/*.ts"] };
+  const files = new Set([...docs.keys(), ...code.keys()]);
+  return summarize(measureDocs({ docs: new Map(docs), code, files, config })).total;
+}
+
+test("止める: 上限はちょうどまで通り、1 バイト超えで止まる", () => {
+  assert.equal(verdict(new Map([["CLAUDE.md", "a".repeat(10)]])), 0);
+  assert.equal(verdict(new Map([["CLAUDE.md", "a".repeat(11)]])), 1);
+});
+
+test("止める: 祖先の CLAUDE.md との合計はちょうどまで通り、超えると止まる", () => {
+  const limits = [{ glob: "**/CLAUDE.md", bytes: 100 }];
+  assert.equal(verdict(new Map([["CLAUDE.md", "a".repeat(10)], ["src/CLAUDE.md", "b".repeat(10)]]), { limits, ancestorsLimit: 20 }), 0);
+  assert.equal(verdict(new Map([["CLAUDE.md", "a".repeat(10)], ["src/CLAUDE.md", "b".repeat(11)]]), { limits, ancestorsLimit: 20 }), 1);
+});
+
+test("止める: 1 行の上限・書かない言葉。docs-ignore の行と次の行は見逃す", () => {
+  const limits = [];
+  assert.equal(verdict(new Map([["README.md", "a".repeat(40)]]), { limits }), 0);
+  assert.equal(verdict(new Map([["README.md", "a".repeat(41)]]), { limits }), 1);
+  assert.equal(verdict(new Map([["README.md", "前は"]]), { limits }), 1);
+  assert.equal(verdict(new Map([["README.md", "<!-- docs-ignore: 例 -->\n前は"]]), { limits }), 0);
+});
+
+test("止める: コメントの書かない言葉。comment-rules-ignore の行は見逃す", () => {
+  const docs = new Map();
+  assert.equal(verdict(docs, { code: new Map([["src/a.ts", "// 前は別の形"]]) }), 1);
+  assert.equal(verdict(docs, { code: new Map([["src/a.ts", "// 前は別の形 comment-rules-ignore: 例"]]) }), 0);
 });

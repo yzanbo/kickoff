@@ -1,7 +1,6 @@
 // 文書の検査（scripts/check-docs.mjs）の決まり。上限は文書の役目ごとに決める
 // （ルートの CLAUDE.md 8KB・土台 6KB・機能 4KB と祖先と合わせて 20KB・docs/architecture.md 30KB・docs/features.md 60KB・README 10KB）。
-// いまの大きさと言葉の数は基準線（scripts/docs-baseline.json）で見逃し、増やさない。
-// 上限を一時に緩めるときは scripts/docs-limits.mjs の DOC_LIMITS（{ path | glob, max } の並び）に書く（limits より先に当てる）
+// 違反は 1 つも残さない（緩める差し替え・基準線は持たない）
 
 import structure, { FEATURES } from "./structure.config.mjs";
 

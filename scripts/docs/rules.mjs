@@ -4,13 +4,9 @@ import path from "node:path";
 import { matchesAny, parseCode } from "../structure/parse.mjs";
 import { matchesInLine, tablesIn, vocabularyNames } from "./markdown.mjs";
 
-/** ファイルの上限（バイト）。上から最初に合ったもの（{ glob, bytes } か、差し替えの { path | glob, max }）。合うものがなければ null */
+/** ファイルの上限（バイト）。上から最初に合った { glob, bytes }。合うものがなければ null */
 export function limitFor(file, limits) {
-  for (const limit of limits) {
-    const hit = limit.path !== undefined ? limit.path === file : matchesAny(file, [limit.glob]);
-    if (hit) return limit.bytes ?? limit.max;
-  }
-  return null;
+  return limits.find((limit) => matchesAny(file, [limit.glob]))?.bytes ?? null;
 }
 
 /** 自分と祖先のフォルダの CLAUDE.md（リポジトリの直下まで。ある分だけ、近い順） */
