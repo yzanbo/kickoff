@@ -7,7 +7,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { cx } from "@/foundation/ui/lib/cx";
 import { hasAppModifier } from "@/foundation/ui/lib/keys";
-import { closeTab, keepTab } from "@/foundation/ui/kit/tabs/tabList";
+import { closeTab, keepTab } from "@/features/database/ui/tabList";
 import { useTabs } from "@/foundation/ui/kit/tabs/useTabs";
 import { closeConnectionTabs, openErTab, openNoteTab, openNewSqlTab, openPreviewTab, openTableTab, setSqlConnection, tableTabKey, type DbClientTab } from "@/features/database/ui/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";

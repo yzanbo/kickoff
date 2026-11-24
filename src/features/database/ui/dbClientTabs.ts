@@ -1,7 +1,7 @@
 // DB クライアントの右のタブ（テーブル・SQL・ER 図・手順ノート）の並びと、表示中のタブ。置き場所（プロジェクトの DB タブ・右の欄・別ウィンドウ）ごとに覚える（保存は storage.ts の tabs）。
 // 形の確かめと、開く・閉じる・選ぶを純粋関数で持つ（React に依らない）
 import { DB_FILTER_OPS, DB_OBJECT_KINDS, type DbFilterOp, type DbObjectKind, type DbObjectPath, type DbRowFilter } from "@shared/database/types";
-import { closeTab, keepTab, openTab, type TabListState } from "@/foundation/ui/kit/tabs/tabList";
+import { closeTab, keepTab, openTab, type TabListState } from "./tabList";
 
 /** テーブル・ビューのタブ（同じ接続・場所・名前は 1 つ） */
 export interface DbTableTab {

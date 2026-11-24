@@ -15,7 +15,7 @@ import { SendCancelled, useComposerInsert, type ComposerBandProps } from "@/feat
 import { confirmDeleteSnippet } from "./snippetActions";
 import { SnippetDialog } from "./SnippetDialog";
 import type { SnippetEditing } from "./SnippetManager";
-import { useHorizontalScroller } from "@/foundation/ui/hooks/useHorizontalScroller";
+import { useHorizontalScroller } from "./useHorizontalScroller";
 import { hasAppModifier } from "@/foundation/ui/lib/keys";
 import { truncate } from "@shared/foundation/text/truncate";
 

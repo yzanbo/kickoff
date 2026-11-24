@@ -5,7 +5,6 @@ import { AudioLines, SendHorizontal, SkipForward, TextCursorInput, X } from "luc
 import { cx } from "@/foundation/ui/lib/cx";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
-import { Pill } from "@/foundation/ui/kit/Pill";
 import { Segmented, type SegmentOption } from "@/foundation/ui/kit/Segmented";
 import type { VoiceMode, VoiceDelivery } from "./useVoiceMode";
 
@@ -85,21 +84,21 @@ export function VoiceModePanel({ voice, queueToggle }: { voice: VoiceMode; queue
         </div>
         <div className="voice-mode-actions">
           {state.kind === "listening" && state.heard && (
-            <Pill className="voice-mode-action" onClick={voice.sendNow} title={fill ? "黙るのを待たずに、ここまでを入力欄に入れる" : "黙るのを待たずに、ここまでを送る"}>
+            <button type="button" className="pill voice-mode-action" onClick={voice.sendNow} title={fill ? "黙るのを待たずに、ここまでを入力欄に入れる" : "黙るのを待たずに、ここまでを送る"}>
               {fill ? <TextCursorInput size={13} aria-hidden /> : <SendHorizontal size={13} aria-hidden />}
               話し終えた
-            </Pill>
+            </button>
           )}
           {state.kind === "speaking" && (
-            <Pill className="voice-mode-action" onClick={voice.skip} title="読み上げを止める（次に送るか、作業が終わるまで読みません）">
+            <button type="button" className="pill voice-mode-action" onClick={voice.skip} title="読み上げを止める（次に送るか、作業が終わるまで読みません）">
               <SkipForward size={13} aria-hidden />
               読み上げを止める
-            </Pill>
+            </button>
           )}
-          <Pill className="voice-mode-action voice-mode-end" onClick={voice.stop}>
+          <button type="button" className="pill voice-mode-action voice-mode-end" onClick={voice.stop}>
             <X size={13} aria-hidden />
             終了
-          </Pill>
+          </button>
         </div>
       </div>
       <div className="voice-mode-options">

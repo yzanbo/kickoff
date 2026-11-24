@@ -3,7 +3,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import type { ChatFileLinks } from "@/features/chat/ui";
 import type { FileRef } from "./fileRefs";
-import { PathMenuItems } from "@/foundation/ui/external/PathMenuItems";
+import { PathMenuItems } from "@/features/files/ui/PathMenuItems";
 
 /**
  * チャットの中のファイルの右クリックのメニュー（返答のチップ・ターンの変更カードの行・ツールの行・右の欄の変更のファイルの見出しで共通）:

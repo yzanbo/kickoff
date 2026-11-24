@@ -11,7 +11,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useTabs } from "@/foundation/ui/kit/tabs/useTabs";
 import type { DbSqlTab } from "@/features/database/ui/dbClientTabs";
 import { readSetting } from "@/foundation/ui/storage";
-import { deferredSetting } from "@/foundation/ui/storage/deferredSetting";
+import { deferredSetting } from "./deferredSetting";
 import { storage } from "@/features/database/ui/storage";
 import { SqlAssistButton } from "./SqlAssistButton";
 import { SqlConnectionPill } from "./SqlConnectionPill";

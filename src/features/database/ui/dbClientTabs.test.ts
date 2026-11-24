@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { closeTab, keepTab, openTab } from "@/foundation/ui/kit/tabs/tabList";
+import { closeTab, keepTab, openTab } from "./tabList";
 import { closeConnectionTabs, erTabKey, nextSqlTitle, NO_DB_TABS, openErTab, openNoteTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, renameNoteTab, setTableFilter, tableTabKey, type DbClientTab, type DbClientTabs, updateErTab } from "./dbClientTabs";
 
 /** 仮でなく開く（reduce に渡すので引数を 2 つに絞る） */

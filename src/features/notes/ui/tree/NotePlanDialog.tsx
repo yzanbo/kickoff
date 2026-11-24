@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { NotePlan } from "@shared/notes/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { notesApi } from "@/features/notes/ui/api";
-import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
+import { useEditKeys } from "./useEditKeys";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";

@@ -1,6 +1,6 @@
 import type { FocusEvent, KeyboardEvent } from "react";
 import { consumeKey, isCancelKey, isSubmitKey } from "@/foundation/ui/lib/keys";
-import { useHeldMeta } from "./useHeldMeta";
+import { useHeldMeta } from "@/foundation/ui/hooks/useHeldMeta";
 
 /**
  * 書き直しの欄のキー:

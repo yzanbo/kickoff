@@ -3,8 +3,7 @@ import { test, vi } from "vitest";
 import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { deferredSetting } from "./deferredSetting";
-import { defineSettings } from "./groups";
-import { readSetting, text } from "./settings";
+import { defineSettings, readSetting, text } from "@/foundation/ui/storage";
 
 installMemoryStorage();
 const { settings } = defineSettings("tDeferred", { draft: text() });

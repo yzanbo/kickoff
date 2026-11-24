@@ -2,15 +2,13 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { test } from "vitest";
-import { useObjectUrl } from "./useObjectUrl";
 import { useDebouncedSearch } from "./useDebouncedSearch";
 
-/** 最初の描画（effect は流れない）: まだ探しておらず、URL も作っていない */
-test("useDebouncedSearch・useObjectUrl: 最初は結果が空で読み込み中でなく、URL もない", () => {
+/** 最初の描画（effect は流れない）: まだ探していない */
+test("useDebouncedSearch: 最初は結果が空で読み込み中でない", () => {
   const Probe = () => {
     const found = useDebouncedSearch("abc", async () => ["x"]);
-    const url = useObjectUrl(new Blob(["a"]));
-    return `${found.results.length}:${found.loading}:${url === undefined}`;
+    return `${found.results.length}:${found.loading}`;
   };
-  assert.equal(renderToString(createElement(Probe)), "0:false:true");
+  assert.equal(renderToString(createElement(Probe)), "0:false");
 });

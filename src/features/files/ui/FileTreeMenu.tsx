@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { menuGroups } from "@/foundation/ui/kit/menuParts";
-import { PathMenuItems } from "@/foundation/ui/external/PathMenuItems";
+import { PathMenuItems } from "./PathMenuItems";
 import { fileMenuItems, fileMenuLabel, type FileMenuContext } from "./fileMenuItems";
 import type { FileOps } from "./useFileOps";
 

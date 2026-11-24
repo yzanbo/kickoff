@@ -1,7 +1,7 @@
 import "./ImagePreview.css";
 import { useState } from "react";
 import { useQuery } from "@/foundation/ui/query";
-import { useObjectUrl } from "@/foundation/ui/hooks/useObjectUrl";
+import { useObjectUrl } from "./useObjectUrl";
 import { errorMessage } from "@shared/foundation/errors";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";

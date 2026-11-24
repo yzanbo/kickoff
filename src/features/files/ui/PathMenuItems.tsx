@@ -2,7 +2,7 @@ import { AppWindow, Copy, ExternalLink, FolderOpen } from "lucide-react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { menuGroups } from "@/foundation/ui/kit/menuParts";
 import { lineLocation } from "@/foundation/ui/lib/pathCopy";
-import { canOpenExternal, openExternal } from "./native";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 const copy = (text: string) => void navigator.clipboard.writeText(text);
 

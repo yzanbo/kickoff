@@ -239,6 +239,7 @@ export default {
       "src/foundation/ui/kit/list/TreeView.tsx", // 木の部品（ファイル・ノート・DB の木が同じ部品で描く）
       "src/foundation/ui/document/useDocument.ts", // 文書の土台（ファイルとノートが同じ口で読み書きする）
       "src/foundation/ui/document/HtmlFrame.tsx", // HTML の文書の iframe（ファイルと HTML のノートが使う）
+      "src/foundation/ui/kit/layout/ListDetail.tsx", // 一覧＋詳細の 2 欄の型（いまは GitHub・CI。ファイル・ノート・履歴の 2 欄も乗せる先）
     ],
   },
 };

@@ -1,6 +1,6 @@
 // 遅らせる設定の書き込み（打つたびに書かず、止まってから書く。窓を閉じる・読み込み直す前に書き出す）
 import { realTimers, type Timers } from "@shared/foundation/time";
-import { writeSetting, type Setting } from "./settings";
+import { writeSetting, type Setting } from "@/foundation/ui/storage";
 
 export interface DeferredSetting<T> {
   /** 書く値を預ける（ms 待ってから書く。待っている間に預け直したら、最後の値だけを書く） */

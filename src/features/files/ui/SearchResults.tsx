@@ -9,7 +9,7 @@ import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { menuGroups } from "@/foundation/ui/kit/menuParts";
-import { PathMenuItems } from "@/foundation/ui/external/PathMenuItems";
+import { PathMenuItems } from "./PathMenuItems";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
