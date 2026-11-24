@@ -1,7 +1,15 @@
 # Kickoff 機能の一覧
 
-最後に一覧を確かめたコミット: ecb7d718
-列: ID・機能・持ち主（機能のフォルダの名前。土台は `土台:core` / `土台:ui` / `土台:desktop` / `土台:shared`、組み立ては `app`、スマホは `mobile`、道具は `道具`）・確かめ方（`T:<テストのファイルの名前>` / `E:<通しの確かめの名前>` / `M`（手で見る））。（一部）は一部だけ作ってあるもの。
+作ってある機能の受け入れの一覧。最後に一覧を確かめたコミット: 98d53ceb
+列: ID・機能・持ち主（機能のフォルダの名前。土台は `土台:core` / `土台:ui` / `土台:desktop` / `土台:shared`、組み立ては `app`、スマホは `mobile`、道具は `道具`）・確かめ方（`T:<テストのファイルの名前>`（同じ名前が何か所にもあれば `codex/provider` のようにパスの後ろ）/ `E:<通しの確かめの名前>` / `M`（手で見る））。（一部）は一部だけ作ってあるもの。
+
+## 前提
+- Kickoff は Mac（Apple Silicon）のデスクトップアプリ（Electron）。利用者はアプリの開発者で、開発するアプリの種類（Web・スマホ・デスクトップ）・技術・デプロイ先は限らない（プロジェクトごとにチャットで AI と決める）。新しく作るアプリも、作りかけのフォルダの取り込みも同じ流れで進める。
+- チャットが中心: プロジェクトの中に、作業場所（本体か git のワークツリー）・グループ・状態で分けたチャットを並べ、AI と話しながら並行して進める。開いた瞬間に作業中・回答待ちのチャットが分かり、チャット・作業場所・差分・PR が 1 か所でつながる。
+- 関門（確定のボタンで次へ進む）は設けない。どのチャットも AI の役割と権限は同じで、承認の仕方はチャットごとの権限モードで選ぶ。
+- 要件などの文書はリポジトリのファイル（`docs/` など）として git で版を管理し、Kickoff の DB には持たない。デプロイの手順もリポジトリに書き、チャットで AI に頼む。
+- AI はチャットごとに選ぶ（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）。既定は各 CLI のログイン（サブスクリプション）をそのまま使い、AI ごとに API キーも選べる（暗号化して置き、画面・SSE・API・AI には出さない）。
+- 外出中はスマホから承認・質問に答え、進み具合を見て、次の指示を出す。
 
 ## PRJ プロジェクト
 
@@ -74,8 +82,8 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | LST-015 | グループを作る・名前を変える・消す | groups | M |
-| LST-016 | グループと No Group を並べ替える | groups | T:groups |
-| LST-017 | チャットをドラッグでグループへ移す | groups | T:groups,E:sidebar-drag |
+| LST-016 | グループと No Group を並べ替える | groups | T:groups/groups |
+| LST-017 | チャットをドラッグでグループへ移す | groups | T:groups/groups,E:sidebar-drag |
 | LST-018 | グループを選んで新しいチャットを始める | groups | M |
 
 ### チャットの操作
@@ -284,7 +292,7 @@
 | RUN-008 | モデル・推論の深さを選ぶ | ai | M |
 | RUN-009 | 権限モード・ファストモードを選ぶ | ai | M |
 | RUN-010 | チャットごとに AI を選ぶ | ai | T:providerChoice |
-| RUN-011 | チャットの途中で AI を替えて会話を続ける | providerSwitch | T:providerSwitch |
+| RUN-011 | チャットの途中で AI を替えて会話を続ける | providerSwitch | T:core/providerSwitch |
 | RUN-012 | AI を替えた区切りと、返答ごとの担当 AI を出す | providerSwitch | T:ProviderSwitchRecord |
 | RUN-013 | AI ごとのセッションを持ち、前の AI に戻したら続きから | chat | T:chatProviderSessions |
 | RUN-014 | 引き継ぎに失敗したら元の指示を残して直す | providerSwitch | M |
@@ -314,13 +322,13 @@
 | RUN-026 | 送信待ちを書き直す | queue | M |
 | RUN-027 | ドラッグで並べ替える | queue | M |
 | RUN-028 | 選んだ指示をまとめて送る・消す・1 つにまとめる | queue | M |
-| RUN-029 | 自動で送る / 止めています を切り替える | chat | T:outbox |
+| RUN-029 | 自動で送る / 止めています を切り替える | chat | T:db/outbox,shared/chat/outbox |
 | RUN-030 | すべて送る（まとめて 1 件 / 1 件ずつ順に） | queue | M |
-| RUN-031 | 一時停止の印を挟む | chat | T:outbox,E:queue-list |
+| RUN-031 | 一時停止の印を挟む | chat | T:shared/chat/outbox,E:queue-list |
 | RUN-032 | 質問として送る（答えのあと一時停止） | chat | M |
-| RUN-033 | 会話の圧縮・コンテキストの消去を挟む | chat | T:outbox |
+| RUN-033 | 会話の圧縮・コンテキストの消去を挟む | chat | T:shared/chat/outbox |
 | RUN-034 | 新しいチャット・子チャットで聞く / 移す | queue | M |
-| RUN-035 | 再起動しても送信待ちを残す | chat | T:outbox |
+| RUN-035 | 再起動しても送信待ちを残す | chat | T:db/outbox |
 | RUN-036 | 起動したときに、前回の終了で止まったチャットを確かめる（再開の確かめ） | queue | M |
 
 ### 圧縮と消去
@@ -368,9 +376,9 @@
 ### ほかの AI と自動化
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| RUN-059 | Codex で動かす | ai | T:provider |
-| RUN-060 | GitHub Copilot で動かす（一部） | ai | T:provider |
-| RUN-061 | Cursor・Gemini（Antigravity）で動かす（一部） | ai | T:provider |
+| RUN-059 | Codex で動かす | ai | T:codex/provider |
+| RUN-060 | GitHub Copilot で動かす（一部） | ai | T:copilot/provider |
+| RUN-061 | Cursor・Gemini（Antigravity）で動かす（一部） | ai | T:acp/provider,geminiClient |
 
 ### 長いチャット
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -692,6 +700,7 @@
 | DB-030 | トランザクションをコミット・取り消す | database | M |
 | DB-031 | 流す接続を替える | database | M |
 | DB-032 | SQL の履歴から入れ直す | database | M |
+| DB-065 | SQL の中を探す・置き換える（⌘F） | database | M |
 | DB-033 | AI に SQL を書いてもらう | database | T:sqlAssist,database/routes.databases |
 
 ### ER 図
@@ -717,7 +726,7 @@
 |---|---|---|---|
 | DB-044 | compose のサービスを一覧で見る | docker | M |
 | DB-045 | 止まっているエンジンを起こす | docker | M |
-| DB-046 | まとめて起動・停止・再起動する | docker | T:actions,docker/routes |
+| DB-046 | まとめて起動・停止・再起動する | docker | T:docker/actions,docker/routes |
 | DB-047 | 片付ける・作り直して起動する | docker | M |
 | DB-048 | サービスごとに起動・停止・再開する | docker | M |
 | DB-049 | 失敗をターミナルで流し直す | docker | M |
@@ -738,7 +747,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | DB-058 | ポートを使っているプロセスを見る | ports | M |
-| DB-059 | プロセスを止める | ports | T:service,ports/routes |
+| DB-059 | プロセスを止める | ports | T:ports/service,ports/routes |
 | DB-060 | ポートをブラウザで開く | ports | M |
 | DB-061 | ポートの取り合いで相手を止めて起動する | docker | T:portConflict,docker/routes |
 | DB-062 | Docker の外のポートの占有を知らせる | docker | M |
@@ -815,10 +824,10 @@
 ### チャット
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-001 | AI がチャット（子・兄弟・親のないチャット）を作って頼む・ワークツリーでも作る | childChats | T:aiCreateChat |
-| AIT-002 | チャットの名前を変える・家系のチャットを固定する・グループを変える・親から外す | chat | T:aiChatEdit |
+| AIT-001 | AI がチャット（子・兄弟・親のないチャット）を作って頼む・ワークツリーでも作る | childChats | T:childChats/aiCreateChat |
+| AIT-002 | チャットの名前を変える・家系のチャットを固定する・グループを変える・親から外す | chat | T:tools/aiChatEdit |
 | AIT-003 | チャットをアーカイブする・消す | chat | M |
-| AIT-004 | 家系のチャットに下書きを入れる | chat | T:open |
+| AIT-004 | 家系のチャットに下書きを入れる | chat | T:chat/open |
 | AIT-005 | チャットの一覧・会話・使用枠を読む | chat | T:aiChatRead |
 | AIT-006 | 利用者に知らせる | notifications | T:notifications/routes |
 | AIT-007 | 利用者が見ているものを読む | userView | M |
@@ -827,13 +836,13 @@
 ### 開く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-009 | ノート・チャット・ファイル・差分を画面に開く | chat | T:open |
-| AIT-010 | SQL のタブに SQL を入れて開く | database | T:tools |
+| AIT-009 | ノート・チャット・ファイル・差分を画面に開く | chat | T:chat/open |
+| AIT-010 | SQL のタブに SQL を入れて開く | database | T:database/tools |
 
 ### プロジェクト
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-011 | 定型文を足す・ノートを動かす | snippets | T:tools |
+| AIT-011 | 定型文を足す・ノートを動かす | snippets | T:snippets/tools,notes/tools |
 | AIT-012 | ターミナルの出力を読む | terminal | T:aiTerminal |
 | AIT-013 | 埋め込みブラウザを見る・操作する | browser | M |
 | AIT-014 | ワークツリーを後始末する | worktrees | M |
@@ -894,7 +903,7 @@
 |---|---|---|---|
 | MOB-014 | QR を読んで本体をつなぐ | mobile | M |
 | MOB-015 | いくつもの本体を切り替える | mobile | M |
-| MOB-016 | チャットの一覧を見る | mobile | M |
+| MOB-016 | チャットの一覧を見る（並びはボードと同じ急ぎの順） | mobile | M |
 | MOB-017 | チャットを読む | mobile | M |
 | MOB-018 | 送る・伝える・止める | mobile | M |
 | MOB-019 | 承認・質問に答える | mobile | M |
@@ -908,7 +917,7 @@
 ### iPhone
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| MOB-026 | iPhone のブラウザから使う（一部） | devices | T:pairing |
+| MOB-026 | iPhone のブラウザから使う（一部） | devices | T:shared/devices/pairing |
 
 ### 図と数式
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -1036,7 +1045,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | BASE-039 | 長いチャット・作業中の表示と入力を軽くする | chat | T:chatStore |
-| BASE-040 | サブエージェントのカードの手順を、そのサブエージェントの記録だけから作る | subagents | T:subagentEvents |
+| BASE-040 | サブエージェントのカードの手順を、そのサブエージェントの記録だけから作る | subagents | T:subagents/subagentEvents |
 | BASE-041 | 裏のタブのチャットは描くのを止める | conversation | M |
 | BASE-042 | 長い一覧は画面に入る分から描く | 土台:ui | E:sidebar-keys,sidebar-range,sidebar-drag,board-find |
 | BASE-043 | 画面のビルドと配信を速くする | 道具 | M |
@@ -1069,3 +1078,4 @@
 | NF-05 | 復旧性: アプリが落ちても、止まった実行を続きから再開できる | M |
 | NF-06 | 前提: 開発するアプリのリポジトリは利用者が GitHub に作り、remote（origin）を設定しておく（Kickoff はリポジトリを作らない） | M |
 | NF-07 | 前提: Mac に `claude`（Claude Code）と `gh`（GitHub CLI）が入っていて、ログインしてある | M |
+| NF-08 | 埋め込みブラウザのページは信頼しない外のものとして扱う（Node.js を使わせない・専用のセッション・http(s) だけ） | M |

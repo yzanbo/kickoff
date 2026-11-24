@@ -49,13 +49,14 @@ function verifyErrors(value, files) {
   return errors;
 }
 
-/** テストのファイルの名前（.test.ts(x) を外したもの）の集合 */
+/** テストのファイルの名前（.test.ts(x) を外したもの）の集合。同じ名前が何か所にもあるものは、パスの後ろ（`codex/provider`）でも引ける */
 function testNamesOf(files) {
   const names = new Set();
   for (const file of files) {
     const m = /(?:^|\/)([^/]+)\.test\.tsx?$/.exec(file);
     if (!m) continue;
-    names.add(m[1]);
+    const parts = file.replace(/\.test\.tsx?$/, "").split("/");
+    for (let i = 0; i < parts.length; i++) names.add(parts.slice(i).join("/"));
     // 機能の中のテストは「機能/名前」でも引ける（routes.test.ts のように同じ名前が機能ごとにあるもの）
     const feature = /^src\/features\/([^/]+)\//.exec(file);
     if (feature) names.add(`${feature[1]}/${m[1]}`);

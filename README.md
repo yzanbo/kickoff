@@ -6,7 +6,7 @@
 
 アプリ開発を、AI エージェントとのチャットで進めるための Mac デスクトップアプリ。プロジェクトごとに、作業場所（git のワークツリー）・グループ・状態でチャットを並べ、並行して進める。
 
-- 要件: [docs/requirements.md](docs/requirements.md)
+- 機能: [docs/features.md](docs/features.md)
 - 設計（語彙・名前の決まり・構成）: [docs/architecture.md](docs/architecture.md)
 
 ## 使い方

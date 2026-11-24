@@ -140,6 +140,7 @@ test("機能の一覧: 正しい表は通す。列は見出しの名前で引き
     "| 取り込む | PRJ-002 | T:server.projects,A | projects | |",
     "| 開く | NOTE-001 | `E:sidebar`, T:A, M | notes | |",
     "| 書く | NOTE-002 | T:notes/routes | notes | |",
+    "| 探す | NOTE-003 | T:core/http/server.projects,renderer/src/A | notes | |",
     "",
     "| ID | 要件 | 確かめ方 |",
     "|---|---|---|",
