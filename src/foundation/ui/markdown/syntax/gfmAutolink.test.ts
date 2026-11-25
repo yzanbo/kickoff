@@ -56,6 +56,9 @@ test("URL: 日本語の記号・句読点・全角の形・ひらがな・… �
 test("URL: 漢字・カタカナでは切らない。2 つ並べても別々のリンク。切れたあとの文は太字などとして読み直す", () => {
   assert.equal(html("https://ja.wikipedia.org/wiki/東京都の"), `<p>${link("https://ja.wikipedia.org/wiki/%E6%9D%B1%E4%BA%AC%E9%83%BD", "https://ja.wikipedia.org/wiki/東京都")}の</p>`);
   assert.equal(html("https://ja.wikipedia.org/wiki/カタカナ"), `<p>${link("https://ja.wikipedia.org/wiki/%E3%82%AB%E3%82%BF%E3%82%AB%E3%83%8A", "https://ja.wikipedia.org/wiki/カタカナ")}</p>`);
+  // 漢字の語の一部になる記号（々 〆 〇 〻）でも切らない
+  assert.equal(html("https://example.com/人々"), `<p>${link("https://example.com/%E4%BA%BA%E3%80%85", "https://example.com/人々")}</p>`);
+  assert.equal(html("https://example.com/〇〇"), `<p>${link("https://example.com/%E3%80%87%E3%80%87", "https://example.com/〇〇")}</p>`);
   assert.equal(html("https://a.com、https://b.com"), `<p>${link("https://a.com")}、${link("https://b.com")}</p>`);
   assert.equal(html("**詳細（https://example.com）**です"), `<p><strong>詳細（${link("https://example.com")}）</strong>です</p>`);
   // メールの形はいまも正しく切れる
@@ -86,6 +89,6 @@ test("URL: 止まる文字がなければ、元の自動リンクの部品と同
 
 test("止まる文字の一覧: 漢字・カタカナ・半角は止めない", () => {
   for (const ch of "、。「」『』【】〈〉《》〔〕〜（）！？：；，．あんゝ…‥“”‘’") assert.ok(isUrlStop(ch.codePointAt(0)!), ch);
-  for (const ch of "東京都カタカナー・aZ09/-_.~!?()") assert.ok(!isUrlStop(ch.codePointAt(0)!), ch);
+  for (const ch of "東京都カタカナー・々〆〇〻aZ09/-_.~!?()") assert.ok(!isUrlStop(ch.codePointAt(0)!), ch);
   assert.ok(!isUrlStop(null));
 });
