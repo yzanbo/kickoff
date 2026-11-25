@@ -14,7 +14,7 @@
 
 ## 決まり
 - 土台は機能・`app` を読まない。機能のものが要るときは拡張点か引数で受ける。
-- サーバーのデータは店に 1 つずつ持つ（部品ごとに取り直さない・props で 3 段以上中継しない）。操作の応答で届いた値は `set` / `update` で入れる。失敗は `ApiError` のまま返す。
+- サーバーのデータは店に集め、自動更新は `refreshAfterMaxAge`（props で 3 段以上中継しない）。応答の値は `set` / `update` で反映し、失敗は `ApiError` のまま返す。
 - 保存は `defineSettings` で宣言したキーだけ（`kickoff:<機能>:<名前>`。宣言していないキーは起動で消える）。部品にキーの文字列を書かない。ID を含むものは `ids: true`。値の形を変えたら読む側（`public/boot.js` など）も同じコミットで直す。
 - window のイベントは `useWindowEvent`、大きさは `useSizeObserver`（要素ごとに Observer を作らない）、時刻は `lib/time.ts`（`toLocaleTimeString` を直に呼ばない）、例外の文は `errorMessage`。
 - 浮かぶもの・メニュー・ダイアログ・タブの列・木・並べ替えは `kit` を使う（骨組みを手書きしない）。説明は `data-tip`（title と重ねない）。空の画面は `EmptyState`（なぜ空かと次にできること）。

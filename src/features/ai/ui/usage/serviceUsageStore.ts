@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { ProviderUsage } from "@shared/ai/usage";
 import { USAGE_REFRESH_MS } from "@shared/ai/usageRefresh";
 import { usageApi } from "@/features/ai/ui/api/usage";
@@ -15,18 +14,13 @@ const replace = (list: ProviderUsage[], usage: ProviderUsage) => (list.some((u) 
 export const serviceUsageStore = createStore<ProviderUsage[]>({
   load: () => usageApi("GET /api/usage"),
   maxAge: USAGE_REFRESH_MS,
+  refreshAfterMaxAge: true,
   reduce: { usage: (current, e) => replace(current, e.usage) },
 });
 
 /** 使用状況を読み、出している間は詳細を閉じていても 1 分ごと（USAGE_REFRESH_MS）に取り直す（詳細も同じ店を読む） */
 export function useServiceUsage() {
-  const usage = useStore(serviceUsageStore);
-  useEffect(() => {
-    serviceUsageStore.ensure();
-    const timer = setInterval(() => void serviceUsageStore.reload().catch(() => {}), USAGE_REFRESH_MS);
-    return () => clearInterval(timer);
-  }, []);
-  return usage;
+  return useStore(serviceUsageStore);
 }
 
 /** 「更新」: コアにすべての AI を取り直させ、下の帯にも当てる */

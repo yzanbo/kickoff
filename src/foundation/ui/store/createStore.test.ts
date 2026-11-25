@@ -31,6 +31,32 @@ test("期限で自動更新する店: 使用中のキーだけ、古くなった
   assert.deepEqual(calls, [1, 2, 1]);
 });
 
+test("店の自動更新は使う部品が複数あっても 1 つで、最後の部品が離れたら止める", async () => {
+  const clock = createFakeScheduler();
+  let calls = 0;
+  const store = createStore({ load: async () => ++calls, maxAge: 60_000, refreshAfterMaxAge: true, timers: clock });
+  const releaseFooter = store.retain();
+  await flush();
+  clock.advance(30_000);
+  const releasePanel = store.retain();
+  assert.equal(calls, 1);
+  assert.equal(clock.pending.timers, 1);
+
+  clock.advance(30_000);
+  await flush();
+  assert.equal(store.get().data, 2);
+  assert.equal(clock.pending.timers, 1);
+
+  releasePanel();
+  clock.advance(60_000);
+  await flush();
+  assert.equal(store.get().data, 3);
+  releaseFooter();
+  assert.equal(clock.pending.timers, 0);
+  clock.advance(60_000);
+  assert.equal(calls, 3);
+});
+
 // 土台のテストなので機能（groups）の型・補助は読まず、形だけで作る（知らせの group の中身はこの形を満たす）
 interface TestGroup {
   id: number;

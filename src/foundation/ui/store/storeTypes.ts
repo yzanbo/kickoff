@@ -88,6 +88,7 @@ export interface StoreOptions<T> {
   reduce?: ReduceTable<T>;
   reloadOn?: ReloadTable;
   maxAge?: number;
+  refreshAfterMaxAge?: KeyedStoreOptions<number, T>["refreshAfterMaxAge"];
   refreshOnFocus?: KeyedStoreOptions<number, T>["refreshOnFocus"];
   timers?: Timers;
 }
