@@ -202,6 +202,7 @@ scripts/  docs/           道具と文書
 | 書きかけの返答 | `StreamingTexts`・`chat_delta` | 確定する前の AI の文 |
 | 未読 / 既読 | `unread` / `read` | 作業が終わったら未読。既読にするのは利用者 |
 | 既読にするタイミング | `read_timing`・`READ_TIMINGS` | 一番下まで見たら / 一番下まで見て、ボタンで |
+| 既読にする / 未読にする | `readToggleOf`・`setChatRead` | 手で切り替える（⌘⇧U・右クリック・既読ボタン）。作業中・回答待ちは不可 |
 | チャットの選択 | `ChatOptions`・`resolveChatOptions` | モデル・深さ・権限・ファスト |
 | 権限モード | `PermissionMode` | |
 | 圧縮前指示 / 圧縮後指示 | `pre_compact_prompt`・`post_compact_prompt` | 圧縮の前後に AI に送る指示 |
