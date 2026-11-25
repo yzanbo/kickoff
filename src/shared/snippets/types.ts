@@ -3,7 +3,7 @@
 /** 定型文（snippets の表） */
 export interface Snippet {
   id: number;
-  /** 使えるプロジェクト（null なら共通 = すべてのプロジェクト） */
+  /** 使えるプロジェクト（null ならすべてのプロジェクト。共通のチャットも） */
   project_id: number | null;
   /** 帯のボタンに出す短い名前（null なら本文の 1 行目） */
   label: string | null;
@@ -20,12 +20,12 @@ export const SNIPPET_LABEL_MAX = 40;
 /** 本文の長さの上限 */
 export const SNIPPET_TEXT_MAX = 20_000;
 
-/** 定型文を作る本文（project_id が null なら共通、label が null なら本文の 1 行目を名前に見せる） */
+/** 定型文を作る本文（project_id が null ならすべてのプロジェクト、label が null なら本文の 1 行目を名前に見せる） */
 export interface NewSnippetBody {
   project_id: number | null;
   label: string | null;
   text: string;
 }
 
-/** 定型文を変える本文（書いた項目だけ変える。project_id を null にすると共通に、番号にするとそのプロジェクトだけに） */
+/** 定型文を変える本文（書いた項目だけ変える。project_id を null にするとすべてのプロジェクトに、番号にするとそのプロジェクトだけに） */
 export type SnippetPatch = Partial<NewSnippetBody>;

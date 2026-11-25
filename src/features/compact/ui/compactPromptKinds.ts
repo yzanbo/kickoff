@@ -51,7 +51,7 @@ export function compactKindOf(data: Pick<ChatEventDataOf<"user">, "pre_compact" 
   return null;
 }
 
-/** 保存してある指示の文と、送るか（projectId なしなら設定の共通の指示、番号ならそのプロジェクトの指示。読めていなければ文なし・オン） */
+/** 保存してある指示の文と、送るか（projectId なしなら設定のすべてのプロジェクトの指示、番号ならそのプロジェクトの指示。読めていなければ文なし・オン） */
 export function savedCompactPrompt(
   kind: CompactPromptKind,
   settings: AppSettings | undefined,

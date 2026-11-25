@@ -8,10 +8,10 @@ import { compactSettings } from "@shared/compact/settings";
 export const compactSettingSchemas = defineSettingSchemas(compactSettings, {
   // 自動圧縮を始める使用率（null なら Claude Code の既定）
   auto_compact_pct: z.number().int().min(AUTO_COMPACT_PCT_MIN).max(AUTO_COMPACT_PCT_MAX).nullable(),
-  // 共通の圧縮前指示（null ならなし）
+  // すべてのプロジェクトの圧縮前指示（null ならなし）
   pre_compact_prompt: compactPrompt,
   post_compact_prompt: compactPrompt,
-  // 共通の圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
+  // すべてのプロジェクトの圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
   pre_compact_enabled: z.boolean(),
   post_compact_enabled: z.boolean(),
 });

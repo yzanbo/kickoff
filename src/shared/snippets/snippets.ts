@@ -15,7 +15,7 @@ export function snippetLabel(snippet: Pick<Snippet, "label" | "text">): string {
   return line.length > FALLBACK_LABEL_CHARS ? `${line.slice(0, FALLBACK_LABEL_CHARS)}…` : line;
 }
 
-/** そのプロジェクトで使える定型文（共通とそのプロジェクトだけのもの。並びは保つ） */
+/** そのプロジェクトで使える定型文（すべてのプロジェクトのものと、そのプロジェクトだけのもの。並びは保つ） */
 export const snippetsFor = (snippets: readonly Snippet[], projectId: number): Snippet[] =>
   snippets.filter((s) => s.project_id === null || s.project_id === projectId);
 

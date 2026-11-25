@@ -1,5 +1,5 @@
 /* 並べ替えられる管理の一覧（定型文・サイドバーのビュー。index.css が feature の層で読む） */
-/* 範囲の札（定型文の 共通 / このプロジェクト / プロジェクトの名前・ビューの 表示中） */
+/* 範囲の札（定型文の すべて / 共通 / このプロジェクト / プロジェクトの名前・ビューの 表示中。accent は目立たせる札） */
 
 .manage-list-scope {
   flex: none;
@@ -9,7 +9,7 @@
   line-height: 16px;
 }
 
-.manage-list-scope.common {
+.manage-list-scope.accent {
   --tag-color: var(--info);
   --tag-border: color-mix(in srgb, var(--info) 45%, transparent);
 }

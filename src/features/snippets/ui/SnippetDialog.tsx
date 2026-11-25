@@ -5,7 +5,7 @@ import { openSettings } from "@/features/settings/ui";
 import { SnippetManager, type SnippetEditing } from "./SnippetManager";
 
 /**
- * チャット欄の帯の「定型文を管理」で開くダイアログ。このプロジェクトで使う定型文（共通とこのプロジェクトだけのもの）を、
+ * チャット欄の帯の「定型文を管理」で開くダイアログ。このプロジェクトで使う定型文（すべてのプロジェクトのものと、このプロジェクトだけのもの）を、
  * 設定と同じ SnippetManager で足す・直す・並べ替える・消す。ほかのプロジェクトのものも含めたすべては、設定の「定型文」で見る
  */
 export function SnippetDialog({ projectId, initialEditing, onClose }: { projectId: number; initialEditing?: SnippetEditing; onClose: () => void }) {

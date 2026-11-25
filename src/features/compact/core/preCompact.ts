@@ -4,7 +4,7 @@ import type { Project } from "@shared/projects/types";
 import { preCompactSent, type TurnContributor, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { PreCompactRequest } from "@/features/ai/core/index";
 
-/** そのプロジェクトで送る圧縮前指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
+/** そのプロジェクトで送る圧縮前指示（オンの分を、設定のすべてのプロジェクトの指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
 function preCompactPromptOf(store: Pick<ChatStoreDeps, "settings">, project: Project): string | null {
   return compactPromptFor("pre", store.settings.get(), project);
 }

@@ -6,20 +6,16 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
+import type { SnippetScope } from "./snippetScopes";
 
-/** 範囲の選択肢（null = 共通） */
-export interface SnippetScope {
-  value: number | null;
-  label: string;
-}
-
-/** 範囲を Segmented / select の値（文字）にする */
-const scopeKey = (value: number | null) => (value === null ? "common" : String(value));
-const scopeOf = (key: string) => (key === "common" ? null : Number(key));
+/** 範囲を Segmented / select の値（文字）にする（null = すべてのプロジェクト） */
+const scopeKey = (value: number | null) => (value === null ? "all" : String(value));
+const scopeOf = (key: string) => (key === "all" ? null : Number(key));
 
 /**
  * 定型文の編集欄（名前（省略できる）・本文・使う範囲）。⌘Enter で保存、Esc でやめる。
- * 範囲の選択肢が 3 つまでなら並べたボタン（プロジェクトの中: 共通 / このプロジェクト）、多ければ選択欄（設定: 共通とすべてのプロジェクト）
+ * 範囲の選択肢が 3 つまでなら並べたボタン（プロジェクト・共通の中: すべてのプロジェクト / このプロジェクトだけ）、多ければ選択欄
+ * （設定: すべてのプロジェクト・共通・各プロジェクト。選択肢は snippetScopes）
  */
 export function SnippetForm({
   initial,

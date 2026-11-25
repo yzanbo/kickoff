@@ -6,8 +6,8 @@ import { saveSettings, useAppSettings } from "@/foundation/ui/settings/appSettin
 import { savedCompactPrompt } from "./compactPromptKinds";
 
 /**
- * 圧縮前指示・圧縮後指示の書きかけと保存（projectId なしならアプリの設定の共通の指示、番号ならそのプロジェクトの指示）。
- * 設定の「圧縮前・圧縮後指示」の欄（CompactPromptForm）とチャット欄のメーターの詳細（CompactPromptEditor）で共通。
+ * 圧縮前指示・圧縮後指示の書きかけと保存（projectId なしならアプリの設定のすべてのプロジェクトの指示、番号ならそのプロジェクトの指示）。
+ * 設定の「圧縮前・圧縮後指示」の欄（CompactPromptForm）とチャット欄のメーターの詳細（CompactPromptEditor）で同じもの。
  * 保存した・ほかで変わったときは書きかけを保存した値に合わせる。空にすると null で保存する（送らない）。submit は save.run に渡す保存の中身。
  * オン / オフ（enabled）は文と別に、切り替えたらすぐ保存する（setEnabled。オフでも文は残し、送らないだけ）
  */
@@ -32,7 +32,7 @@ export function useCompactPrompt(kind: CompactPromptKind, projectId: number | nu
   return { saved, enabled, setEnabled, draft, setDraft, dirty: next !== saved, save, submit };
 }
 
-/** そのプロジェクトのチャットに送る指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につないだもの。コアの送る文と同じ。なければ null） */
+/** そのプロジェクトのチャットに送る指示（オンの分を、設定のすべてのプロジェクトの指示 → プロジェクトの指示の順につないだもの。コアの送る文と同じ。なければ null） */
 export function useSentCompactPrompt(kind: CompactPromptKind, projectId: number): string | null {
   const settings = useAppSettings().data;
   const { projectsById } = useProjects();

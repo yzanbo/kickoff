@@ -98,7 +98,7 @@ export function ChatDisplayItems() {
   return (
     <div className="menu-items">
       {/* 題名は組の見出しより一段上に見えるよう、太字にして下に区切り線を引く（組の見出しと同じ見た目だと、見出しが 2 段重なって見える） */}
-      <div className="menu-label menu-title" title="どのチャットでも共通の表示です（設定の「表示」と同じ値）">
+      <div className="menu-label menu-title" title="どのチャットでも同じ表示です（設定の「表示」と同じ値）">
         チャット画面表示
       </div>
       {separator}

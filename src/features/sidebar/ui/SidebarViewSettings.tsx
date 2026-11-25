@@ -65,7 +65,7 @@ export function SidebarViewSettings() {
                         {view.name}
                       </span>
                     )}
-                    {views.active?.id === view.id && <span className="manage-list-scope tag common" data-look="outline">表示中</span>}
+                    {views.active?.id === view.id && <span className="manage-list-scope tag accent" data-look="outline">表示中</span>}
                   </div>
                   {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="manage-list-text">{describeSidebarView(view.state)}</p>}
                 </div>

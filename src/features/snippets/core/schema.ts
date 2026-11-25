@@ -2,7 +2,7 @@ import { NOW } from "@/foundation/core/db/db";
 import { col, table } from "@/foundation/core/db/table";
 
 /**
- * 定型文（v1）。一覧は 1 つで、project_id が NULL なら共通（すべてのプロジェクト）、番号ならそのプロジェクトだけ（プロジェクトを消すと一緒に消える）。
+ * 定型文（v1）。一覧は 1 つで、project_id が NULL ならすべてのプロジェクト（共通のチャットも）、番号ならそのプロジェクトだけ（プロジェクトを消すと一緒に消える）。
  * position はすべての定型文で 1 つの並び（0 始まり）
  */
 export const SNIPPETS_SCHEMA_V1 = `

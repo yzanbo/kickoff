@@ -9,7 +9,7 @@ test("snippetLabel: 名前があれば名前、なければ本文の空でない
   assert.equal(snippetLabel({ label: null, text: "あ".repeat(30) }), `${"あ".repeat(24)}…`);
 });
 
-test("snippetsFor: 共通とそのプロジェクトのものだけを、並びを保って返す", () => {
+test("snippetsFor: すべてのプロジェクトのものとそのプロジェクトのものだけを、並びを保って返す", () => {
   const list = [makeSnippet(1), makeSnippet(2, { project_id: 5 }), makeSnippet(3, { project_id: 6 }), makeSnippet(4)];
   assert.deepEqual(
     snippetsFor(list, 5).map((s) => s.id),

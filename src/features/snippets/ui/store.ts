@@ -1,4 +1,4 @@
-// 定型文の一覧（すべての画面で 1 つ。チャット欄の中の帯・設定で共通）。使い始めたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。
+// 定型文の一覧（すべての画面で 1 つ。チャット欄の中の帯・設定で同じもの）。使い始めたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。
 // プロジェクトを消すと、そのプロジェクトだけの定型文もコアで一緒に消えるので、project_deleted でも外す
 import type { Snippet } from "@shared/snippets/types";
 import type { ReduceTable } from "@/foundation/ui/store";
@@ -26,7 +26,7 @@ export const snippetsStore = createStore<Snippet[]>({
 /** すべての定型文（読み込み中は空） */
 export const useAllSnippets = (): Snippet[] => useStore(snippetsStore).data ?? NO_SNIPPETS;
 
-/** そのプロジェクトで使える定型文（共通とそのプロジェクトだけのもの） */
+/** そのプロジェクトで使える定型文（すべてのプロジェクトのものと、そのプロジェクトだけのもの） */
 export function useProjectSnippets(projectId: number): Snippet[] {
   return snippetsFor(useAllSnippets(), projectId);
 }

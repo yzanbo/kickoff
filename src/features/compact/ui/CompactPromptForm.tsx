@@ -14,7 +14,7 @@ const DESCRIPTIONS: Record<CompactPromptKind, string> = {
 
 /**
  * 圧縮前指示・圧縮後指示（会話を圧縮する前・後に AI に送る指示）の欄。
- * projectId なしならアプリの設定の共通の指示、番号ならそのプロジェクトの指示（送るときは共通 → プロジェクトの順につなぐ）。
+ * projectId なしならアプリの設定のすべてのプロジェクトの指示、番号ならそのプロジェクトの指示（送るときはすべて → プロジェクトの順につなぐ）。
  * 文の上のオン / オフは、押したらすぐ保存する（オフでも文は残し、送らないだけ。文の保存は下の「保存」）
  */
 export function CompactPromptForm({ kind, projectId }: { kind: CompactPromptKind; projectId: number | null }) {
@@ -26,7 +26,7 @@ export function CompactPromptForm({ kind, projectId }: { kind: CompactPromptKind
       <h2>{label}</h2>
       <p className="muted small">
         {DESCRIPTIONS[kind]}
-        {projectId === null ? "プロジェクトの設定にも指示があれば、この共通の指示のあとにつなげて送ります。" : "アプリの設定の「圧縮前・圧縮後指示」に共通の指示があれば、そのあとにこのプロジェクトの指示をつなげて送ります。"}
+        {projectId === null ? "プロジェクト（共通も）の設定にも指示があれば、このすべてのプロジェクトの指示のあとにつなげて送ります。" : "アプリの設定の「圧縮前・圧縮後指示」にすべてのプロジェクトの指示があれば、そのあとにここの指示をつなげて送ります。"}
       </p>
       <div className="form">
         <ChoiceField<"on" | "off">

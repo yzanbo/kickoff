@@ -21,7 +21,7 @@ test("定型文: 作る・変える・範囲を切り替える・並べ替える
   assert.ok(mine.position > common.body.position);
   assert.ok(events.some((e) => e.type === "snippet" && e.snippet.id === mine.id));
 
-  // 範囲を共通に切り替える・名前を消す
+  // 範囲をすべてのプロジェクトに切り替える・名前を消す
   const patched = await api("PATCH /api/snippets/:snippetId", { params: { snippetId: mine.id }, body: { project_id: null, label: null } });
   assert.equal(patched.status, 200);
   assert.equal(patched.body.project_id, null);

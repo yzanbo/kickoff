@@ -2,7 +2,7 @@ import "./SnippetManager.css";
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
-import { isActiveUserProject } from "@shared/projects/kinds";
+import { isActiveUserProject, isCommonProject } from "@shared/projects/kinds";
 import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets";
 import { useAllSnippets } from "@/features/snippets/ui/store";
 import { useProjects } from "@/features/projects/ui";
@@ -10,29 +10,25 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { confirmDeleteSnippet, createSnippet, reorderSnippets, scopeLabel, updateSnippet } from "./snippetActions";
-import { SnippetForm, type SnippetScope } from "./SnippetForm";
+import { confirmDeleteSnippet, createSnippet, reorderSnippets, updateSnippet } from "./snippetActions";
+import { SnippetForm } from "./SnippetForm";
+import { scopeLabel, snippetScopes } from "./snippetScopes";
 
 /** 編集している行（新しく作るなら "new"） */
 export type SnippetEditing = number | "new" | null;
 
 /**
- * 定型文の一覧と編集（設定の「定型文」・プロジェクトの設定の「定型文」・チャット欄の帯の「定型文を管理」で共通）。
- * 一覧は 1 つで、projectId を渡すとそのプロジェクトで使うもの（共通とそのプロジェクトだけのもの）を出し、範囲は「共通 / このプロジェクト」から選ぶ。
- * null ならすべてを出し、範囲は共通とすべてのプロジェクトから選ぶ。↑↓ の並べ替えは、見えている中で隣と入れ替える（見えないものの位置は変えない）
+ * 定型文の一覧と編集（設定の「定型文」・プロジェクトの設定の「定型文」・チャット欄の帯の「定型文を管理」で同じ部品）。
+ * 一覧は 1 つで、projectId を渡すとそのプロジェクト（共通も）で使うもの（すべてのプロジェクトのものと、そこだけのもの）を出し、範囲は 2 つから選ぶ。
+ * null ならすべてを出し、範囲は すべてのプロジェクト・共通・各プロジェクトから選ぶ（snippetScopes）。↑↓ の並べ替えは、見えている中で隣と入れ替える（見えないものの位置は変えない）
  */
 export function SnippetManager({ projectId, initialEditing = null }: { projectId: number | null; initialEditing?: SnippetEditing }) {
   const all = useAllSnippets();
   const { projects, projectName } = useProjects();
   const [editing, setEditing] = useState<SnippetEditing>(initialEditing);
   const shown = projectId === null ? all : snippetsFor(all, projectId);
-  const scopes: SnippetScope[] =
-    projectId !== null
-        ? [
-            { value: null, label: "共通（すべてのプロジェクト）" },
-            { value: projectId, label: "このプロジェクトだけ" },
-          ]
-        : [{ value: null, label: "共通（すべてのプロジェクト）" }, ...projects.filter(isActiveUserProject).map((p) => ({ value: p.id, label: p.name }))];
+  const commonId = projects.find(isCommonProject)?.id ?? null;
+  const scopes = snippetScopes(projectId, { commonId, projects: projects.filter(isActiveUserProject) });
   const nameOf = (id: number) => projectName(id) || undefined;
   const move = (id: number, delta: number) => {
     const ids = moveWithin(
@@ -48,7 +44,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
     else await createSnippet(body);
     setEditing(null);
   };
-  // 新しく作るときの範囲は、プロジェクトの中ならこのプロジェクトだけ（そのプロジェクトのために作ることが多いため）、設定なら共通
+  // 新しく作るときの範囲は、プロジェクト・共通の中ならそこだけ（そのために作ることが多いため）、設定ならすべてのプロジェクト
   const blank: NewSnippetBody = {
     label: null,
     text: "",
@@ -58,7 +54,9 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
     <div className="manage-list">
       <div className="manage-list-head">
         <span className="muted small">
-          {projectId === null ? `すべての定型文 ${all.length} 件` : `このプロジェクトで使う定型文 ${shown.length} 件（共通を含む）`}
+          {projectId === null
+            ? `すべての定型文 ${all.length} 件`
+            : `${projectId === commonId ? "共通" : "このプロジェクト"}で使う定型文 ${shown.length} 件（すべてのプロジェクトのものを含む）`}
         </span>
         <button type="button" className="btn" disabled={editing === "new"} onClick={() => setEditing("new")}>
           <Plus size={13} aria-hidden />
@@ -79,7 +77,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
             </button>
           }
         >
-          よく送る指示を定型文にしておくと、チャット欄の中の帯から押すだけで入力欄に入れられます。共通にしたものは、すべてのプロジェクトで使えます。
+          よく送る指示を定型文にしておくと、チャット欄の中の帯から押すだけで入力欄に入れられます。範囲を「すべてのプロジェクト」にしたものは、どのプロジェクトでも共通のチャットでも使えます。
         </EmptyState>
       ) : (
         <ul className="manage-list-items">
@@ -97,7 +95,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
                 <div className="manage-list-body">
                   <div className="manage-list-title">
                     <span className="manage-list-name">{snippetLabel(s)}</span>
-                    <span className={cx("manage-list-scope tag", s.project_id === null && "common")} data-look="outline">{scopeLabel(s, nameOf, projectId)}</span>
+                    <span className={cx("manage-list-scope tag", s.project_id === null && "accent")} data-look="outline">{scopeLabel(s, { commonId, here: projectId, nameOf })}</span>
                   </div>
                   <p className="manage-list-text">{s.text}</p>
                 </div>
