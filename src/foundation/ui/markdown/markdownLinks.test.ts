@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import { test, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown } from "./Markdown";
+import { scrollToFragment } from "./markdownLinks";
 
 const html = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
 
@@ -21,4 +22,24 @@ test("Markdown のリンク: 相対のパス・mailto: などはリンクにせ�
 
 test("Markdown のリンク: # で始まるものは href を # のまま（窓は開かない）", () => {
   assert.match(html("[見出し](#a)"), /<a href="#a" rel="noreferrer">見出し<\/a>/);
+});
+
+/** 偽の Markdown の表示（返答 1 つ）: 中の ID の要素と、スクロールした記録（どの返答の何か） */
+function fakeReply(name: string, ids: string[], scrolled: string[]) {
+  const targets = new Map(ids.map((id) => [id, { scrollIntoView: () => void scrolled.push(`${name}:${id}`) }]));
+  const root = { querySelector: (selector: string) => targets.get(selector.replace(/^#/, "").replace(/\\/g, "")) ?? null };
+  return { closest: (selector: string) => (selector === ".markdown" ? root : null) } as unknown as Element;
+}
+
+test("scrollToFragment: 押したリンクの返答の中の ID へスクロールし、ほかの返答・行き先がないときは何もしない", () => {
+  vi.stubGlobal("CSS", { escape: (s: string) => s.replace(/[^\w-]/g, (c) => `\\${c}`) });
+  const scrolled: string[] = [];
+  const first = fakeReply("1つ目", ["user-content-fn-1"], scrolled);
+  const second = fakeReply("2つ目", ["user-content-fn-1", "user-content-fn-2"], scrolled);
+  scrollToFragment(second, "user-content-fn-1");
+  scrollToFragment(first, "user-content-fn-1");
+  // 1 つ目の返答にない行き先は、2 つ目の返答にあっても動かない
+  scrollToFragment(first, "user-content-fn-2");
+  scrollToFragment({ closest: () => null } as unknown as Element, "user-content-fn-1");
+  assert.deepEqual(scrolled, ["2つ目:user-content-fn-1", "1つ目:user-content-fn-1"]);
 });

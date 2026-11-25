@@ -6,7 +6,7 @@ import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
 import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "@/foundation/ui/markdown/markdownProcessor";
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
-import { MarkdownLinkOpenerContext } from "@/foundation/ui/markdown/markdownLinks";
+import { MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
@@ -23,7 +23,7 @@ import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
 /**
  * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。
  * ほかは行き先の判定（`@shared/foundation/linkTarget`）を通ったものだけをリンクにする: 外のページ（http・https。読み直した URL）は、
- * 開く口（MarkdownLinkOpenerContext。確認の画面・開き先の設定）で開く（中クリックも同じ）。同じ返答の中の # は窓を開かない。
+ * 開く口（MarkdownLinkOpenerContext。確認の画面・開き先の設定）で開く（中クリックも同じ）。# は窓を開かず、同じ返答の中の行き先へスクロールする。
  * ほか（相対のパス・mailto: など）はリンクにせず文字だけ（書かれた文字列を href に入れない。窓の URL に解決されてコアの URL などへ行かないように）
  */
 const link: Components["a"] = function MarkdownLink({ node, href, children }) {
@@ -35,6 +35,7 @@ const link: Components["a"] = function MarkdownLink({ node, href, children }) {
     if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !target) return;
     e.preventDefault();
     if (target.kind === "web") opener?.(e, target.url, hastText(node));
+    else scrollToFragment(e.currentTarget, target.id);
   };
   const plain =
     target === null ? (
