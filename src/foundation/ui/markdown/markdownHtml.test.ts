@@ -15,7 +15,7 @@ test("書式付きコピー: 見出し・表・コード・リストを HTML に
   assert.match(html, /&#x3C;script>alert\(1\)&#x3C;\/script>/);
 });
 
-test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1 つ・URL の切れ目・1 回の改行・脚注の文言）", () => {
+test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1 つ・URL の切れ目・1 回の改行・脚注）。脚注の隠す見出しは入れない", () => {
   const text =
     "**「強調」**は（https://example.com）を開く。所要時間は5~10秒\n行2\n\n- **ノート（.md）**と~~取消（x）~~です\n\n注[^1]\n\n[^1]: 脚注の本文\n\n<b title=\"x\">太</b> と [危ない](javascript:alert(1))";
   const html = markdownToHtml(text);
@@ -26,6 +26,7 @@ test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1
   // 書き出し方の違い（自分で閉じる印・文字参照の形・真偽の属性）だけをそろえて比べる
   const normalize = (s: string) =>
     s
+      .replace(/<h2 class="sr-only" id="footnote-label">脚注<\/h2>/, "")
       .replace(/<br\/>/g, "<br>")
       .replace(/&#x3C;/g, "&lt;")
       .replace(/&gt;/g, ">")
@@ -33,7 +34,10 @@ test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1
       .replace(/="true"/g, "");
   assert.equal(normalize(html), normalize(shown));
   assert.match(html, /<strong>「強調」<\/strong>は（<a href="https:\/\/example.com">https:\/\/example.com<\/a>）を開く。所要時間は5~10秒<br>\n行2/);
-  assert.match(html, /<h2 class="sr-only" id="footnote-label">脚注<\/h2>/);
+  // 脚注の見出しは画面では読み上げ用に隠すもの。貼った先には隠す CSS がないので入れない（脚注の欄と戻る印の説明は入れる）
+  assert.doesNotMatch(html, /sr-only|<h2/);
+  assert.match(html, /<section data-footnotes class="footnotes">\n<ol>/);
+  assert.match(html, /aria-label="本文の注 1 へ戻る"/);
   assert.doesNotMatch(html, /javascript:/);
 });
 
