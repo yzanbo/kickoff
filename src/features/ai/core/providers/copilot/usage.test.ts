@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
+import { fakeLoader } from "@shared/foundation/testing/async";
 import { fakeCopilotClient } from "@/features/ai/core/testing/fakeCopilotClient";
 import { CopilotProvider } from "./provider";
 import type { CopilotQuota } from "./sdk";
@@ -74,4 +75,20 @@ test("使用枠が無応答で、通常の終了も詰まれば専用ランタ�
   await vi.runAllTimersAsync();
   await failure;
   assert.equal(fake.clients[0].stopped, true);
+});
+
+test("使用状況の期限が切れたら、ログイン状態が後から届いても枠を聞かない", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  onTestFinished(() => { vi.useRealTimers(); });
+  const fake = fakeCopilotClient();
+  const auth = fakeLoader<void, { isAuthenticated: boolean; login?: string }>();
+  const provider = new CopilotProvider({ clientFactory: (opts) => ({ ...fake.factory(opts), getAuthStatus: auth.load }) });
+  const failure = assert.rejects(provider.usage(), /時間内に使用枠/);
+  await vi.runAllTimersAsync();
+  await failure;
+  assert.equal(fake.clients[0].stopped, true);
+  assert.equal(auth.calls.length, 1);
+  auth.calls[0].resolve({ isAuthenticated: true, login: "octo" });
+  await Promise.resolve();
+  assert.equal(fake.quotaRequests, 0);
 });

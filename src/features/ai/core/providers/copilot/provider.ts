@@ -14,6 +14,8 @@ import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 import { withTimeout } from "@shared/foundation/time";
 import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
 
+/** 期限つきの問い合わせで、SDK の通常の終了を待つ上限 */
+const CLIENT_STOP_TIMEOUT_MS = 1_000;
 
 export interface CopilotProviderOpts {
   /** SDK のクライアントの作り方（テストは偽物。省けば本物の SDK） */
@@ -50,18 +52,27 @@ export class CopilotProvider implements AgentProvider {
     this.baseEnv = opts.env ?? process.env;
   }
 
-  private clientFor(cwd: string): CopilotClientLike {
-    return this.factory({ env: runtimeEnv(this.baseEnv, undefined), cwd });
-  }
-
-  /** 用事を 1 つ済ませる短いランタイム（Copilot のログインのまま） */
-  private async withClient<T>(fn: (client: CopilotClientLike) => Promise<T>, cwd = os.homedir()): Promise<T> {
-    const client = this.clientFor(cwd);
-    try {
+  /** 用事を 1 つ済ませる短いランタイム。期限つきなら起動も期限に含め、終了が詰まれば強制終了を頼む */
+  private async withClient<T>(
+    fn: (client: CopilotClientLike, signal: AbortSignal) => Promise<T>,
+    { cwd = os.homedir(), timeout }: { cwd?: string; timeout?: { ms: number; message: string } } = {},
+  ): Promise<T> {
+    const client = this.factory({ env: runtimeEnv(this.baseEnv, undefined), cwd });
+    const controller = new AbortController();
+    const run = async () => {
       await client.start();
-      return await fn(client);
+      controller.signal.throwIfAborted();
+      return fn(client, controller.signal);
+    };
+    try {
+      return await (timeout ? withTimeout(run(), timeout.ms, timeout.message) : run());
     } finally {
-      await client.stop().catch(() => {});
+      controller.abort();
+      const stop = client.stop();
+      // 定期取得が専用ランタイムの終了を待ち続けて、他のサービスの表示を遅らせないようにする
+      await (timeout ? withTimeout(stop, CLIENT_STOP_TIMEOUT_MS, "Copilot の終了が時間内に終わりませんでした") : stop).catch(() => {
+        if (timeout) void client.forceStop().catch(() => {});
+      });
     }
   }
 
@@ -87,25 +98,12 @@ export class CopilotProvider implements AgentProvider {
   /** チャットと同じ認証でアカウントの枠だけを問い合わせる。会話セッションは作らない */
   async usage(): Promise<ProviderUsage> {
     if (!this.opts.clientFactory && !bundledRuntimeInstalled()) throw new Error("Copilot SDK のランタイムが入っていません");
-    const client = this.clientFor(os.homedir());
-    const controller = new AbortController();
-    const read = async () => {
-      await client.start();
-      controller.signal.throwIfAborted();
+    return this.withClient(async (client, signal) => {
       const auth = await client.getAuthStatus();
-      controller.signal.throwIfAborted();
+      signal.throwIfAborted();
       if (!auth.isAuthenticated) return noCopilotLogin();
       return normalizeCopilotUsage(await client.getQuota(), auth.login ?? null);
-    };
-    try {
-      return await withTimeout(read(), USAGE_QUERY_TIMEOUT_MS, "Copilot が時間内に使用枠を返しませんでした");
-    } finally {
-      controller.abort();
-      // 起動や RPC が詰まった場合も、他のサービスの取得を終了処理で待たせ続けない
-      await withTimeout(client.stop(), 1_000, "Copilot の終了が時間内に終わりませんでした").catch(() => {
-        void client.forceStop().catch(() => {});
-      });
-    }
+    }, { timeout: { ms: USAGE_QUERY_TIMEOUT_MS, message: "Copilot が時間内に使用枠を返しませんでした" } });
   }
 
   async models(): Promise<ModelOption[]> {
@@ -148,7 +146,7 @@ export class CopilotProvider implements AgentProvider {
       } finally {
         await session.disconnect().catch(() => {});
       }
-    }, cwd);
+    }, { cwd });
   }
 
   /**
@@ -168,7 +166,7 @@ export class CopilotProvider implements AgentProvider {
         await source.disconnect().catch(() => {});
       }
       return client.forkSession(sessionId, toEventId);
-    }, cwd);
+    }, { cwd });
   }
 
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
