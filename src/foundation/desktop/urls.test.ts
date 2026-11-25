@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { isEmbeddableUrl, isWebUrl, sameOrigin } from "./urls";
+import { appNavigationAllowed, frameNavigationAllowed, isEmbeddableUrl, isWebUrl, sameOrigin } from "./urls";
 
 test("外で開いてよいページ: http(s) だけ。埋め込みブラウザは空のページも", () => {
   assert.equal(isWebUrl("https://example.com/a"), true);
@@ -18,4 +18,26 @@ test("同じ出どころ: スキーム・ホスト・ポートが同じとき。
   assert.equal(sameOrigin("http://127.0.0.1:4319/", "http://127.0.0.1:4318"), false);
   assert.equal(sameOrigin("http://localhost:4318/", "http://127.0.0.1:4318"), false);
   assert.equal(sameOrigin("", "http://127.0.0.1:4318"), false);
+});
+
+test("アプリの窓の移動: アプリの出どころの中だけ通す（ほかのページ・読めない URL・アプリの URL が分からないときは止める）", () => {
+  const app = "http://127.0.0.1:4318";
+  assert.equal(appNavigationAllowed("http://127.0.0.1:4318/#/projects/1", app), true);
+  assert.equal(appNavigationAllowed("http://127.0.0.1:4318/index.html", app), true);
+  assert.equal(appNavigationAllowed("https://evil.example/", app), false);
+  assert.equal(appNavigationAllowed("http://127.0.0.1:4319/", app), false);
+  assert.equal(appNavigationAllowed("file:///etc/passwd", app), false);
+  assert.equal(appNavigationAllowed("javascript:alert(1)", app), false);
+  assert.equal(appNavigationAllowed("http://127.0.0.1:4318/", undefined), false);
+  // 開発版は dev サーバーの出どころ
+  assert.equal(appNavigationAllowed("http://localhost:5173/#/x", "http://localhost:5173"), true);
+});
+
+test("アプリの窓の中の枠の移動: アプリの出どころと srcdoc・空のページだけ", () => {
+  const app = "http://127.0.0.1:4318";
+  assert.equal(frameNavigationAllowed("about:srcdoc", app), true);
+  assert.equal(frameNavigationAllowed("about:blank", app), true);
+  assert.equal(frameNavigationAllowed("http://127.0.0.1:4318/visual-frame", app), true);
+  assert.equal(frameNavigationAllowed("https://evil.example/", app), false);
+  assert.equal(frameNavigationAllowed("data:text/html,x", app), false);
 });

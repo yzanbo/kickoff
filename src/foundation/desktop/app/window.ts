@@ -1,7 +1,7 @@
 import { app, BrowserWindow, type BrowserWindowConstructorOptions } from "electron";
 import { followAppearance, windowBackground } from "./appearance";
 import { PRELOAD_FILE } from "./environment";
-import { denyNewWindows } from "./windowGuard";
+import { denyNewWindows, guardAppNavigation } from "./windowGuard";
 import { watchWindowLoad } from "./startupLog";
 import { watchRendererHang } from "./hangWatch";
 import { markMain } from "@/foundation/desktop/app/bootRecorder";
@@ -18,7 +18,7 @@ export function setMainWindowUrl(url: string) {
 }
 
 /**
- * Kickoff の画面の窓を作る（メインのウィンドウと別ウィンドウで同じ: preload・砂場・地の色をテーマに合わせる・新しいウィンドウの要求では何も開かない・
+ * Kickoff の画面の窓を作る（メインのウィンドウと別ウィンドウで同じ: preload・砂場・地の色をテーマに合わせる・新しいウィンドウの要求では何も開かず、アプリの出どころの外へは移らない・
  * 応答しなくなったら止まった場所を書き、戻らなければ読み込み直すかを聞く）。webview: 埋め込みブラウザを置くか。label: 応答しないときの文の窓の名前
  */
 export function createAppWindow(options: BrowserWindowConstructorOptions & { webview: boolean }, label: string): BrowserWindow {
@@ -32,6 +32,7 @@ export function createAppWindow(options: BrowserWindowConstructorOptions & { web
   });
   followAppearance(win);
   denyNewWindows(win.webContents);
+  guardAppNavigation(win.webContents, () => mainUrl);
   watchRendererHang(win, label);
   return win;
 }

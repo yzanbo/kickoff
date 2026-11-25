@@ -14,3 +14,16 @@ export function sameOrigin(a: string, b: string): boolean {
     return false;
   }
 }
+
+/**
+ * アプリの窓の移動を通してよいか。アプリの出どころ（製品版はコアの URL、開発版は electron-vite の dev サーバーの URL）の中だけ。
+ * appUrl がまだ分からなければ通さない（閉じる側に倒す）
+ */
+export function appNavigationAllowed(url: string, appUrl: string | undefined): boolean {
+  return appUrl !== undefined && sameOrigin(url, appUrl);
+}
+
+/** アプリの窓の中の枠（iframe）の移動を通してよいか。アプリの出どころと、srcdoc・空のページ（HTML の文書の iframe）だけ */
+export function frameNavigationAllowed(url: string, appUrl: string | undefined): boolean {
+  return url === "about:srcdoc" || url === "about:blank" || appNavigationAllowed(url, appUrl);
+}
