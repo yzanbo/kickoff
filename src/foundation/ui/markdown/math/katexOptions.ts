@@ -13,30 +13,48 @@ export const KATEX_OPTIONS = { throwOnError: false, errorColor: "inherit", stric
 
 /** 透明・透明度のある色（KaTeX が色に通すのは色の名前と #rgb・#rgba・#rrggbb・#rrggbbaa だけ） */
 const SEE_THROUGH = /^\s*(?:transparent|#[0-9a-f]{4}|#[0-9a-f]{8})\s*$/i;
-/** 色の項目（color・background-color・border-color など） */
-const COLOR_PROPERTY = /(?:^|-)color$/i;
+/** 文字の色の項目（背景・枠の色は文字を隠さないので見ない） */
+const COLOR_PROPERTY = /^color$/i;
 
-/**
- * 式の要素の style から、透明・透明度のある色を外す（\color{transparent}・\textcolor{#0000} で見えない文字を書かせない。
- * \phantom も同じ透明の色で描かれるので、中の文字が見えるようになる）
- */
-export function safeMathStyle(style: string): string {
-  const kept = style.split(";").filter((decl) => {
+/** 透明な文字の要素に付けるクラス（Markdown.css・NoteEditor.unlayered.css が選べないようにする） */
+export const SEE_THROUGH_CLASS = "katex-see-through";
+
+/** style に、透明・透明度のある色の文字色があるか（\phantom・\color{transparent}・\textcolor{#0000} の描き方） */
+export function isSeeThroughStyle(style: string): boolean {
+  return style.split(";").some((decl) => {
     const colon = decl.indexOf(":");
-    return colon < 0 || !(COLOR_PROPERTY.test(decl.slice(0, colon).trim()) && SEE_THROUGH.test(decl.slice(colon + 1)));
+    return colon >= 0 && COLOR_PROPERTY.test(decl.slice(0, colon).trim()) && SEE_THROUGH.test(decl.slice(colon + 1));
   });
-  return kept.join(";");
 }
 
-/** KaTeX が書いた HTML の文字列の style を整える（ノートのライブプレビュー。KaTeX は属性の値を書き換えの形にするので、" は中に出ない） */
-export const safeMathHtml = (html: string): string => html.replace(/ style="([^"]*)"/g, (_m, style: string) => ` style="${safeMathStyle(style)}"`);
+/** 読み上げ用の MathML のうち、見えない部分（mphantom・透明な mathcolor）か */
+export const isHiddenMathml = (tagName: string, mathcolor: unknown): boolean => tagName === "mphantom" || (typeof mathcolor === "string" && SEE_THROUGH.test(mathcolor));
 
-/** rehype-katex のあとに、描いた式の style を整える rehype のプラグイン */
+/**
+ * rehype-katex のあとに、見えない文字（透明な色の文字）を、見えないまま場所だけ取る形で残しつつ、選べない・コピーに入らない形にする
+ * rehype のプラグイン（式の見た目は変えない）。見た目の HTML は選べないクラスと aria-hidden を付け、
+ * 画面に出ない読み上げ用の MathML は中身を空にする（選んでコピーすると MathML の文字も入るため）
+ */
 export function rehypeSafeMath() {
   return (tree: Root) => {
     visit(tree, "element", (node: Element) => {
       const style = node.properties.style;
-      if (typeof style === "string") node.properties.style = safeMathStyle(style);
+      if (typeof style === "string" && isSeeThroughStyle(style)) {
+        const classes = Array.isArray(node.properties.className) ? node.properties.className : [];
+        node.properties.className = [...classes, SEE_THROUGH_CLASS];
+        node.properties.ariaHidden = "true";
+      }
+      if (isHiddenMathml(node.tagName, node.properties.mathcolor)) node.children = [];
     });
   };
+}
+
+/** KaTeX が描いた DOM に、rehypeSafeMath と同じ整えをする（ノートのライブプレビュー。renderToString の HTML を入れたあと） */
+export function hideSeeThroughMath(root: ParentNode): void {
+  for (const el of root.querySelectorAll("[style]")) {
+    if (!isSeeThroughStyle(el.getAttribute("style") ?? "")) continue;
+    el.classList.add(SEE_THROUGH_CLASS);
+    el.setAttribute("aria-hidden", "true");
+  }
+  for (const el of root.querySelectorAll("mphantom, [mathcolor]")) if (isHiddenMathml(el.localName, el.getAttribute("mathcolor"))) el.replaceChildren();
 }

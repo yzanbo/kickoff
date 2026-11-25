@@ -155,6 +155,11 @@
   clip-path: inset(-0.25em);
 }
 
+/* 見えない文字は選べない・コピーに入らない（返答の数式と同じ） */
+.md-editor .cm-md-math .katex-see-through {
+  user-select: none;
+}
+
 .md-editor .cm-md-math-display {
   padding: 0.4em 0;
   overflow-x: auto;

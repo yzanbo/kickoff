@@ -199,6 +199,11 @@
     clip-path: inset(-0.25em);
   }
 
+  /* 見えない文字（\phantom・\color{transparent}。katexOptions.ts の rehypeSafeMath）は、場所だけ取り、選べない・コピーに入らない */
+  .markdown .katex-see-through {
+    user-select: none;
+  }
+
   .markdown .katex-display {
     margin: 0.6em 0;
     padding: 0.2em 0;

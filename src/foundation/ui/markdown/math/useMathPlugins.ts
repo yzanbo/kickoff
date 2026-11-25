@@ -13,7 +13,7 @@ function loadMath(): Promise<void> {
     plugins.set({
       // 1 つの $ も数式として読み、remarkMathGuard が数式らしくないもの（値段・シェルの変数）を元の文に戻す
       remark: [[remarkMath.default, { singleDollarTextMath: true }], remarkMathGuard],
-      // 設定は katexOptions.ts（ノートのライブプレビューと同じ）。描いたあとに透明な色を外す
+      // 設定は katexOptions.ts（ノートのライブプレビューと同じ）。描いたあとに、見えない文字を選べない・コピーに入らない形にする
       rehype: [[rehypeKatex.default, KATEX_OPTIONS], rehypeSafeMath],
     });
   });
