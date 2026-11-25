@@ -17,6 +17,16 @@ test("isRiskyMarkdownBlock: 固まる・スタックがあふれる形は当た�
   assert.equal(isRiskyMarkdownBlock("あ".repeat(300_001)), true);
 });
 
+test("isRiskyMarkdownBlock: 記号・空白・日本語の記号に接する _ は * と同じ重さで数える（前後とも文字の snake_case は軽く数える）", () => {
+  for (const unit of ["_.", "_!", "_)", "_「", "a_(", "a_ "]) assert.equal(isRiskyMarkdownBlock(unit.repeat(6_100)), true, unit);
+  assert.equal(isRiskyMarkdownBlock("a_b".repeat(12_100)), true);
+  assert.equal(isRiskyMarkdownBlock("_.".repeat(5_000)), false);
+  assert.equal(isRiskyMarkdownBlock("a_b".repeat(11_000)), false);
+  assert.equal(isRiskyMarkdownBlock("user_id と created_at と 漢字_かな ".repeat(2_000)), false);
+  // 文の中のコードの _ は数えない
+  assert.equal(isRiskyMarkdownBlock("`_._._._._.` ".repeat(3_000)), false);
+});
+
 test("isRiskyMarkdownBlock: ふつうの返答（長いコード・大きな表・強調の多い文）は当たらない", () => {
   assert.equal(isRiskyMarkdownBlock("**太字** と *斜体* と ~~取り消し~~ と snake_case_name"), false);
   assert.equal(isRiskyMarkdownBlock("| a | b |\n|---|---|\n" + "| **x** | `a_b_c` |\n".repeat(1_000)), false);
