@@ -105,3 +105,12 @@ test("sanitizeSvgTree: CSS（style の属性・<style>）の外を読む書き�
 test("stripCssUrls: image-set と、引用符付きの # は残す url", () => {
   assert.equal(stripCssUrls('background: image-set("https://evil.example/a.png" 1x); fill: url("#g")'), 'background: none; fill: url("#g")');
 });
+
+test("stripCssUrls: エスケープ・コメントで隠した url・@import・image-set・@font-face も消す", () => {
+  assert.equal(stripCssUrls(".a{background:\\75 rl(https://evil.example/a.png)}"), ".a{background:none}");
+  assert.equal(stripCssUrls(".a{background:u/**/rl(https://evil.example/a.png)}"), ".a{background:none}");
+  assert.equal(stripCssUrls('\\40 import "https://evil.example/a.css"; .a{fill:red}'), " .a{fill:red}");
+  assert.equal(stripCssUrls('.a{background:\\69 mage-set("https://evil.example/a.png" 1x)}'), ".a{background:none}");
+  assert.equal(stripCssUrls("@font-face{font-family:x;src:url(https://evil.example/f.woff)} .a{fill:red}"), " .a{fill:red}");
+  assert.equal(stripCssUrls('fill: url("#g")'), 'fill: url("#g")');
+});

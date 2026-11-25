@@ -7,6 +7,7 @@
  * - CSS の url(…) は # のほかを none にし、@import・image-set も消す（style の属性と <style> の中。外を読みに行かないように）
  * - href を書き換えるアニメーション（set・animate）は消す
  */
+import { decodeCss } from "./mermaidResources";
 
 /** 整えに使う DOM の口（Element の一部。テストでは偽の木を渡す） */
 export interface SvgElementLike {
@@ -34,9 +35,16 @@ const EXTERNAL_CSS_URL = /url\(\s*(?!['"]?#)[^)]*\)/gi;
 /** CSS で外を読む書き方のうち、url(…) を通らないもの（@import "…"・image-set("…")） */
 const CSS_IMPORT = /@import[^;]*;?/gi;
 const CSS_IMAGE_SET = /(?:-webkit-)?image-set\([^)]*\)/gi;
+const CSS_FONT_FACE = /@font-face\s*\{[^}]*\}?/gi;
 
-/** CSS で外を読む書き方（# でない url(…)・@import・image-set）を消す（図の設定の themeCSS から、書いた人の CSS も入る） */
-export const stripCssUrls = (css: string): string => css.replace(CSS_IMPORT, "").replace(CSS_IMAGE_SET, "none").replace(EXTERNAL_CSS_URL, "none");
+/**
+ * CSS で外を読む書き方（# でない url(…)・@import・image-set・@font-face）を消す（図の設定の themeCSS から、書いた人の CSS も入る）。
+ * エスケープ（\75 rl( = url(）・コメントを含むものは、戻してから消す（隠した書き方を見逃さないように）
+ */
+export const stripCssUrls = (css: string): string => {
+  const plain = /[\\]|\/\*/.test(css) ? decodeCss(css) : css;
+  return plain.replace(CSS_FONT_FACE, "").replace(CSS_IMPORT, "").replace(CSS_IMAGE_SET, "none").replace(EXTERNAL_CSS_URL, "none");
+};
 
 /** 1 つの要素の属性を整える */
 function cleanAttributes(el: SvgElementLike) {

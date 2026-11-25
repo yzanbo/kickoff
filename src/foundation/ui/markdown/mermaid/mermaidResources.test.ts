@@ -36,3 +36,20 @@ test("mermaidReadsOutside: ふつうの図（形・アイコンの名前・# の
     assert.equal(mermaidReadsOutside(code), false, code);
   }
 });
+
+test("mermaidReadsOutside: CSS のエスケープ・コメントで隠した url・@import・image-set・@font-face と、CSS を書ける所の \\ は当たる", () => {
+  for (const code of [
+    '%%{init:{"themeCSS":".node{background-image:\\\\75 rl(https://evil.example/a.png)}"}}%%\nflowchart TD\n  A-->B',
+    "flowchart TD\n  A-->B\n  style A fill:\\75rl(https://evil.example/p)",
+    "flowchart TD\n  A-->B\n  style A fill:u\\rl(https://evil.example/p)",
+    '%%{init:{"themeCSS":"\\\\40 import \\"https://evil.example/a.css\\";"}}%%\nflowchart TD\n  A-->B',
+    '%%{init:{"themeCSS":".a{background:-webkit-\\\\69 mage-set(\\"https://evil.example/a.png\\" 1x)}"}}%%\nflowchart TD\n  A-->B',
+    '%%{init:{"themeCSS":"@font-face{font-family:x;src:local(x)}"}}%%\nflowchart TD\n  A-->B',
+    "---\nconfig:\n  themeCSS: \".a{fill:\\\\u0075rl(x)}\"\n---\nflowchart TD\n  A-->B",
+    "flowchart TD\n  A-->B\n  classDef x fill:#f00\\9",
+  ]) {
+    assert.equal(mermaidReadsOutside(code), true, code);
+  }
+  // ラベルの中の \ （CSS を書けない所）は描く
+  assert.equal(mermaidReadsOutside('flowchart TD\n  A["C:\\\\Users\\\\a"] --> B'), false);
+});
