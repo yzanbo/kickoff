@@ -27,6 +27,8 @@ export function NoteTab(props: NoteTabProps) {
   const t = useNoteTab(props);
   const { common, list, panel } = t;
   const projectName = noteOwnerName(useProjects().projectsById.get(projectId));
+  // 共通の画面のノートのタブ（このプロジェクト = 共通）は、共通のノートの欄だけ（同じ中身を 2 つ並べない）
+  const inCommon = common.state === "ready" && common.projectId === projectId;
   // 欄に共通で渡すもの（開く先・探す文・選んでいる欄）
   const sectionOf = (id: number) => ({
     shownPath: t.shownPathIn(id),
@@ -60,7 +62,7 @@ export function NoteTab(props: NoteTabProps) {
             </>
           }
         >
-          <p>このプロジェクトのノートは、プロジェクトの外のフォルダに Markdown（HTML のノートは HTML）で保存します。チャットの文を右クリックして「ノートに追加」でも作れます（AI に要約させることもできます）。</p>
+          <p>{inCommon ? "共通のノートは、どのプロジェクトにも属さないフォルダ" : "このプロジェクトのノートは、プロジェクトの外のフォルダ"}に Markdown（HTML のノートは HTML）で保存します。チャットの文を右クリックして「ノートに追加」でも作れます（AI に要約させることもできます）。</p>
           <p className="muted small note-dir" title={list.data.dir}>
             保存先: {list.data.dir}
           </p>
@@ -78,22 +80,25 @@ export function NoteTab(props: NoteTabProps) {
           title={COMMON_NOTES_LABEL}
           icon={Globe}
           fold={COMMON_FOLD}
-          moveTargets={[{ projectId, name: projectName || "このプロジェクト", label: "このプロジェクトのノートへ移す" }]}
+          moveTargets={inCommon ? [] : [{ projectId, name: projectName || "このプロジェクト", label: "このプロジェクトのノートへ移す" }]}
           emptyHint={COMMON_NOTES_EMPTY_HINT}
           showTrash
+          {...(inCommon ? { renameRequest: t.renameRequest, onRenameRequestTaken: () => t.setRenameRequest(null) } : {})}
         />
       )}
-      <NoteSection
-        {...sectionOf(projectId)}
-        projectId={projectId}
-        title={projectName || "このプロジェクト"}
-        icon={StickyNote}
-        fold={{ place: "notes", key: `p${projectId}` }}
-        moveTargets={common.state === "ready" ? [{ projectId: common.projectId, name: COMMON_NOTES_LABEL, label: "共通のノートへ移す" }] : []}
-        emptyHint="まだノートはありません。見出しの ＋ から作るか、チャットの文を右クリックして「ノートに追加」で作れます。"
-        renameRequest={t.renameRequest}
-        onRenameRequestTaken={() => t.setRenameRequest(null)}
-      />
+      {!inCommon && (
+        <NoteSection
+          {...sectionOf(projectId)}
+          projectId={projectId}
+          title={projectName || "このプロジェクト"}
+          icon={StickyNote}
+          fold={{ place: "notes", key: `p${projectId}` }}
+          moveTargets={common.state === "ready" ? [{ projectId: common.projectId, name: COMMON_NOTES_LABEL, label: "共通のノートへ移す" }] : []}
+          emptyHint="まだノートはありません。見出しの ＋ から作るか、チャットの文を右クリックして「ノートに追加」で作れます。"
+          renameRequest={t.renameRequest}
+          onRenameRequestTaken={() => t.setRenameRequest(null)}
+        />
+      )}
     </NoteSplit>
   );
 }

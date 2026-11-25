@@ -20,6 +20,8 @@ export interface SettingsSectionDef {
   order: number;
   /** 削除など（一覧のいちばん下に置き、選ぶと赤くする） */
   danger?: boolean;
+  /** 共通の設定にも出す（scope が project の節だけ。付けない節は共通では出さない: GitHub・削除） */
+  common?: boolean;
   Component: ComponentType<SettingsPartProps>;
 }
 
@@ -36,6 +38,9 @@ export const settingsItems = definePoint<SettingsItemDef>("settingsItems", { key
 
 /** その scope の節（order の順） */
 export const settingsSectionsOf = (scope: SettingsSectionDef["scope"]): SettingsSectionDef[] => settingsSections.items().filter((s) => s.scope === scope);
+
+/** プロジェクトの設定の節（order の順。common: 共通の設定か。共通は common を付けた節だけ） */
+export const projectSettingsSections = (common: boolean): SettingsSectionDef[] => settingsSectionsOf("project").filter((s) => !common || s.common === true);
 
 /** その節の欄（order の順） */
 export const settingsItemsOf = (section: string): SettingsItemDef[] => settingsItems.items().filter((i) => i.section === section);

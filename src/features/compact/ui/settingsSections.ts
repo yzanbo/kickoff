@@ -3,4 +3,4 @@ import { Shrink } from "lucide-react";
 import type { SettingsSectionDef } from "@/features/settings/ui";
 import { CompactPromptSettings } from "./CompactPromptSettings";
 
-export const projectCompactSection: SettingsSectionDef = { id: "compact", scope: "project", label: "圧縮前・圧縮後指示", icon: Shrink, order: 60, Component: CompactPromptSettings };
+export const projectCompactSection: SettingsSectionDef = { id: "compact", scope: "project", label: "圧縮前・圧縮後指示", icon: Shrink, order: 60, common: true, Component: CompactPromptSettings };

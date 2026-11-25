@@ -5,7 +5,7 @@ import { openChat, chatTitle, useChildChats, useKnownChat } from "@/features/cha
 import { chatSubagents, flattenTree } from "@/features/subagents/ui";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { openTab, parsePanelKey } from "@/features/panel/ui";
-import { canShowProjectView, projectViews, projectViewTab, type ProjectViewDef } from "@/features/projects/ui";
+import { canShowProjectView, projectViews, projectViewTab, useIsCommonProject, type ProjectViewDef } from "@/features/projects/ui";
 import type { PaneLeaf, PanelController } from "@/features/panel/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { subagentsSettings } from "@/features/subagents/ui";
@@ -88,10 +88,12 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const children = (useChildChats().get(chatId) ?? []).filter((c) => c.archived_at === null);
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない
   const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));
+  // 共通のチャットは、共通で出す画面（ノート・ゴミ箱）だけ
+  const common = useIsCommonProject(chat?.project_id ?? 0);
   if (!chat) return null;
   // プロジェクトの画面（右の欄に置ける画面と、持ち主が代わりのものを出す画面）。コードのまとまりの前後に線を引く
   const adds = new Map(chatSideAdds.items().map((a) => [a.view, a]));
-  const views = projectViews.items().filter((v) => (v.places.includes("chatSide") || adds.has(v.id)) && canShowProjectView(v));
+  const views = projectViews.items().filter((v) => (v.places.includes("chatSide") || adds.has(v.id)) && canShowProjectView(v, common));
   return (
     <>
       <MenuItem title="入力欄だけの新しい子チャットのタブを開く（最初の文を送ると子チャットができます）" onSelect={onNewChild}>

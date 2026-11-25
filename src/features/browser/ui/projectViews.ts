@@ -3,4 +3,4 @@ import { Globe } from "lucide-react";
 import type { ProjectViewDef } from "@/features/projects/ui";
 import { BrowserViewPage } from "./projectViewPages";
 
-export const browserView: ProjectViewDef = { id: "browser", label: "ブラウザ", icon: Globe, group: "browser", order: 0, places: ["rightSidebar"], keepAlive: true, Page: BrowserViewPage };
+export const browserView: ProjectViewDef = { id: "browser", label: "ブラウザ", icon: Globe, group: "browser", order: 0, common: true, places: ["rightSidebar"], keepAlive: true, Page: BrowserViewPage };

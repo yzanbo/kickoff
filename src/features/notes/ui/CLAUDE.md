@@ -6,7 +6,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `tree/NoteTab.tsx`・`useNoteTab.ts` | ノートのタブ（右サイドバーも）。右のタブの欄 `notes`・`?note=`・最後に表示したノート |
+| `tree/NoteTab.tsx`・`useNoteTab.ts` | ノートのタブ（右サイドバーも。共通の画面では共通のノートの欄だけ）。右のタブの欄 `notes`・`?note=`・最後に表示したノート |
 | `allNotes/` | 全ノートの画面（Route `allNotes`）。並び `allNotesModel.ts`・離れる前 `allNotesLeave.ts` |
 | `tree/NoteSplit.tsx` | 一覧と開いたノートの枠（上の 2 つで共通） |
 | `tree/NoteSection.tsx`・`useNoteSection.ts` | 欄 1 つ（1 プロジェクトの木・見出し `NoteSectionTools`・メニュー） |

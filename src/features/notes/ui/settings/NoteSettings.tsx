@@ -19,14 +19,14 @@ export function NoteSettings() {
       <div className="form">
         <NoteFolderField
           label="ノートの保存先"
-          help="変えても、いまあるノートは動かしません（必要なら Finder で新しい場所へ移してください）。iCloud Drive の中にすると、ほかの Mac・iPhone と同期できます。"
+          help="変えても、いまあるノートは動かしません（必要なら Finder で新しい場所へ移してください）。iCloud Drive の中にすると、ほかの Mac・iPhone と同期できます。この下に、共通のチャットの AI が作業する隠しフォルダ .common-work もできます（ノートの保存先を変えると、一緒に移ります）。"
           value={settings.notes_dir}
           fallback={defaults?.default_dir ?? ""}
           onSave={(next) => saveSettings({ notes_dir: next })}
         />
         <NoteFolderField
           label="共通のノートのフォルダ"
-          help={`どのプロジェクトにも属さないノート（全ノートの画面の「共通のノート」）を置くフォルダです。空のときは既定の場所（${commonDefault || "ノートの保存先の下の _common"}）を使います。変えても、いまある共通のノートは動かしません（必要なら Finder で新しい場所へ移してください）。`}
+          help={`どのプロジェクトにも属さないノート（全ノートの画面の「共通のノート」）を置くフォルダです。空のときは既定の場所（${commonDefault || "ノートの保存先の下の _common"}）を使います。変えても、いまある共通のノートは動かしません（必要なら Finder で新しい場所へ移してください）。共通のチャットの AI が作業するフォルダ（ノートの保存先の下の .common-work）は動きません。`}
           value={settings.common_notes_dir}
           fallback={commonDefault}
           onSave={(next) => saveSettings({ common_notes_dir: next })}

@@ -2,6 +2,7 @@ import "./RightSidebar.css";
 import { useMemo, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { PanelFrame } from "@/features/panel/ui";
+import { isCommonProject } from "@shared/projects/kinds";
 import { availableProjectViews } from "@/features/projects/ui/projectViews";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { ProjectChatController } from "./useRightSidebar";
@@ -56,7 +57,7 @@ export function SideBody({ projectId, frame }: { projectId: number; frame?: Pane
   );
   const project = useProjects().projectsById.get(projectId);
   if (!project) return null;
-  const views = availableProjectViews("rightSidebar");
+  const views = availableProjectViews("rightSidebar", isCommonProject(project));
   const shown = views.find((v) => v.id === view);
   return (
     <>

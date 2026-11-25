@@ -98,6 +98,11 @@ export interface ProjectViewDef {
   order: number;
   /** この Mac のアプリの中だけ（ブラウザ・スマホからは出さない） */
   desktopOnly?: boolean;
+  /**
+   * 共通の画面にも出す（ボード・チャット・ノート・ゴミ箱・ブラウザ）。付けない画面は共通では出さない
+   * （共通の作業フォルダは AI の作業用で利用者に見せず、Git・DB・Docker・GitHub・CI も共通にはない）
+   */
+  common?: boolean;
   places: readonly ProjectViewPlace[];
   /** 作業場所に付く（WorkplaceProvider で包む。チャットの右の欄では作業場所を移したら付け替える） */
   followsWorkplace?: boolean;
@@ -114,11 +119,15 @@ export interface ProjectViewDef {
 
 export const projectViews = definePoint<ProjectViewDef>("projectViews", { key: (v) => v.id, order: (a, b) => a.order - b.order });
 
-/** このウィンドウで出せる画面か（この Mac のアプリの外では desktopOnly を出さない） */
-export const canShowProjectView = (v: ProjectViewDef): boolean => !v.desktopOnly || inDesktopApp();
+/**
+ * このウィンドウ・このプロジェクトで出せる画面か（この Mac のアプリの外では desktopOnly を、共通では common を付けていない画面を出さない）。
+ * 画面を並べる所（真ん中のタブ・右サイドバー・チャットの右の欄）はどこもこれで絞る
+ */
+export const canShowProjectView = (v: ProjectViewDef, common: boolean): boolean => (!v.desktopOnly || inDesktopApp()) && (!common || v.common === true);
 
-/** その置き場所で出せる画面（この Mac のアプリの外では desktopOnly を除く。置き方では絞らない） */
-export const availableProjectViews = (place: ProjectViewPlace): ProjectViewDef[] => projectViews.items().filter((v) => v.places.includes(place) && canShowProjectView(v));
+/** その置き場所で出せる画面（canShowProjectView で絞る。common: 共通の画面か。置き方では絞らない） */
+export const availableProjectViews = (place: ProjectViewPlace, common: boolean): ProjectViewDef[] =>
+  projectViews.items().filter((v) => v.places.includes(place) && canShowProjectView(v, common));
 
 export const projectViewOf = (id: string): ProjectViewDef | undefined => projectViews.items().find((v) => v.id === id);
 
@@ -143,10 +152,12 @@ export function projectViewGroups(views: readonly ProjectViewDef[]): ProjectView
 }
 
 /**
- * URL の画面の名前から出す画面（知らない名前・この Mac のアプリの外の desktopOnly・置き方が「分けない」ときの onlyWhenSeparate はボード = 初めの画面）
+ * URL の画面の名前から出す画面（知らない名前・この Mac のアプリの外の desktopOnly・共通で出さない画面・置き方が「分けない」ときの onlyWhenSeparate は
+ * ボード = 初めの画面）
  */
-export function resolveProjectView(id: string, separate: boolean): ProjectViewDef | undefined {
-  const def = availableProjectViews("center").find((v) => v.id === id);
+export function resolveProjectView(id: string, separate: boolean, common: boolean): ProjectViewDef | undefined {
+  const views = availableProjectViews("center", common);
+  const def = views.find((v) => v.id === id);
   if (def?.onlyWhenSeparate && !separate) return projectViewOf(def.onlyWhenSeparate.into);
-  return def ?? availableProjectViews("center")[0];
+  return def ?? views[0];
 }

@@ -7,6 +7,7 @@ import { readSetting } from "@/foundation/ui/storage";
 import { CHAT_PLACEMENT } from "@/foundation/ui/storage/storageKeys";
 import { boardTabOf } from "./page/chatPlacement";
 import { resolveProjectView, type ProjectViewPlace } from "./projectViews";
+import { isCommonProjectId } from "./projectColor";
 
 /** 画面 1 つの、未保存の登録簿の置き場所の名前（真ん中・右サイドバーはプロジェクトごと、チャットの右の欄はチャットごと） */
 export const projectViewSurface = ({ place, projectId, chatId, view }: { place: ProjectViewPlace; projectId: number; chatId?: number; view: string }): string =>
@@ -20,8 +21,9 @@ function centerSurfaceOf(route: Route): string | null {
   if (route.name === "allProjects" || route.name === "allNotes") return null;
   const placement = readSetting(CHAT_PLACEMENT);
   const tab = route.name === "project" ? route.tab : boardTabOf(placement);
-  const view = resolveProjectView(tab, placement === "separate")?.id ?? "board";
-  return projectViewSurface({ place: "center", projectId: route.name === "project" ? route.id : route.projectId, view });
+  const projectId = route.name === "project" ? route.id : route.projectId;
+  const view = resolveProjectView(tab, placement === "separate", isCommonProjectId(projectId))?.id ?? "board";
+  return projectViewSurface({ place: "center", projectId, view });
 }
 
 /** ルーターの移動の前: 真ん中の画面が替わる・外れる（別のタブ・チャット・別のプロジェクト・全プロジェクト・全ノートへ移る）なら、その画面の書きかけを聞く */

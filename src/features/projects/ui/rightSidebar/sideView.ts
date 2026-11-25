@@ -5,19 +5,21 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
 import { panelKey, panelStateOf, setPanelOpen, sidePanelsHandedOut } from "@/features/panel/ui";
 import { availableProjectViews } from "@/features/projects/ui/projectViews";
+import { isCommonProjectId, useIsCommonProject } from "@/features/projects/ui/projectColor";
 import { openSideWindow } from "./useRightSidebar";
 
 /** 右サイドバーの中身（画面の表 projectViews のうち右サイドバーに置ける画面の名前。初めはブラウザ） */
 export type SideView = string;
 const SIDE_VIEW_INITIAL = "browser";
 
-/** 覚えた値を中身にする（右サイドバーに置けない・この Mac のアプリの外で出せない画面・空はブラウザ） */
-export const sideViewOf = (stored: string): SideView => (availableProjectViews("rightSidebar").some((v) => v.id === stored) ? stored : SIDE_VIEW_INITIAL);
+/** 覚えた値を中身にする（右サイドバーに置けない・この Mac のアプリの外や共通で出せない画面・空はブラウザ。common: 共通の右サイドバーか） */
+export const sideViewOf = (stored: string, common: boolean): SideView =>
+  availableProjectViews("rightSidebar", common).some((v) => v.id === stored) ? stored : SIDE_VIEW_INITIAL;
 
 /** 右サイドバーでいま見ている中身 */
 export function useSideView(projectId: number): SideView {
   const [stored] = useSetting(storage.settings.sideView(projectId));
-  return sideViewOf(stored);
+  return sideViewOf(stored, useIsCommonProject(projectId));
 }
 
 /**
@@ -32,6 +34,6 @@ export function showSideView(projectId: number, view: SideView): void {
 
 /** 右サイドバーがいまその中身を見せているか（開いている・別ウィンドウへ移しているときだけ。ほかから開くときの行き先を決める） */
 export function isSideViewShown(projectId: number, view: SideView): boolean {
-  if (sideViewOf(readSetting(storage.settings.sideView(projectId))) !== view) return false;
+  if (sideViewOf(readSetting(storage.settings.sideView(projectId)), isCommonProjectId(projectId)) !== view) return false;
   return sidePanelsHandedOut() || panelStateOf(panelKey("side", projectId)).open;
 }

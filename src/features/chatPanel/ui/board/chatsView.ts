@@ -9,6 +9,7 @@ export const chatsView: ProjectViewDef = {
   icon: MessageSquare,
   group: "work",
   order: 20,
+  common: true,
   places: ["center"],
   onlyWhenSeparate: { into: "board" },
   Page: ChatsViewPage,

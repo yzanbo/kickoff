@@ -7,6 +7,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
 import { availableProjectViews, projectViewGroups } from "@/features/projects/ui/projectViews";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
+import { useIsCommonProject } from "@/features/projects/ui/projectColor";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { railGroupsOf } from "./railGroups";
 import { showSideView, useSideView, type SideView } from "./sideView";
@@ -16,12 +17,13 @@ import { openSideWindow } from "./useRightSidebar";
  * プロジェクトのタブのまとまり（真ん中に置ける画面の表。並べ替えの全体）と、列のまとまり（そこから右サイドバーに置けないボード・チャットを除いたもの）、
  * 右サイドバーだけの画面（ブラウザ。並べ替えずにいつも先頭）
  */
-function useRailGroups() {
+function useRailGroups(common: boolean) {
   return useMemo(() => {
-    const side = availableProjectViews("rightSidebar");
-    const all = projectViewGroups(availableProjectViews("center")).map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
+    // 列は出せる画面だけ（共通はノート・ゴミ箱）。全体のまとまりは並べ替えを覚えるためのもので、共通でも絞らない
+    const side = availableProjectViews("rightSidebar", common);
+    const all = projectViewGroups(availableProjectViews("center", false)).map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
     return { all, rail: railGroupsOf<LucideIcon>(all, (tab) => side.some((v) => v.id === tab)), own: side.filter((v) => !v.places.includes("center")) };
-  }, []);
+  }, [common]);
 }
 
 /** 列のアイコン 1 つ（プロジェクトの縦のタブと同じ .tab の見た目。押すとその中身で開く） */
@@ -57,7 +59,7 @@ function RailTab({
  * inWindow: 右サイドバーの別ウィンドウの中の列（切り替えるだけで、閉じない。別ウィンドウのボタンは出さない）
  */
 export function SideRail({ projectId, open, held = false, inWindow = false }: { projectId: number; open: boolean; held?: boolean; inWindow?: boolean }) {
-  const groups = useRailGroups();
+  const groups = useRailGroups(useIsCommonProject(projectId));
   const order = useProjectTabOrder(groups.rail, true, groups.all);
   const view = useSideView(projectId);
   const shown = open || held || inWindow;

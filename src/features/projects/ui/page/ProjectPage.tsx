@@ -12,6 +12,7 @@ import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/Projec
 import type { FileTarget, ProjectViewId, ReopenRoute } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
 import { resolveProjectView } from "@/features/projects/ui/projectViews";
+import { useIsCommonProject } from "@/features/projects/ui/projectColor";
 import { ProjectViewHost } from "@/features/projects/ui/ProjectViewHost";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
@@ -48,8 +49,10 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
   const separate = placement === "separate";
   const { data: shown, error, loading } = useProjectData(id);
   // 別の画面へ移る前の書きかけ（ファイル・ノート・DB の表の変更など）の確かめは、ルーターの移動の前（viewLeave.ts の leaveProjectView）
-  const tab: ProjectViewId = resolveProjectView(routeTab, separate)?.id ?? "board";
-  const view = resolveProjectView(tab, separate);
+  // 共通はボード・チャット・ノート・ゴミ箱だけ（ほかの画面の URL はボード）
+  const common = useIsCommonProject(id);
+  const tab: ProjectViewId = resolveProjectView(routeTab, separate, common)?.id ?? "board";
+  const view = resolveProjectView(tab, separate, common);
   const [editing, setEditing] = useState(false);
   // ファイル・検索・変更・履歴・DB のタブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [storedWorktree, storeWorktree] = useSetting(storage.settings.workplace(id));

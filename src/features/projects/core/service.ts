@@ -57,6 +57,27 @@ function requireUserProject(project: Project, refusal: string) {
 }
 
 /**
+ * 共通でも変えられる項目（共通の設定に出す節の分: 概要・AI・参照資料・圧縮前／圧縮後指示）。名前・色・タグ・固定・ノートのフォルダ・アーカイブは
+ * 持ち主の機能（ノート）と一覧の決まり（いつも先頭）が決めるので断り、GitHub の項目は共通に Git がないので断る
+ */
+const COMMON_PATCH_KEYS: ReadonlySet<string> = new Set([
+  "description",
+  "provider",
+  "reference_paths",
+  "pre_compact_prompt",
+  "post_compact_prompt",
+  "pre_compact_enabled",
+  "post_compact_enabled",
+] satisfies (keyof ProjectPatch)[]);
+
+/** 設定の変更の守り: 利用者のプロジェクトは全部、共通は COMMON_PATCH_KEYS だけ変えられる（ほかの項目が 1 つでもあれば何も変えずに 409） */
+function requirePatchable(project: Project, input: ProjectPatch) {
+  if (isUserProject(project)) return;
+  const refused = Object.entries(input).some(([key, value]) => value !== undefined && !COMMON_PATCH_KEYS.has(key));
+  if (refused) throw new Conflict("Kickoff が用意したプロジェクトなので、名前・色・タグ・固定・フォルダ・アーカイブ・GitHub は変えられません（変えられるのは概要・AI・参照資料・圧縮前／圧縮後指示だけ）");
+}
+
+/**
  * そのフォルダ（実体のパス。inspectWorkspace の path・git_root）を本体にしているプロジェクト（except は除く）。
  * 登録したパスがシンボリックリンクを含む（/tmp → /private/tmp など）こともあるので、登録したパスの実体とも比べる
  */
@@ -110,7 +131,7 @@ export async function importProject(ctx: ProjectsCtx, input: Defaulted<ImportPro
 
 /** 書いた項目だけ変える（参照資料はパスを調べ、アーカイブは時刻にする）。変えた項目は上の機能に知らせる */
 export function updateProject(ctx: ProjectsCtx, project: Project, input: ProjectPatch): Project {
-  requireUserProject(project, "設定を変えられません");
+  requirePatchable(project, input);
   const { reference_paths, archived, ...patch } = input;
   const updated = ctx.projects.update(project.id, {
     ...patch,

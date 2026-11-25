@@ -1,8 +1,9 @@
 // チャットの右の欄のプロジェクトの画面のタブ（chatSideView.ts の種類）の、名前の前のアイコンと中身
 import { useState } from "react";
 import type { PanelTab, TabPageProps } from "@/features/panel/ui";
-import { projectViewOf } from "./projectViews";
+import { canShowProjectView, projectViewOf } from "./projectViews";
 import { ProjectViewHost } from "./ProjectViewHost";
+import { isCommonProject } from "@shared/projects/kinds";
 import { useProjects } from "./stores/projects";
 import { projectViewSurface, useLeaveGuard } from "./viewLeave";
 
@@ -26,6 +27,8 @@ export function ChatSideViewPage({ tab }: TabPageProps<ProjectViewTab>) {
   const def = projectViewOf(tab.view);
   if (!def) return null;
   if (!project) return <p className="muted small">読み込み中…</p>;
+  // 共通で出さない画面（ファイル・変更など）のタブが残っていても（共通へ移したチャット）中身は描かない
+  if (!canShowProjectView(def, isCommonProject(project))) return <p className="muted small">この画面は共通のチャットでは使えません。</p>;
   const host = <ProjectViewHost def={def} ctx={{ project, place: "chatSide", chatId: tab.chatId, worktree, setWorktree, stale: false }} />;
   return def.chatSide?.bare ? host : <div className="project-content side-project-view">{host}</div>;
 }

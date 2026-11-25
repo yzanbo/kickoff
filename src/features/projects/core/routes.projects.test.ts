@@ -207,7 +207,7 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal((await api("POST /api/projects/import", { body: { path: plain, name: "dup" } })).status, 409);
 });
 
-test("見えないプロジェクト（共通のノート）: 一覧の API には出すが、設定の変更・アーカイブ・固定・フォルダの変更・git の管理・並べ替え・削除は 409 で断る（店からは変えられる）", async () => {
+test("共通: 一覧の API には出すが、名前・色・タグ・アーカイブ・固定・ノートのフォルダ・GitHub の変更、フォルダの変更・git の管理・並べ替え・削除は 409 で断る（店からは変えられる）", async () => {
   const { api, call, project, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const folder = tempDir();
   const common = store.projects.create({ name: "共通のノート", repo_path: folder, provider: "claude", kind: "common" });
@@ -222,17 +222,32 @@ test("見えないプロジェクト（共通のノート）: 一覧の API に�
     ],
   );
   const params = { projectId: common.id };
-  for (const body of [{ name: "別の名前" }, { archived: true }, { pinned: true }, { note_dir: tempDir() }]) {
+  // 変えてよい項目と混ぜても、断る項目が 1 つでもあれば何も変えない
+  for (const body of [{ name: "別の名前" }, { archived: true }, { pinned: true }, { note_dir: tempDir() }, { hue: 135 }, { tags: ["x"] }, { github_remote: "a/b" }, { pr_watch: false }, { description: "混ぜる", name: "別の名前" }]) {
     const refused = await call("PATCH", `/api/projects/${common.id}`, body);
     assert.equal(refused.status, 409, JSON.stringify(body));
     assert.match(refused.body.error, /Kickoff が用意したプロジェクトなので/);
   }
+  assert.equal(store.projects.get(common.id)!.description, null);
   assert.equal((await api("PUT /api/projects/:projectId/repo-path", { params, body: { path: tempDir() } })).status, 409);
   assert.equal((await api("POST /api/projects/:projectId/git/init", { params })).status, 409);
   assert.equal((await api("PUT /api/projects/order", { body: { ids: [common.id, project.id] } })).status, 409);
   assert.equal((await api("DELETE /api/projects/:projectId", { params })).status, 409);
   const after = store.projects.get(common.id)!;
   assert.deepEqual([after.name, after.archived_at, after.pinned, after.repo_path, after.note_dir], ["共通のノート", null, false, folder, null]);
+  // 共通の設定に出す節の項目（概要・AI・参照資料・圧縮前／圧縮後指示）は変えられる
+  const refFile = path.join(tempDir(), "memo.md");
+  fs.writeFileSync(refFile, "# memo");
+  const patched = await api("PATCH /api/projects/:projectId", {
+    params,
+    body: { description: "短く答える", provider: "codex", reference_paths: [{ path: refFile }], pre_compact_prompt: "前", post_compact_prompt: "後", pre_compact_enabled: true, post_compact_enabled: true },
+  });
+  assert.equal(patched.status, 200);
+  const changed = store.projects.get(common.id)!;
+  assert.deepEqual(
+    [changed.description, changed.provider, changed.reference_paths.map((r) => r.path), changed.pre_compact_prompt, changed.post_compact_prompt, changed.pre_compact_enabled, changed.post_compact_enabled],
+    ["短く答える", "codex", [refFile], "前", "後", true, true],
+  );
   // ふつうのプロジェクトだけの並べ替えは通る
   assert.equal((await api("PUT /api/projects/order", { body: { ids: [project.id] } })).status, 200);
   // 持ち主の機能（ノート）が店で直に変えるのは断らない

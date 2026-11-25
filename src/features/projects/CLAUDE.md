@@ -10,19 +10,19 @@
 ## 決まり
 
 - プロジェクトの色を出すのは印 `ProjectMark` だけ。札の地と枠の色は `ProjectMark.css`（サイドバーの見出しは `ProjectList.css`）。色は店の `Project.hue`（部品は `useProjectHue(id)`）。共通は灰色 `COMMON_TONE`。
-- 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A で共通）。並びは `projectOrder.ts`（共通は先頭・タグで絞っても残す・`reorderableIds` に入れない）。
-- 共通（`kind` あり）は API・店に残す。判定は `@shared/projects/kinds` の `isUserProject`（利用者のもの。操作・Git の所）と `isListedProject`（並べる。共通も）。HTTP の口は `requireUserProject` で 409、店の `update` は断らない。持ち主の機能がフォルダを変えるときは `ProjectsApi.changeOwnedFolder`（作業中なら 409、チャットは `afterRepoMove` で移す）。
+- 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A）。並びは `projectOrder.ts`（共通は先頭・タグで絞っても残す・`reorderableIds` に入れない）。
+- 共通（`kind` あり）は API・店に残す。判定は `@shared/projects/kinds` の `isUserProject`（利用者のもの。操作・Git の所）と `isListedProject`（並べる。共通も）。HTTP の口は `requireUserProject` で 409（PATCH は共通でも `COMMON_PATCH_KEYS` を通す）、店の `update` は断らない。持ち主がフォルダを変えるときは `ProjectsApi.changeOwnedFolder`（作業中なら 409、チャットは `afterRepoMove` で移す）。
 - アーカイブする・戻すは必ず確かめる（`confirmArchiveProject` / `confirmRestoreProject`）。
 - 操作は右クリックの `useProjectMenu` に入れる（共通は `CommonMenu`）。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`。
-- フォルダの被りは、どこでも `folderOverlaps.ts`（ノートは `NoteOverlapNotice`）の判定と文で知らせる。
-- 部品からは `openNewProject(request)` で開く（作ったあとの処理は値で渡す）。プロジェクトがなければ先に `NoProjectsGuide`。
-- 上の機能の力は `ProjectsApi` に口を足して登録してもらう（作業中か・ゴミ箱は chat、フォルダを変えたあと workplaceMove、設定を変えたあと github）。GitHub の連携のルートは github、Git の様子は口 `projectGit`、チャット・グループは口 `projectChats`・`projectGroups`、作ったあとの処理は `newProjectAfters`（値の形は `NewProjectAfterMap` に持ち主が足す）。
+- フォルダの被りは `folderOverlaps.ts`（ノートは `NoteOverlapNotice`）の判定と文で知らせる。
+- `openNewProject(request)` で開く（作ったあとの処理は値で渡す）。プロジェクトがなければ先に `NoProjectsGuide`。
+- 上の機能の力は `ProjectsApi` の口に登録してもらう（作業中か・ゴミ箱は chat、フォルダの変更後は workplaceMove、設定の変更後は github）。口: Git の様子 `projectGit`・チャットとグループ `projectChats`・`projectGroups`・作ったあと `newProjectAfters`（形は `NewProjectAfterMap`）。GitHub のルートは github。
 
 ## 落とし穴
 
-- タグの絞り込み（`useProjectTagFilter`）は、サイドバーの並び・ショートカット・要対応の数・全プロジェクトの画面・⌘⇧A に効く。変えたらこれらも見る。
-- もうないプロジェクト（`useProjects().missing`）の画面は中身の部品を出さない。
-- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（置き場所の違いは中身が `place` で決める。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。枠は道具の画面かページか。並べ替えは `ui/page/tabOrder.ts`。書きかけの確かめは `viewLeave.ts`。
+- タグの絞り込み（`useProjectTagFilter`）はサイドバーの並び・ショートカット・要対応の数・全プロジェクトの画面・⌘⇧A に効く。
+- もうないプロジェクト（`useProjects().missing`）の画面は中身を出さない。
+- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（違いは中身が `place` で。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。出すかはどこも `canShowProjectView`（共通は `common` を付けた画面だけ。設定の節は `projectSettingsSections`）。並べ替えは `ui/page/tabOrder.ts`（共通は全体に戻して覚える）。書きかけは `viewLeave.ts`。
 - 名前の行の「寄せたときだけ表示」はドラッグ領域にしない（`ProjectHeader.css`）。
-- テスト: `core/routes.projects.test.ts`・`core/*.test.ts`・`ui/**/*.test.ts`。
+- テスト: `core/*.test.ts`（API は `routes.projects`）・`ui/**/*.test.ts`。

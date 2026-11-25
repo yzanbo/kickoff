@@ -16,12 +16,28 @@ import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
 import { TagEditor } from "./TagEditor";
 import { useEditedProject } from "./editedProject";
 import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
+import { isCommonProject } from "@shared/projects/kinds";
 
-/** 基本情報（名前と概要・フォルダ・ほかの機能が足す欄（ノートのフォルダ）・色・タグ）。名前と概要は欄の外を押す・Enter で保存する */
+/**
+ * 基本情報（名前と概要・フォルダ・ほかの機能が足す欄（ノートのフォルダ）・色・タグ）。名前と概要は欄の外を押す・Enter で保存する。
+ * 共通は概要だけ（名前・色・タグ・フォルダはコアが決めるので変えられない。作業フォルダは利用者に見せない）
+ */
 export function BasicInfo() {
   const project = useEditedProject();
   const save = (patch: { name: string } | { description: string }) =>
     void projectsApi.updateProject(project.id, patch).catch((e: unknown) => alert("基本情報を保存できませんでした", errorMessage(e)));
+  if (isCommonProject(project)) {
+    return (
+      <section className="section">
+        <h2>基本情報</h2>
+        <div className="form">
+          <Field label="概要" help="共通のチャットで、AI にいつも守ってほしいこととして渡します。">
+            <CommitInput multiline className="project-description" rows={2} value={project.description ?? ""} onCommit={(description) => save({ description })} />
+          </Field>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="section">

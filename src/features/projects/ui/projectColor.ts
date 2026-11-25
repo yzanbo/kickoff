@@ -17,9 +17,12 @@ export function useProjectHue(id: number): number {
  */
 export const COMMON_TONE = "project-common";
 
-/** 共通のプロジェクトか（印を吹き出しに、色を灰色にする。一覧が届く前は違うものとして描く） */
+/** 共通のプロジェクトか（部品の外から。一覧が届く前は違うものとみなす） */
+export const isCommonProjectId = (id: number): boolean => currentProjects().find((p) => p.id === id)?.kind === "common";
+
+/** 共通のプロジェクトか（印を吹き出しに、色を灰色に、出す画面・設定の節を絞る。一覧が届く前は違うものとして描く） */
 export function useIsCommonProject(id: number): boolean {
-  return useProjectsValue(() => currentProjects().find((p) => p.id === id)?.kind === "common");
+  return useProjectsValue(() => isCommonProjectId(id));
 }
 
 /** 色相を要素に渡す style（CSS の --hue。印・札の地・横スライドの丸で使う） */

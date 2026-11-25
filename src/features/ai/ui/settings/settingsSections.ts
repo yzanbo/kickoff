@@ -3,4 +3,4 @@ import { Bot } from "lucide-react";
 import type { SettingsSectionDef } from "@/features/settings/ui";
 import { ProjectAiSection } from "./ProjectAiSection";
 
-export const projectAiSection: SettingsSectionDef = { id: "ai", scope: "project", label: "AI", icon: Bot, order: 30, Component: ProjectAiSection };
+export const projectAiSection: SettingsSectionDef = { id: "ai", scope: "project", label: "AI", icon: Bot, order: 30, common: true, Component: ProjectAiSection };

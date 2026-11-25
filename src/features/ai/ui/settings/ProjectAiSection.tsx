@@ -2,6 +2,7 @@ import "./ProjectAiSection.css";
 import { Check } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";
+import { isCommonProject } from "@shared/projects/kinds";
 import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";
@@ -23,11 +24,13 @@ export function ProjectAiSection() {
   const planned = usePlannedProviders();
   const { error, guard } = useAction();
   const choose = (id: ProviderId) => guard(() => projectsApi.updateProject(project.id, { provider: id }));
+  // 共通の設定では、共通のチャットの既定として説明する
+  const owner = isCommonProject(project) ? "共通" : "このプロジェクト";
 
   return (
     <section className="section">
       <h2>AI</h2>
-      <p className="muted small">このプロジェクトのチャットで初めに使う AI です（新しいチャットごとに選び直せます）。どれも Mac にインストールした CLI のログインをそのまま使います（API キーで動かすときは設定の「接続」）。</p>
+      <p className="muted small">{owner}のチャットで初めに使う AI です（新しいチャットごとに選び直せます）。どれも Mac にインストールした CLI のログインをそのまま使います（API キーで動かすときは設定の「接続」）。</p>
       <div className="provider-cards" role="radiogroup" aria-label="使う AI">
         {PROVIDER_IDS.map((id) => (
           <ProviderCard
@@ -42,7 +45,7 @@ export function ProjectAiSection() {
       {planned.note && <p className="muted small">{planned.note}対応するまでは選べません。</p>}
       <ErrorText message={error} />
       {providers.data?.find((p) => p.id === project.provider)?.implemented !== false ? (
-        <ProjectAiDefaults projectId={project.id} provider={project.provider} app={app} />
+        <ProjectAiDefaults projectId={project.id} owner={owner} provider={project.provider} app={app} />
       ) : (
         <p className="muted small">この AI の既定の設定は、対応したときにここで選べるようになります。</p>
       )}
