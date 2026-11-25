@@ -7,7 +7,7 @@ AI が返答に描く図（SVG・HTML）と、図を入れる枠。受け入れ�
 - `ui/VisualFrame`・`useFrameSlot`・`visualTheme.ts`
 
 ## 決まり
-- 図の iframe は砂場（`allow-same-origin` なし・図だけの CSP）。図から送る発言は、利用者が枠の中を押したときだけ受ける（`pressedInside`）。
+- 図の iframe は砂場（`allow-same-origin` なし・図だけの CSP。土台は `@shared/foundation/isolatedFrame.ts`、ページは `framePage`）。図から送る発言は、利用者が枠の中を押したときだけ受ける（`pressedInside`）。
 - 枠は画面の手前まで来てから置き、同時に読み込むのは `useFrameSlot` の数まで。触った図は `data-keep-row` で窓から外さない。
 - 高さの覚えのキーは図の ID とソースの指紋（ソースそのものを抱えない）。
 - ノートに保存は `open({ kind: "noteFromVisual" })`（保存は notes の `saveVisualNote.ts`）。

@@ -5,7 +5,7 @@ Electron に依存しないサーバー（HTTP・SQLite・外部コマンド・A
 ## 口の一覧
 - `kernel.ts`（`Kernel`）・`bus.ts`（知らせ `Bus`。SSE で配る）・`errors.ts`（`Invalid` / `NotFound` / `Conflict`）・`clock.ts`（`Clock`）・`undo.ts`・`feature.ts`（`CoreFeature`）・`serve.ts`
 - `db/`: `openDb`・`table()`（列の宣言で行と型を変換）・`inspectSchema`。`settings/`: 設定と秘密の値
-- `http/`: `implement.ts`（取り決めを受ける）・`mount.ts`・`lookups.ts`（`withProject` / `withWorkdir`）・`input.ts`（`jsonBody`・`queryOf`）・`sseData.ts`・`deviceAccess.ts`
+- `http/`: `implement.ts`（取り決めを受ける）・`mount.ts`・`lookups.ts`（`withProject` / `withWorkdir`）・`input.ts`（`jsonBody`・`queryOf`）・`sseData.ts`・`deviceAccess.ts`・`framePage.ts`（閉じた枠のページ）
 - `aiTools/`: `defineAiTool`・`AiToolRegistry`・`McpToolHost`（1 つの MCP サーバー `/mcp/<名前>`）
 - `system/`: `runCommand`・`streamCommand`・`paths.ts`（`toApiPath`）・`appEnv.ts`・`stallWatch.ts`・`childProcesses.ts`。`platform/`: `HostPlatform`（macOS は `macos/`）
 - `workplace/`（git・ワークツリー・`carry.ts`）・`files/`（`folderFiles`。別のディスクへも移す `movePath`）・`shell/shellWords.ts`・`watch/`（`Poller`・`Lease`）・`host/`（メインとの RPC）
