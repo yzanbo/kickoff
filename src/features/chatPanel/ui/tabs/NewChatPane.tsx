@@ -134,8 +134,9 @@ function NewChatForm({ draft: saved, visible, onCreated, onProjectChange }: Omit
       provider={provider}
       badges={
         <>
-          {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。どれも押すと選び直せる（作成先は共通と各プロジェクト） */}
-          {project && shows("project") && <ProjectPicker value={project.id} onPick={onProjectChange} />}
+          {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。どれも押すと選び直せる（作成先は共通と各プロジェクト）。
+              作成先の札は送る前に作成先を選び直す口なので、見出しの「プロジェクト」を隠していても出す（見出しの項目は初めプロジェクトを隠している） */}
+          {project && <ProjectPicker value={project.id} onPick={onProjectChange} />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => changeGroup(next, groupNameIn(groups, next))} />}
           {shows("worktree") && !common && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
         </>
