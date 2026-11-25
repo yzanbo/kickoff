@@ -13,7 +13,9 @@
  *   （「]」と「\!」20 個の繰り返しで、積が 1,000 万で 297ms・2,000 万で 932ms）。閉じたリンク「[a](b)」は 10,000 個で 229ms
  * - ふつうの文: 60 万字の段落で 95ms・25 万字（6,000 行）の表で 336ms（長さには比例するだけ）
  * ふつうの返答の 1 ブロック（空行で区切ったまとまり）は、強調の記号が数百、入れ子が数段、字下げが数十文字で、どれにも遠く届かない。
- * 一番上のコードブロック（``` / ~~~）の中は Markdown として読まれないので数えない（リストの中のコードブロックは数える。多めに見て止める側に倒す）
+ * 一番上のコードブロック（``` / ~~~）の中は Markdown として読まれないので数えない（リストの中のコードブロックは数える。多めに見て止める側に倒す）。
+ * 文の中のコード（` で囲んだ所）の記号も数える。` の組み方（同じ長さの ` の組だけがコード・\ で消した `・行をまたぐ組）を読み取りと同じに真似られないと、
+ * 組まない ` の間を消して重さを 0 にできてしまう（「`」＋「"*a"」の繰り返し＋「``」）。ふつうの返答の文の中のコードの記号は上限に遠く届かない
  */
 
 /** 強調の記号の重み付きの数の上限（* と ~ と前後のどちらかが文字でない _ は 1、前後とも文字の _ は 1/2。測った時間で 250ms ほど） */
@@ -35,8 +37,6 @@ const MAX_BLOCK_CHARS = 300_000;
 const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 /** 行の頭に並ぶ入れ子の印（> ・- ・* ・+ ・1. ・1) ） */
 const NESTING_PREFIX = /^(?:[ \t]*(?:>|[-*+](?=[ \t]|$)|\d{1,9}[.)](?=[ \t]|$)))+/;
-/** 文の中のコード（` で囲んだ所。中の記号は強調にならない） */
-const INLINE_CODE = /`[^`\n]*`/g;
 
 /** 行の頭の字下げの列（タブは 4 列） */
 function indentColumns(line: string): number {
@@ -59,7 +59,7 @@ function nestingOf(line: string): number {
 /** 語の中の文字（前後ともこれなら、_ は開き・閉じにならない） */
 const WORD_CHAR = /[\p{L}\p{N}\p{M}]/u;
 
-/** 文の中の強調の記号の重み付きの数（文の中のコードを除いた行） */
+/** 1 行の強調の記号の重み付きの数 */
 function emphasisWeight(line: string): number {
   let weight = 0;
   for (let i = 0; i < line.length; i++) {
@@ -82,7 +82,7 @@ interface BracketCount {
   walk: number;
 }
 
-/** 1 行（文の中のコードを除いたもの）の [ ] ( を数える。上限を超えたら true（\ で消した記号は数えない） */
+/** 1 行の [ ] ( を数える。上限を超えたら true（\ で消した記号は数えない） */
 function countBrackets(line: string, count: BracketCount): boolean {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
@@ -126,9 +126,8 @@ export function isRiskyMarkdownBlock(text: string): boolean {
       continue;
     }
     if (indentColumns(line) > MAX_INDENT_COLUMNS || nestingOf(line) > MAX_LINE_NESTING) return true;
-    const plain = line.replace(INLINE_CODE, "");
-    weight += emphasisWeight(plain);
-    if (weight > MAX_EMPHASIS_WEIGHT || countBrackets(plain, brackets)) return true;
+    weight += emphasisWeight(line);
+    if (weight > MAX_EMPHASIS_WEIGHT || countBrackets(line, brackets)) return true;
   }
   return false;
 }

@@ -23,8 +23,9 @@ test("isRiskyMarkdownBlock: 記号・空白・日本語の記号に接する _ �
   assert.equal(isRiskyMarkdownBlock("_.".repeat(5_000)), false);
   assert.equal(isRiskyMarkdownBlock("a_b".repeat(11_000)), false);
   assert.equal(isRiskyMarkdownBlock("user_id と created_at と 漢字_かな ".repeat(2_000)), false);
-  // 文の中のコードの _ は数えない
-  assert.equal(isRiskyMarkdownBlock("`_._._._._.` ".repeat(3_000)), false);
+  // 文の中のコードの _ も数える（ふつうの量なら当たらない）
+  assert.equal(isRiskyMarkdownBlock("`_._._._._.` ".repeat(3_000)), true);
+  assert.equal(isRiskyMarkdownBlock("`a_b` と `**kwargs` ".repeat(1_000)), false);
 });
 
 test("isRiskyMarkdownBlock: リンクの [ ] ( が多い・深い形（「[a](」の繰り返し・開きのない ]・[ の入れ子）は当たる", () => {
@@ -37,12 +38,26 @@ test("isRiskyMarkdownBlock: リンクの [ ] ( が多い・深い形（「[a](�
   assert.equal(isRiskyMarkdownBlock("]x\n".repeat(3_000)), true);
 });
 
-test("isRiskyMarkdownBlock: ふつうのリンク・画像の入ったリンク・チェックリスト・\\[ と文の中のコードの [ ] は当たらない", () => {
+test("isRiskyMarkdownBlock: ふつうのリンク・画像の入ったリンク・チェックリスト・\\[ と、文の中のコードのふつうの量の [ ] は当たらない", () => {
   assert.equal(isRiskyMarkdownBlock("[リンク](https://example.com/a) ".repeat(3_000)), false);
   assert.equal(isRiskyMarkdownBlock("[![画像](https://example.com/i.png)](https://example.com) ".repeat(2_000)), false);
   assert.equal(isRiskyMarkdownBlock("- [ ] やること\n- [x] 済んだこと\n".repeat(1_000)), false);
-  assert.equal(isRiskyMarkdownBlock("\\[".repeat(200) + "`[[[[`".repeat(100) + "a]"), false);
+  assert.equal(isRiskyMarkdownBlock("\\[".repeat(200) + "`[[[[`".repeat(5) + "a]"), false);
+  assert.equal(isRiskyMarkdownBlock("`a[0]` と `[x](y)` ".repeat(1_000)), false);
   assert.equal(isRiskyMarkdownBlock("![".repeat(32) + "a" + "](b)".repeat(32)), false);
+});
+
+test("isRiskyMarkdownBlock: 組まない ` で囲んだように見せた強調の記号・リンクの [ ] ( も数え、読み取りが 500ms 以内に終わる（\\` で閉じたように見せても同じ）", () => {
+  const pipeline = pipelineOf(undefined, null);
+  for (const body of ['"*a"'.repeat(16_000), "[a](".repeat(20_000)]) {
+    for (const close of ["``", "\\`"]) {
+      const text = "`" + body + close;
+      assert.equal(isRiskyMarkdownBlock(text), true, close);
+      const start = performance.now();
+      renderToStaticMarkup(renderMarkdown(pipeline, text, {}));
+      assert.ok(performance.now() - start < 500, `${body.slice(0, 4)} ${close}`);
+    }
+  }
 });
 
 test("isRiskyMarkdownBlock: ふつうの返答（長いコード・大きな表・強調の多い文）は当たらない", () => {
