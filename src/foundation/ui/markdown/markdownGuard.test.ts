@@ -27,6 +27,24 @@ test("isRiskyMarkdownBlock: 記号・空白・日本語の記号に接する _ �
   assert.equal(isRiskyMarkdownBlock("`_._._._._.` ".repeat(3_000)), false);
 });
 
+test("isRiskyMarkdownBlock: リンクの [ ] ( が多い・深い形（「[a](」の繰り返し・開きのない ]・[ の入れ子）は当たる", () => {
+  assert.equal(isRiskyMarkdownBlock("[a](".repeat(25_000)), true);
+  assert.equal(isRiskyMarkdownBlock("[a](b) ".repeat(5_001)), true);
+  assert.equal(isRiskyMarkdownBlock("](x)".repeat(10_000)), true);
+  assert.equal(isRiskyMarkdownBlock(("]" + "\\!".repeat(20)).repeat(700)), true);
+  assert.equal(isRiskyMarkdownBlock("![".repeat(33) + "a" + "](b)".repeat(33)), true);
+  // 行をまたいでも数える
+  assert.equal(isRiskyMarkdownBlock("]x\n".repeat(3_000)), true);
+});
+
+test("isRiskyMarkdownBlock: ふつうのリンク・画像の入ったリンク・チェックリスト・\\[ と文の中のコードの [ ] は当たらない", () => {
+  assert.equal(isRiskyMarkdownBlock("[リンク](https://example.com/a) ".repeat(3_000)), false);
+  assert.equal(isRiskyMarkdownBlock("[![画像](https://example.com/i.png)](https://example.com) ".repeat(2_000)), false);
+  assert.equal(isRiskyMarkdownBlock("- [ ] やること\n- [x] 済んだこと\n".repeat(1_000)), false);
+  assert.equal(isRiskyMarkdownBlock("\\[".repeat(200) + "`[[[[`".repeat(100) + "a]"), false);
+  assert.equal(isRiskyMarkdownBlock("![".repeat(32) + "a" + "](b)".repeat(32)), false);
+});
+
 test("isRiskyMarkdownBlock: ふつうの返答（長いコード・大きな表・強調の多い文）は当たらない", () => {
   assert.equal(isRiskyMarkdownBlock("**太字** と *斜体* と ~~取り消し~~ と snake_case_name"), false);
   assert.equal(isRiskyMarkdownBlock("| a | b |\n|---|---|\n" + "| **x** | `a_b_c` |\n".repeat(1_000)), false);

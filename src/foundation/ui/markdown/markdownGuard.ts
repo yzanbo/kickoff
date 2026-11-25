@@ -8,6 +8,9 @@
  *   前後とも文字（英数字・かな・漢字）の _（snake_case）は軽い（「a_b」が 12,000 個で 328ms・18,000 個で 664ms）。閉じた「**太字**」は * が 16,000 個でも 141ms
  * - 行頭の > の入れ子: 1,000 段で 9ms・3,000 段でスタックあふれ。「* 」の入れ子のリスト: 500 段で 79ms・2,000 段でスタックあふれ
  * - 字下げで深くした入れ子のリスト（1 段 2 文字）: 100 段で 37ms・200 段で 167ms・400 段で 1.2 秒
+ * - リンクの [ ] ( : 「[a](」の繰り返しは 15,000 個で 230ms・20,000 個で 2.7 秒（読み取りの中で急に遅くなる）。「![」の入れ子は 500 段で 132ms・
+ *   700 段で 268ms・1,000 段で 572ms。開きのない ] は、脚注の読み取りが ] ごとに手前の [ まで戻って探すので、] の数と戻る長さの積で遅くなる
+ *   （「]」と「\!」20 個の繰り返しで、積が 1,000 万で 297ms・2,000 万で 932ms）。閉じたリンク「[a](b)」は 10,000 個で 229ms
  * - ふつうの文: 60 万字の段落で 95ms・25 万字（6,000 行）の表で 336ms（長さには比例するだけ）
  * ふつうの返答の 1 ブロック（空行で区切ったまとまり）は、強調の記号が数百、入れ子が数段、字下げが数十文字で、どれにも遠く届かない。
  * 一番上のコードブロック（``` / ~~~）の中は Markdown として読まれないので数えない（リストの中のコードブロックは数える。多めに見て止める側に倒す）
@@ -15,6 +18,12 @@
 
 /** 強調の記号の重み付きの数の上限（* と ~ と前後のどちらかが文字でない _ は 1、前後とも文字の _ は 1/2。測った時間で 250ms ほど） */
 const MAX_EMPHASIS_WEIGHT = 6_000;
+/** リンクの行き先の開き（](）の数の上限 */
+const MAX_LINK_RESOURCES = 5_000;
+/** [ の入れ子の深さの上限（閉じていない [ の数。ふつうのリンクの中の画像は 2 段。32 段の「![」の入れ子を 150 個並べて 189ms） */
+const MAX_BRACKET_DEPTH = 32;
+/** ] ごとの、手前の [ までの字数の合計の上限（脚注の読み取りが戻って探す長さ。測った時間で 250ms ほど） */
+const MAX_BRACKET_WALK = 8_000_000;
 /** 1 行の頭に並ぶ入れ子の印（> と箇条書きの印）の数の上限 */
 const MAX_LINE_NESTING = 100;
 /** 行の頭の字下げの上限（列。タブは 4 列。1 段 2 文字の入れ子で 128 段・測った時間で 60ms ほど） */
@@ -61,10 +70,49 @@ function emphasisWeight(line: string): number {
   return weight;
 }
 
+/** リンクの [ ] ( の数え（行をまたいで数える） */
+interface BracketCount {
+  /** ]( の数 */
+  resources: number;
+  /** 閉じていない [ の数 */
+  depth: number;
+  /** いちばん近い [ からの字数（[ がまだなければブロックの頭から） */
+  sinceOpen: number;
+  /** ] ごとの sinceOpen の合計 */
+  walk: number;
+}
+
+/** 1 行（文の中のコードを除いたもの）の [ ] ( を数える。上限を超えたら true（\ で消した記号は数えない） */
+function countBrackets(line: string, count: BracketCount): boolean {
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === "\\") {
+      i++;
+      count.sinceOpen += 2;
+      continue;
+    }
+    if (ch === "[") {
+      count.depth++;
+      count.sinceOpen = 0;
+      if (count.depth > MAX_BRACKET_DEPTH) return true;
+    } else if (ch === "]") {
+      count.walk += count.sinceOpen;
+      if (count.depth > 0) count.depth--;
+      if (line[i + 1] === "(") count.resources++;
+      if (count.walk > MAX_BRACKET_WALK || count.resources > MAX_LINK_RESOURCES) return true;
+    }
+    count.sinceOpen++;
+  }
+  // 行の終わりの改行の分
+  count.sinceOpen++;
+  return false;
+}
+
 /** Markdown として読むと危ない形か（true なら書いたままの文字で出す） */
 export function isRiskyMarkdownBlock(text: string): boolean {
   if (text.length > MAX_BLOCK_CHARS) return true;
   let weight = 0;
+  const brackets: BracketCount = { resources: 0, depth: 0, sinceOpen: 0, walk: 0 };
   let fence: { char: string; length: number } | null = null;
   for (const line of text.split("\n")) {
     if (fence) {
@@ -80,7 +128,7 @@ export function isRiskyMarkdownBlock(text: string): boolean {
     if (indentColumns(line) > MAX_INDENT_COLUMNS || nestingOf(line) > MAX_LINE_NESTING) return true;
     const plain = line.replace(INLINE_CODE, "");
     weight += emphasisWeight(plain);
-    if (weight > MAX_EMPHASIS_WEIGHT) return true;
+    if (weight > MAX_EMPHASIS_WEIGHT || countBrackets(plain, brackets)) return true;
   }
   return false;
 }
