@@ -15,6 +15,7 @@
 - 画像の src の一覧（「host から画像を n 件表示」）は描く木から数える（`imageSourcesOf`。文の正規表現で拾わない）。
 - たたむ部分（details）は `MarkdownDetails.tsx` が state で開け閉めし、閉じている間は中身を DOM に置かない（コピー・引用・検索・画像の読み込みに入れない）。見出しがない・空なら「詳細」。
 - 数式は `math/katexOptions.ts` の設定 1 つ（返答とノート）。色を変える命令は色なし、小さくするサイズの命令は何もしない形で中身だけ描き、`\scriptscriptstyle` は `\scriptstyle` にする（見えない・読めない文字を作らせない）。数式は本文より小さくしない（`Markdown.css`）。
+- Mermaid は閉じた枠で描く（`mermaid/mermaidFrame.ts`・`@shared/foundation/mermaidFrame.ts`。外を読めず画面の DOM もない）。戻った SVG は `sanitizeSvg` を通す。`mermaidResources.ts` は重ね。
 - 書式付きコピー（`markdownHtml.ts`）は表示と同じ木を書く。HTML から作った要素の id と印のクラスは書かず、たたむ部分は中身ごと書く。
 - CSS: HTML でしか出ないタグは `MarkdownHtml.css`（state の層）で、ほかの CSS を戻してから見た目を付ける。文字の大きさを変えるタグは 10px から見出しの大きさまでに止める（Markdown も作る sup・code は `Markdown.css` で、HTML の同じタグも戻さない）。
 

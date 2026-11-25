@@ -468,6 +468,10 @@
     "device": "none"
   },
   {
+    "route": "GET /mermaid-frame",
+    "device": "none"
+  },
+  {
     "route": "GET /visual-frame",
     "device": "none"
   },

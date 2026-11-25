@@ -1,5 +1,6 @@
 // API のテスト: 認証・本文の読み取り・URL の :id の引き当て・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は各機能の core/routes.test.ts（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { AddressInfo } from "node:net";
@@ -11,6 +12,7 @@ import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
 import { openSse, sseType } from "@/foundation/core/testing/sse";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { ServerHello } from "@shared/foundation/server";
+import { MERMAID_FRAME_HTML, MERMAID_FRAME_PATH, MERMAID_FRAME_SCRIPT, mermaidFrameCsp } from "@shared/foundation/mermaidFrame";
 import { makeEvent } from "@shared/chat/testing";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 
@@ -29,6 +31,16 @@ test("図の枠のページ（/visual-frame）は認証の外で、図だけの 
   assert.match(res.headers.get("content-security-policy") ?? "", /default-src 'none'.*connect-src 'none'/);
   assert.equal(res.headers.get("cache-control"), "no-store");
   assert.match(await res.text(), /kickoff-visual-ready/);
+});
+
+test("Mermaid の図を描く枠のページ（/mermaid-frame）は認証の外で、中のスクリプトのハッシュだけを許し外へ通信しない CSP と no-store で返す", async () => {
+  const { app } = setup();
+  const res = await app.request(MERMAID_FRAME_PATH);
+  assert.equal(res.status, 200);
+  const hash = createHash("sha256").update(MERMAID_FRAME_SCRIPT, "utf8").digest("base64");
+  assert.equal(res.headers.get("content-security-policy"), mermaidFrameCsp(hash));
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  assert.equal(await res.text(), MERMAID_FRAME_HTML);
 });
 
 test("本文が JSON として読めない・必須の本文が空なら 400（読み取りの失敗を 500 にしない）。省ける項目だけなら本文なしで呼べる", async () => {

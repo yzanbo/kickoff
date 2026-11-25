@@ -70,6 +70,8 @@ export default defineConfig({
         "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false, ws: true },
         // AI が返答に描いた図の枠のページ（コアが図だけの CSP で返す）
         "/visual-frame": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
+        // Markdown の Mermaid の図を描く閉じた枠のページ（コアが外へ読み込み・通信ができない CSP で返す）
+        "/mermaid-frame": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
       },
     },
   },
