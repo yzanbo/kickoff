@@ -2,6 +2,7 @@
 // 「今後確認しない」はドメインごとにアプリ全体で覚える（設定の trusted_link_domains）。警告に当たるリンクは覚えていても毎回確かめる
 import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/foundation/linkWarnings";
 import type { AppSettings } from "@shared/foundation/contract/settings";
+import { webLinkOf } from "@shared/foundation/linkTarget";
 import { applySettings, settingsStore } from "@/foundation/ui/settings/appSettings";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { open } from "@/foundation/ui/navigation/open";
@@ -33,13 +34,24 @@ async function confirmOpen(href: string, text: string, settings: AppSettings): P
 
 /**
  * 外部リンクを開く。invert（⌘ を押しながら）なら設定と反対の方で開く。Kickoff のブラウザで開くのは、そのプロジェクトのチャット欄に新しいタブ
- * （AI の browser_open と同じ所）。プロジェクトが分からない画面（全プロジェクト・別ウィンドウ）では既定のブラウザ
+ * （AI の browser_open と同じ所）。プロジェクトが分からない画面（全プロジェクト・別ウィンドウ）では既定のブラウザ。
+ * 行き先は URL として読み直した形（`@shared/foundation/linkTarget`）だけを使い、確認の画面にも同じ形を出す（http・https でなければ何もしない）
  */
 export async function openWebLink(href: string, text: string, opts: { invert: boolean; projectId: number | undefined }): Promise<void> {
+  const url = webLinkOf(href);
+  if (url === null) return;
   const settings = settingsStore.get().data ?? (await settingsStore.reload());
-  if (!(await confirmOpen(href, text, settings))) return;
+  if (!(await confirmOpen(url, text, settings))) return;
   const kickoff = (settings.link_open_in === "kickoff") !== opts.invert;
-  if (kickoff && opts.projectId !== undefined) open({ kind: "browser", projectId: opts.projectId, url: href });
-  // 新しいウィンドウを開こうとすると、メインプロセスが既定のブラウザで開く（app/externalLinks.ts）
-  else openInDefaultBrowser(href);
+  if (kickoff && opts.projectId !== undefined) open({ kind: "browser", projectId: opts.projectId, url });
+  else openInDefaultBrowser(url);
+}
+
+/**
+ * HTML の文書（ファイルのプレビュー・HTML のノート）の中のリンク（<base> で解決した URL）のうち、外のサイト（http・https。この画面の出どころは除く）だけを、
+ * 本文のリンクと同じ確認を通して既定のブラウザで開く。ほか（この画面の URL・mailto: など）は何もしない
+ */
+export function openPageLink(url: string): void {
+  const web = webLinkOf(url);
+  if (web !== null && new URL(web).origin !== location.origin) void openWebLink(web, "", { invert: false, projectId: undefined });
 }

@@ -3,6 +3,7 @@ import { useImperativeHandle, useRef, type MutableRefObject } from "react";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
 import { HtmlFrame } from "@/foundation/ui/document/HtmlFrame";
+import { openPageLink } from "@/foundation/ui/external/linkOpen";
 import { noteAssetBase, noteLinkPath, pageMayRead } from "./htmlPage";
 import { parentOf } from "@/features/notes/ui/notePaths";
 
@@ -14,7 +15,7 @@ export interface HtmlNotePageHandle {
 
 /**
  * HTML のノートをページとして描く（土台の HtmlFrame。ここでは書けない。書くのはソースの表示）。相対パスの CSS・画像はノートのフォルダから読む（<base> をコアのファイルの口へ向ける）。
- * リンクは中で開かない（ページ内の # は飛ぶ、ノートのフォルダの中は onOpenLink（開く側がノートを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてノートのメニューを開き、⌘S は保存、⌘F はこのノートを探す欄（ページの ⌘F。欄はページの中の文字も探す）。
+ * リンクは中で開かない（ページ内の # は飛ぶ、ノートのフォルダの中は onOpenLink（開く側がノートを開く）、外のサイトは確認してからブラウザで開く）。右クリックは選んだ文を添えてノートのメニューを開き、⌘S は保存、⌘F はこのノートを探す欄（ページの ⌘F。欄はページの中の文字も探す）。
  * 選んだ文とその位置は handleRef の selected で読む。ページが読む CSS・画像などのファイルがノートのフォルダで変わったときも描き直す（いつも最新の見た目）。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
 export function HtmlNotePage({
@@ -47,8 +48,8 @@ export function HtmlNotePage({
     // ノートのフォルダの中（相対パスのリンク。<base> でコアのファイルの口に解決される）は、開く側に渡す
     const inNotes = noteLinkPath(url, noteAssetBase(location.origin, projectId, ""));
     if (inNotes) onOpenLink(inNotes);
-    // 外のサイト・メールはブラウザ・メールのアプリで開く（メインプロセスが外へ渡す）。この画面のほかの URL は開かない
-    else if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
+    // 外のサイト（http・https）は、本文のリンクと同じ確認を通して既定のブラウザで開く。この画面のほかの URL・mailto: などは開かない
+    else openPageLink(url);
   };
   const onKey = (key: string) => {
     if (key === "s") onSave();

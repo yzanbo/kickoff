@@ -1,5 +1,5 @@
 import "./Markdown.css";
-import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
+import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
@@ -7,6 +7,7 @@ import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } f
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
 import { MarkdownLinkOpenerContext } from "@/foundation/ui/markdown/markdownLinks";
+import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/foundation/ui/markdown/mermaid/mermaidSource";
@@ -20,34 +21,32 @@ import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
 
 /**
  * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。
- * 外部リンク（http・https）は、開く口（MarkdownLinkOpenerContext）があればそれで開く（確認の画面・開き先の設定）
+ * ほかは行き先の判定（`@shared/foundation/linkTarget`）を通ったものだけをリンクにする: 外のページ（http・https。読み直した URL）は、
+ * 開く口（MarkdownLinkOpenerContext。確認の画面・開き先の設定）で開く（中クリックも同じ）。同じ返答の中の # は窓を開かない。
+ * ほか（相対のパス・mailto: など）はリンクにせず文字だけ（書かれた文字列を href に入れない。窓の URL に解決されてコアの URL などへ行かないように）
  */
 const link: Components["a"] = function MarkdownLink({ node, href, children }) {
   const opener = useContext(MarkdownLinkOpenerContext);
   const path = node?.properties.dataFilePath;
-  const web = opener !== null && typeof href === "string" && /^https?:\/\//i.test(href);
-  const plain = (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      onClick={
-        web
-          ? (e) => {
-              if (e.button !== 0 || e.defaultPrevented) return;
-              e.preventDefault();
-              opener(e, href, hastText(node));
-            }
-          : undefined
-      }
-    >
-      {children}
-    </a>
-  );
+  const target = linkTargetOf(href);
+  // 押した（左・中クリック）ら、窓の既定の動き（窓の移動・新しいウィンドウ）を止めて、こちらで開く
+  const activate = (e: MouseEvent<HTMLAnchorElement>) => {
+    if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !target) return;
+    e.preventDefault();
+    if (target.kind === "web") opener?.(e, target.url, hastText(node));
+  };
+  const plain =
+    target === null ? (
+      <>{children}</>
+    ) : (
+      <a href={target.kind === "web" ? target.url : href} rel="noreferrer" onClick={activate} onAuxClick={activate}>
+        {children}
+      </a>
+    );
   if (typeof path !== "string") return plain;
   const text = node?.properties.dataFileText;
   return (
-    <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined} text={typeof text === "string" ? text : undefined} fallback={href ? plain : children}>
+    <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined} text={typeof text === "string" ? text : undefined} fallback={plain}>
       {children}
     </FileLink>
   );

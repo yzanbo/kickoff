@@ -6,6 +6,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { CheckStateIcon, ciTone } from "./CheckStateIcon";
 import { checkDuration } from "./githubChecks";
+import { ExternalAnchor } from "@/foundation/ui/external/ExternalAnchor";
 
 /** チェックの状態の名前（添え書き detail があればそれ。時間切れ・対応が要るなど。途中は「途中」） */
 const checkLabel = (c: GitHubCheck) => c.detail ?? (c.state === "pending" ? "途中" : CI_STATE_LABELS[c.state]);
@@ -38,9 +39,9 @@ export function GitHubChecksList({ projectId, checks }: { projectId: number; che
           {c.run_id !== null && (
             <IconButton icon={ScrollText} iconSize={13} className="github-check-log" label="ログを開く" title="CI のタブでこの実行のログを開く" onClick={() => openCiRun(projectId, c.run_id!, c.job_id)} />
           )}
-          {c.url && <a className="github-check-link" href={c.url} target="_blank" rel="noreferrer" aria-label="GitHub で詳細を見る" data-tip="GitHub で詳細を見る">
+          {c.url && <ExternalAnchor className="github-check-link" href={c.url} aria-label="GitHub で詳細を見る" data-tip="GitHub で詳細を見る">
             <ExternalLink size={13} aria-hidden />
-          </a>}
+          </ExternalAnchor>}
         </li>
       ))}
     </ul>
