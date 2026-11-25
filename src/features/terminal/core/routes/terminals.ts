@@ -2,12 +2,15 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { terminalContract } from "@shared/terminal/contract";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
+import { terminalFolderOf } from "@shared/terminal/folder";
 import type { TerminalClientMessage, TerminalCreateBody, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage } from "@shared/terminal/types";
 import type { Caller } from "@/foundation/core/http/caller";
-import { Invalid } from "@/foundation/core/errors";
+import { Conflict, Invalid } from "@/foundation/core/errors";
 import { implement, textParam, type Param } from "@/foundation/core/http/implement";
 import { jsonBody } from "@/foundation/core/http/input";
+import { expandHome } from "@/foundation/core/system/paths";
 import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
@@ -66,11 +69,12 @@ export function terminalRoutes({ projectParam, store, terminals, bus }: Terminal
         return query.project_id !== undefined ? tabs.filter((t) => t.project_id === query.project_id) : tabs;
       },
     },
-    // 新しいシェルを、プロジェクトの作業場所（本体・ワークツリー）で始める → キー（このキーで WebSocket につなぐ）
+    // 新しいシェルを、プロジェクトの作業場所（本体・ワークツリー）で始める → キー（このキーで WebSocket につなぐ）。共通はホームフォルダ（パソコンの下の欄と同じ terminalFolderOf）
     "POST /api/projects/:projectId/terminals": {
       body: createSchema,
       run: async ({ projectId: project, body, caller }) => {
-        const cwd = await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
+        if (isCommonProject(project) && body.worktree_path !== null) throw new Conflict("共通は Git で管理しないので、ワークツリーでターミナルを開けません");
+        const cwd = isCommonProject(project) ? expandHome(terminalFolderOf(project)) : await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
         const key = `api:${randomUUID()}`;
         const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;
         // 作るだけ（出力は、あとでつなぐ WebSocket に届く。それまでの分は snapshot に入る）
@@ -88,7 +92,8 @@ export function terminalRoutes({ projectParam, store, terminals, bus }: Terminal
         const placeholder = { id: `open:${body.key}`, data: () => {}, exit: () => {} };
         const start = body.start ? { command: body.start.command ?? undefined, env: body.start.env ?? undefined } : undefined;
         const meta = body.meta ? { projectId: body.meta.project_id, title: body.meta.title } : undefined;
-        const { created } = await terminals.open({ key: body.key, cwd: body.cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
+        // 共通のターミナルは cwd がホームフォルダの印（HOME_FOLDER）で届く（画面はホームの場所を知らない）
+        const { created } = await terminals.open({ key: body.key, cwd: expandHome(body.cwd), cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
         terminals.detach(body.key, placeholder.id);
         return c.json({ created } satisfies TerminalOpened, created ? 201 : 200);
       },

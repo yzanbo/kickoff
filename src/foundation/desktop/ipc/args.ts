@@ -1,6 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import type { Same } from "@shared/foundation/contract";
+import { HOME_FOLDER } from "@shared/foundation/path";
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, FOUNDATION_IPC } from "@shared/foundation/ipc";
 import { THEME_CHOICES } from "@shared/foundation/theme/backgrounds";
 import type { ArgSchemasFor, ArgsOfTable, ZodArgsOf } from "./register";
@@ -12,6 +13,8 @@ import type { ArgSchemasFor, ArgsOfTable, ZodArgsOf } from "./register";
 export const none = z.tuple([]);
 /** 絶対パス */
 export const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "絶対パスではありません" });
+/** 絶対パスか、ホームフォルダの印（HOME_FOLDER。共通のターミナルの開く場所。受けた側が展開する） */
+const absoluteOrHome = z.string().refine((p) => p === HOME_FOLDER || path.isAbsolute(p), { message: "絶対パスではありません" });
 export const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
@@ -39,7 +42,7 @@ export const foundationArgs = {
     revealPath: z.tuple([absolutePath]),
     openInVSCode: z.tuple([absolutePath, z.number().optional()]),
     terminals: none,
-    openTerminal: z.tuple([absolutePath, terminalId.optional()]),
+    openTerminal: z.tuple([absoluteOrHome, terminalId.optional()]),
     browsers: none,
     openBrowser: z.tuple([z.string().optional(), browserId.optional()]),
   },

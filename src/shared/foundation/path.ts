@@ -1,5 +1,8 @@
 // 「/」区切りの相対パスと木の補助（純粋な関数。コアのフォルダの中のファイル・画面のエディタとノートの木・スマホが同じものを使う）
 
+/** ホームフォルダを指す印（画面はホームの実際の場所を知らないので、これを渡してコア・メインプロセスが expandHomeWith で展開する） */
+export const HOME_FOLDER = "~";
+
 /** "~" と "~/..." をホームフォルダ home に展開する（それ以外はそのまま。コアは expandHome が OS のホームを渡す） */
 export function expandHomeWith(p: string, home: string): string {
   if (p === "~") return home;

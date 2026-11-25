@@ -1,5 +1,6 @@
 // API のテスト: 内蔵ターミナルを API から使う口（一覧・始める・止める・WebSocket でつなぐ。スマホのターミナル）
 import assert from "node:assert/strict";
+import os from "node:os";
 import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import WebSocket from "ws";
@@ -215,4 +216,23 @@ test("ターミナル: PUT /api/terminals/:key/owner は持ち主だけを替え
   assert.equal(terminalFake.spawned[0].killed, false);
   terminals.closeOwnedBy("wc:2");
   assert.equal(terminalFake.spawned[0].killed, true);
+});
+
+test("ターミナル: 共通のターミナルは作業フォルダでなくホームフォルダで開く（端末から・この Mac の画面の印 ~ から）。ワークツリーは断る", async () => {
+  const { app, store, project, terminalFake } = withDevices();
+  const common = store.projects.create({ name: "共通", repo_path: `${project.repo_path}/.common-work`, provider: "claude", kind: "common" });
+  const create = (worktree_path: string | null) =>
+    app.request(`/api/projects/${common.id}/terminals`, { method: "POST", headers: json(bearer(FULL_TOKEN)), body: JSON.stringify({ worktree_path, cols: 60, rows: 20 }) });
+  assert.equal((await create(null)).status, 201);
+  assert.equal((await create(project.repo_path)).status, 409);
+  assert.equal((await hostOpen(app, { key: "common-tab", cwd: "~", owner: "wc:1", meta: { project_id: common.id, title: "ターミナル · 共通" } })).status, 201);
+  assert.deepEqual(
+    terminalFake.spawned.map((s) => s.cwd),
+    [os.homedir(), os.homedir()],
+  );
+  const tabs = (await (await app.request(`/api/terminals?project_id=${common.id}`, { headers: AUTH })).json()) as TerminalTab[];
+  assert.deepEqual(
+    tabs.map((t) => t.cwd),
+    [os.homedir(), os.homedir()],
+  );
 });

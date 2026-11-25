@@ -1,4 +1,6 @@
+import os from "node:os";
 import { shell } from "electron";
+import { expandHomeWith } from "@shared/foundation/path";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { desktopPlatform } from "@/foundation/desktop/platform/index";
 import { existingFolder, vscodeFileUrl } from "./openCommands";
@@ -14,9 +16,10 @@ export const externalAppHandlers: IpcHandlers["externalApps"] = {
   openInVSCode: (_e, target, line) => shell.openExternal(vscodeFileUrl(target, line)),
   // 設定・パネルのターミナルの ▾ で選ぶ
   terminals: () => desktopPlatform.installedTerminals(),
-  // 外部のターミナル（選んだアプリ。既定は Terminal.app）で、そのフォルダを開く（アプリの中のターミナルとは別の窓）
+  // 外部のターミナル（選んだアプリ。既定は Terminal.app）で、そのフォルダを開く（アプリの中のターミナルとは別の窓）。
+  // 共通のターミナルはホームフォルダの印（HOME_FOLDER）で届くので展開する
   openTerminal: async (_e, dir, terminal = "terminal") => {
-    await desktopPlatform.openTerminal(terminal, existingFolder(dir));
+    await desktopPlatform.openTerminal(terminal, existingFolder(expandHomeWith(dir, os.homedir())));
   },
   // パネルのブラウザの ▾ で選ぶ
   browsers: () => desktopPlatform.installedBrowsers(),
