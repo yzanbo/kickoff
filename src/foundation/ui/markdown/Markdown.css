@@ -60,6 +60,11 @@
     background: var(--bg-hover);
   }
 
+  /* 脚注の番号（remark-rehype の sup。Markdown の中の HTML の sup も同じ）。重ねても 10px より小さくしない（ブラウザの既定は下限のない smaller） */
+  .markdown sup {
+    font-size: max(0.75em, 10px);
+  }
+
   .markdown pre,
   .mermaid-diagram {
     padding: 12px 14px;

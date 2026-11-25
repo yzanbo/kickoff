@@ -40,8 +40,11 @@ function sizeRules(): Map<string, (parent: number) => number> {
     const tags = /^\.markdown \.md-html:is\(([^)]+)\)$/.exec(selector)?.[1].split(",").map((t) => t.trim());
     if (size && tags) add(tags, size);
   }
-  const code = rulesOf(markdownCss).find((r) => r.selector === ".markdown code");
-  add(["code"], /font-size:\s*([^;]+);/.exec(code?.body ?? "")?.[1].trim() ?? "");
+  // Markdown も作るタグ（コード・脚注の番号）は Markdown.css の規則（HTML の同じタグも戻さずに同じ規則）
+  for (const tag of ["code", "sup"]) {
+    const rule = rulesOf(markdownCss).find((r) => r.selector === `.markdown ${tag}`);
+    add([tag], /font-size:\s*([^;]+);/.exec(rule?.body ?? "")?.[1].trim() ?? "");
+  }
   return rules;
 }
 
@@ -56,4 +59,16 @@ test("大きさを変えるタグをどう重ねても、10px 以上・見出し
     for (const tag of tags) if (tag !== last) visit(rules.get(tag)?.(size) ?? size, tag, depth - 1, `${path}>${tag}`);
   };
   for (const base of [10, 12, 13, 14, 16, 19]) visit(base, "", 4, `${base}px`);
+});
+
+test("Markdown が作る、大きさを em で変える要素（脚注の番号の sup・コード）も 10px の下限があり、HTML の同じタグは戻さない", () => {
+  for (const { selector, body } of rulesOf(markdownCss)) {
+    const size = /font-size:\s*([^;]+);/.exec(body)?.[1].trim();
+    // 小さくする em（1em 未満）は 10px の下限付き。数式（.katex）は大きくするだけ
+    const em = size && /^([\d.]+)em$/.exec(size);
+    assert.ok(!em || Number(em[1]) >= 1, `${selector}: ${size}`);
+  }
+  const revert = rulesOf(htmlCss).find((r) => /all:\s*revert/.test(r.body));
+  assert.match(revert?.selector ?? "", /:not\([^)]*\bsup\b[^)]*\)/);
+  assert.ok(!rulesOf(htmlCss).some((r) => /\bsup\b/.test(r.selector) && /font-size/.test(r.body)));
 });

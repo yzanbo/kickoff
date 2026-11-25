@@ -3,11 +3,11 @@
 /*
  * state の層（いちばん後ろ）に置く: HTML でしか出ないタグ（div・span・section など）には、まず Kickoff のほかの CSS を当てない決まり（all: revert）を置き、
  * そのあとで Markdown 用の見た目を付ける。いまの CSS に悪用できる規則はないが、あとから足された規則（どの層・どの詳細度でも）で崩れないようにする。
- * Markdown も作るタグ（p・a・表・箇条書き・コードなど）は戻さず、Markdown と同じ見た目にする。GitHub の本文（.github-html）は別の決まりなので除く
+ * Markdown も作るタグ（p・a・表・箇条書き・コード・脚注の番号の sup など）は戻さず、Markdown と同じ見た目にする（大きさの下限も Markdown.css）。GitHub の本文（.github-html）は別の決まりなので除く
  */
 @layer state {
   /* 詳細度は 0（:where）。後ろの見た目の規則（大きさの下限・上限・寄せ方など）が、詳細度によらず必ず勝つように */
-  :where(.markdown .md-html:not(p, a, img, strong, em, del, code, pre, blockquote, ul, ol, li, table, thead, tbody, tfoot, tr, th, td, h1, h2, h3, h4, h5, h6, hr, br):not(.github-html *)) {
+  :where(.markdown .md-html:not(p, a, img, strong, em, del, code, pre, blockquote, ul, ol, li, table, thead, tbody, tfoot, tr, th, td, h1, h2, h3, h4, h5, h6, hr, br, sup):not(.github-html *)) {
     all: revert;
   }
 
@@ -19,7 +19,7 @@
     font-size: max(0.83em, 10px);
   }
 
-  .markdown .md-html:is(sub, sup) {
+  .markdown .md-html:is(sub) {
     font-size: max(0.75em, 10px);
   }
 
