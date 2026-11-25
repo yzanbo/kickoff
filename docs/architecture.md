@@ -237,12 +237,16 @@ scripts/  docs/           道具と文書
 | 作業場所 | `Workplace`・`WorkplaceKit`・`WorkplaceCreator` | 本体かワークツリーか |
 | 作業フォルダ | `workdirOf`・`worktree_path` | そのチャットの AI が作業する所 |
 | 作業場所を移す | `move_workplace`・`workplace_moved` | チャットの作業場所を変える |
-| 定型文 | `Snippet` | すべてのプロジェクト（`project_id` が null。札は「すべて」）か、共通・そのプロジェクトだけ |
+| 定型文 | `Snippet` | 使える範囲は、すべてのプロジェクト・共通・そのプロジェクトだけ |
+| すべてのプロジェクト（定型文） | `snippetScopes`・`scopeLabel` | 定型文の `project_id` が null の範囲。札は「すべて」で、共通のチャットにも出る（「共通」と呼ばない） |
 | 添付 / AI に渡す | `Attachment`・`handOffTargets` | |
 | ノート | `Note`・`note_path` | プロジェクトの外のフォルダに置く |
-| 共通のノート | `ProjectKind`（`common`） | どのプロジェクトにも属さないノート。中では見えないプロジェクトのノート |
+| 共通 | `isCommonProject`・`ProjectKind`（`common`） | Kickoff が用意する見えないプロジェクト 1 つ。共通のチャットと共通のノートの持ち主で、一覧のいつも先頭。文の中では「共通のチャット」 |
+| 共通のチャット | `isCommonChatProject`・`CommonChatInfo` | どのプロジェクトにも属さないチャット。作業フォルダは `COMMON_WORK_FOLDER`（`.common-work`）、ノートは頼まれたときだけ |
+| 共通のチャットがほかのプロジェクトに書くとき | `ai_write_other_projects`・`aiWritePolicy` | 毎回聞く・聞かずに書く・書かせない。書く場所で効く設定は 1 つ |
+| 共通のノート | `common_notes_dir` | どのプロジェクトにも属さないノート。フォルダ（既定は `_common`）は共通の作業フォルダと別 |
 | 全ノート | Route `allNotes`・`AllNotesPage` | 共通のノートとプロジェクトごとのノートを欄に並べた画面（URL は `#/notes`） |
-| 見えないプロジェクト | `isListedProject`・`projects.kind` | Kickoff が用意し、一覧に出さず操作させないプロジェクト |
+| 見えないプロジェクト | `isUserProject`・`isListedProject`・`projects.kind` | Kickoff が用意するプロジェクト（いまは共通だけ）。利用者のもの（`isUserProject`）でないので操作させず、一覧には並べる（`isListedProject`） |
 | ゴミ箱 | `TrashItem`・`registerKind` | 種類は各機能が登録 |
 | DB 接続 | `DbConnection` | パスワードは `secrets` |
 | Docker のサービス | `DockerServiceInfo` | |

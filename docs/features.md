@@ -54,6 +54,16 @@
 | PRJ-020 | Git で管理しないフォルダをプロジェクトにする（ファイル・検索は使える） | projects | M |
 | PRJ-021 | リポジトリの中のフォルダをプロジェクトにする（Git の操作はそのフォルダの中だけ） | projects | M |
 
+### 共通のチャット
+| ID | 機能 | 持ち主 | 確かめ方 |
+|---|---|---|---|
+| PRJ-022 | 一覧（サイドバー・全プロジェクト・⌘K・⌘⇧A・Dock）の先頭に共通を出す | projects | T:order,dockBadge |
+| PRJ-023 | 共通の画面のタブ・メニュー・設定を使えるものに絞る | projects | T:projectViews,routes.projects |
+| PRJ-024 | 作成先の札で選び直す・共通とプロジェクトの間で移す | chatPanel | T:projectTargets,routes.workplace |
+| PRJ-025 | AI はノートを頼まれたときだけ使い、全プロジェクトを読む | chat | T:chat/prompts.snapshot,aiChatRead |
+| PRJ-026 | ほかのプロジェクトへ書くときは設定に従って聞く（フォルダは不可） | chat | T:aiWritePolicy,writeScope |
+| PRJ-027 | ターミナルをホームフォルダで開く | terminal | T:folder |
+
 ## LST 一覧と画面の構成
 
 ### サイドバー
@@ -455,7 +465,7 @@
 |---|---|---|---|
 | ATT-010 | 帯から定型文を入れる・すぐ送る | snippets | M |
 | ATT-011 | 一覧から探して使う（取りやめ: 帯の一覧のボタンをなくし、帯のピルと管理のダイアログで使う） | snippets | M |
-| ATT-012 | 足す・直す・並べ替える | snippets | M |
+| ATT-012 | 足す・直す・並べ替える・範囲を選ぶ | snippets | M |
 
 ## VOI 音声入力
 
@@ -857,24 +867,12 @@
 | AIT-013 | 埋め込みブラウザを見る・操作する | browser | M |
 | AIT-014 | ワークツリーを後始末する | worktrees | M |
 
-### 診断
+### 診断・つなぎ方・表示・図
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | AIT-015 | OS の砂場の拒否ログを読む（限定の診断） | guard | T:sandboxDiagnostics |
-
-### つなぎ方
-| ID | 機能 | 持ち主 | 確かめ方 |
-|---|---|---|---|
 | AIT-016 | どの AI からもつなげる MCP サーバーで出す | 土台:core | M |
-
-### 表示
-| ID | 機能 | 持ち主 | 確かめ方 |
-|---|---|---|---|
 | AIT-017 | ツールの呼び出しを文で見せる | chat | T:toolText |
-
-### 図
-| ID | 機能 | 持ち主 | 確かめ方 |
-|---|---|---|---|
 | AIT-018 | 返答に図を描く・描き直す | visuals | T:visuals/core/aiVisual,shared/visuals/aiVisual |
 
 ## MOB スマホ連携
@@ -913,11 +911,11 @@
 |---|---|---|---|
 | MOB-014 | QR を読んで本体をつなぐ | mobile | M |
 | MOB-015 | いくつもの本体を切り替える | mobile | M |
-| MOB-016 | チャットの一覧を見る（並びはボードと同じ急ぎの順） | mobile | M |
+| MOB-016 | チャットの一覧を見る（並びはボードと同じ急ぎの順・先頭は共通） | mobile | M |
 | MOB-017 | チャットを読む | mobile | M |
 | MOB-018 | 送る・伝える・止める | mobile | M |
 | MOB-019 | 承認・質問に答える | mobile | M |
-| MOB-020 | 新しいチャットを始める | mobile | M |
+| MOB-020 | 新しいチャットを始める（上のボタンは共通・作成先を選び直す） | mobile | M |
 | MOB-021 | ターミナルを使う | mobile | M |
 | MOB-022 | 裏から戻ったら抜けた分を取る | mobile | M |
 | MOB-023 | APK を作って配る | mobile | M |
