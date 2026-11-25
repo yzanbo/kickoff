@@ -101,3 +101,49 @@ test("linkWarnings: 拡張子にもドメインにもなる名前（md・pl・zi
     assert.deepEqual(linkWarnings(href, text), ["text_mismatch"], `${text} → ${href}`);
   }
 });
+
+test("linkWarnings: ドメインの前後に記号・絵文字・かっこ・日本語の記号がくっついていても、その部分をドメインとして比べる", () => {
+  for (const text of [
+    "github.com🔒",
+    "Docs:github.com",
+    "→github.com",
+    "github.com（公式）",
+    "@github.com",
+    "#github.com",
+    "|github.com",
+    "✅github.com",
+    "※github.com",
+    "github.com—公式",
+    "URL=github.com",
+    "github.com's",
+    "https:github.com",
+    "公式/github.com",
+  ]) {
+    assert.deepEqual(linkWarnings("https://evil.example/", text), ["text_mismatch"], text);
+  }
+  // 同じホストなら当たらない
+  assert.deepEqual(linkWarnings("https://github.com/o/r", "github.com🔒（公式）"), []);
+});
+
+test("linkWarnings: ドットに見える文字（。 ｡ ꓸ · ․ ． ・ ∙ など）で区切ったドメインも、. にそろえてから比べる", () => {
+  for (const text of ["github。com", "github｡com", "githubꓸcom", "github·com", "github․com", "github．com", "github・com", "github∙com", "github⸱com", "https://github。com/"]) {
+    assert.deepEqual(linkWarnings("https://evil.example/", text), ["text_mismatch"], text);
+  }
+  assert.deepEqual(linkWarnings("https://github.com/", "githubꓸcom"), []);
+});
+
+test("linkWarnings: ふつうの文（ファイル名・パスのファイル名・日本語の ・ と 。・URL のパスの中の語）は当たらない", () => {
+  for (const text of [
+    "README.md を見る",
+    "docs/設計.md",
+    "scripts/run.sh を流す",
+    "設計・実装",
+    "React・Vue の比較",
+    "手順。次に保存",
+    "v1.2.3 のリリース",
+    "https://github.com/o/r/blob/main/README.md",
+    "https://github.com/login?next=docs.example.com",
+  ]) {
+    assert.deepEqual(linkWarnings("https://github.com/o/r/blob/main/README.md", text), [], text);
+  }
+});
