@@ -3,7 +3,11 @@ import { test, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown } from "./Markdown";
-import { scrollToFragment } from "./markdownLinks";
+import type { Element as HastElement } from "hast";
+import { visit } from "unist-util-visit";
+import { linkWarnings } from "@shared/foundation/linkWarnings";
+import { linkTextOf, scrollToFragment } from "./markdownLinks";
+import { markdownToHast, pipelineOf, type MarkdownPipeline } from "./markdownProcessor";
 
 const html = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
 
@@ -58,4 +62,24 @@ test("scrollToFragment: Markdown のリンクの #x は、HTML に書いた id�
   scrollToFragment(reply, "install");
   scrollToFragment(reply, "user-content-fn-1");
   assert.deepEqual(scrolled, ["返答:user-html-install", "返答:user-content-fn-1"]);
+});
+
+/** 返答と同じ組で読んだ、最初のリンク（a）の要素 */
+function firstLink(markdown: string, pipeline: MarkdownPipeline = pipelineOf(undefined, null)): HastElement {
+  const tree = markdownToHast(pipeline, markdown);
+  assert.ok(tree, markdown);
+  let found: HastElement | undefined;
+  visit(tree, "element", (node: HastElement) => {
+    if (!found && node.tagName === "a") found = node;
+  });
+  assert.ok(found, markdown);
+  return found;
+}
+
+test("linkTextOf: リンクの中の画像の alt も文字に数え、alt のドメインと行き先が違えば警告する", () => {
+  const node = firstLink("[![apple.com](javascript:x)](https://evil.example)");
+  assert.match(linkTextOf(node), /apple\.com/);
+  assert.deepEqual(linkWarnings("https://evil.example", linkTextOf(node)), ["text_mismatch"]);
+  // alt と前後の文字はつながらない
+  assert.equal(linkTextOf(firstLink("[a![b](https://example.com/i.png)c](https://example.com)")).replace(/\s+/g, " "), "a b c");
 });
