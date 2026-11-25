@@ -7,7 +7,7 @@ import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
 import { createBlockCache, pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
-import { MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
+import { linkTextOf, MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
 import { details, summary } from "@/foundation/ui/markdown/MarkdownDetails";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
@@ -35,7 +35,7 @@ const link: Components["a"] = function MarkdownLink({ node, href, children, id, 
   const activate = (e: MouseEvent<HTMLAnchorElement>) => {
     if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !target) return;
     e.preventDefault();
-    if (target.kind === "web") opener?.(e, target.url, hastText(node));
+    if (target.kind === "web") opener?.(e, target.url, linkTextOf(node));
     else scrollToFragment(e.currentTarget, target.id);
   };
   const plain =
@@ -58,13 +58,6 @@ const link: Components["a"] = function MarkdownLink({ node, href, children, id, 
 
 const noSubscribe = () => () => {};
 
-/** hast の要素の中の文字（リンクの文字。確認の画面で「文字と行き先が違う」を見分ける） */
-function hastText(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
-  const n = node as { type?: string; value?: unknown; children?: unknown[] };
-  if (n.type === "text" && typeof n.value === "string") return n.value;
-  return (n.children ?? []).map(hastText).join("");
-}
 const NO_SOURCES: readonly string[] = [];
 
 /**

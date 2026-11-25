@@ -23,3 +23,11 @@ export function scrollToFragment(anchor: Element, id: string): void {
   const target = root?.querySelector(`#${CSS.escape(id)}`) ?? (id.startsWith(HTML_ID_PREFIX) ? null : root?.querySelector(`#${CSS.escape(HTML_ID_PREFIX + id)}`));
   target?.scrollIntoView({ block: "start" });
 }
+
+/** hast の要素の中の文字（リンクの文字。確認の画面で「文字と行き先が違う」を見分ける） */
+export function linkTextOf(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as { type?: string; value?: unknown; children?: unknown[] };
+  if (n.type === "text" && typeof n.value === "string") return n.value;
+  return (n.children ?? []).map(linkTextOf).join("");
+}
