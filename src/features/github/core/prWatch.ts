@@ -2,7 +2,7 @@
 // 前に「開いている」のを見たかは問わず、いまの状態で決める（Kickoff を閉じている間・この機能を入れる前にマージされたものも、ワークツリーが残っていれば知らせる）
 import type { WorktreePrNotice } from "@shared/git/types";
 import type { GitWorktree } from "@shared/foundation/workplace";
-import { isActiveListedProject } from "@shared/projects/kinds";
+import { isActiveUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
@@ -110,8 +110,8 @@ export class WorktreePrWatch {
   }
 
   private async runAll(): Promise<void> {
-    // 見えないプロジェクト（共通のノート）は Git で管理しないので聞かない
-    const projects = this.opts.store.projects.list().filter(isActiveListedProject);
+    // 共通は Git で管理しないので聞かない
+    const projects = this.opts.store.projects.list().filter(isActiveUserProject);
     const alive = new Set(projects.map((p) => p.id));
     for (const id of [...this.notices.keys()]) if (!alive.has(id)) this.set(id, []);
     for (const project of projects) await this.check(project, true).catch(() => undefined);

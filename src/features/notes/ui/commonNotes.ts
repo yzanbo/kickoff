@@ -2,7 +2,7 @@
 // 見えないプロジェクトの画面はないので、そのノートから画面を移る所（開く・新しいチャット）はここでいま見ているプロジェクトに置き換える
 import type { NoteDefaults } from "@shared/notes/types";
 import type { Project } from "@shared/projects/types";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 import { parse, routeProjectId } from "@/foundation/ui/navigation/router";
@@ -35,12 +35,12 @@ export function useCommonNotes(): CommonNotes {
 }
 
 /** ノートの持ち主の名前（見えないプロジェクトなら「共通のノート」。まだ分からなければ空） */
-export const noteOwnerName = (project: Project | undefined): string => (project ? (isListedProject(project) ? project.name : COMMON_NOTES_LABEL) : "");
+export const noteOwnerName = (project: Project | undefined): string => (project ? (isUserProject(project) ? project.name : COMMON_NOTES_LABEL) : "");
 
 /** 見えないプロジェクトか（部品の外から。プロジェクトの一覧がまだ届いていなければふつうのプロジェクトとみなす） */
 export function isHiddenProject(projectId: number): boolean {
   const project = currentProjectsIndex().projectsById.get(projectId);
-  return project !== undefined && !isListedProject(project);
+  return project !== undefined && !isUserProject(project);
 }
 
 /**

@@ -241,14 +241,19 @@ test("チャットを作るツール: Git でないプロジェクトではワ�
   await assert.rejects(tools.createChat!.create({ relation: "root", text: "x", worktree_branch: "feat/a" }, allow), /Git で管理していない/);
 });
 
-test("チャットを作るツール: 見えないプロジェクト（共通のノート）のチャットからは親のないチャットを作れない（子チャットは作れる）", async () => {
+test("チャットを作るツール: 共通のチャットからも親のないチャット・子チャットを作れる。ワークツリーは、作業フォルダが Git の中でも断ってわけを返す", async () => {
   const ctx = setup();
-  const hidden = ctx.store.projects.create({ name: "共通のノート", repo_path: fs.realpathSync(ctx.project.repo_path) + "-common", provider: "claude", kind: "common" });
-  fs.mkdirSync(hidden.repo_path, { recursive: true });
-  const chat = await ctx.runner.start({ projectId: hidden.id, prompt: "ノートの依頼", notePath: "a.md" });
+  // 共通の作業フォルダがノートの親フォルダの下（ここでは Git のリポジトリの中）にある形
+  gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "1" } });
+  const common = ctx.store.projects.create({ name: "共通", repo_path: path.join(fs.realpathSync(ctx.project.repo_path), ".common-work"), provider: "claude", kind: "common" });
+  fs.mkdirSync(common.repo_path, { recursive: true });
+  const chat = await ctx.runner.start({ projectId: common.id, prompt: "調べもの" });
   await until(() => ctx.store.chats.get(chat.id)?.status === "completed");
   const tools = createChatOf(ctx)!;
-  await assert.rejects(tools.create({ relation: "root", text: "x" }, allow), /どのプロジェクトにも属さないので、親のないチャット/);
+  await assert.rejects(tools.create({ relation: "root", text: "x", worktree_branch: "feat/a" }, allow), /共通のチャットで、Git で管理しないフォルダで動くので、ワークツリー/);
+  await assert.rejects(tools.create({ relation: "child", text: "x", worktree_branch: "feat/b" }, allow), /ワークツリー（worktree_branch）は作れません/);
+  const root = await created(ctx, await tools.create({ relation: "root", text: "x" }, allow));
+  assert.deepEqual([root.project_id, root.parent_chat_id, root.worktree_path], [common.id, null, null]);
   const child = await created(ctx, await tools.create({ relation: "child", text: "y" }, allow));
-  assert.equal(child.project_id, hidden.id);
+  assert.deepEqual([child.project_id, child.parent_chat_id], [common.id, chat.id]);
 });

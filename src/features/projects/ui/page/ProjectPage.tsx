@@ -1,6 +1,6 @@
 import "./ProjectPage.css";
 import { useEffect, useEffectEvent, useState } from "react";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import { useChatPlacement } from "./chatPlacement";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
 import { ProjectHeader } from "./ProjectHeader";
@@ -37,7 +37,7 @@ export function ProjectPage(props: ProjectPageProps) {
   // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）。プロジェクトが 1 つもなければ始め方の案内
   const { missing, projects } = useProjects();
   if (missing(props.id))
-    return <div className="page page-wide">{!projects.some(isListedProject) ? <NoProjectsWelcome /> : <MissingProject id={props.id} />}</div>;
+    return <div className="page page-wide">{!projects.some(isUserProject) ? <NoProjectsWelcome /> : <MissingProject id={props.id} />}</div>;
   return <ProjectPageBody {...props} />;
 }
 

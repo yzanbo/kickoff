@@ -12,8 +12,8 @@ export function CommonNotesTrash() {
   const common = useCommonNotes();
   const ready = common.state === "ready";
   const { data } = useProjectTrash(ready ? common.projectId : 0, ready);
-  // 元の場所を共通のノートのフォルダからの場所で出す（見えないプロジェクトのフォルダ = 共通のノートのフォルダ）
-  const dir = useProjects().projectsById.get(ready ? common.projectId : 0)?.repo_path;
+  // 元の場所を共通のノートのフォルダからの場所で出す（共通の本体は作業フォルダなので、ノートのフォルダ note_dir を使う）
+  const dir = useProjects().projectsById.get(ready ? common.projectId : 0)?.note_dir ?? undefined;
   useTicker(60_000);
   if (!ready || !data?.length) return null;
   return (

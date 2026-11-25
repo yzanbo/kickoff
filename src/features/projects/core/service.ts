@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody, FolderInspection, Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
@@ -49,11 +49,11 @@ function requireNoBusyChat(ctx: ProjectsCtx, projectId: number, refusal: string)
 }
 
 /**
- * 見えないプロジェクト（共通のノートなど。Kickoff が用意し、ノートのフォルダと作業場所は持ち主の機能が店で直に変える）は、利用者の操作の口から変えさせない
- * （名前・フォルダ・アーカイブ・並び・ゴミ箱を変えると、持ち主の機能が見失う。一覧に出ないので戻す手段もない）
+ * Kickoff が用意したプロジェクト（共通。ノートのフォルダと作業場所は持ち主の機能が店で直に変える）は、利用者の操作の口から変えさせない
+ * （名前・フォルダ・アーカイブ・並び・ゴミ箱を変えると、持ち主の機能が見失う。共通は 1 つだけで、しまうと戻す手段もない）
  */
-function requireListed(project: Project, refusal: string) {
-  if (!isListedProject(project)) throw new Conflict(`Kickoff が用意したプロジェクトなので、${refusal}`);
+function requireUserProject(project: Project, refusal: string) {
+  if (!isUserProject(project)) throw new Conflict(`Kickoff が用意したプロジェクトなので、${refusal}`);
 }
 
 /**
@@ -110,7 +110,7 @@ export async function importProject(ctx: ProjectsCtx, input: Defaulted<ImportPro
 
 /** 書いた項目だけ変える（参照資料はパスを調べ、アーカイブは時刻にする）。変えた項目は上の機能に知らせる */
 export function updateProject(ctx: ProjectsCtx, project: Project, input: ProjectPatch): Project {
-  requireListed(project, "設定を変えられません");
+  requireUserProject(project, "設定を変えられません");
   const { reference_paths, archived, ...patch } = input;
   const updated = ctx.projects.update(project.id, {
     ...patch,
@@ -129,7 +129,7 @@ export function updateProject(ctx: ProjectsCtx, project: Project, input: Project
  * どのチャットも作業フォルダが変わるので、区切り（作業場所を移した区切り）を置いて会話を新しいセッションに写す
  */
 export async function changeProjectFolder(ctx: ProjectsCtx, project: Project, input: Required<ProjectRepoPathBody>): Promise<Project> {
-  requireListed(project, "フォルダを変えられません");
+  requireUserProject(project, "フォルダを変えられません");
   // git の初期化（フォルダを書き換える）より前に、重なり・作業中を確かめる
   const info = await inspectWorkspace(input.path);
   if (info.path === realPathOrSelf(project.repo_path)) return project;
@@ -146,12 +146,14 @@ export async function changeProjectFolder(ctx: ProjectsCtx, project: Project, in
 }
 
 /**
- * 見えないプロジェクトのフォルダ（本体とノートのフォルダ）を変える（持ち主の機能だけが呼ぶ。利用者の口は changeProjectFolder で、見えないものは断る）。
- * 作業中のチャットがあれば 409。チャットは changeProjectFolder と同じく、作業場所を付け替え、区切りを置いて会話を新しいセッションに写す
+ * Kickoff が用意したプロジェクト（共通）のフォルダ（本体とノートのフォルダ）を変える（持ち主の機能だけが呼ぶ。利用者の口は changeProjectFolder で、共通は断る）。
+ * 作業中のチャットがあれば 409。本体が変わればチャットは changeProjectFolder と同じく、作業場所を付け替え、区切りを置いて会話を新しいセッションに写す
+ * （ノートのフォルダだけなら作業場所は変わらないので、区切りを置かない）
  */
 export async function changeOwnedProjectFolder(ctx: ProjectsCtx, project: Project, folders: { repo_path: string; note_dir: string | null }): Promise<Project> {
-  if (isListedProject(project)) throw new Conflict("一覧に出るプロジェクトのフォルダは、プロジェクトの設定から変えてください");
+  if (isUserProject(project)) throw new Conflict("利用者が作ったプロジェクトのフォルダは、プロジェクトの設定から変えてください");
   requireNoBusyChat(ctx, project.id, "フォルダを変えられません");
+  if (folders.repo_path === project.repo_path) return ctx.projects.update(project.id, folders);
   const moves = await worktreeMoves(project.repo_path, folders.repo_path);
   const updated = ctx.projects.update(project.id, folders);
   await ctx.hooks.afterRepoMove(project, moves);
@@ -163,7 +165,7 @@ export async function changeOwnedProjectFolder(ctx: ProjectsCtx, project: Projec
  * もう管理している・ほかのリポジトリの中なら 409、作業中のチャットがあれば 409（書きかけのファイルをコミットしないため）
  */
 export async function startProjectGit(ctx: ProjectsCtx, project: Project): Promise<void> {
-  requireListed(project, "git の管理を始められません");
+  requireUserProject(project, "git の管理を始められません");
   requireNoBusyChat(ctx, project.id, "git の管理を始められません");
   await initGitRepo(project.repo_path);
 }
@@ -173,7 +175,7 @@ export async function startProjectGit(ctx: ProjectsCtx, project: Project): Promi
  * 戻せる。3 日たったら会話記録のファイル・添付ごと本当に消す）。作業中のチャットがあれば消せない。入れたゴミ箱の ID を返す
  */
 export function trashProjectById(ctx: ProjectsCtx, project: Project): { trash_id: string } {
-  requireListed(project, "削除できません");
+  requireUserProject(project, "削除できません");
   requireNoBusyChat(ctx, project.id, "プロジェクトを削除できません");
   const item = trashProject({ db: ctx.db, projects: ctx.projects, trashBin: ctx.trashBin, trashed: ctx.hooks.trashed }, project);
   return { trash_id: item.id };
@@ -183,7 +185,7 @@ export function trashProjectById(ctx: ProjectsCtx, project: Project): { trash_id
 export function reorderProjects(ctx: ProjectsCtx, ids: number[]): Project[] {
   for (const id of ids) {
     const project = ctx.projects.get(id);
-    if (project) requireListed(project, "並べ替えられません");
+    if (project) requireUserProject(project, "並べ替えられません");
   }
   return ctx.projects.reorder(ids);
 }

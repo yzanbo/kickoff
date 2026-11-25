@@ -2,7 +2,7 @@
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { isActiveListedProject } from "@shared/projects/kinds";
+import { isActiveUserProject } from "@shared/projects/kinds";
 import type { BusEvent } from "@shared/foundation/contract";
 import { agentStateOf, boardColumnOf } from "@shared/chat/state";
 import { byUrgency } from "@shared/chatList/urgency";
@@ -50,11 +50,11 @@ export interface ChatRow {
   state: AgentState;
 }
 
-/** プロジェクトごとのチャットの一覧（チャットのないプロジェクトも出す。アーカイブしたプロジェクトと見えないプロジェクトは出さない） */
+/** プロジェクトごとのチャットの一覧（チャットのないプロジェクトも出す。アーカイブしたプロジェクトと共通は出さない。共通の節は共通のターミナル・新しいチャットを作ってから） */
 export function chatSections(state: HostState): { project: Project; rows: ChatRow[] }[] {
   const pending = new Set(state.approvals.map((a) => a.chat_id));
   return state.projects
-    .filter(isActiveListedProject)
+    .filter(isActiveUserProject)
     .map((project) => ({
       project,
       rows: state.chats

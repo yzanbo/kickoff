@@ -19,10 +19,10 @@ test("dockBadgeCounts: アーカイブしていないプロジェクトのチャ
   assert.deepEqual(dockBadgeCounts([], projects, new Set()), { running: 0, needs_input: 0, unread: 0 });
 });
 
-test("dockBadgeCounts: 見えないプロジェクト（共通のノート）のチャットは数えない", () => {
+test("dockBadgeCounts: 共通のチャットも数える（待たせたまま気づけないことがないように）", () => {
   const projects = [makeProject(1), makeProject(2, { kind: "common" })];
   const chats = [makeChat(1, { project_id: 1, status: "completed", unread: true }), makeChat(2, { project_id: 2, status: "completed", unread: true })];
-  assert.deepEqual(dockBadgeCounts(chats, projects, new Set()), { running: 0, needs_input: 0, unread: 1 });
+  assert.deepEqual(dockBadgeCounts(chats, projects, new Set()), { running: 0, needs_input: 0, unread: 2 });
 });
 
 test("dockBadgeCounts: 子チャットも状態ごとに数える", () => {

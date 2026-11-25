@@ -1,5 +1,5 @@
 import { TRASH_COMMAND } from "@/features/trash/core/index";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { PromptSection } from "./sections";
@@ -23,8 +23,8 @@ const PROJECT_FOLDER_WORDS = [
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
 export function projectSection(project: Project, workdir = project.repo_path, editScopeEnabled?: boolean): PromptSection {
-  // 見えないプロジェクト（共通のノートなど）のチャットは、利用者から見てどのプロジェクトにも属さないので「プロジェクトフォルダ」と呼ばない
-  if (!isListedProject(project)) {
+  // 共通（共通のチャット・共通のノートのチャット）は、利用者から見てどのプロジェクトにも属さないので「プロジェクトフォルダ」と呼ばない
+  if (!isUserProject(project)) {
     return {
       order: 100,
       heading: `# Kickoff からの指示`,

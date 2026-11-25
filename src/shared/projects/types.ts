@@ -43,7 +43,7 @@ export interface Project {
   pr_watch: boolean;
   /** 作業場所でいま取り出しているブランチと既定のブランチの CI（GitHub Actions）が落ちたら知らせるか */
   ci_watch: boolean;
-  /** 種類（null ならふつうのプロジェクト。種類があれば Kickoff が用意する見えないプロジェクトで、一覧に並べるかは isListedProject で決める） */
+  /** 種類（null なら利用者が作ったプロジェクト。種類があれば Kickoff が用意するプロジェクト（共通）。判定は @shared/projects/kinds の isUserProject・isListedProject） */
   kind: ProjectKind | null;
   created_at: string;
 }

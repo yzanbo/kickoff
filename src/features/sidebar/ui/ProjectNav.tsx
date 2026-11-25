@@ -3,7 +3,7 @@ import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import { SelectionBar, useChatSelection } from "@/features/chatList/ui";
 import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { ProjectList } from "./ProjectList";
@@ -31,8 +31,8 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）。hooks は、下の早い return より前に呼ぶ
   const selection = useChatSelection();
 
-  // 見えないプロジェクトだけのときも「プロジェクトがまだありません」の案内を出す
-  if (!projects.some(isListedProject)) {
+  // 共通だけのときも「プロジェクトがまだありません」の案内を出す
+  if (!projects.some(isUserProject)) {
     return (
       <div className="workspace-empty">
         <p className="empty-note workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>

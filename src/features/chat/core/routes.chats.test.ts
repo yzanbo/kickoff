@@ -1,7 +1,10 @@
-// API のテスト: チャット（一覧・作成・変更・固定・並び・アーカイブ・移動・自動のアーカイブ・GitHub の結び付き）・グループ（共通の準備は testing/testServer.ts）
+// API のテスト: チャット（一覧・作成・共通に作る・変更・固定・並び・アーカイブ・移動・自動のアーカイブ・GitHub の結び付き）・グループ（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
+import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("チャットの一覧: 件数で黙って切らず、最後に動いた順に返す。?archived=1 はアーカイブ済みだけ", async () => {
@@ -250,3 +253,22 @@ test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELE
   assert.equal((await api("DELETE /api/chats/:chatId/github", { params: { chatId: 99999 } })).status, 404);
 });
 
+
+test("共通: ふつうのチャットを作れて作業フォルダで動く。ワークツリーのチャットは、作業フォルダが Git の中でも 409 でわけを返す", async () => {
+  const { api, store, provider } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
+  // 共通の作業フォルダがノートの親フォルダの下（ここでは Git のリポジトリの中）にある形
+  const { dir } = gitRepo({ files: { "a.txt": "1" } });
+  const work = path.join(fs.realpathSync(dir), ".common-work");
+  fs.mkdirSync(work);
+  const common = store.projects.create({ name: "共通", repo_path: work, provider: "claude", kind: "common" });
+  const created = await api("POST /api/projects/:projectId/chats", { params: { projectId: common.id }, body: { text: "調べて" } });
+  assert.equal(created.status, 201);
+  assert.deepEqual([created.body.project_id, created.body.worktree_path, created.body.note_path], [common.id, null, null]);
+  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  assert.equal(provider.lastCwd, work);
+  for (const body of [{ text: "x", new_worktree_branch: "feat/a" }, { text: "x", worktree_path: work }]) {
+    const refused = await api("POST /api/projects/:projectId/chats", { params: { projectId: common.id }, body });
+    assert.equal(refused.status, 409);
+    assert.match(refused.body.error ?? "", /共通は Git で管理しないので、ワークツリーのチャットは作れません/);
+  }
+});

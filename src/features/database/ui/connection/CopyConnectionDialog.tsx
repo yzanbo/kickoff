@@ -1,7 +1,7 @@
 import "./CopyConnectionDialog.css";
 import { useState, type FormEvent } from "react";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
-import { isActiveListedProject } from "@shared/projects/kinds";
+import { isActiveUserProject } from "@shared/projects/kinds";
 import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -21,7 +21,7 @@ import { copySourcesOf } from "./copySources";
 export function CopyConnectionDialog({ projectId, onClose }: { projectId: number; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog();
   const { projects } = useProjects();
-  const others = projects.filter((p) => p.id !== projectId && isActiveListedProject(p));
+  const others = projects.filter((p) => p.id !== projectId && isActiveUserProject(p));
   // 読めなかったプロジェクトは null にして、一覧の下に名前を出す（黙って出さないと「接続がない」と見分けられない）
   const lists = useQuery(
     ["CopyConnectionDialog.lists", others.map((p) => p.id).join(",")],

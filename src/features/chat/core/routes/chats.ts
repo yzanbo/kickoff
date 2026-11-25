@@ -13,7 +13,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import { chatContract } from "@shared/chat/contract";
 import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery } from "@shared/chat/detail";
 import type { Chat } from "@shared/chat/types";
-import { isListedProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
 import { Conflict } from "@/foundation/core/errors";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
@@ -72,8 +72,8 @@ export function chatRoutes({ store, streamingText, runner, approvals, workplace,
     "POST /api/projects/:projectId/chats": {
       body: newChatSchema,
       run: async ({ projectId: project, body: input, caller }) => {
-        // 見えないプロジェクト（共通のノート）のチャットはノートのチャットだけ（ふつうのチャットはどの一覧にも出ず、開けなくなる）
-        if (!isListedProject(project)) throw new Conflict("Kickoff が用意したプロジェクトなので、ノートのチャット以外は作れません");
+        // 共通は Git で管理しないフォルダ（作業フォルダ .common-work）なので、ワークツリーのチャットは作れない（ノートの親フォルダが Git の中でも作らせない）
+        if (!isUserProject(project) && (input.new_worktree_branch || input.worktree_path)) throw new Conflict("共通は Git で管理しないので、ワークツリーのチャットは作れません");
         if (input.group_id !== undefined) requireGroupOf(store.groups, input.group_id, project.id);
         // 新しいブランチ名があれば、本体のいまのコミットからワークツリーを作る（作る人が実行環境も整える。作れなければ 400）
         const worktreePath = input.new_worktree_branch

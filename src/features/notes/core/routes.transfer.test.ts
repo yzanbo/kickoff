@@ -31,7 +31,7 @@ async function setupTransfer() {
   return { ...ctx, common, other, events, create, move, noteChat, dirOf };
 }
 
-test("欄の間: プロジェクトのノートを共通のノートへ動かすと、ノートのチャットと子チャットも移り、区切りを置いて共通のノートのフォルダで続く", async () => {
+test("欄の間: プロジェクトのノートを共通のノートへ動かすと、ノートのチャットと子チャットも移り、区切りを置いて共通の作業フォルダで続く", async () => {
   const ctx = await setupTransfer();
   const { project, common, store, provider, events, create, move, noteChat, dirOf } = ctx;
   await create(project.id, "案.md");
@@ -39,7 +39,7 @@ test("欄の間: プロジェクトのノートを共通のノートへ動かす
   const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", model: null, effort: null, permission_mode: "default", fast_mode: false, group_id: null, worktree_path: null, parent_chat_id: chatId, parent_event_id: null, note_path: null });
   events.length = 0;
   assert.deepEqual((await move(project.id, { from: "案.md", to: "メモ/案.md", to_project_id: common.id })).body, { path: "メモ/案.md" });
-  assert.ok(fs.existsSync(path.join(common.repo_path, "メモ", "案.md")));
+  assert.ok(fs.existsSync(path.join(common.note_dir!, "メモ", "案.md")));
   assert.ok(!fs.existsSync(path.join(await dirOf(project.id), "案.md")));
   const moved = store.chats.get(chatId)!;
   assert.deepEqual([moved.project_id, moved.note_path], [common.id, "メモ/案.md"]);
@@ -48,10 +48,11 @@ test("欄の間: プロジェクトのノートを共通のノートへ動かす
   // 両方の欄に知らせる
   const notified = new Set(events.flatMap((e) => (e.type === "notes" ? [e.project_id] : [])));
   assert.ok(notified.has(project.id) && notified.has(common.id));
-  // 移った先で続けると、作業場所は共通のノートのフォルダ
+  // 移った先で続けると、作業場所は共通の作業フォルダ（ノートのフォルダは読み書きできる場所）
   await ctx.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: "続けて" } });
   await until(async () => (await chatOf(ctx, chatId)).status === "completed" && provider.prompts.length === 2);
   assert.equal(provider.lastCwd, common.repo_path);
+  assert.ok(provider.lastDirs.includes(common.note_dir!));
 });
 
 test("欄の間: プロジェクトどうしでフォルダごと動かすと、中のノートのチャットも移る。チャットのないノートはファイルだけ。共通のノートからも戻せる", async () => {
@@ -107,11 +108,4 @@ test("欄の間: 作業中のノートのチャット・同じ名前・アーカ
   assert.match(unavailable.body.error, /共通のノートを使えないため/);
   assert.ok(fs.existsSync(path.join(projectDir, "案.md")));
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
-});
-
-test("見えないプロジェクト: HTTP の新しいチャットは断る（ノートのチャットは作れる）", async () => {
-  const { api, common, create, noteChat } = await setupTransfer();
-  assert.equal((await api("POST /api/projects/:projectId/chats", { params: { projectId: common.id }, body: { text: "x" } })).status, 409);
-  await create(common.id, "a.md");
-  assert.ok(await noteChat(common.id, "a.md"));
 });

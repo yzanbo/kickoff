@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { chatNoteName, COMMON_NOTES_FOLDER, datedNoteName, defaultNotesFolderName, noteDatePrefixLength, projectNoteFolder, safeNoteName, uniqueNoteName } from "./names";
+import { chatNoteName, COMMON_NOTES_FOLDER, COMMON_WORK_FOLDER, datedNoteName, defaultNotesFolderName, noteDatePrefixLength, projectNoteFolder, safeNoteName, uniqueNoteName } from "./names";
 
 test("safeNoteName: ファイル名に使えない文字を置き換え、隠しファイルにしない", () => {
   assert.equal(safeNoteName("a/b:c\\d"), "a-b-c-d");
@@ -48,6 +48,12 @@ test("projectNoteFolder: 共通のノートのフォルダ名 _common は、ほ�
   assert.equal(projectNoteFolder("_Common", []), "_Common-2");
   assert.equal(projectNoteFolder("_common", [{ id: 1, note_folder: "_common-2", note_dir: null }]), "_common-3");
   assert.equal(projectNoteFolder("common", []), "common");
+});
+
+test("projectNoteFolder: 共通のチャットの作業フォルダ名 .common-work にはならない（先頭の「.」を除き、予約にも数える）", () => {
+  assert.equal(COMMON_WORK_FOLDER, ".common-work");
+  assert.equal(projectNoteFolder(".common-work", []), "common-work");
+  assert.equal(projectNoteFolder("common-work", []), "common-work");
 });
 
 test("datedNoteName: 手元の日付を頭に付ける（月・日は 2 桁）", () => {

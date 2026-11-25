@@ -1,4 +1,4 @@
-// ノートの名前の決まり（ファイル名に使えない文字の置き換え・重ならない名前・チャットから作るノートの自動の名前・既定の親フォルダの名前・共通のノートのフォルダ名）。
+// ノートの名前の決まり（ファイル名に使えない文字の置き換え・重ならない名前・チャットから作るノートの自動の名前・既定の親フォルダの名前・共通のフォルダ名）。
 // コアと画面で同じ結果にする。名前の空白はそのまま使う（既定の親フォルダの名前だけは空白を入れない）
 
 /** ファイル名の長さの上限（文字。拡張子を除く） */
@@ -36,6 +36,15 @@ export function defaultNotesFolderName(appName: string): string {
  */
 export const COMMON_NOTES_FOLDER = "_common";
 
+/**
+ * 共通のチャットの作業フォルダの名前（ノートの親フォルダの下。共通の本体）。隠しフォルダにして、ノートのタブ・Finder の一覧に出さない。
+ * 画面の言葉・設定によらず同じ名前。プロジェクトのフォルダ名には使わない（projectNoteFolder）
+ */
+export const COMMON_WORK_FOLDER = ".common-work";
+
+/** プロジェクトのノートのフォルダ名に使わない名前（共通のフォルダ。まだ共通がなくても、あとで同じフォルダを指さないように） */
+const RESERVED_FOLDERS = [COMMON_NOTES_FOLDER, COMMON_WORK_FOLDER];
+
 /** taken と重ならない名前（base・base-2・base-3 …。大文字・小文字の違いは同じ名前とみなす（macOS のファイル名）） */
 export function uniqueNoteName(base: string, taken: Iterable<string>): string {
   const used = new Set([...taken].map((n) => n.toLowerCase()));
@@ -52,8 +61,8 @@ export function uniqueNoteName(base: string, taken: Iterable<string>): string {
  */
 export function projectNoteFolder(base: string, projects: readonly { id: number; note_folder: string | null; note_dir: string | null }[], except?: number): string {
   const taken = projects.filter((p) => p.id !== except && !p.note_dir).flatMap((p) => (p.note_folder ? [p.note_folder] : []));
-  // 共通のノートの既定のフォルダ名は、まだ共通のノートがなくても使わせない（あとで同じフォルダを指さないように）
-  return uniqueNoteName(safeNoteName(base), [...taken, COMMON_NOTES_FOLDER]);
+  // 共通のフォルダ名は使わせない（作業フォルダの名前は safeNoteName が先頭の「.」を除くので出てこないが、決まりとして数える）
+  return uniqueNoteName(safeNoteName(base), [...taken, ...RESERVED_FOLDERS]);
 }
 
 /**
