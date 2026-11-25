@@ -3,6 +3,7 @@ import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
 import { fixLabelContrast } from "./fixLabelContrast";
 import { diagramBackground, mermaidConfig } from "./mermaidConfig";
+import { sanitizeMermaidSvg } from "./sanitizeSvg";
 
 /**
  * 描いた図（SVG）を覚えておく数と SVG の字数の合計（同じ図を開き直したとき・タブを切り替えたとき・流れの窓で行を外して戻したときに、描き直さない。
@@ -53,8 +54,10 @@ export function renderMermaid(code: string, theme: AppliedTheme): Promise<string
     const mermaid = await loadMermaid();
     mermaid.initialize(mermaidConfig(theme));
     const rendered = await mermaid.render(`mermaid-${++count}`, code);
+    // 文書に入れる前に、リンクと外を指す画像を外す（sanitizeSvg.ts。下の fixLabelContrast は文書に入れて測る）。覚えるのも整えたもの
+    const safe = sanitizeMermaidSvg(rendered.svg);
     // 図を書く側が指定した塗り・文字色と、テーマの色が重なって、文字が読めなくならないようにする
-    const svg = fixLabelContrast(rendered.svg, diagramBackground());
+    const svg = fixLabelContrast(safe, diagramBackground());
     // 上限を超えたら、いちばん長く使っていないものから捨てる
     cache.set(key, svg);
     return svg;
