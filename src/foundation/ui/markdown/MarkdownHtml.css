@@ -6,9 +6,8 @@
  * Markdown も作るタグ（p・a・表・箇条書き・コードなど）は戻さず、Markdown と同じ見た目にする。GitHub の本文（.github-html）は別の決まりなので除く
  */
 @layer state {
-  .markdown .md-html:not(p, a, img, strong, em, del, code, pre, blockquote, ul, ol, li, table, thead, tbody, tfoot, tr, th, td, h1, h2, h3, h4, h5, h6, hr, br):not(
-      .github-html *
-    ) {
+  /* 詳細度は 0（:where）。後ろの見た目の規則（大きさの下限・上限・寄せ方など）が、詳細度によらず必ず勝つように */
+  :where(.markdown .md-html:not(p, a, img, strong, em, del, code, pre, blockquote, ul, ol, li, table, thead, tbody, tfoot, tr, th, td, h1, h2, h3, h4, h5, h6, hr, br):not(.github-html *)) {
     all: revert;
   }
 
