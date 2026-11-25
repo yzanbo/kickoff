@@ -1,4 +1,5 @@
 import { createContext, type MouseEvent } from "react";
+import { HTML_ID_PREFIX } from "./html/htmlAllowlist";
 
 /**
  * Markdown の外部リンク（http・https。読み直した URL）を押したときに開く口（ここはドメインを知らない。中身は App・別ウィンドウが
@@ -18,9 +19,7 @@ const MARKDOWN_ROOT = ".markdown";
  */
 export function scrollToFragment(anchor: Element, id: string): void {
   const root = anchor.closest(MARKDOWN_ROOT);
-  // Markdown の中の HTML の id は頭に user-content- を付けて描く（html/htmlAllowlist.ts）ので、#x はその形も探す
-  const target = root?.querySelector(`#${CSS.escape(id)}`) ?? (id.startsWith(ID_PREFIX) ? null : root?.querySelector(`#${CSS.escape(ID_PREFIX + id)}`));
+  // Markdown の中の HTML の id は頭（HTML_ID_PREFIX）を付けて描くので、Markdown のリンクの #x はその形も探す（HTML のリンクは初めから頭付き）
+  const target = root?.querySelector(`#${CSS.escape(id)}`) ?? (id.startsWith(HTML_ID_PREFIX) ? null : root?.querySelector(`#${CSS.escape(HTML_ID_PREFIX + id)}`));
   target?.scrollIntoView({ block: "start" });
 }
-
-const ID_PREFIX = "user-content-";

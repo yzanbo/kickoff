@@ -58,7 +58,7 @@ function valueFits(prop: string, value: unknown): boolean {
     case "lang":
       return typeof value === "string" && /^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(value);
     case "id":
-      return typeof value === "string" && /^user-content-[A-Za-z0-9\-_.:]+$/.test(value);
+      return typeof value === "string" && /^user-html-[A-Za-z0-9\-_.:]+$/.test(value);
     case "href": {
       const target = linkTargetOf(value);
       return typeof value === "string" && target !== null && (target.kind === "fragment" ? value.startsWith("#") : target.url === value);

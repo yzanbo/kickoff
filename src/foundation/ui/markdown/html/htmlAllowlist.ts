@@ -109,11 +109,23 @@ const oneOf = (values: readonly string[], caseSensitive = false) => (raw: string
   return values.includes(v) ? v : null;
 };
 
-/** リンクの行き先（Markdown のリンクと同じ判定 linkTargetOf。外のページは読み直した URL、# は ID を符号化し直したもの。ほかはリンクにしない） */
+/**
+ * HTML に書いた id の頭。Markdown が作る id（脚注の user-content-fn-1 など）と別の頭にして、HTML の要素が脚注の行き先を横取りしないようにする
+ * （markdownLinks.ts の scrollToFragment も同じ頭で探す）
+ */
+export const HTML_ID_PREFIX = "user-html-";
+
+/** ID に頭を付ける（付いていればそのまま。読み直しても同じ形になるように） */
+const withIdPrefix = (id: string) => (id.startsWith(HTML_ID_PREFIX) ? id : `${HTML_ID_PREFIX}${id}`);
+
+/**
+ * リンクの行き先（Markdown のリンクと同じ判定 linkTargetOf。外のページは読み直した URL、# は HTML に書いた id の頭を付けて符号化し直したもの
+ * = HTML の # のリンクは HTML の要素だけを指す。ほかはリンクにしない）
+ */
 function href(raw: string | null): string | null {
   const target = linkTargetOf(raw);
   if (!target) return null;
-  return target.kind === "web" ? target.url : `#${encodeURIComponent(target.id)}`;
+  return target.kind === "web" ? target.url : `#${encodeURIComponent(withIdPrefix(target.id))}`;
 }
 
 /** 画像の src（http・https を書いたものだけ。//host は描く画面の出どころに左右されるので通さない） */
@@ -132,11 +144,11 @@ interface AttrRule {
 const tags = (names: string) => new Set(names.split(" "));
 const present = () => true;
 
-/** 通す属性（ほかはタグを描いたまま属性だけ消す。font は属性をすべて消す） */
+/** 通す属性（ほかはタグを描いたまま属性だけ消す。font は属性をすべて消す。id は HTML_ID_PREFIX を付ける） */
 export const HTML_ATTRIBUTES: Readonly<Record<string, AttrRule>> = {
   title: { prop: "title", tags: null, parse: cleanText(500) },
   lang: { prop: "lang", tags: null, parse: (raw) => (raw !== null && raw.length <= 35 && /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(raw) ? raw : null) },
-  id: { prop: "id", tags: null, parse: (raw) => (raw !== null && raw.length <= 100 && /^[A-Za-z0-9\-_.:]+$/.test(raw) ? `user-content-${raw}` : null) },
+  id: { prop: "id", tags: null, parse: (raw) => (raw !== null && raw.length <= 100 && /^[A-Za-z0-9\-_.:]+$/.test(raw) ? withIdPrefix(raw) : null) },
   href: { prop: "href", tags: tags("a"), parse: href },
   src: { prop: "src", tags: tags("img"), parse: imageSrc },
   alt: { prop: "alt", tags: tags("img"), parse: cleanText(500) },

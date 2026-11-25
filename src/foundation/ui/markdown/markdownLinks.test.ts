@@ -50,3 +50,12 @@ test("scrollToFragment: 押したリンクの返答の中の ID へスクロー�
   scrollToFragment({ closest: () => null } as unknown as Element, "user-content-fn-1");
   assert.deepEqual(scrolled, ["2つ目:user-content-fn-1", "1つ目:user-content-fn-1"]);
 });
+
+test("scrollToFragment: Markdown のリンクの #x は、HTML に書いた id（user-html-x）も探す。脚注の行き先は HTML の要素に取られない", () => {
+  vi.stubGlobal("CSS", { escape: (s: string) => s.replace(/[^\w-]/g, (c) => `\\${c}`) });
+  const scrolled: string[] = [];
+  const reply = fakeReply("返答", ["user-content-fn-1", "user-html-fn-1", "user-html-install"], scrolled);
+  scrollToFragment(reply, "install");
+  scrollToFragment(reply, "user-content-fn-1");
+  assert.deepEqual(scrolled, ["返答:user-html-install", "返答:user-content-fn-1"]);
+});

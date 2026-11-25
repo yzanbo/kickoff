@@ -23,7 +23,7 @@ test("ふつうの例: 入れ物の中の Markdown・寄せ方・画像・リン
   assert.equal(html('<ol start="3" type="a"><li>c</li><li value="9">i</li></ol>'), '<ol start="3" type="a"><li>c</li><li value="9">i</li></ol>');
   assert.equal(html("<table><tr><th colspan=\"2\">見出し</th></tr><tr><td>a<td>b</table>"), '<table><tr><th colspan="2">見出し</th></tr><tr><td>a</td><td>b</td></tr></table>');
   assert.equal(html("<ul><li>a<li>b</ul>"), "<ul><li>a</li><li>b</li></ul>");
-  assert.equal(html('<p id="top" lang="en">x</p>'), '<p id="user-content-top" lang="en">x</p>');
+  assert.equal(html('<p id="top" lang="en">x</p>'), '<p id="user-html-top" lang="en">x</p>');
 });
 
 test("pre と code の中のタグは描かず、文字だけにする（文字参照は戻す）", () => {
@@ -80,4 +80,12 @@ test("ファイルのチップの印は Markdown の節にだけ付き、HTML �
   const out = (text: string) => toHtml(markdownToHast(withLinks, text) ?? { type: "root", children: [] }).replace(/ class="md-html"/g, "");
   assert.equal(out("<div>\n\n`a.ts` を見る\n\n</div>"), '<div>\n<p><a href="#" data-file-path="a.ts">a.ts</a> を見る</p>\n</div>');
   assert.equal(out('<span data-file-path="a.ts" data-file-line="3">a.ts</span>'), "<p><span>a.ts</span></p>");
+});
+
+test("HTML に書いた id は脚注の id と別の頭（user-html-）にし、HTML の # のリンクはその頭の行き先を指す", () => {
+  const out = html('本文[^1]\n\n<span id="fn-1">偽</span> <span id="user-content-fn-1">偽</span> <a href="#fn-1">飛ぶ</a>\n\n[^1]: 注');
+  assert.match(out, /<span id="user-html-fn-1">偽<\/span> <span id="user-html-user-content-fn-1">偽<\/span> <a href="#user-html-fn-1">飛ぶ<\/a>/);
+  // 脚注の番号の行き先は脚注のまま（同じ id は 1 つだけ）
+  assert.match(out, /<a href="#user-content-fn-1" id="user-content-fnref-1"/);
+  assert.equal(out.match(/id="user-content-fn-1"/g)?.length, 1);
 });

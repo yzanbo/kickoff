@@ -2,13 +2,12 @@
 // 読み取り（htmlTokens.ts・htmlTree.ts）に誤りがあっても、一覧にないものは描かない。
 // Kickoff が付ける印（md-html のクラス・ファイルのチップ・数式・薄く出す段）は、この確かめのあとに付ける
 import type { Element, ElementContent, Root } from "hast";
-import { ATTRIBUTE_BY_PROP, HTML_ATTRIBUTES, HTML_TAGS } from "./htmlAllowlist";
+import { ATTRIBUTE_BY_PROP, HTML_ATTRIBUTES, HTML_ID_PREFIX, HTML_TAGS } from "./htmlAllowlist";
 import { buildHtml } from "./htmlTree";
 
 /** HTML から作った要素に付けるクラス（Markdown.css の「ほかの CSS を当てない決まり」と見た目の相手） */
 export const HTML_ELEMENT_CLASS = "md-html";
 
-const ID_PREFIX = "user-content-";
 
 /** 木の上の属性 1 つが一覧の決まりどおりか（値は読み直して同じ形になるものだけ） */
 function propertyFits(tag: string, prop: string, value: unknown): boolean {
@@ -18,7 +17,7 @@ function propertyFits(tag: string, prop: string, value: unknown): boolean {
   if (typeof value === "boolean") return value && rule.parse(null) === true;
   if (typeof value !== "string" && typeof value !== "number") return false;
   const raw = String(value);
-  if (prop === "id") return raw.startsWith(ID_PREFIX) && rule.parse(raw.slice(ID_PREFIX.length)) === raw;
+  if (prop === "id") return raw.startsWith(HTML_ID_PREFIX) && rule.parse(raw) === raw;
   return rule.parse(raw) === value;
 }
 
