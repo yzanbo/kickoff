@@ -1,6 +1,6 @@
 /**
- * Markdown の読み方の設定の組。表示（markdownProcessor.ts の pipelineOf）が使う
- * （読み方を変えるときはここだけを直す）
+ * Markdown の読み方の設定の組。表示（markdownProcessor.ts の pipelineOf）と書式付きコピー（markdownHtml.ts）が同じものを使う
+ * （別々に組むと、表示とコピーで読み方がずれていくため）
  */
 import type { Options } from "react-markdown";
 import remarkCjkFriendly from "remark-cjk-friendly";
