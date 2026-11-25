@@ -6,6 +6,31 @@ import { blendRgb, parseColor } from "@shared/foundation/theme/color";
 const MAX_TEXT_SIZE = 20_000;
 const MAX_EDGES = 400;
 
+/**
+ * 図の中の %%{init}%%・前書き（---）の config で書き換えられない設定。Mermaid は入れ子の同じ名前（flowchart.htmlLabels など）も消す
+ * （どちらの書き方も Mermaid の addDirective を通り、ここにある名前を消してから設定に重ねる）。
+ * Mermaid の既定の 6 つに、HTML のラベル（<img> などで外を読む・foreignObject）・ラベルの無害化の設定（タグを足せる）と、
+ * 配色・CSS・字体の設定（themeCSS は図の CSS にそのまま入り、ほかも CSS の値に入るので、書いた人に CSS を書かせない）を足す
+ */
+export const MERMAID_SECURE_KEYS = [
+  "secure",
+  "securityLevel",
+  "startOnLoad",
+  "maxTextSize",
+  "suppressErrorRendering",
+  "maxEdges",
+  "htmlLabels",
+  "dompurifyConfig",
+  "theme",
+  "themeVariables",
+  "themeCSS",
+  "darkMode",
+  "fontFamily",
+  "altFontFamily",
+  "fontSize",
+  "arrowMarkerAbsolute",
+];
+
 /** 色分けに使う色（tokens.css の --chart-* の色から。円グラフ・マインドマップ・タイムラインなど） */
 const PALETTE_VARS = [
   "--chart-1",
@@ -61,9 +86,7 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
     securityLevel: "strict",
     suppressErrorRendering: true,
     htmlLabels: false,
-    // 図の中の %%{init}%%・前書き（---）で書き換えられない設定。Mermaid の既定の 6 つに、HTML のラベル（<img> などで外を読む・
-    // foreignObject）と、ラベルの無害化の設定（タグを足せる）を足す。Mermaid は入れ子の同じ名前（flowchart.htmlLabels）も消す
-    secure: ["secure", "securityLevel", "startOnLoad", "maxTextSize", "suppressErrorRendering", "maxEdges", "htmlLabels", "dompurifyConfig"],
+    secure: [...MERMAID_SECURE_KEYS],
     maxTextSize: MAX_TEXT_SIZE,
     maxEdges: MAX_EDGES,
     theme: "base",

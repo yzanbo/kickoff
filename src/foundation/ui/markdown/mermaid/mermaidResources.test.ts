@@ -53,3 +53,22 @@ test("mermaidReadsOutside: CSS のエスケープ・コメントで隠した url
   // ラベルの中の \ （CSS を書けない所）は描く
   assert.equal(mermaidReadsOutside('flowchart TD\n  A["C:\\\\Users\\\\a"] --> B'), false);
 });
+
+test("mermaidReadsOutside: 前書きの字下げ・--- の後ろの空白・CRLF・タブの字下げ・閉じのない %%{ と、; で続けた style の \\ でもすり抜けない", () => {
+  const css = 'themeCSS: ".node{background:\\x75rl(https://evil.example/m5)}"';
+  for (const code of [
+    `  ---\n  config:\n    ${css}\n  ---\nflowchart TD\nA-->B`,
+    `--- \nconfig:\n  ${css}\n---\nflowchart TD\nA-->B`,
+    `---\r\nconfig:\r\n  ${css}\r\n---\r\nflowchart TD\r\nA-->B`,
+    `\t---\n\tconfig:\n\t  ${css}\n\t---\nflowchart TD\nA-->B`,
+    '\n---\nconfig:\n  gantt:\n    todayMarker: "stroke:\\x75rl(https://evil.example/p)"\n---\ngantt\n  title x',
+    'flowchart TD\n  A-->B\n%%{init: {"themeCSS": ".a{fill:\\u0075rl(https://evil.example/p)}"}',
+    "flowchart TD; A-->B; style A fill:\\9",
+    "flowchart TD\r  A-->B\r  style A fill:#f00\\9",
+  ]) {
+    assert.equal(mermaidReadsOutside(code), true, JSON.stringify(code));
+  }
+  // 前書き・%%{…}%%・CSS を書ける文のない図のラベルの \ と、\ のない前書きは描く
+  assert.equal(mermaidReadsOutside("---\ntitle: 図\nconfig:\n  flowchart:\n    curve: linear\n---\nflowchart TD\n  A-->B"), false);
+  assert.equal(mermaidReadsOutside('flowchart TD\n  A["a\\\\b"] --> B\n  style B fill:#f9f'), false);
+});

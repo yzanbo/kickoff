@@ -38,7 +38,7 @@ const CSS_IMAGE_SET = /(?:-webkit-)?image-set\([^)]*\)/gi;
 const CSS_FONT_FACE = /@font-face\s*\{[^}]*\}?/gi;
 
 /**
- * CSS で外を読む書き方（# でない url(…)・@import・image-set・@font-face）を消す（図の設定の themeCSS から、書いた人の CSS も入る）。
+ * CSS で外を読む書き方（# でない url(…)・@import・image-set・@font-face）を消す（style・classDef などから、書いた人の CSS も入る）。
  * エスケープ（\75 rl( = url(）・コメントを含むものは、戻してから消す（隠した書き方を見逃さないように）
  */
 export const stripCssUrls = (css: string): string => {
