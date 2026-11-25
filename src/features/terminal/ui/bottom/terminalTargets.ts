@@ -1,6 +1,6 @@
 import type { Project } from "@shared/projects/types";
 import { terminalFolderOf } from "@shared/terminal/folder";
-import { sidebarOrder } from "@/features/projects/ui";
+import { sidebarOrder } from "@shared/projects/order";
 import type { TerminalTarget } from "@/features/panel/ui";
 
 /**

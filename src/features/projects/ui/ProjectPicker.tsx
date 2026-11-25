@@ -3,7 +3,7 @@ import { useId } from "react";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ProjectChip } from "./ProjectChip";
-import { chatTargetChoices } from "./projectTargets";
+import { chatTargetChoices } from "@shared/projects/order";
 import { useProjects } from "./stores/projects";
 
 /**

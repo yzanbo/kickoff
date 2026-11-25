@@ -6,7 +6,8 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { useProjectChatsValue } from "./projectChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";
+import { sidebarOrder } from "@shared/projects/order";
+import { archivedProjects, recentOrder } from "./projectOrder";
 import { useProjectTagFilter } from "./projectTagFilter";
 
 /**

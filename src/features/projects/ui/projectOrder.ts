@@ -1,21 +1,9 @@
-import { isActiveListedProject, isCommonProject, isUserProject } from "@shared/projects/kinds";
+import { isUserProject } from "@shared/projects/kinds";
+import { sidebarOrder } from "@shared/projects/order";
 import type { Project } from "@shared/projects/types";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
-
-/**
- * サイドバーに出すプロジェクトの並び: 先頭に共通（いつも。固定したものより前で、並べ替え・固定の外）、そのあと上に固定したもの、
- * そのあとドラッグで並べ替えた順（同じなら作成順）。lastActive を渡すと、固定したものの次は最近動いた順（サイドバーの「最近動いた順」）。
- * しまった（アーカイブした）プロジェクトは出さない（切り替え・全プロジェクトの画面でも同じ）
- */
-export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => string) => {
-  const listed = projects.filter(isActiveListedProject);
-  const own = listed
-    .filter(isUserProject)
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
-  return [...listed.filter(isCommonProject), ...own];
-};
 
 /** 並べ替えられるプロジェクトの ID（並び projects のうち利用者のもの。共通はいつも先頭なので、並べ替えの鍵にも保存する並びにも入れない） */
 export const reorderableIds = (projects: readonly Project[]): number[] => projects.filter(isUserProject).map((p) => p.id);

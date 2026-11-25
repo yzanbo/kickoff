@@ -1,7 +1,7 @@
-// 新しいチャットの作成先の決め方（⌘N・サイドバーで選ぶプロジェクトの既定）と、作成先を選び直す札の選択肢（純粋）
+// 新しいチャットの作成先の決め方（⌘N・サイドバーで選ぶプロジェクトの既定。純粋。作成先を選び直す札の選択肢は @shared/projects/order の chatTargetChoices）
 import { isActiveUserProject, isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
-import { sidebarOrder } from "./projectOrder";
+import { sidebarOrder } from "@shared/projects/order";
 import type { ProjectsIndex } from "./stores/projects";
 
 /**
@@ -16,13 +16,3 @@ export const firstTargetOf = (projects: readonly Project[]): number | undefined 
  */
 export const fallbackTargetOf = (current: number | undefined, { projects, missing }: Pick<ProjectsIndex, "projects" | "missing">): number | undefined =>
   current !== undefined && !missing(current) ? current : firstTargetOf(sidebarOrder(projects));
-
-/**
- * 新しいチャットの作成先を選び直す札の選択肢: 共通を先頭に、アーカイブしていない利用者のプロジェクト（サイドバーの並び）。
- * いまの作成先がその中になければ（アーカイブしたプロジェクトで始めた下書き）いちばん下に足す（チェックを付けて見せるため）。値は ID の文字
- */
-export function chatTargetChoices(projects: readonly Project[], current: number): { values: string[]; labels: Record<string, string> } {
-  const listed = sidebarOrder([...projects]);
-  const shown = listed.some((p) => p.id === current) ? listed : [...listed, ...projects.filter((p) => p.id === current)];
-  return { values: shown.map((p) => String(p.id)), labels: Object.fromEntries(shown.map((p) => [String(p.id), p.name])) };
-}

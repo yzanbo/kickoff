@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Project } from "@shared/projects/types";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
-import { sidebarOrder } from "./projectOrder";
+import { sidebarOrder } from "@shared/projects/order";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 
 /**
