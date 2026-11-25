@@ -44,3 +44,19 @@ test("linkWarnings: リンクの文字にほかの文字・空白・見えない
   assert.deepEqual(linkWarnings("https://docs.good.example/a", "詳しくは https://good.example x を"), []);
   assert.deepEqual(linkWarnings("https://evil.example/", "ここを押す"), []);
 });
+
+test("linkWarnings: ファイル名に見える文字（README.md・src/a.ts など）は比べず、http(s)://・www. で始まる語とドメインは比べる", () => {
+  for (const text of ["README.md", "src/a.ts", "package.json", "docs/architecture.md を見る", "pnpm-lock.yaml", "main.py:12"]) {
+    assert.deepEqual(linkWarnings("https://github.com/o/r/blob/main/README.md", text), [], text);
+  }
+  for (const [href, text] of [
+    ["https://evil.example/github.com", "github.com"],
+    ["https://evil.example", "https://good.example/x"],
+    ["https://evil.example", "www.good.example"],
+    ["https://evil.example", "www.good.md"],
+    ["https://evil.example", "good.io"],
+    ["https://evil.example", "example.co.jp"],
+  ]) {
+    assert.deepEqual(linkWarnings(href, text), ["text_mismatch"], `${text} → ${href}`);
+  }
+});

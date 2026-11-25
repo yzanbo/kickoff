@@ -44,6 +44,25 @@ const URL_IN_TEXT = /https?:\/\/([\p{L}\p{N}.-]+)/giu;
 /** 語の前後のかっこ・句読点 */
 const WORD_EDGES = /^[(\[「『"'<（【]+|[)\]」』"'>）】.,、。:;!?…]+$/gu;
 
+/**
+ * ファイルの拡張子として多い名前。http://・https://・www. で始まらない語のうち、最後のラベルがこれのもの（README.md・src/a.ts など）は
+ * ドメインとみなさない（返答のファイル名のリンクで毎回警告にしないため）。.com・.io・国別などのドメインは入れない
+ */
+const FILE_EXTENSIONS: ReadonlySet<string> = new Set(
+  (
+    "md mdx markdown txt rst json jsonc json5 yml yaml toml lock ts tsx mts cts js jsx mjs cjs vue svelte py pyi rb rs go java kt kts swift c h cc cpp hpp m mm cs fs php pl lua dart scala " +
+    "sh zsh bash fish ps1 bat sql graphql proto html htm css scss sass less png jpg jpeg gif svg webp ico bmp avif pdf zip gz tgz tar log env ini cfg conf xml csv tsv diff patch " +
+    "wasm map snap lockb gradle plist"
+  ).split(" "),
+);
+
+/** 語がドメインとして比べるものか（http://・https://・www. で始まるものはいつも。ほかは最後のラベルがファイルの拡張子でないもの） */
+function isDomainWord(word: string): boolean {
+  if (/^(?:https?:\/\/|www\.)/i.test(word)) return true;
+  const host = word.split(/[/?#:]/, 1)[0];
+  return !FILE_EXTENSIONS.has(host.slice(host.lastIndexOf(".") + 1).toLowerCase());
+}
+
 /** ホスト名の小文字（頭の www. を外す）。読めなければ null */
 function hostOf(text: string): string | null {
   try {
@@ -54,7 +73,8 @@ function hostOf(text: string): string | null {
 }
 
 /**
- * リンクの文字に見える URL・ドメインのホスト名（見えない文字を外してから、文の中の http・https の URL と、ドメインに見える語のすべて）。
+ * リンクの文字に見える URL・ドメインのホスト名（見えない文字を外してから、文の中の http・https の URL と、ドメインに見える語のすべて。
+ * ファイル名に見える語は除く。行き先の URL の中に同じ語があっても緩めない（https://evil.example/github.com ですり抜けるため））。
  * 「https://good.example x」「https://good.example<small>…</small>」のように、ほかの文字が混ざっていても拾う
  */
 function textHostsOf(text: string): string[] {
@@ -67,7 +87,7 @@ function textHostsOf(text: string): string[] {
   for (const m of visible.matchAll(URL_IN_TEXT)) add(m[1].replace(/[.-]+$/, ""));
   for (const word of visible.split(/\s+/)) {
     const w = word.replace(WORD_EDGES, "");
-    if (DOMAIN_LIKE.test(w)) add(w);
+    if (DOMAIN_LIKE.test(w) && isDomainWord(w)) add(w);
   }
   return [...hosts];
 }
