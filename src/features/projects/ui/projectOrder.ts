@@ -1,4 +1,4 @@
-import { isListedProject } from "@shared/projects/kinds";
+import { isActiveListedProject, isListedProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -11,7 +11,7 @@ import { errorMessage } from "@shared/foundation/errors";
  */
 export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => string) =>
   projects
-    .filter((p) => !p.archived_at && isListedProject(p))
+    .filter(isActiveListedProject)
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
 
 /**

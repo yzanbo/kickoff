@@ -2,7 +2,7 @@
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { isListedProject } from "@shared/projects/kinds";
+import { isActiveListedProject } from "@shared/projects/kinds";
 import type { BusEvent } from "@shared/foundation/contract";
 import { agentStateOf, boardColumnOf } from "@shared/chat/state";
 import { byUrgency } from "@shared/chatList/urgency";
@@ -54,7 +54,7 @@ export interface ChatRow {
 export function chatSections(state: HostState): { project: Project; rows: ChatRow[] }[] {
   const pending = new Set(state.approvals.map((a) => a.chat_id));
   return state.projects
-    .filter((p) => p.archived_at === null && isListedProject(p))
+    .filter(isActiveListedProject)
     .map((project) => ({
       project,
       rows: state.chats

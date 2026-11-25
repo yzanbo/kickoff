@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/chat/testing";
 import { makeProject } from "@shared/projects/testing";
-import { dockBadgeCount } from "./dockBadge";
+import { dockBadgeCounts } from "./dockBadge";
 
-test("dockBadgeCount: アーカイブしていないプロジェクトの回答待ち・未読のチャットを数え、作業中・既読・アーカイブ済みは数えない", () => {
+test("dockBadgeCounts: アーカイブしていないプロジェクトのチャットを作業中・回答待ち・未読に分けて数え、既読・アーカイブ済みは数えない", () => {
   const projects = [makeProject(1), makeProject(2, { archived_at: "2026-11-01T00:00:00.000Z" })];
   const chats = [
     makeChat(1, { project_id: 1, status: "running" }), // 回答待ち（依頼がある）
@@ -15,12 +15,20 @@ test("dockBadgeCount: アーカイブしていないプロジェクトの回答�
     makeChat(6, { project_id: 1, status: "completed", unread: true, archived_at: "2026-11-01T00:00:00.000Z" }), // アーカイブ済み
     makeChat(7, { project_id: 2, status: "completed", unread: true }), // しまったプロジェクト
   ];
-  assert.equal(dockBadgeCount(chats, projects, new Set([1])), 3);
-  assert.equal(dockBadgeCount([], projects, new Set()), 0);
+  assert.deepEqual(dockBadgeCounts(chats, projects, new Set([1])), { running: 1, needs_input: 1, unread: 2 });
+  assert.deepEqual(dockBadgeCounts([], projects, new Set()), { running: 0, needs_input: 0, unread: 0 });
 });
 
-test("dockBadgeCount: 見えないプロジェクト（共通のノート）のチャットは数えない", () => {
+test("dockBadgeCounts: 見えないプロジェクト（共通のノート）のチャットは数えない", () => {
   const projects = [makeProject(1), makeProject(2, { kind: "common" })];
   const chats = [makeChat(1, { project_id: 1, status: "completed", unread: true }), makeChat(2, { project_id: 2, status: "completed", unread: true })];
-  assert.equal(dockBadgeCount(chats, projects, new Set()), 1);
+  assert.deepEqual(dockBadgeCounts(chats, projects, new Set()), { running: 0, needs_input: 0, unread: 1 });
+});
+
+test("dockBadgeCounts: 子チャットも状態ごとに数える", () => {
+  const chats = [
+    makeChat(1, { project_id: 1, status: "running" }),
+    makeChat(2, { project_id: 1, parent_chat_id: 1, status: "completed", unread: true }),
+  ];
+  assert.deepEqual(dockBadgeCounts(chats, [makeProject(1)], new Set()), { running: 1, needs_input: 0, unread: 1 });
 });

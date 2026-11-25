@@ -109,8 +109,10 @@ export const FOUNDATION_IPC = {
     notify: invoke<[request: NotifyRequest], NotifyResult>(),
     /** Mac の「システム設定 → 通知」を開く（Kickoff の通知を許可する・出し方を変える） */
     openSettings: invoke<[]>(),
-    /** Dock のアイコンの赤い数字（要対応のチャットの数。0 なら消す） */
-    setBadge: send<[count: number]>(),
+    /** Dock の元のアイコン（Kickoff の .app のアイコンの PNG の data URL。取れなければ null）。状態の数を描き込む下地 */
+    dockIconBase: invoke<[], string | null>(),
+    /** Dock のアイコンを差し替える（PNG の data URL）。null で元のアイコンに戻す */
+    setDockIcon: send<[dataUrl: string | null]>(),
     /** 通知が押されて、そのチャットを開くとき（Kickoff を起動し直したあとに、前の通知が押されたときも） */
     onOpenChat: event<[projectId: number, chatId: number]>(),
     /** CI の失敗の通知が押されて、その実行を CI のタブで開くとき */
@@ -178,7 +180,7 @@ export interface IpcEntry {
   channel: string;
 }
 
-/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.owner・send:notifications.setBadge・event:notifications.onOpenChat） */
+/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.owner・send:notifications.setDockIcon・event:notifications.onOpenChat） */
 const channelName = (kind: IpcKind, group: string, method: string) => `${kind}:${group}.${method}`;
 
 /** 知らせ（event）のチャンネル名（ほかで手書きしない） */

@@ -971,7 +971,7 @@
 | SET-018 | Mac の通知で知らせる | notifications | T:notifications/routes |
 | SET-019 | 見ている人には通知しない | notifications | T:notifications/routes |
 | SET-020 | 通知を押してそのチャットを開く | 土台:desktop | M |
-| SET-021 | Dock のアイコンに要対応の数を出す | notifications | T:dockBadge |
+| SET-021 | Dock のアイコンの隅に作業中・未読・回答待ちの数を状態の色で出す | notifications | T:dockBadge,T:dockIconModel,T:dockIconUpdater |
 | SET-022 | ntfy でスマホに知らせる（取りやめ: 欄を保存するだけで知らせていなかった。スマホへはプッシュで知らせる。MOB-013） | notifications | M |
 
 ### 診断

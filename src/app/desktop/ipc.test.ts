@@ -113,13 +113,15 @@ test("IPC の引数: 取り決めの形のものだけを処理に渡す（invok
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 7);
 
-  const setBadge = listened.get("send:notifications.setBadge")!;
-  setBadge(fromScreen, -1);
-  setBadge(fromScreen, "3");
+  const setDockIcon = listened.get("send:notifications.setDockIcon")!;
+  setDockIcon(fromScreen, "data:image/jpeg;base64,AAAA");
+  setDockIcon(fromScreen, 3);
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 9);
-  setBadge(fromScreen, 3);
-  assert.deepEqual(calls.pop(), { name: "notifications.setBadge", args: [3] });
+  setDockIcon(fromScreen, "data:image/png;base64,AAAA");
+  assert.deepEqual(calls.pop(), { name: "notifications.setDockIcon", args: ["data:image/png;base64,AAAA"] });
+  setDockIcon(fromScreen, null);
+  assert.deepEqual(calls.pop(), { name: "notifications.setDockIcon", args: [null] });
 });
 
 test("IPC の送り手: Kickoff の画面（同じ出どころ）からのものだけ受け付ける", async () => {
@@ -127,7 +129,7 @@ test("IPC の送り手: Kickoff の画面（同じ出どころ）からのもの
   const openPath = handled.get("invoke:externalApps.openPath")!;
   await assert.rejects(async () => openPath({ senderFrame: { url: "https://example.com/" } }, "/w"), /Kickoff の画面以外/);
   await assert.rejects(async () => openPath({ senderFrame: null }, "/w"), /Kickoff の画面以外/);
-  listened.get("send:notifications.setBadge")!({ senderFrame: { url: "http://127.0.0.1:4319/" } }, 1);
+  listened.get("send:notifications.setDockIcon")!({ senderFrame: { url: "http://127.0.0.1:4319/" } }, null);
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 3);
   assert.equal(await openPath(fromScreen, "/w"), "ok");

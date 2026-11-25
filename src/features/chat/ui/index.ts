@@ -82,7 +82,7 @@ export { useChatSearch } from "./chatSearch";
 export { useChipsPortal } from "./screen/chipsPortal";
 export { MainChatContext } from "./screen/mainChat";
 export { PastWorkplace } from "./screen/pastWorkplace";
-export { COUNTED_COLUMNS, chatStateOf, type CountedColumn, type StateCounts } from "./state/chatState";
+export { COUNTED_COLUMNS, EMPTY_STATE_COUNTS, chatStateOf, type CountedColumn, type StateCounts } from "./state/chatState";
 export { stalledAgents, type Activity } from "./state/stall";
 export { byActive, useChatsByProject, useChatsLoaded, useChatsValue } from "./store/knownChats";
 export type { ChatTitleEditor } from "./useChatRename";

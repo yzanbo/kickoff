@@ -20,12 +20,14 @@ export type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 /** 状態ごとのチャット数（作業中・回答待ち・未読） */
 export type StateCounts = Record<CountedColumn, number>;
 
+export const EMPTY_STATE_COUNTS = Object.freeze({ running: 0, needs_input: 0, unread: 0 } satisfies StateCounts);
+
 /**
  * 状態ごとのチャット数。カンバンの列と同じ決め方（boardColumnOf）で数え、既読とアーカイブ済みは数えない。
  * サイドバーのプロジェクト・プロジェクトの画面の見出し・全プロジェクトの画面の見出しで同じ数になるよう、数えるのはここだけ
  */
 export function stateCounts(chats: readonly Chat[], pending: ApprovalIndex): StateCounts {
-  const counts: StateCounts = { running: 0, needs_input: 0, unread: 0 };
+  const counts = { ...EMPTY_STATE_COUNTS };
   for (const r of chats) {
     if (r.archived_at) continue;
     const column = boardColumnOf(chatStateOf(r, pending));

@@ -1,4 +1,5 @@
-import { blend, colorBehind, onLayer, parseColor, readableLabelColor, readableStrokeColor, type Layer, type Rgb } from "./labelContrast";
+import { blendRgb, parseColor, type Rgb } from "@shared/foundation/theme/color";
+import { colorBehind, onLayer, readableLabelColor, readableStrokeColor, type Layer } from "./labelContrast";
 
 /** 塗りのある形（文字の下になりうるもの）と文字 */
 const SHAPES = new Set(["rect", "path", "polygon", "circle", "ellipse"]);
@@ -23,7 +24,7 @@ function fillOf(el: Element): Layer["color"] | null {
 /** 図の地の色（SVG に色がなければ、図を置く欄の色 base） */
 function baseOf(root: SVGSVGElement, base: Rgb): Rgb {
   const color = parseColor(getComputedStyle(root).backgroundColor);
-  return color ? blend(color.rgb, color.alpha, base) : base;
+  return color ? blendRgb(color.rgb, color.alpha, base) : base;
 }
 
 /** 線に沿った点（画面の上の位置。長さがない・測れなければ空） */

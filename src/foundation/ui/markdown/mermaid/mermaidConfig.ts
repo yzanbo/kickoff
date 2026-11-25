@@ -1,6 +1,6 @@
 import type { MermaidConfig } from "mermaid";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
-import { parseColor } from "./labelContrast";
+import { blendRgb, parseColor } from "@shared/foundation/theme/color";
 
 /** 図に使える文字数・線の数の上限（超えたら図にせず、コードのまま出す） */
 const MAX_TEXT_SIZE = 20_000;
@@ -27,7 +27,7 @@ function mixColor(a: string, b: string, weight: number): string {
   const pa = parseColor(a)?.rgb;
   const pb = parseColor(b)?.rgb;
   if (!pa || !pb) return a;
-  return `#${pa.map((v, i) => Math.round(v * weight + pb[i] * (1 - weight)).toString(16).padStart(2, "0")).join("")}`;
+  return `#${blendRgb(pa, weight, pb).map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
 /** 図の地の色（コードの欄と同じ色） */
