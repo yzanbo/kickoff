@@ -14,6 +14,7 @@ import { chatContract } from "@shared/chat/contract";
 import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery } from "@shared/chat/detail";
 import type { Chat } from "@shared/chat/types";
 import { isCommonProject } from "@shared/projects/kinds";
+import { READ_TOGGLE_BUSY_NOTE } from "@shared/chat/readTiming";
 import { Conflict } from "@/foundation/core/errors";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
@@ -133,8 +134,14 @@ export function chatRoutes({ store, streamingText, runner, approvals, workplace,
       body: z.object({ event_id: z.number().int().optional() }),
       run: ({ chatId: chat, body: { event_id } }) => (!chat.unread || (event_id !== undefined && store.events.latestUnreadId(chat.id) > event_id) ? chat : store.chats.setUnread(chat.id, false)),
     },
-    // 未読にする（未読に戻す。次に開くまで残る）
-    "POST /api/chats/:chatId/unseen": { run: ({ chatId: chat }) => (chat.unread ? chat : store.chats.setUnread(chat.id, true)) },
+    // 未読にする（未読に戻す。次に開くまで残る）。未読は作業が終わってからだけの状態なので、作業中・回答待ちは断る
+    // （作業中に付けると作業中の印に未読の点が重なり、作業中に届いた返答の知らせと見分けられない）
+    "POST /api/chats/:chatId/unseen": {
+      run: ({ chatId: chat }) => {
+        if (runner.isBusy(chat.id) || approvals.list({ chatId: chat.id }).length > 0) throw new Conflict(READ_TOGGLE_BUSY_NOTE);
+        return chat.unread ? chat : store.chats.setUnread(chat.id, true);
+      },
+    },
     // 削除 = Kickoff のゴミ箱へ（子チャット（子・孫…）・会話の記録・会話記録のファイル・添付ごと。3 日は戻せ、3 日たったら本当に消す。
     // 作業中のものがあれば消せない）。入れたゴミ箱の ID を返す（画面の「元に戻す」）
     "DELETE /api/chats/:chatId": { run: ({ chatId: chat }) => ({ trash_id: trashChat({ store, trashBin, runner }, chat).id }) },

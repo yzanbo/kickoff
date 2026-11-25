@@ -10,6 +10,7 @@ import { open } from "@/foundation/ui/navigation/open";
 import { parse } from "@/foundation/ui/navigation/router";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { showTrashedToast } from "@/features/trash/ui";
+import { readHolds } from "./state/readHolds";
 
 /** 子チャットがあれば、アーカイブ・戻す・削除の確かめに添える文（子孫も一緒に扱う） */
 function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "delete"): string {
@@ -121,8 +122,12 @@ export async function confirmDeleteChats(target: Pick<Chat, "id" | "title"> | re
   return true;
 }
 
-/** まとめて既読にする（未読の印を消す。印のないものはそのまま） */
-export const markChatsSeen = (chats: Chat[]) => eachChat(chats.filter((r) => r.unread), "既読に", (r) => chatsApi.markSeen(r.id));
+/** まとめて既読にする（未読の印を消す。印のないものはそのまま。手で未読にした覚えも外す） */
+export const markChatsSeen = (chats: Chat[]) =>
+  eachChat(chats.filter((r) => r.unread), "既読に", (r) => {
+    readHolds.release(r.id);
+    return chatsApi.markSeen(r.id);
+  });
 
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
 export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachChat(chats, "移動", (r) => chatsApi.setChatGroup(r.id, groupId));

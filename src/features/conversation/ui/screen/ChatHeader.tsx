@@ -35,8 +35,8 @@ export function ChatHeader({
   const SideToggle = useChatScreen().host.side?.Toggle;
   const rowHidden = useChatHeaderRowHidden();
   const showing = useCell(useActivityNav().showing);
-  // 何もないところの右クリックで「チャットの画面」のメニュー（ボタン・リンク・入力欄の上では、そのものの右クリックを残す）
-  const menu = useChatDisplayMenu();
+  // 何もないところの右クリックで「チャットの画面」のメニュー（未読にする / 既読にするも。ボタン・リンク・入力欄の上では、そのものの右クリックを残す）
+  const menu = useChatDisplayMenu(chat.id);
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す
   const findInline = !collapsed && shows("find");

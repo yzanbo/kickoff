@@ -19,6 +19,7 @@ import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
 import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
+import { useReadToggleKey } from "./useReadToggleKey";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
 import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
@@ -94,13 +95,15 @@ export function ChatTimeline({
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
   useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  // ⌘⇧U で既読⇔未読（一番下にいるかによらない）
+  useReadToggleKey(root, chat);
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
   const jumping = useCell(nav.jumping);
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
-  // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
-  const displayMenu = useChatDisplayMenu();
+  // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面のメニュー（未読にする / 既読にする・タブの列・見出しの行など。隠したものをここから戻せる）
+  const displayMenu = useChatDisplayMenu(chat.id);
 
   return (
     <div className="timeline-wrap" hidden={hidden}>

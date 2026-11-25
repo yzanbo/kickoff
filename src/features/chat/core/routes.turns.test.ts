@@ -38,6 +38,24 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: "x" })).status, 400);
 });
 
+test("未読にする: 作業中は断り、終わってからは付けられる。返信を送ったら既読", async () => {
+  const { api, project, store, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
+  const release = provider.hold();
+  const chatId: number = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "やって" } })).body.id;
+  await until(() => runner.isBusy(chatId));
+  const refused = await api("POST /api/chats/:chatId/unseen", { params: { chatId } });
+  assert.equal(refused.status, 409);
+  assert.match(refused.body.error ?? "", /作業中・回答待ちの間は、未読・既読を変えられません/);
+  release();
+  await until(() => !runner.isBusy(chatId));
+  assert.equal((await api("POST /api/chats/:chatId/seen", { params: { chatId } })).body.unread, false);
+  assert.equal((await api("POST /api/chats/:chatId/unseen", { params: { chatId } })).body.unread, true);
+  // 返信を送ると、作業の始まりで未読を消す（ボタンで既読にする設定でも、返信は見た印）
+  assert.equal((await api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: "続けて" } })).status, 200);
+  assert.equal(store.chats.get(chatId)?.unread, false);
+  await until(() => !runner.isBusy(chatId));
+});
+
 test("裏で動いている作業: 作業中はチャットの詳細で返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
   const { api, project, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const seen: unknown[] = [];
