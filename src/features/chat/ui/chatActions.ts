@@ -153,10 +153,12 @@ export async function confirmMoveChatToProject(
     confirmLabel: "移動する",
   });
   if (!ok) return false;
+  // 開いているかは移す前に見る（移した知らせが応答より先に届くと、元のパネルがタブを閉じて隣のチャットに移り、開いていたことが分からなくなる）
+  const route = parse(window.location.hash);
+  const shown = route.name === "chat" && route.chatId === chat.id;
   await chatsApi.moveChat(chat.id, project.id);
   if (group) await chatsApi.setChatGroup(chat.id, group.id);
-  const route = parse(window.location.hash);
-  if (route.name === "chat" && route.chatId === chat.id) open({ kind: "chat", projectId: project.id, chatId: chat.id });
+  if (shown) open({ kind: "chat", projectId: project.id, chatId: chat.id });
   return true;
 }
 
