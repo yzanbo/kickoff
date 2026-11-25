@@ -2,7 +2,7 @@
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { isActiveUserProject } from "@shared/projects/kinds";
+import { sidebarOrder } from "@shared/projects/order";
 import type { BusEvent } from "@shared/foundation/contract";
 import { agentStateOf, boardColumnOf } from "@shared/chat/state";
 import { byUrgency } from "@shared/chatList/urgency";
@@ -50,16 +50,20 @@ export interface ChatRow {
   state: AgentState;
 }
 
-/** プロジェクトごとのチャットの一覧（チャットのないプロジェクトも出す。アーカイブしたプロジェクトと共通は出さない。共通の節は共通のターミナル・新しいチャットを作ってから） */
+/**
+ * プロジェクトごとのチャットの一覧。並びはパソコンのサイドバーと同じ sidebarOrder（共通がいつも先頭・そのあと固定・並べ替えた順）。
+ * チャットのないプロジェクトも節を出す（共通も、空でも出す）。アーカイブしたプロジェクトは出さない
+ */
 export function chatSections(state: HostState): { project: Project; rows: ChatRow[] }[] {
   const pending = new Set(state.approvals.map((a) => a.chat_id));
-  return state.projects
-    .filter(isActiveUserProject)
-    .map((project) => ({
-      project,
-      rows: state.chats
-        .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.note_path === null)
-        .map((chat) => ({ chat, state: agentStateOf(chat, pending.has(chat.id)) }))
-        .sort((a, b) => byUrgency(boardColumnOf(a.state), boardColumnOf(b.state)) || b.chat.active_at.localeCompare(a.chat.active_at)),
-    }));
+  return sidebarOrder(state.projects).map((project) => ({
+    project,
+    rows: state.chats
+      .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.note_path === null)
+      .map((chat) => ({ chat, state: agentStateOf(chat, pending.has(chat.id)) }))
+      .sort((a, b) => byUrgency(boardColumnOf(a.state), boardColumnOf(b.state)) || b.chat.active_at.localeCompare(a.chat.active_at)),
+  }));
 }
+
+/** 一覧のいちばん上の「新しいチャット」の作成先: 共通（並びの先頭）。共通がなければ並びの先頭のプロジェクト、どれもなければ null（ボタンを出さない） */
+export const newChatTarget = (projects: readonly Project[]): number | null => sidebarOrder(projects)[0]?.id ?? null;

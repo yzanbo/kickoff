@@ -3,7 +3,7 @@ import { test } from "vitest";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { makeChat } from "@shared/chat/testing";
 import { makeProject } from "@shared/projects/testing";
-import { applyHostEvent, chatSections, emptyHostState } from "./hostState";
+import { applyHostEvent, chatSections, emptyHostState, newChatTarget } from "./hostState";
 
 const approval = (id: string, chatId: number): Approval => ({ id, chat_id: chatId, project_id: 1, kind: "question", tool_name: "AskUserQuestion", input: {}, can_remember: false, created_at: "2026-11-14T00:00:00Z" });
 
@@ -42,4 +42,32 @@ test("chatSections: プロジェクトごとに、ボードと同じ急ぐ順（
     [3, "unread"],
     [1, "read"],
   ]);
+});
+
+test("chatSections: 共通の節がいつも先頭（チャットがなくても出す）。そのあとパソコンのサイドバーと同じ並び（固定 → 並べ替えた順）", () => {
+  const common = makeProject(9, { name: "共通", kind: "common", position: 0 });
+  const state = {
+    projects: [makeProject(1, { position: 1 }), makeProject(2, { position: 2, pinned: true }), common],
+    chats: [makeChat(1, { project_id: 1 })],
+    approvals: [],
+  };
+  const sections = chatSections(state);
+  assert.deepEqual(
+    sections.map((s) => [s.project.id, s.rows.length]),
+    [
+      [9, 0],
+      [2, 0],
+      [1, 1],
+    ],
+  );
+  // 共通のチャットは共通の節に入る
+  const withCommonChat = chatSections({ ...state, chats: [makeChat(5, { project_id: 9 })] });
+  assert.deepEqual(withCommonChat[0].rows.map((r) => r.chat.id), [5]);
+});
+
+test("newChatTarget: いちばん上の「新しいチャット」は共通に作る。共通がなければ並びの先頭のプロジェクト、どれもなければ null", () => {
+  const common = makeProject(9, { kind: "common" });
+  assert.equal(newChatTarget([makeProject(1, { pinned: true }), common]), 9);
+  assert.equal(newChatTarget([makeProject(1, { position: 2 }), makeProject(2, { position: 1 })]), 2);
+  assert.equal(newChatTarget([makeProject(1, { archived_at: "2026-01-01T00:00:00Z" })]), null);
 });

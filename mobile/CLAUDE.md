@@ -12,6 +12,7 @@ Android から Tailscale 経由で本体（Mac の Kickoff）のチャットを�
 - 読んでよいのは `src/shared`（`@shared/*`）と `src/app/shared`（`@/app/shared/*`）だけ（`tsconfig.json` の `paths`・`metro.config.js` の `watchFolders`。構造の検査）。
 - パソコンと同じ決まりは `@shared` の関数を使い、写さない（書いている途中の返答・作業場所の区切り・数式・図）。
 - 見るだけの端末は、送る・答える・作る操作を出さない（本体も断る）。本体は本体の ID で分ける。
+- 一覧の並びと作成先の札はパソコンと同じ `@shared/projects/order`（共通の節がいつも先頭で、空でも出す）。いちばん上の「新しいチャット」は共通に作る。共通のターミナルは本体がホームフォルダで開く。
 
 ## 落とし穴
 - TypeScript・React の版が本体と違う。Expo は版ごとに API が変わるので、書く前に `package.json` の版の文書と `https://docs.expo.dev/llms.txt` を読む。部品は `npx expo install`。
