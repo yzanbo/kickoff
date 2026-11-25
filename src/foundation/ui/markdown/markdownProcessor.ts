@@ -71,22 +71,32 @@ export function pipelineOf(links: PluggableList[number] | undefined, math: MathP
 }
 
 /**
- * 1 つのブロック（か全文）を要素にする。tail（出たばかりの文字の段）があれば、木の終わりの文字を薄く包んでから rehype に渡す
+ * 1 つのブロック（か全文）を、描く前の hast にする（生の HTML は文字にし、URL は安全にしたもの。`sanitizeHast`）。
+ * tail（出たばかりの文字の段）があれば、木の終わりの文字を薄く包んでから rehype に渡す
  * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順）。
- * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）と、読む途中で投げたときは、書いたままの文字で出す
- * （そのブロックだけ。開くたびに同じ文を描くので、投げたままにするとそのチャット・ファイルが開けなくなる）
+ * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）と、読む途中で投げたときは null（書いたままの文字で出す。呼ぶ側）
  */
-export function renderMarkdown(pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement {
-  if (isRiskyMarkdownBlock(text)) return plainBlock(text);
+export function markdownToHast(pipeline: MarkdownPipeline, text: string, tail?: readonly number[]): HastRoot | null {
+  if (isRiskyMarkdownBlock(text)) return null;
   try {
     const file = new VFile(text);
     let tree = pipeline.toHast.runSync(pipeline.toHast.parse(file), file);
     if (tail?.some((n) => n > 0)) wrapStreamTail(tree, tail);
     if (pipeline.rehype) tree = pipeline.rehype.runSync(tree, file);
-    return post(tree, components);
+    return sanitizeHast(tree);
   } catch {
-    return plainBlock(text);
+    return null;
   }
+}
+
+/**
+ * 1 つのブロック（か全文）を要素にする（`markdownToHast`）。読めなかったブロックは、書いたままの文字で出す
+ * （そのブロックだけ。開くたびに同じ文を描くので、投げたままにするとそのチャット・ファイルが開けなくなる）
+ */
+export function renderMarkdown(pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement {
+  const tree = markdownToHast(pipeline, text, tail);
+  if (!tree) return plainBlock(text);
+  return toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true }) as ReactElement;
 }
 
 /** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
@@ -99,10 +109,10 @@ const HTML_COMMENT_ONLY = /^\s*(?:<!--(?:(?!-->)[\s\S])*-->\s*)+$/;
 export const isHtmlComment = (value: string) => HTML_COMMENT_ONLY.test(value);
 
 /**
- * react-markdown の post と同じ: raw（HTML）を文字にし、URL を安全にして（defaultUrlTransform）、React の要素にする。
+ * react-markdown の post と同じ: raw（HTML）を文字にし、URL を安全にする（defaultUrlTransform。その場で書き換える）。
  * ただし HTML のコメントだけの raw は文字にせず消す（HTML として描いても出ないものなので。ほかの生の HTML は動かさずに文字で出す）
  */
-function post(tree: HastRoot, components: Components): ReactElement {
+function sanitizeHast(tree: HastRoot): HastRoot {
   visit(tree, (node: Nodes, index, parent) => {
     if (node.type === "raw" && parent && typeof index === "number") {
       if (isHtmlComment(node.value)) parent.children.splice(index, 1);
@@ -119,7 +129,7 @@ function post(tree: HastRoot, components: Components): ReactElement {
     }
     return undefined;
   });
-  return toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true }) as ReactElement;
+  return tree;
 }
 
 /** ブロックの覚えの上限（要素は hast の節を props に持つので、数と文の長さの両方で抑える） */
