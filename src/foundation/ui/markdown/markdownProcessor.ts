@@ -14,7 +14,6 @@ import { urlAttributes } from "html-url-attributes";
 import type { ReactElement } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { defaultUrlTransform, type Components, type Options } from "react-markdown";
-import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified, type Processor } from "unified";
@@ -23,6 +22,7 @@ import { VFile } from "vfile";
 import { createLruMap, type LruMap } from "@/foundation/ui/lib/lruMap";
 import { wrapStreamTail } from "@/foundation/ui/markdown/streaming/streamReveal";
 import { isRiskyMarkdownBlock } from "./markdownGuard";
+import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
 type PluggableList = NonNullable<Options["remarkPlugins"]>;
 
@@ -30,7 +30,7 @@ type PluggableList = NonNullable<Options["remarkPlugins"]>;
 export interface MarkdownPipeline {
   /** ブロックの覚えの鍵に入れる番号 */
   id: number;
-  /** remark-parse → remark のプラグイン → remark-rehype（allowDangerousHtml。react-markdown と同じ） */
+  /** remark-parse → remark のプラグイン → remark-rehype（`REMARK_REHYPE_OPTIONS`。生の HTML は react-markdown と同じく木に残す） */
   toHast: Processor<MdastRoot, MdastRoot, HastRoot>;
   /** rehype のプラグイン（数式のときの rehype-katex など。なければ null） */
   rehype: Processor<undefined, HastRoot, HastRoot> | null;
@@ -40,7 +40,7 @@ let nextId = 1;
 
 /** remark・rehype のプラグインの組から処理を作る（作り置きは呼ぶ側。pipelineOf） */
 export function createPipeline(remarkPlugins: PluggableList, rehypePlugins: PluggableList): MarkdownPipeline {
-  const toHast = unified().use(remarkParse).use(remarkPlugins).use(remarkRehype, { allowDangerousHtml: true }).freeze();
+  const toHast = unified().use(remarkParse).use(remarkPlugins).use(remarkRehype, REMARK_REHYPE_OPTIONS).freeze();
   const rehype = rehypePlugins.length ? unified().use(rehypePlugins).freeze() : null;
   return { id: nextId++, toHast: toHast as unknown as MarkdownPipeline["toHast"], rehype: rehype as unknown as MarkdownPipeline["rehype"] };
 }
@@ -56,15 +56,15 @@ const byLinks = new WeakMap<object, Map<MathPlugins | null, MarkdownPipeline>>()
 const noLinks = new Map<MathPlugins | null, MarkdownPipeline>();
 
 /**
- * Markdown の部品が使う処理の組: remark-gfm・数式（読み込んであれば）・ファイルのチップの差し込み、rehype は数式のときだけ rehype-katex
- * （react-markdown に渡すときと同じ順）
+ * Markdown の部品が使う処理の組: 読み方の設定の組（`syntax/markdownPlugins.ts`）に、数式（読み込んであれば）・ファイルのチップの差し込みを足す。
+ * rehype は数式のときだけ rehype-katex（react-markdown に渡すときと同じ順）
  */
 export function pipelineOf(links: PluggableList[number] | undefined, math: MathPlugins | null): MarkdownPipeline {
   const table = links && typeof links === "object" ? (byLinks.get(links) ?? new Map<MathPlugins | null, MarkdownPipeline>()) : noLinks;
   if (links && typeof links === "object") byLinks.set(links, table);
   let pipeline = table.get(math);
   if (!pipeline) {
-    pipeline = createPipeline([remarkGfm, ...(math ? math.remark : []), ...(links ? [links] : [])], math ? math.rehype : []);
+    pipeline = createPipeline(markdownRemarkPlugins([...(math ? math.remark : []), ...(links ? [links] : [])]), math ? math.rehype : []);
     table.set(math, pipeline);
   }
   return pipeline;

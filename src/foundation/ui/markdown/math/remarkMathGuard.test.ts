@@ -3,10 +3,10 @@ import { test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
+import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
 import { remarkMathGuard } from "./remarkMathGuard";
 
 /** Markdown の部品と同じ組み合わせで HTML にする */
@@ -15,7 +15,7 @@ function render(markdown: string): string {
     createElement(
       ReactMarkdown,
       {
-        remarkPlugins: [remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkMathGuard],
+        remarkPlugins: markdownRemarkPlugins([[remarkMath, { singleDollarTextMath: true }], remarkMathGuard]),
         rehypePlugins: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]],
       },
       convertTexDelimiters(markdown),

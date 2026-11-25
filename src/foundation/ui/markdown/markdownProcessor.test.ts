@@ -3,13 +3,13 @@ import { test } from "vitest";
 import { createElement, Fragment, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
-import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { remarkMathGuard } from "@/foundation/ui/markdown/math/remarkMathGuard";
 import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
 /*
  * 等しいことのテスト: react-markdown そのもので全文を描いた結果と、
@@ -53,9 +53,11 @@ const dropHtmlComments = () => (tree: { children?: unknown[] }) => {
   walk(tree);
 };
 
-/** react-markdown で全文を描く（HTML のコメントは、作り置きの処理と同じく消す） */
+/** react-markdown で全文を描く（設定の組の remark-rehype の決まりも渡す。HTML のコメントは、作り置きの処理と同じく消す） */
 function whole(text: string, remarkPlugins: PluggableList, rehypePlugins: PluggableList): string {
-  return renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins, rehypePlugins: [...rehypePlugins, dropHtmlComments], components }, text));
+  return renderToStaticMarkup(
+    createElement(ReactMarkdown, { remarkPlugins, remarkRehypeOptions: REMARK_REHYPE_OPTIONS, rehypePlugins: [...rehypePlugins, dropHtmlComments], components }, text),
+  );
 }
 
 /** ブロックに分けて描く（ブロックの間には、全文で描いたときと同じく改行の文字を置く） */
@@ -87,18 +89,18 @@ test("ブロックに分けて作り置きの処理で描いた結果は、react
   for (const text of SAMPLES) {
     assert.equal(
       blocks(text, (b) => renderMarkdown(plain, b, components)),
-      whole(text, [remarkGfm], []),
+      whole(text, markdownRemarkPlugins(), []),
       JSON.stringify(text),
     );
   }
 });
 
 test("ファイルのチップの差し込み・数式（KaTeX）があっても同じ", () => {
-  const withLinks = createPipeline([remarkGfm, fakeFileLinks], []);
+  const withLinks = createPipeline(markdownRemarkPlugins([fakeFileLinks]), []);
   for (const text of SAMPLES) {
     assert.equal(
       blocks(text, (b) => renderMarkdown(withLinks, b, components)),
-      whole(text, [remarkGfm, fakeFileLinks], []),
+      whole(text, markdownRemarkPlugins([fakeFileLinks]), []),
       JSON.stringify(text),
     );
   }
@@ -107,7 +109,7 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
     const text = convertTexDelimiters(source);
     assert.equal(
       blocks(text, (b) => renderMarkdown(withMath, b, components)),
-      whole(text, [remarkGfm, ...math.remark], math.rehype),
+      whole(text, markdownRemarkPlugins(math.remark), math.rehype),
       JSON.stringify(text),
     );
   }

@@ -3,8 +3,8 @@ import { test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { createBlockScanner } from "@/foundation/ui/markdown/streaming/markdownBlocks";
+import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
 import { createMarkdownRevealLimit, cutText, MAX_SCAN, revealCut } from "./markdownReveal";
 import { MAX_BLOCK_HOLD, MAX_INLINE_HOLD } from "./markdownRevealInline";
 
@@ -149,8 +149,8 @@ test("続きの文を少しずつ読んでも、初めから読んだときと�
   assert.equal(limit("別の **返答", 9).render, "別の **返答**");
 });
 
-/** react-markdown と remark-gfm（Markdown の部品と同じ組）で HTML にする */
-const render = (markdown: string) => renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins: [remarkGfm] }, markdown));
+/** react-markdown と読み方の設定の組（Markdown の部品と同じ組）で HTML にする */
+const render = (markdown: string) => renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins: markdownRemarkPlugins() }, markdown));
 
 test("生の記号が出ない: 例の文のどの書きかけでも、描いた HTML に生の ** ~~ ]( ` が出ない", () => {
   const text = "これは **大事な** 話で、~~古い~~ 方法ではなく `npm run build` を使う。[説明](https://example.com) も読む。\n\n| 列1 | 列2 |\n|---|---|\n| **a** | `b` |\n\n1. 番号\n2. 次";
