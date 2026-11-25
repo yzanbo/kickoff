@@ -18,5 +18,5 @@
 - CSS: HTML でしか出ないタグは `MarkdownHtml.css`（state の層）で、ほかの CSS を戻してから見た目を付ける。文字の大きさを変えるタグは 10px から見出しの大きさまでに止める。
 
 ## 落とし穴
-- ブロックは空行で分けるが、HTML の入れ物の開きから閉じまでは 1 つにする（`streaming/htmlBlockDepth.ts`）。
+- ブロックは空行で分けるが、HTML の入れ物の開きから閉じまでは 1 つにする（`streaming/htmlBlockDepth.ts`。HTML ブロックの中のタグだけを数え、閉じないまま 32,000 字を超えたらまとめない）。
 - テスト: `markdownProcessor.test.ts`（ブロックに分けても全文と同じ）・`html/*.test.ts`・`markdownDetails.test.ts`・`markdownImages.test.ts`。

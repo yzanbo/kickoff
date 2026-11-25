@@ -67,6 +67,7 @@ const SAMPLES = [
   "- [ ] まだ\n- [x] 済み\n\n- a\n  - 入れ子\n\n    字下げの段落\n\n段落\n\n    字下げのコード\n\n    続き",
   "https://example.com と <https://example.org> と www.example.net\n\n[リンク](https://example.com \"題\") と [危ない](javascript:alert(1)) と ![画像](x.png)",
   "<div>HTML の\n\nブロック</div>\n\n<!--\nコメント\n\n続き\n-->\n\n<pre>\na\n\nb</pre>\n\n後ろ",
+  "文の中に <div> と書いた\n\n段落\n\n</div>\n\n<p>\n<details>\n\n中\n\n</details>\n\n<span>\n<div>\n\n中\n\n</div>",
   "図の前\n\n<!-- visual: v-s1xidvm4 -->\n\n文の中 <!-- 目印 --> の続き\n\n<!-- a --> 同じ行の文\n\n<!-- 閉じていない",
   "参照のリンク [これ][r] と脚注[^1]。\n\n別の段落\n\n[r]: https://example.com\n[^1]: 脚注の本文",
   "````md\n```\n中\n\n```\n````\n\n~~~\nチルダ\n\n~~~\n\n```mermaid\ngraph TD\n  A-->B\n```\n\n閉じていない\n\n```py\nprint(1)\n\n",
