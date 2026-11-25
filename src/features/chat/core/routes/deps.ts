@@ -14,7 +14,7 @@ import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 
 export interface ChatRouteDeps {
-  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash" | "settings">;
   bus: Bus;
   /** いまの書きかけの返答（chat の段 chatDeltaStage が持つ。チャットの詳細の streaming_text） */
   streamingText(chatId: number): string | null;

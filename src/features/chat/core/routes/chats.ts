@@ -142,6 +142,7 @@ export function chatRoutes({ store, streamingText, runner, approvals, workplace,
         return chat.unread ? chat : store.chats.setUnread(chat.id, true);
       },
     },
+    "GET /api/chat-settings": { run: () => ({ read_timing: store.settings.get().read_timing }) },
     // 削除 = Kickoff のゴミ箱へ（子チャット（子・孫…）・会話の記録・会話記録のファイル・添付ごと。3 日は戻せ、3 日たったら本当に消す。
     // 作業中のものがあれば消せない）。入れたゴミ箱の ID を返す（画面の「元に戻す」）
     "DELETE /api/chats/:chatId": { run: ({ chatId: chat }) => ({ trash_id: trashChat({ store, trashBin, runner }, chat).id }) },
