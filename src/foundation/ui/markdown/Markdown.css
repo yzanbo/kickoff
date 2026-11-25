@@ -32,6 +32,12 @@
     margin: 0.55em 0;
   }
 
+  /* Markdown として読まずに、書いたままの文字で出すブロック（markdownProcessor.ts の plainBlock。読むと危ない形・読めなかったもの） */
+  .markdown .markdown-plain {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
   .markdown code {
     padding: 1px 5px;
     border-radius: var(--radius-sm);

@@ -12,6 +12,7 @@ import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/foundation/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
+import { RenderBoundary, RenderFailed } from "@/foundation/ui/kit/RenderBoundary";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
@@ -190,7 +191,19 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
  * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`）
  */
 // 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
-export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
+export const Markdown = memo(MarkdownGuarded, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
+
+/**
+ * 描く処理が投げたら、このメッセージ（文）だけを「表示できませんでした」と元の文に替える（返答・ファイルのプレビュー・GitHub の本文などで共通。
+ * ブロックの読み取りの失敗は markdownProcessor.ts がブロックごとに文字で出すので、ここで受けるのは部品の中の失敗）
+ */
+function MarkdownGuarded(props: MarkdownProps) {
+  return (
+    <RenderBoundary resetKey={props.children} fallback={<RenderFailed text={props.children} />}>
+      <MarkdownBody {...props} />
+    </RenderBoundary>
+  );
+}
 
 function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);

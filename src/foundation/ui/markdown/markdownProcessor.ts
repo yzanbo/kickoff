@@ -22,6 +22,7 @@ import { visit } from "unist-util-visit";
 import { VFile } from "vfile";
 import { createLruMap, type LruMap } from "@/foundation/ui/lib/lruMap";
 import { wrapStreamTail } from "@/foundation/ui/markdown/streaming/streamReveal";
+import { isRiskyMarkdownBlock } from "./markdownGuard";
 
 type PluggableList = NonNullable<Options["remarkPlugins"]>;
 
@@ -71,15 +72,25 @@ export function pipelineOf(links: PluggableList[number] | undefined, math: MathP
 
 /**
  * 1 つのブロック（か全文）を要素にする。tail（出たばかりの文字の段）があれば、木の終わりの文字を薄く包んでから rehype に渡す
- * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順）
+ * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順）。
+ * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）と、読む途中で投げたときは、書いたままの文字で出す
+ * （そのブロックだけ。開くたびに同じ文を描くので、投げたままにするとそのチャット・ファイルが開けなくなる）
  */
 export function renderMarkdown(pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement {
-  const file = new VFile(text);
-  let tree = pipeline.toHast.runSync(pipeline.toHast.parse(file), file);
-  if (tail?.some((n) => n > 0)) wrapStreamTail(tree, tail);
-  if (pipeline.rehype) tree = pipeline.rehype.runSync(tree, file);
-  return post(tree, components);
+  if (isRiskyMarkdownBlock(text)) return plainBlock(text);
+  try {
+    const file = new VFile(text);
+    let tree = pipeline.toHast.runSync(pipeline.toHast.parse(file), file);
+    if (tail?.some((n) => n > 0)) wrapStreamTail(tree, tail);
+    if (pipeline.rehype) tree = pipeline.rehype.runSync(tree, file);
+    return post(tree, components);
+  } catch {
+    return plainBlock(text);
+  }
 }
+
+/** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
+const plainBlock = (text: string): ReactElement => jsx("p", { className: "markdown-plain", children: text });
 
 /** HTML のコメントだけ（前後の空白と、続けて並んだ複数のコメントは含む）の文か */
 const HTML_COMMENT_ONLY = /^\s*(?:<!--(?:(?!-->)[\s\S])*-->\s*)+$/;

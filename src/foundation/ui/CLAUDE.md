@@ -8,7 +8,7 @@
 - `storage/`: `defineSettings(機能, {…})`（各機能の `ui/storage.ts`）・`useSetting`・`readSetting` / `writeSetting`
 - `navigation/`: ルーター `router.ts`（`useRoute`）・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・履歴 `navigationHistory.ts`
 - `points.ts`: 拡張点 `definePoint`（入れるのは `@/app/renderer/registry.ts` だけ。部品は `lazyPart`）
-- `kit/`: `IconButton`・`Popover`・`PopupMenu`・`ask.ts`・`Dialog`・`Field` ほか・`StatusDot`・`Markdown`・`dragGhost.ts`・`drag/`・`tabs/`・`usePageFind`・アイコン `icons.ts`
+- `kit/`: `IconButton`・`Popover`・`PopupMenu`・`ask.ts`・`Dialog`・`Field` ほか・`StatusDot`・`Markdown`・`RenderBoundary`・`dragGhost.ts`・`drag/`・`tabs/`・`usePageFind`・アイコン `icons.ts`
 - `hooks/`: `useWindowEvent`・`useLatest`・`useSizeObserver`・`useNearViewport`・`useAction`・`useRovingList`・`useTree`・`useDragSize`・`useOverflowCompact`・`useTicker`
 - `lib/`（`keys.ts`・`time.ts`・`textFind.ts`・アプリの中か `desktopApp.ts`）・`document/`（`useDocument`）・`workplace/`（ワークツリーの口 `worktreeSource`・ファイルの一覧 `listWorkplaceFiles` は持ち主の機能が登録）・`external/`・`code/`（`useCodeMirror`）・`markdown/`・`diff/`・`theme/`・`shell/`（`appHosts`・`openAppDialog`・`footerItems`）・`testing/`
 
@@ -34,4 +34,4 @@
 - 戻る・進むは画面単位の履歴（`useHashRoute` が描く前に積む。たどるときは `replace`）。動けない方向は無効にする。
 - ページの ⌘F は `kit/usePageFind`（ページの要素は `position: relative`。エディタの検索に任せるなら `native`）。チャットの中の検索は捕捉で先に受ける。
 - 重いもの（Mermaid・図・色付け）は `useNearViewport` で手前まで来てから。色付けは Web Worker。
-- テスト: `store/*.test.ts`・`storage/*.test.ts`・`navigation/*.test.ts`。偽の時計は `@shared/foundation/testing` の `createFakeScheduler`。
+- テスト: `store/`・`storage/`・`navigation/`・`markdown/` の `*.test.ts`。偽の時計は `createFakeScheduler`。
