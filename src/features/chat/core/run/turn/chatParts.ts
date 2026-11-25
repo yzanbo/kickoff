@@ -3,7 +3,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isActiveUserProject, isUserProject } from "@shared/projects/kinds";
 import { trashCommandEnv } from "@/features/trash/core/index";
-import { projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "@/features/chat/core/prompt/system";
+import { projectSection, referenceSection, TRASH_SECTION, workSection } from "@/features/chat/core/prompt/system";
 import { switchAfterCompact } from "@/features/chat/core/sessionSwitch";
 import { readOnlyReferences, referenceDirectories } from "@/features/chat/core/turnFolders";
 import type { RunnerDeps } from "@/features/chat/core/run/runner";
@@ -27,7 +27,7 @@ export function chatTurnParts(deps: RunnerDeps, runtime: ChatRun): TurnContribut
         // 添付ファイルの保存先と参照資料を読めるようにする（添付と、作業場所の外の参照資料は Bash の砂場で書かせない）
         readableDirs: [...(deps.attachments ? [deps.attachments.dir] : []), ...referenceDirectories(project)],
         readOnlyDirs: [...(deps.attachments ? [deps.attachments.dir] : []), ...readOnlyReferences(project, cwd)],
-        promptSections: [projectSection(project, cwd, chat.edit_scope_enabled || chat.untracked_only, commonChat), WORK_SECTION, ...(deps.trashCommand ? [TRASH_SECTION] : []), ...(references ? [references] : [])],
+        promptSections: [projectSection(project, cwd, chat.edit_scope_enabled || chat.untracked_only, commonChat), workSection(!isUserProject(project)), ...(deps.trashCommand ? [TRASH_SECTION] : []), ...(references ? [references] : [])],
         turnContext: note,
       };
     },

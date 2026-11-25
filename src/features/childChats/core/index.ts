@@ -8,7 +8,7 @@ import type { AiCreateChatDeps } from "./aiCreateChat";
 import { startChildChat } from "./children";
 import { chatDetachPort } from "./detach";
 import { childChatRoutes } from "./routes";
-import { childChatTurnParts, createChatToolGroup } from "./tools";
+import { childChatTurnParts, commonCreateChatToolGroup, createChatToolGroup } from "./tools";
 
 export { chatDetachPort } from "./detach";
 
@@ -43,7 +43,7 @@ export function createChildChats(deps: ChildChatsDeps): CoreFeature<ChildChatsAp
   return {
     name: "childChats",
     api: { onForked: (fn) => void forked.push(fn) },
-    aiTools: [createChatToolGroup({ store, startChat, workplace: deps.workplace })],
+    aiTools: [createChatToolGroup({ store, startChat, workplace: deps.workplace }), commonCreateChatToolGroup({ store, startChat, workplace: deps.workplace })],
     routes: [
       childChatRoutes({
         store,

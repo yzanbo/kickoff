@@ -88,3 +88,18 @@ test("書き込み先の守り: リンクを通した書き込みは、リンク
   assert.equal(writeTargetOf(main, "Read", { file_path: "a.ts" }), null);
   assert.equal(writeTargetOf(main, "NotebookEdit", { notebook_path: "n.ipynb" }), path.join(main, "n.ipynb"));
 });
+
+test("書き込み先の守り: 断るフォルダ（共通のチャットから見た利用者のプロジェクト）は聞かずに断る。作業フォルダ・書けるフォルダが中にあっても、そこは書ける", async () => {
+  const { root, note, other, facts } = layout();
+  // 共通の作業フォルダ（Git でない）と、作業フォルダ・ノートを中に持つ大きなプロジェクト
+  const work = path.join(root, ".common-work");
+  fs.mkdirSync(work, { recursive: true });
+  const denied = { dirs: [other, root], reason: "共通のチャットからは書けません" };
+  const f = facts(work, { workplaces: async () => [], denied });
+  const verdict = await judgeFileWrite(path.join(other, "src/a.ts"), f);
+  assert.ok(verdict.kind === "deny" && verdict.reason.includes("共通のチャットからは書けません"));
+  assert.equal((await judgeFileWrite(path.join(work, "a.txt"), f)).kind, "pass");
+  assert.equal((await judgeFileWrite(path.join(note, "a.md"), f)).kind, "pass");
+  // 断るフォルダの外は、これまでどおり聞く
+  assert.equal((await judgeFileWrite("/opt/elsewhere/a.txt", facts(work, { workplaces: async () => [], denied: { dirs: [other], reason: "x" } }))).kind, "ask");
+});

@@ -93,7 +93,7 @@ function writeFactsOf(m: GuardMaterials): WriteScopeFacts | null {
   const scope = m.writeScope;
   if (!scope) return null;
   const extra = m.writeExceptions;
-  return { workdir: realPathOrSelf(m.cwd), writableDirs: [...scope.writableDirs, ...(extra?.writableDirs ?? [])], memoryParents: extra?.memoryParents ?? [], workplaces: scope.workplaces };
+  return { workdir: realPathOrSelf(m.cwd), writableDirs: [...scope.writableDirs, ...(extra?.writableDirs ?? [])], memoryParents: extra?.memoryParents ?? [], workplaces: scope.workplaces, denied: scope.denied ?? null };
 }
 
 /** 実行の材料から守りの決まりを並べる（材料のない守りは付けない。git のフック・NODE_COMPILE_CACHE はいつも。見せない DB・Docker は登録された口から） */

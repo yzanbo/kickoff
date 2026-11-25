@@ -20,6 +20,7 @@
 - 離れる・名前を変える・動かす・ゴミ箱に入れる前に `noteLeave.ts` で聞く（開いているノートは `useDocument` が未保存の登録簿に出す）。
 - ノートのチャットに送る前・ノートを添付する前に書きかけを保存し、保存できなければ送らない・足さない。
 - ノートのフォルダ（と共通のノートのフォルダ）は、どのチャットでも書ける場所に足し、システムプロンプトで伝える（`core/turnParts.ts`・`core/tools.ts`）。AI に渡すパスは区切りが分かる形に。
+- 共通のチャットはプロジェクトのノートを `write_project_note`（`core/projectNoteWrite.ts`）・`move_note` の `project` で書く（承認）。
 - 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外。コアも 400）。
 - ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` で除く）
 - ノートを足すときは付けたときの写し（`note/snapshot`。`taken_at`）。足す口は `appendToDraft`（別ウィンドウはメインに頼む）。

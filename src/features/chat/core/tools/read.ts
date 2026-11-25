@@ -46,7 +46,7 @@ export interface AiChatReadTools {
 }
 
 export interface AiChatReadDeps {
-  store: Pick<ChatStoreDeps, "chats" | "events" | "projects">;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "groups">;
   approvals: ApprovalCenter;
   /** 添付の場所（添付のある発言を読むとき。なければどれも見つからない） */
   attachments?: Pick<ChatAttachments, "locate">;
@@ -87,10 +87,12 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
       const waiting = new Set(approvals.list({ projectId: project.id }).map((a) => a.chat_id));
       const all = store.chats.list({ projectId: project.id });
       const chats = all.slice(0, LIST_PROJECT_CHATS_MAX);
+      // ほかのプロジェクト（共通のチャットから）には、update_chat で選ぶ固定・グループも添える（家系の一覧 list_family_chats は自分のプロジェクトだけ）
+      const other = project.id !== self.project_id;
       return JSON.stringify(
         {
           self_id: self.id,
-          ...(project.id !== self.project_id ? { project: { id: project.id, name: project.name } } : {}),
+          ...(other ? { project: { id: project.id, name: project.name } } : {}),
           chats: chats.map((c) => ({
             id: c.id,
             title: c.title,
@@ -100,7 +102,9 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
             parent_id: c.parent_chat_id,
             note: c.note_path,
             active_at: c.active_at,
+            ...(other ? { pinned: c.pinned, group_id: c.group_id } : {}),
           })),
+          ...(other ? { groups: store.groups.list(project.id).map((g) => ({ id: g.id, name: g.name })) } : {}),
           ...(all.length > chats.length ? { omitted: all.length - chats.length } : {}),
           note: `${project.id !== self.project_id ? `プロジェクト「${project.name}」` : "同じプロジェクト"}のアーカイブしていないチャット（子チャット・ノートのチャットも）を、最後に動いた時刻の新しい順に並べた一覧。会話は read_chat で読める。`,
         },

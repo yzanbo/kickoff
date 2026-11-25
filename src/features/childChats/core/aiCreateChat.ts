@@ -1,8 +1,10 @@
 // チャットの AI がチャットを作る（kickoff_chat の create_chat の中身。プロバイダーに依らない）。
-// 作る場所は relation で選ぶ: 自分の子（child）・自分の親の子（sibling）・親のないチャット（root）。どれも、このチャットと同じプロジェクトだけ。
+// 作る場所は relation で選ぶ: 自分の子（child）・自分の親の子（sibling）・親のないチャット（root）。どれも、このチャットと同じプロジェクト。
+// 共通のチャットだけは project でほかのプロジェクトに親のないチャットを作れる（ほかのプロジェクトへの書き込み。効く設定は @shared/chat/aiWritePolicy）。
 // worktree_branch を渡すと、新しいブランチのワークツリーを、作る側のチャットの作業場所のいまのコミットから作り、そこを作業場所にする。
 // 作って最初の依頼を送るだけで、作ったチャットの答えは待たない（答えは利用者がそのチャットで見て、要れば「親チャットに追加」で渡す）
 import {
+  AI_CREATE_CHAT_TOOL,
   AI_CHAT_MAX_GENERATION,
   AI_CHAT_RELATION_LABELS,
   AI_CHATS_PER_TURN,
@@ -15,8 +17,9 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
 import { isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
-import type { ProviderId } from "@shared/settings/types";
-import { depthOf, type ChatStoreDeps, workdirOf } from "@/features/chat/core";
+import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
+import type { AiApprovalCard, AiApprovalDecision } from "@/foundation/core/aiTools/tool";
+import { approveAiWrite, assertAiWriteAllowed, depthOf, projectForTool, type ChatStoreDeps, workdirOf } from "@/features/chat/core";
 import { git } from "@/foundation/core/workplace/git";
 import { changedCount, isGitWorkTree } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
@@ -43,10 +46,12 @@ export interface AiCreateChatRequest {
   workplace: string;
   /** 動かす AI（このチャットと違う AI を頼まれたときだけ。同じなら null） */
   provider: ProviderId | null;
+  /** 作るほかのプロジェクトの名前（共通のチャットがほかのプロジェクトに作るときだけ。自分のプロジェクトなら null） */
+  project: string | null;
 }
 
-/** 利用者の答え（allow_always は「次から聞かない」= 設定を「聞かずに作る」にする） */
-export type AiCreateChatDecision = { action: "allow" } | { action: "allow_always" } | { action: "deny"; message: string | null };
+/** 利用者の答え（allow_always は「次から聞かない」= 効いた設定を「聞かずに…」にする） */
+export type AiCreateChatDecision = AiApprovalDecision;
 
 /** AI がツールに渡す引数 */
 interface AiCreateChatInput {
@@ -58,11 +63,13 @@ interface AiCreateChatInput {
   inherit?: boolean;
   /** 動かす AI（利用者が頼んだときだけ。省けばこのチャットと同じ AI。違う AI には会話を引き継げない） */
   provider?: ProviderId;
+  /** 作るプロジェクト（名前か ID。省けばこのチャットのプロジェクト。ほかを指せるのは共通のチャットからだけ） */
+  project?: string | number;
 }
 
 /** チャットを作るツールの中身（作れたら AI に返す文。作れなければ理由の文で throw） */
 export interface AiCreateChatTools {
-  create(input: AiCreateChatInput, approve: (request: AiCreateChatRequest) => Promise<AiCreateChatDecision>): Promise<string>;
+  create(input: AiCreateChatInput, ask: (card: AiApprovalCard) => Promise<AiApprovalDecision>): Promise<string>;
 }
 
 /**
@@ -89,6 +96,18 @@ async function assertNewWorktree(project: Project, branch: string) {
   if (problem) throw new Error(problem);
 }
 
+/** 承認カードの見出しと説明（どこに何を作るか・名前・作業場所・引き継ぐか。「常に許可」の文は approveAiWrite が足す） */
+export function createChatApprovalText(request: AiCreateChatRequest): { title: string; description: string } {
+  const label = AI_CHAT_RELATION_LABELS[request.relation];
+  const where = request.project ? `プロジェクト「${request.project}」に` : "";
+  const place = request.group ? `グループ「${request.group}」に入れ、` : "";
+  const ai = request.provider ? `AI は ${PROVIDER_LABELS[request.provider]} で、` : "";
+  return {
+    title: request.title ? `${where}${label}「${request.title}」を作ろうとしています` : `${where}${label}を作ろうとしています`,
+    description: `作業場所は${request.workplace}です。${ai}${place}${request.inherit ? "このチャットの会話を引き継いで" : "会話を引き継がずに"}、下の依頼を送ります。`,
+  };
+}
+
 /** 作ったワークツリー（作業するフォルダ・元のコミット・作る側のまだコミットしていない変更の数） */
 interface MadeWorktree {
   path: string;
@@ -108,7 +127,8 @@ async function makeWorktree(deps: AiCreateChatDeps, project: Project, from: Chat
 /**
  * chatId のチャットの AI に渡す、チャットを作るツールの中身。設定・世代・深さは呼ぶたびに確かめ直す（作業の途中で設定を変えたら次の呼び出しから効く）。
  * 1 回の作業で作れるのは AI_CHATS_PER_TURN まで（このツールの中身は作業ごとに作るので、数はこの中で数える）。
- * 設定が「毎回聞く」なら approve で利用者に聞く（権限モード・Auto mode によらない）。「常に許可」なら設定を「聞かずに作る」にしてから作る
+ * 効く設定（自分のプロジェクト =「AI がチャットを作るとき」・共通のチャットからほかのプロジェクト =「共通のチャットがほかのプロジェクトに書くとき」）が
+ * 「毎回聞く」なら ask で利用者に聞く（権限モード・Auto mode によらない）。「常に許可」ならその設定を「聞かずに…」にしてから作る
  */
 export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number): AiCreateChatTools {
   const { store } = deps;
@@ -119,7 +139,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
     return chat;
   };
   return {
-    async create(input, approve) {
+    async create(input, ask) {
       const relation = input.relation;
       const label = AI_CHAT_RELATION_LABELS[relation];
       const text = input.text.trim();
@@ -129,8 +149,13 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
       // 共通は Git で管理しないフォルダ（作業フォルダ .common-work）で動くので、ワークツリーは作らない（ノートの親フォルダが Git の中でも、そのリポジトリにブランチを作らない）
       if (input.worktree_branch?.trim() && !isUserProject(project)) throw new Error("このチャットはどのプロジェクトにも属さない共通のチャットで、Git で管理しないフォルダで動くので、ワークツリー（worktree_branch）は作れません。worktree_branch を省けば、同じ作業フォルダで作れます");
-      const mode = store.settings.get().ai_create_chat;
-      if (mode === "off") throw new Error("利用者が設定（チャット →「AI がチャットを作るとき」）で、AI がチャットを作るのを止めています");
+      // 作るプロジェクト（ほかのプロジェクトは共通のチャットからだけ。親のないチャットとして、そのプロジェクトの本体で動く）
+      const target = projectForTool(store.projects, self, input.project);
+      const other = target.id !== project.id;
+      const scene = other ? "other_project_chat" : "own_chat";
+      assertAiWriteAllowed(store.settings, scene);
+      if (other && relation !== "root") throw new Error(`ほかのプロジェクト（「${target.name}」）には、親のないチャット（relation: "root"）だけを作れます（子チャット・兄弟チャットはこのチャットの家系なので、このチャットと同じプロジェクトに作ります）`);
+      if (other && input.inherit) throw new Error("ほかのプロジェクトのチャットには、このチャットの会話を引き継げません（作業フォルダが違うため）。経緯と頼む理由は text に書いてください");
       const generation = store.chats.aiGeneration(self.id) + 1;
       if (generation > AI_CHAT_MAX_GENERATION) {
         throw new Error(`このチャットは AI が作ったチャットから作られた ${AI_CHAT_MAX_GENERATION} 世代目なので、ここからはチャットを作れません（作り続けて増えすぎないように）`);
@@ -152,7 +177,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       if (input.group_id !== undefined) {
         if (relation !== "root") throw new Error("グループに入れられるのは親のないチャット（relation: \"root\"）だけです（子チャットはグループに入りません）");
         const found = store.groups.get(input.group_id);
-        if (!found || found.project_id !== project.id) throw new Error(`グループ ${input.group_id} はこのプロジェクトにありません（list_family_chats の groups から選んでください）`);
+        if (!found || found.project_id !== target.id) throw new Error(other ? `グループ ${input.group_id} はプロジェクト「${target.name}」にありません（list_project_chats に project を渡した一覧の groups から選んでください）` : `グループ ${input.group_id} はこのプロジェクトにありません（list_family_chats の groups から選んでください）`);
         group = { id: found.id, name: found.name };
       }
       const branch = input.worktree_branch?.trim() || null;
@@ -160,13 +185,13 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       // 違う AI には会話を写せない（会話の記録は AI ごと）ので、引き継がない
       const otherAi = input.provider !== undefined && input.provider !== self.provider ? input.provider : null;
       const inherit = (input.inherit ?? relation === "child") && !otherAi;
-      const workplace = branch ? `新しいワークツリー（ブランチ ${branch}。このチャットの作業場所のいまのコミットから作る）` : relation === "root" ? "プロジェクトの本体" : `このチャットと同じ作業場所（${self.worktree_path ? `ワークツリー ${self.branch ?? self.worktree_path}` : "本体"}）`;
-      const request: AiCreateChatRequest = { relation, text, title: input.title?.trim() || null, inherit, group: group?.name ?? null, worktree_branch: branch, workplace, provider: otherAi };
-      if (mode === "ask") {
-        const decision = await approve(request);
-        if (decision.action === "deny") throw new Error(decision.message ? `利用者が断りました: ${decision.message}` : "利用者が断りました");
-        if (decision.action === "allow_always") store.settings.update({ ai_create_chat: "allow" });
-      }
+      const workplace = branch
+        ? `新しいワークツリー（ブランチ ${branch}。このチャットの作業場所のいまのコミットから作る）`
+        : relation === "root"
+          ? rootWorkplace(target, other)
+          : `このチャットと同じ作業場所（${!isUserProject(project) ? "共通の作業フォルダ" : self.worktree_path ? `ワークツリー ${self.branch ?? self.worktree_path}` : "本体"}）`;
+      const request: AiCreateChatRequest = { relation, text, title: input.title?.trim() || null, inherit, group: group?.name ?? null, worktree_branch: branch, workplace, provider: otherAi, project: other ? target.name : null };
+      await approveAiWrite(store.settings, scene, ask, { toolName: AI_CREATE_CHAT_TOOL, input: { ...request }, ...createChatApprovalText(request) });
       // 聞いている間に消えていないか確かめ直す
       const from = requireSelf();
       if (parentChatId !== null && !store.chats.get(parentChatId)) throw new Error("作る先の親チャットが見つかりません（消された可能性があります）");
@@ -186,14 +211,20 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
         inherit,
         eventId: relation === "child" ? store.events.latestUserId(chatId) : null,
         ...(request.title ? { title: request.title } : {}),
-        placement: { relation, parentChatId, groupId: group?.id ?? null, worktreePath },
+        placement: { relation, parentChatId, groupId: group?.id ?? null, worktreePath, projectId: target.id },
         aiGeneration: generation,
         ...(otherAi ? { provider: otherAi } : {}),
       });
       createdThisTurn++;
-      return resultText(chat, relation, inherit ? (inherited ? "inherited" : "failed") : "fresh", made && branch ? { ...made, branch } : null);
+      return resultText(chat, relation, inherit ? (inherited ? "inherited" : "failed") : "fresh", made && branch ? { ...made, branch } : null, other ? target : isUserProject(target) ? "project" : "common");
     },
   };
+}
+
+/** 親のないチャットの作業場所の呼び名（承認カード） */
+function rootWorkplace(target: Project, other: boolean): string {
+  if (other) return `プロジェクト「${target.name}」の本体`;
+  return isUserProject(target) ? "プロジェクトの本体" : "共通の作業フォルダ";
 }
 
 /** 会話を引き継いだか（引き継いだ / 頼んだが引き継げなかった / 頼まなかった）ごとの、AI に伝える文 */
@@ -204,13 +235,16 @@ const INHERIT_TEXT = {
 } as const;
 
 /** 作ったことを AI に伝える文（どこに作ったか・ワークツリー・引き継いだか・答えは返らないこと・同じ依頼で作り直さないことも） */
-function resultText(chat: Chat, relation: AiChatRelation, inherit: keyof typeof INHERIT_TEXT, worktree: (MadeWorktree & { branch: string }) | null): string {
+function resultText(chat: Chat, relation: AiChatRelation, inherit: keyof typeof INHERIT_TEXT, worktree: (MadeWorktree & { branch: string }) | null, place: Project | "project" | "common"): string {
   const name = chat.title.trim() || "（名前は依頼の文から付きます）";
-  const where = {
-    child: "",
-    sibling: "（このチャットと同じ親の子）",
-    root: "（サイドバーの一覧に並びます。このチャットの家系の外なので、open_chat・update_chat では触れません。利用者が、このチャットの発言の下の札から開きます）",
-  }[relation];
+  const opens = "利用者が、このチャットの発言の下の札から開きます";
+  const root =
+    place === "project"
+      ? `（サイドバーの一覧に並びます。このチャットの家系の外なので、open_chat では開けず、update_chat では名前だけ変えられます。${opens}）`
+      : place === "common"
+        ? `（サイドバーの「共通」の枠に並びます。このチャットの家系の外なので、open_chat では開けず、update_chat では名前だけ変えられます。${opens}）`
+        : `（プロジェクト「${place.name}」のサイドバーの一覧に並び、そのプロジェクトの本体で動きます。ほかのプロジェクトのチャットなので open_chat では開けず、名前・固定・グループは update_chat に project を渡して変えます。${opens}）`;
+  const where = { child: "", sibling: "（このチャットと同じ親の子）", root }[relation];
   return [
     `${AI_CHAT_RELATION_LABELS[relation]}「${name}」${where}を作り、依頼を送りました${createdChatMark(chat.id)}。`,
     ...(worktree

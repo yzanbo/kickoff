@@ -19,6 +19,8 @@ export interface WriteScopeFacts {
   memoryParents: string[];
   /** プロジェクトの本体とワークツリー */
   workplaces(): Promise<Workplace[]>;
+  /** 聞かずに断るフォルダ（実体のパス）と断る文（共通のチャットから見た利用者のプロジェクトのフォルダ・ノートのフォルダ。なければ null） */
+  denied?: { dirs: string[]; reason: string } | null;
 }
 
 /** 利用者がカードで断ったとき AI に返す文 */
@@ -53,7 +55,7 @@ function otherWorkplaceReason(target: string, owner: Workplace, mine: string): s
 
 /**
  * 書く先（実体のパス）を判定する。書ける = 作業場所・ノートのフォルダ・決まりの例外（Claude Code のメモリと計画・サブエージェントのワークツリー）。
- * 同じリポジトリのほかの作業場所は断り、それ以外の外は聞く。どの作業場所のものかは、いちばん深く入る作業場所で決める
+ * 同じリポジトリのほかの作業場所と、断るフォルダ（denied）は断り、それ以外の外は聞く。どの作業場所のものかは、いちばん深く入る作業場所で決める
  * （本体の中に置いたワークツリーは、本体ではなくそのワークツリーのもの）。作業場所の一覧が取れなければ、作業場所の中かだけで見る。
  * 聞くときは、断られたら AI に返す文と「このチャットでは許可」で覚える書く先（target）を添える
  */
@@ -68,6 +70,8 @@ export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Pr
     return { kind: "deny", reason: otherWorkplaceReason(target, owner, mine) };
   }
   if (isInside(facts.workdir, target)) return PASS;
+  // 書ける場所・作業場所より後に見る（断るフォルダが作業フォルダ・書けるフォルダを含んでいても、そこは書ける）
+  if (facts.denied?.dirs.some((dir) => isInside(dir, target))) return { kind: "deny", reason: `${shown(target)} には書き込めません。${facts.denied.reason}` };
   return {
     kind: "ask",
     title: `作業場所の外のファイルに書き込もうとしています: ${shown(target)}`,

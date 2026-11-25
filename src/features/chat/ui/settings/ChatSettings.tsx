@@ -6,6 +6,7 @@ import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { AiCreateChatField } from "./AiCreateChatField";
+import { AiWriteOtherProjectsField } from "./AiWriteOtherProjectsField";
 import { settingsItemsOf } from "@/features/settings/ui";
 
 /** 自動のアーカイブで選べる日数（null はしない） */
@@ -70,6 +71,7 @@ export function ChatSettings() {
           options={BUSY_WORKPLACE_ACTIONS.map((value) => ({ value, label: BUSY_WORKPLACE_ACTION_LABELS[value] }))}
         />
         <AiCreateChatField />
+        <AiWriteOtherProjectsField />
       </div>
     </section>
   );

@@ -12,12 +12,13 @@ import { terminalToolGroup } from "@/features/terminal/core/tools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { diagnosticToolGroup } from "@/features/guard/core/index";
 import { moveNoteToolGroup, openNoteToolGroup, projectNoteDirToolGroup } from "@/features/notes/core/tools";
+import { writeProjectNoteToolGroup } from "@/features/notes/core/projectNoteWrite";
 import { openFileToolGroup } from "@/features/files/core/tools";
 import { openDiffToolGroup } from "@/features/git/core/tools";
 import { snippetToolGroup } from "@/features/snippets/core/tools";
 import type { BusEvent } from "@shared/foundation/contract";
 import { usageToolGroup } from "@/features/ai/core/tools";
-import { createChatToolGroup } from "@/features/childChats/core/tools";
+import { commonCreateChatToolGroup, createChatToolGroup } from "@/features/childChats/core/tools";
 import { worktreeToolGroup } from "@/features/worktrees/core/tools";
 import { workplaceToolGroup } from "@/features/workplaceMove/core/tools";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -102,6 +103,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       openNoteToolGroup(noteTools),
       projectNoteDirToolGroup(noteTools),
       moveNoteToolGroup(noteTools),
+      writeProjectNoteToolGroup({ ...noteTools, notes: unused("notes") }),
       openFileToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       openDiffToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       snippetToolGroup({ snippets: store.snippets, chatOf: (id) => store.chats.get(id) }),
@@ -109,6 +111,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       terminalToolGroup({ store, terminals }),
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
+      commonCreateChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
       worktreeToolGroup(finisher),
       workplaceToolGroup({ store, reservations: unused("reservations"), isBusy: (id) => runner.isBusy(id), terminals: () => null }),
       visualToolGroup(store),

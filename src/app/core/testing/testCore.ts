@@ -164,7 +164,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
   // 本物の組み立てと同じく、守り・圧縮・AI の切り替えが実行に足すものと、砂場の診断のツールを登録する（ほかの上の機能はテストごとに contributors・aiTools で足す）
   const contributors = [
-    guardTurnParts({ toolGate, bashSandbox, diagnostics, deleteGuard: rest.trashCommand !== undefined, providers }),
+    guardTurnParts({ toolGate, bashSandbox, diagnostics, deleteGuard: rest.trashCommand !== undefined, providers, projects: () => store.projects.list() }),
     compactTurnParts(store),
     providerHandoffTurnParts({ store, uploads }),
     ...given,

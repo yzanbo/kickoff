@@ -21,7 +21,7 @@
 - 上の機能は `addTurnContributor` で実行に足す（order の順。門・砂場・圧縮前指示は 1 つ）。`afterTurn` は集める前の失敗でも 1 回呼ぶ。
 - 選択は `resolveChatOptions`。砂場と編集先の制限は作るときにアプリの既定を書く（分岐は元を引き継ぐ）。
 - 分岐の起点は最後まで終わったときだけ残す。巻き戻しは区切りの手前を断る（`@shared/chat/boundaries`）。
-- AI のツールは呼ぶたびに相手・設定・深さを引き直し、先に全部確かめてから変える。自分を含む操作は `reserveAtTurnEnd` で終わりに行う。承認を聞くのは `create_chat` と変更を持っていく `move_workplace` だけ。
+- AI のツールは呼ぶたびに相手・設定・深さを引き直し、先に確かめてから変える。自分を含む操作は `reserveAtTurnEnd` で終わりに。承認を聞くのは `create_chat`・`move_workplace` の carry・ほかのプロジェクトへの書き込み。
 
 ## 落とし穴
 - `chat_delta` はほかの知らせより先に配る（詳細の `streaming_text` と `offset` で重なりを捨てる）。失敗は投げずに未読の失敗と `error` の記録にする。

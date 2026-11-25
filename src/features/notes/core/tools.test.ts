@@ -1,4 +1,4 @@
-// ノートを開く・動かすツール（open_note・move_note）と、共通のチャットがほかのプロジェクトのノートの場所を知るツール（get_project_note_dir）
+// ノートを開く・動かすツール（open_note・move_note）と、共通のチャットがほかのプロジェクトのノートの場所を知る・書くツール（get_project_note_dir・write_project_note）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,6 +12,8 @@ import { createNoteDirs } from "./noteDir";
 import { createNoteTransfer } from "./noteTransfer";
 import { NoteService } from "./service";
 import { moveNoteToolGroup, notePathIn, openNoteToolGroup, projectNoteDirToolGroup } from "./tools";
+import { writeProjectNoteToolGroup } from "./projectNoteWrite";
+import type { AiApprovalCard, AiApprovalDecision } from "@/foundation/core/aiTools/tool";
 
 /** 組のツールを chatId のチャットから呼ぶ */
 const callIn = (group: AiToolGroup, chatId: number, args: Record<string, unknown>) => callDef(group.open(testTurn({ chatId }))![0], args);
@@ -51,7 +53,7 @@ function setup() {
   const moveChat = async (chatId: number, input: { projectId?: number }) => store.chats.move(chatId, input.projectId!);
   const transfer = createNoteTransfer({ notes: service, store, isBusy: (chatId) => busy.has(chatId), moveChat, common });
   const deps = { store, dirOf: dirs.dirOf, transfer, common, publish: (e: BusEvent) => published.push(e) };
-  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, busy, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps), noteDir: projectNoteDirToolGroup(deps) };
+  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, busy, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps), noteDir: projectNoteDirToolGroup(deps), write: writeProjectNoteToolGroup({ ...deps, notes: service }) };
 }
 
 test("notePathIn: 相対・中の絶対パスはノートのフォルダからの相対パスに、外・フォルダそのもの・「.」で始まる名前は断る", () => {
@@ -165,3 +167,69 @@ test("get_project_note_dir: 共通のチャットにだけ出し、アーカイ�
   await assert.rejects(call({ project: empty.id }), /見つかりません/);
 });
 
+
+/** 共通のチャットを作り、組のツールを、カードを覚えて決めた答えを返す承認で呼ぶ形 */
+function commonCaller(ctx: ReturnType<typeof setup>["ctx"], commonProjectId: number) {
+  const chat = ctx.store.chats.create({ project_id: commonProjectId, provider: "claude", title: "相談", status: "completed", parent_chat_id: null, note_path: null });
+  const cards: AiApprovalCard[] = [];
+  let answer: AiApprovalDecision = { action: "allow" };
+  const call = (group: AiToolGroup, args: Record<string, unknown>) => {
+    const turn = testTurn({ chatId: chat.id, projectId: commonProjectId, ask: async (card) => (cards.push(card), answer) });
+    return callDef(group.open(turn)![0], args, turn);
+  };
+  return { chat, cards, call, answer: (next: AiApprovalDecision) => void (answer = next) };
+}
+
+test("write_project_note: 共通のチャットにだけ出し、ほかのプロジェクトのノートを設定に従って聞いてから書く（いまあるノートは overwrite のときだけ）", async () => {
+  const { ctx, root, dir, commonProject, write } = setup();
+  assert.equal(write.open(testTurn({ chatId: root.id, projectId: ctx.project.id })), null);
+  const { cards, call, answer } = commonCaller(ctx, commonProject.id);
+  // 聞く前に断る: 共通のノート・外・ノートでない・いまあるノート（overwrite なし）
+  await assert.rejects(call(write, { project: commonProject.id, path: "a.md", content: "x" }), /Write \/ Edit で直接/);
+  await assert.rejects(call(write, { project: "p", path: "../外.md", content: "x" }), /外です/);
+  await assert.rejects(call(write, { project: "p", path: "a.txt", content: "x" }), /ノート（.md/);
+  await assert.rejects(call(write, { project: "p", path: "案.md", content: "x" }), /もうあります.*overwrite: true/);
+  assert.equal(cards.length, 0);
+  // 断られたら書かない
+  answer({ action: "deny", message: null });
+  await assert.rejects(call(write, { project: "p", path: "新しい/メモ.md", content: "# メモ" }), /利用者が断りました/);
+  assert.equal(fs.existsSync(path.join(dir, "新しい", "メモ.md")), false);
+  // 許したら作る。カードにはプロジェクトとパス
+  answer({ action: "allow" });
+  assert.match(await call(write, { project: "p", path: "新しい/メモ.md", content: "# メモ" }), /プロジェクト「p」のノート「新しい\/メモ.md」を作りました/);
+  assert.equal(fs.readFileSync(path.join(dir, "新しい", "メモ.md"), "utf8"), "# メモ");
+  assert.match(cards.at(-1)!.title, /プロジェクト「p」のノート「新しい\/メモ.md」を作ろう/);
+  // 常に許可 → 次から聞かずに書き換える
+  answer({ action: "allow_always" });
+  await call(write, { project: "p", path: "案.md", content: "# 新しい案", overwrite: true });
+  assert.equal(fs.readFileSync(path.join(dir, "案.md"), "utf8"), "# 新しい案");
+  assert.equal(ctx.store.settings.get().ai_write_other_projects, "allow");
+  const asked = cards.length;
+  await call(write, { project: "p", path: "案.md", content: "# 3 回目", overwrite: true });
+  assert.equal(cards.length, asked);
+  // 書かせないなら聞かずに断る
+  ctx.store.settings.update({ ai_write_other_projects: "off" });
+  await assert.rejects(call(write, { project: "p", path: "案.md", content: "x", overwrite: true }), /書くのを止めています/);
+  assert.equal(fs.readFileSync(path.join(dir, "案.md"), "utf8"), "# 3 回目");
+});
+
+test("move_note: 共通のチャットは project・to_project でほかのプロジェクトのノートを聞いてから動かす。共通の中は聞かない。プロジェクトのチャットからはほかを指せない", async () => {
+  const { ctx, root, dir, commonDir, commonProject, move } = setup();
+  const { cards, call, answer } = commonCaller(ctx, commonProject.id);
+  // 共通のノートの中は聞かない
+  await call(move, { from: "覚え書き.md", to: "メモ/覚え書き.md" });
+  assert.equal(cards.length, 0);
+  // ほかのプロジェクトの中で動かす（to は from と同じ欄）
+  answer({ action: "deny", message: "まだ" });
+  await assert.rejects(call(move, { from: "案.md", to: "済/案.md", project: "p" }), /利用者が断りました: まだ/);
+  assert.ok(fs.existsSync(path.join(dir, "案.md")));
+  answer({ action: "allow" });
+  assert.match(await call(move, { from: "案.md", to: "済/案.md", project: "p" }), /動かしました/);
+  assert.ok(fs.existsSync(path.join(dir, "済", "案.md")));
+  // 共通のノートからほかのプロジェクトへ
+  assert.match(await call(move, { from: "メモ/覚え書き.md", to: "覚え書き.md", to_project: "p" }), /プロジェクト「p」のノートの「覚え書き.md」に動かしました/);
+  assert.ok(fs.existsSync(path.join(dir, "覚え書き.md")) && !fs.existsSync(path.join(commonDir, "メモ", "覚え書き.md")));
+  assert.equal(cards.length, 3);
+  const elsewhere = ctx.store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
+  await assert.rejects(callIn(move, root.id, { from: "a.md", to: "b.md", project: elsewhere.name }), /ほかのプロジェクトを指せません/);
+});

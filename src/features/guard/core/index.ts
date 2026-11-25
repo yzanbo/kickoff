@@ -42,7 +42,7 @@ export interface GuardApi {
  * 守り: チャットの実行ごとに守りの門・AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）・砂場の診断を足す（chat に contributor を登録する）。
  * 通信はどこへでも通す中継を通す（ネットワークは絞らない）
  */
-export function createGuard(deps: { trash: TrashApi; ai: Pick<AiApi, "providers">; chat: Pick<ChatApi, "addTurnContributor" | "onForget"> }, env: GuardEnv): CoreFeature<GuardApi> {
+export function createGuard(deps: { trash: TrashApi; ai: Pick<AiApi, "providers">; chat: Pick<ChatApi, "addTurnContributor" | "onForget" | "store"> }, env: GuardEnv): CoreFeature<GuardApi> {
   const sources: GuardRuleSource[] = [];
   const bashSandbox: BashSandboxDeps | undefined = env.sandbox ? { rules: env.rules, proxyPort: env.relay?.port ?? null, trashDir: env.trashCommandFile ? deps.trash.dir : null } : undefined;
   const contributor = guardTurnParts({
@@ -51,6 +51,7 @@ export function createGuard(deps: { trash: TrashApi; ai: Pick<AiApi, "providers"
     diagnostics: env.sandbox ? env.diagnostics : undefined,
     deleteGuard: env.trashCommandFile !== undefined,
     providers: deps.ai.providers,
+    projects: () => deps.chat.store.projects.list(),
   });
   deps.chat.addTurnContributor(contributor);
   // 消したチャットの「このチャットでは許可」の覚えを捨てる

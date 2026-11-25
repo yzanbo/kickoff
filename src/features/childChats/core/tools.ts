@@ -2,11 +2,11 @@
 // 家系の文脈（このチャットの名前と親チャットなど。contributor "childChats"・turnContext の order 10）
 import { z } from "zod";
 import { defineAiTool, type AiToolDef, type AiToolGroup } from "@/foundation/core/aiTools/tool";
-import { AI_CHAT_RELATION_LABELS, AI_CHAT_RELATIONS, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
+import { AI_CHAT_RELATIONS } from "@shared/chat/aiCreateChat";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
-import { PROVIDER_IDS, PROVIDER_LABELS } from "@shared/settings/types";
-import type { TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
-import { canCreateChat, createAiCreateChatTools, type AiCreateChatDeps, type AiCreateChatRequest, type AiCreateChatTools } from "./aiCreateChat";
+import { PROVIDER_IDS } from "@shared/settings/types";
+import { isCommonChatProject, projectRefInput, type TurnContributor, type ChatStoreDeps } from "@/features/chat/core/index";
+import { canCreateChat, createAiCreateChatTools, type AiCreateChatDeps, type AiCreateChatTools } from "./aiCreateChat";
 import { chatContextNote, chatContextOf } from "./context";
 
 /** チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
@@ -20,16 +20,10 @@ const CREATE_INSTRUCTIONS = [
   "利用者の設定によっては、作る前に利用者に承認を聞く。断られたら、同じ依頼で何度も頼まない。root で作ったチャットはこのチャットの家系の外なので、作ったあと open_chat では開けず、update_chat では名前だけ変えられる。",
 ];
 
-/** 承認カードの見出しと説明（何を作るか・名前・作業場所・引き継ぐか） */
-function approvalText(request: AiCreateChatRequest) {
-  const label = AI_CHAT_RELATION_LABELS[request.relation];
-  const place = request.group ? `グループ「${request.group}」に入れ、` : "";
-  const ai = request.provider ? `AI は ${PROVIDER_LABELS[request.provider]} で、` : "";
-  return {
-    title: request.title ? `${label}「${request.title}」を作ろうとしています` : `${label}を作ろうとしています`,
-    description: `作業場所は${request.workplace}です。${ai}${place}${request.inherit ? "このチャットの会話を引き継いで" : "会話を引き継がずに"}、下の依頼を送ります。「常に許可」にすると、次からは聞かずに作ります（設定の「チャット」の「AI がチャットを作るとき」で戻せます）。`,
-  };
-}
+/** 共通のチャットにだけ足す使い方（ほかのプロジェクトにチャットを作って頼む） */
+const COMMON_CREATE_INSTRUCTIONS = [
+  "このチャットは共通のチャットなので、create_chat に project（利用者のプロジェクトの名前か ID）を渡すと、そのプロジェクトに親のないチャット（relation: root）を作って頼める（そのプロジェクトの本体で、そのプロジェクトの決まりの中で動く）。プロジェクトのコードを変えたいときは、自分で書き換えずにこれで頼む。会話は引き継げないので、経緯と頼む理由は text に書く。ほかのプロジェクトへの書き込みなので、利用者の設定によっては承認を聞く。project を省いた root は共通のチャット（共通の作業フォルダで動く）。",
+];
 
 /**
  * チャットを作るツール（設定が「毎回聞く」なら利用者に聞く）。チャットを作る承認はツールの中で行うので、
@@ -48,8 +42,9 @@ function createChatTool(createChat: AiCreateChatTools): AiToolDef {
       worktree_branch: z.string().min(1).max(200).optional().describe("新しく作るワークツリーのブランチの名前（省くと、child・sibling はこのチャットと同じ作業場所、root は本体）"),
       inherit: z.boolean().optional().describe("このチャットの会話を引き継ぐか（既定: child は true、sibling・root は false）"),
       provider: z.enum(PROVIDER_IDS).optional().describe("動かす AI（利用者が「Codex で」「Copilot の子チャットで」などと頼んだときだけ。省くとこのチャットと同じ AI。違う AI には会話を引き継げない）"),
+      project: projectRefInput("チャットを作る"),
     },
-    run: (args, turn) => createChat.create(args, (request) => turn.ask({ toolName: AI_CREATE_CHAT_TOOL, input: { ...request }, ...approvalText(request), canRemember: true })),
+    run: (args, turn) => createChat.create(args, (card) => turn.ask(card)),
   });
 }
 
@@ -65,6 +60,19 @@ export function createChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
       const chat = deps.store.chats.get(chatId);
       if (!chat || !canCreateChat(deps.store, chat)) return null;
       return [createChatTool(createAiCreateChatTools(deps, chatId))];
+    },
+  };
+}
+
+/** 共通のチャットにだけ、ほかのプロジェクトにチャットを作る使い方を足す組（ツールは create_chat の組。チャットを作れるときだけ出す。open は空） */
+export function commonCreateChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
+  return {
+    server: "kickoff_chat",
+    order: 20,
+    instructions: COMMON_CREATE_INSTRUCTIONS,
+    open: ({ chatId, projectId }) => {
+      const chat = deps.store.chats.get(chatId);
+      return chat && isCommonChatProject(deps.store.projects, projectId) && canCreateChat(deps.store, chat) ? [] : null;
     },
   };
 }

@@ -52,6 +52,16 @@ export const AI_CREATE_CHAT_MODE_LABELS: Record<AiCreateChatMode, string> = {
   off: "作らせない",
 };
 
+/** 共通のチャットの AI がほかのプロジェクトに書くとき（チャットを作って頼む・チャットの名前 / 固定 / グループを変える・ノートを書く / 移す・自分を移す）の扱い: 毎回聞く / 聞かずに書く / 書かせない */
+export const AI_WRITE_OTHER_PROJECTS_MODES = ["ask", "allow", "off"] as const;
+export type AiWriteOtherProjectsMode = (typeof AI_WRITE_OTHER_PROJECTS_MODES)[number];
+
+export const AI_WRITE_OTHER_PROJECTS_MODE_LABELS: Record<AiWriteOtherProjectsMode, string> = {
+  ask: "毎回聞く",
+  allow: "聞かずに書く",
+  off: "書かせない",
+};
+
 /** 返答などの Markdown のリンクを開く先: kickoff = Kickoff のブラウザのタブ / browser = 既定のブラウザ。⌘ を押しながらだと反対の方で開く */
 export const LINK_OPEN_TARGETS = ["kickoff", "browser"] as const;
 export type LinkOpenTarget = (typeof LINK_OPEN_TARGETS)[number];

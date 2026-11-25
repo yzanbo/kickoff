@@ -19,6 +19,7 @@ import { createNoteChat } from "./noteChat";
 import { createNoteTransfer } from "./noteTransfer";
 import { noteRoutes } from "./routes/notes";
 import { moveNoteToolGroup, openNoteToolGroup, projectNoteDirToolGroup } from "./tools";
+import { writeProjectNoteToolGroup } from "./projectNoteWrite";
 import { noteTurnParts } from "./turnParts";
 
 export type { NoteMoved, NoteTrashed } from "./service";
@@ -85,7 +86,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
     name: "notes",
     api: { dirOf: dirs.dirOf, onMoved: (fn) => notes.onMoved(fn), onTrashed: (fn) => notes.onTrashed(fn), syncCommon: common.sync },
     routes: [noteRoutes({ projectParam: deps.projects.param, chatParam: chat.chatParam, dirs, notes, transfer, common, ai, chat: createNoteChat({ notes, chat }), uploads: deps.attachments.uploads })],
-    aiTools: [openNoteToolGroup(toolDeps), projectNoteDirToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
+    aiTools: [openNoteToolGroup(toolDeps), projectNoteDirToolGroup(toolDeps), moveNoteToolGroup(toolDeps), writeProjectNoteToolGroup({ ...toolDeps, notes })],
     start: () => void common.sync(),
     stop: () => {
       stopDirChanges();

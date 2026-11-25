@@ -28,7 +28,7 @@ export interface ChildChatInput {
    * 置き場所（AI の create_chat が兄弟・親のないチャット・新しいワークツリーに作るとき。省けば会話を写す元のチャットの子で、作業場所も同じ）。
    * parentChatId が null なら親のないチャット（groupId のグループへ）
    */
-  placement?: { relation: AiChatRelation; parentChatId: number | null; groupId: number | null; worktreePath: string | null };
+  placement?: { relation: AiChatRelation; parentChatId: number | null; groupId: number | null; worktreePath: string | null; projectId?: number };
   /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0） */
   aiGeneration?: number;
   /** 動かす AI（省けば会話を写す元のチャットの AI。違う AI なら会話は引き継げない） */
@@ -106,7 +106,8 @@ export async function startChildChat(
   }
   const prompt = input.quote?.trim() ? `${quoteBlock(input.quote)}\n\n${input.text}` : input.text;
   return runner.start({
-    projectId: parent.project_id,
+    // 共通のチャットがほかのプロジェクトに作るときは、そのプロジェクト（親のないチャット。会話は引き継がない）
+    projectId: input.placement?.projectId ?? parent.project_id,
     prompt,
     ...(input.title ? { title: input.title } : {}),
     titleText: titleSourceOf(input.text),

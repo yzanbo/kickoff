@@ -86,7 +86,7 @@ test("チャットを作るツール: 子チャットは、承認されたら呼
   const { asked, approve } = approver({ action: "allow" });
   const result = await tools.createChat.create({ relation: "child", text: "  ログの形式を調べて  ", title: "ログの調査" }, approve);
   // 既定は「毎回聞く」。聞く中身は、前後の空白を除いた依頼・名前・引き継ぐか（子は既定で引き継ぐ）・作業場所
-  assert.deepEqual(asked, [{ relation: "child", text: "ログの形式を調べて", title: "ログの調査", inherit: true, group: null, worktree_branch: null, workplace: "このチャットと同じ作業場所（本体）", provider: null }]);
+  assert.deepEqual(asked, [{ relation: "child", text: "ログの形式を調べて", title: "ログの調査", inherit: true, group: null, worktree_branch: null, workplace: "このチャットと同じ作業場所（本体）", provider: null, project: null }]);
   // 偽のプロバイダーは会話を写せない（fork がない）ので、引き継げなかったことを伝える
   assert.match(result, /引き継げなかった/);
   const child = await created(ctx, result);
@@ -256,4 +256,55 @@ test("チャットを作るツール: 共通のチャットからも親のない
   assert.deepEqual([root.project_id, root.parent_chat_id, root.worktree_path], [common.id, null, null]);
   const child = await created(ctx, await tools.create({ relation: "child", text: "y" }, allow));
   assert.deepEqual([child.project_id, child.parent_chat_id], [common.id, chat.id]);
+});
+
+/** 共通のプロジェクトと、そこで 1 回送って終わったチャット（create_chat を呼べる形） */
+async function commonTurn(ctx: Ctx) {
+  const common = ctx.store.projects.create({ name: "共通", repo_path: path.join(fs.realpathSync(ctx.project.repo_path), ".common-work"), provider: "claude", kind: "common" });
+  fs.mkdirSync(common.repo_path, { recursive: true });
+  const chat = await ctx.runner.start({ projectId: common.id, prompt: "調べもの" });
+  await until(() => ctx.store.chats.get(chat.id)?.status === "completed");
+  return { common, chatId: chat.id, tools: createChatOf(ctx)! };
+}
+
+test("チャットを作るツール: 共通のチャットは project でほかのプロジェクトに親のないチャットを作れる。効くのは「共通のチャットがほかのプロジェクトに書くとき」だけ", async () => {
+  const ctx = setup();
+  const { common, tools } = await commonTurn(ctx);
+  const group = ctx.store.groups.create(ctx.project.id, "調べもの");
+  // 子チャット・会話の引き継ぎ・ほかのプロジェクトのグループは断る（聞く前に）
+  await assert.rejects(tools.create({ relation: "child", text: "x", project: ctx.project.name }, allow), /親のないチャット（relation: "root"）だけ/);
+  await assert.rejects(tools.create({ relation: "root", text: "x", project: ctx.project.name, inherit: true }, allow), /会話を引き継げません/);
+  await assert.rejects(tools.create({ relation: "root", text: "x", project: ctx.project.id, group_id: ctx.store.groups.create(common.id, "共通の").id }, allow), /プロジェクト「.*」にありません/);
+  // ほかのプロジェクトへは新しい設定（既定は毎回聞く）で聞く
+  const always = approver({ action: "allow_always" });
+  const made = await created(ctx, await tools.create({ relation: "root", text: "直して", title: "直す", project: ctx.project.name, group_id: group.id }, always.approve));
+  assert.deepEqual([made.project_id, made.parent_chat_id, made.group_id, made.worktree_path], [ctx.project.id, null, group.id, null]);
+  assert.equal(always.asked[0].project, ctx.project.name);
+  assert.equal(always.asked[0].workplace, `プロジェクト「${ctx.project.name}」の本体`);
+  // 「常に許可」で変わるのは効いた設定だけ（「AI がチャットを作るとき」は毎回聞くのまま）
+  assert.deepEqual([ctx.store.settings.get().ai_create_chat, ctx.store.settings.get().ai_write_other_projects], ["ask", "allow"]);
+  const silent = approver({ action: "deny", message: null });
+  await created(ctx, await tools.create({ relation: "root", text: "2 つ目", project: ctx.project.name }, silent.approve));
+  assert.equal(silent.asked.length, 0);
+  // 共通の中に作るのは「AI がチャットを作るとき」（毎回聞く）。作業場所は共通の作業フォルダ
+  const own = approver({ action: "allow" });
+  const inCommon = await created(ctx, await tools.create({ relation: "root", text: "共通に" }, own.approve));
+  assert.deepEqual([inCommon.project_id, own.asked.length, own.asked[0].workplace, own.asked[0].project], [common.id, 1, "共通の作業フォルダ", null]);
+});
+
+test("チャットを作るツール: 書かせない設定なら聞かずに断り、「作らせない」ならほかのプロジェクトにも作らない。プロジェクトのチャットからはほかを指せない", async () => {
+  const ctx = setup();
+  const { tools } = await commonTurn(ctx);
+  ctx.store.settings.update({ ai_write_other_projects: "off" });
+  const asked = approver({ action: "allow" });
+  await assert.rejects(tools.create({ relation: "root", text: "x", project: ctx.project.name }, asked.approve), /共通のチャットがほかのプロジェクトに書くとき/);
+  assert.equal(asked.asked.length, 0);
+  // 共通の中にはまだ作れる（効くのは「AI がチャットを作るとき」）
+  await created(ctx, await tools.create({ relation: "root", text: "共通に" }, allow));
+  ctx.store.settings.update({ ai_write_other_projects: "allow", ai_create_chat: "off" });
+  await assert.rejects(tools.create({ relation: "root", text: "x", project: ctx.project.name }, allow), /AI がチャットを作るとき.*ほかのプロジェクトにも作れません/);
+  ctx.store.settings.update({ ai_create_chat: "ask" });
+  const other = ctx.store.projects.create({ name: "別", repo_path: ctx.project.repo_path + "-other", provider: "claude" });
+  const { tools: projectTools } = await finishedTurn(ctx);
+  await assert.rejects(projectTools.createChat!.create({ relation: "root", text: "x", project: other.name }, allow), /プロジェクトのチャットからは、ほかのプロジェクトを指せません/);
 });

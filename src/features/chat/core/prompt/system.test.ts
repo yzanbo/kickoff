@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
-import { projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
+import { projectSection, referenceSection, TRASH_SECTION, workSection } from "./system";
 import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
 
@@ -10,7 +10,7 @@ function buildSystemPrompt(p: Project, workdir = p.repo_path, opts: { trash?: bo
   const references = referenceSection(p);
   return joinSections([
     projectSection(p, workdir, opts.editScopeEnabled),
-    WORK_SECTION,
+    workSection(false),
     ...(opts.trash ? [TRASH_SECTION] : []),
     ...(opts.sandboxLines ? [{ order: 220, heading: null, lines: opts.sandboxLines }] : []), // 砂場の行（guard の contributor が作る節）
     ...(references ? [references] : []),

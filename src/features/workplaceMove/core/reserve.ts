@@ -3,7 +3,7 @@
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { errorMessage } from "@shared/foundation/errors";
 import type { WorkplaceMoveBody } from "@shared/workplaceMove/types";
-import { workdirOf, type ChatRunPort, type TurnEndTask, type ChatStoreDeps } from "@/features/chat/core/index";
+import { descendantsOf, workdirOf, type ChatRunPort, type TurnEndTask, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { createMover } from "./move";
 import { busyChatsIn, terminalLabel } from "./target";
 import { planUserWorkplaceMove, runningTerminals, type WorkplaceUserMoveDeps } from "./userMove";
@@ -15,6 +15,8 @@ export interface WorkplaceMovePlan {
   label: string;
   /** 移したあとに送る続きの指示（なければ移すだけ） */
   continuation: string | null;
+  /** ほかのプロジェクト（共通を含む）へ移すときの移す先（子チャットも一緒に移った先の本体へ。body は見ない） */
+  projectId?: number;
 }
 
 export interface WorkplaceMoveRunDeps extends Pick<WorkplaceUserMoveDeps, "terminals" | "workplace"> {
@@ -70,6 +72,15 @@ async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number, plan:
     const chat = store.chats.get(chatId);
     const project = chat ? store.projects.get(chat.project_id) : undefined;
     if (!chat || !project) return;
+    if (plan.projectId !== undefined) {
+      // ほかのプロジェクトへ: 画面の「プロジェクトを変更」（POST /api/chats/:chatId/move）と同じく子チャットも移す（どれかが作業中なら移さない）
+      const family = descendantsOf(store.chats, chatId);
+      if (family.some((c) => isBusy(c.id))) throw new Error("子チャットが作業中のため");
+      for (const c of family) await deps.move(c.id, { worktreePath: null, projectId: plan.projectId, reason: "project_moved" });
+      await deps.move(chatId, { worktreePath: null, projectId: plan.projectId, reason: "project_moved" });
+      if (plan.continuation !== null) runner.continuation(chatId, plan.continuation, false);
+      return;
+    }
     // 移す先が本体で、片付けで本体に戻ったなら、移す予約は済んだものとする
     const body: WorkplaceMoveBody = afterFinish ? { ...plan.body, carry: false } : plan.body;
     const done = !body.new_worktree_branch && body.worktree_path === chat.worktree_path;

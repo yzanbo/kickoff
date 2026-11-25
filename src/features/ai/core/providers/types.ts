@@ -215,6 +215,8 @@ export interface WriteScopeParams {
   workplaces(): Promise<Workplace[]>;
   /** 承認カードの「このチャットでは許可」で許したファイル（実体のパス。チャットごとに作業をまたいで持つ。保存しない） */
   allowed: Set<string>;
+  /** 聞かずに断るフォルダと、断るとき AI に返す文（共通のチャットから見た利用者のプロジェクトのフォルダ・ノートのフォルダ。なければ断るフォルダはない） */
+  denied?: { dirs: string[]; reason: string } | null;
 }
 
 /** 門を作る材料（chat が実行ごとに集める。プロバイダーには渡さず、門だけを渡す。上の機能の守り = 見せない DB・Docker はプロジェクトと作業フォルダから自分で引く） */

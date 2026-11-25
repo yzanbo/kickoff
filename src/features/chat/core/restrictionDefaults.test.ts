@@ -1,5 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { setupCore, until } from "@/app/core/testing/testCore";
 
@@ -67,4 +68,25 @@ test("砂場オフに未対応の AI は、制限なしで動かす代わりに�
   await until(() => store.chats.get(chat.id)?.status === "failed");
   assert.match(store.chats.get(chat.id)?.error ?? "", /サンドボックスをオフ.*未対応|サンドボックスをオフ.*対応していません/);
   assert.equal(provider.calls.length, 0);
+});
+
+test("共通のチャットは、編集先の制限の既定をオフにしても制限を入にし、利用者のプロジェクトのフォルダへの書き込みを聞かずに断る", async () => {
+  const provider = makeProvider();
+  const { store, runner, project, gateMaterials } = setupCore(provider, { bashSandbox });
+  store.settings.update({ edit_scope_enabled_by_default: false });
+  const common = store.projects.create({ name: "共通", repo_path: `${project.repo_path}-common`, provider: "claude", kind: "common" });
+  fs.mkdirSync(common.repo_path, { recursive: true });
+  const chat = await runner.start({ projectId: common.id, prompt: "調べもの" });
+  await until(() => ["completed", "failed"].includes(store.chats.get(chat.id)?.status ?? ""));
+  assert.equal(store.chats.get(chat.id)?.error ?? null, null);
+  assert.equal(chat.edit_scope_enabled, false);
+  const scope = gateMaterials[0].writeScope;
+  assert.ok(scope?.denied);
+  // 断るフォルダは実体のパス
+  assert.ok(scope.denied.dirs.includes(fs.realpathSync(project.repo_path)));
+  assert.ok(!scope.denied.dirs.includes(fs.realpathSync(common.repo_path)));
+  // プロジェクトのチャットは既定どおり（断るフォルダも持たない）
+  const own = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(own.id)?.status === "completed");
+  assert.equal(gateMaterials[1].writeScope, null);
 });

@@ -173,3 +173,42 @@ test("渡し方: 名前・固定・グループのツールは、チャットを
   assert.equal(listed.self_id, grandchild.id);
   assert.equal(listed.chats.length, 3);
 });
+
+test("update_chat: 共通のチャットからは、ほかのプロジェクトのチャットの名前・固定・グループを、設定に従って聞いてから変える", async () => {
+  const ctx = setup();
+  const { store, project } = ctx;
+  const { other } = family(ctx);
+  const group = store.groups.create(project.id, "調査");
+  const common = store.projects.create({ name: "共通", repo_path: `${project.repo_path}-common`, provider: "claude", kind: "common" });
+  const self = store.chats.create({ ...{ provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null }, project_id: common.id, title: "共通の", parent_chat_id: null });
+  const tools = createAiChatEditTools({ store, detach: ctx.detach }, self.id);
+  const cards: string[] = [];
+  const answer = (action: "allow" | "allow_always" | "deny") => async (card: { title: string }) => (cards.push(card.title), action === "deny" ? { action, message: null } : { action });
+  assert.equal(tools.isOtherProject({ chat_id: other.id }), true);
+  assert.equal(tools.isOtherProject({ chat_id: self.id }), false);
+  await assert.rejects(tools.updateInOtherProject({ chat_id: other.id, parent_id: null }, answer("allow")), /親から外せません/);
+  await assert.rejects(tools.updateInOtherProject({ chat_id: other.id, title: "x" }, answer("deny")), /利用者が断りました/);
+  assert.equal(store.chats.get(other.id)!.title, "よそ");
+  // 毎回聞く → 常に許可で「共通のチャットがほかのプロジェクトに書くとき」だけが聞かずに書くになる
+  assert.match(await tools.updateInOtherProject({ chat_id: other.id, title: "【済】よそ", pinned: true, group_id: group.id, project: project.name }, answer("allow_always")), /名前を「【済】よそ」に変えた・固定した・グループ「調査」に入れた/);
+  assert.deepEqual([store.chats.get(other.id)!.title, store.chats.get(other.id)!.pinned, store.chats.get(other.id)!.group_id], ["【済】よそ", true, group.id]);
+  assert.deepEqual([store.settings.get().ai_write_other_projects, store.settings.get().ai_create_chat], ["allow", "ask"]);
+  assert.equal(cards.length, 2);
+  await tools.updateInOtherProject({ chat_id: other.id, pinned: false }, answer("deny"));
+  assert.equal(cards.length, 2);
+  // 書かせないなら聞かずに断る
+  store.settings.update({ ai_write_other_projects: "off" });
+  await assert.rejects(tools.updateInOtherProject({ chat_id: other.id, title: "y" }, answer("allow")), /書くのを止めています/);
+  assert.equal(cards.length, 2);
+});
+
+test("update_chat: プロジェクトのチャットからは、ほかのプロジェクトのチャットを指せない（いまのまま）", () => {
+  const ctx = setup();
+  const { root } = family(ctx);
+  const elsewhere = ctx.store.projects.create({ name: "別", repo_path: `${ctx.project.repo_path}-other`, provider: "claude" });
+  const foreign = ctx.store.chats.create({ ...{ provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null }, project_id: elsewhere.id, title: "別の", parent_chat_id: null });
+  const tools = createAiChatEditTools({ store: ctx.store, detach: ctx.detach }, root.id);
+  assert.equal(tools.isOtherProject({ chat_id: foreign.id }), false);
+  assert.throws(() => tools.update({ chat_id: foreign.id, title: "x" }), /このプロジェクトにありません/);
+  assert.throws(() => tools.update({ chat_id: root.id, title: "x", project: "別" }), /ほかのプロジェクトを指せません/);
+});

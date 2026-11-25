@@ -4,7 +4,7 @@
 
 ## 地図
 - `commonNotes.ts`: 共通を用意する・付け替える `sync`・使えない理由 `unavailable`・設定の変更に挟む `settingsHook`
-- `turnParts.ts`（書ける場所とシステムプロンプト）・`tools.ts`（`open_note`・`move_note` の `scope`・`get_project_note_dir`）
+- `turnParts.ts`（書ける場所とシステムプロンプト）・`tools.ts`（`open_note`・`move_note` の `scope`・`project`・`get_project_note_dir`）
 - `noteTransfer.ts`: 欄の間（共通のノートとプロジェクト・プロジェクトどうし）で動かす `createNoteTransfer`（`POST …/notes/move` の `to_project_id`・`move_note`）
 
 ## 決まり

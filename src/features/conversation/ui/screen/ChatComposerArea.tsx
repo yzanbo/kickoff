@@ -18,6 +18,7 @@ import { chatSubagents, SubagentChip } from "@/features/subagents/ui";
 import { voiceReplies } from "@/features/composer/ui";
 import { ProviderSwitchChip } from "@/features/providerSwitch/ui";
 import { useHeldEdit, HeldEditComposer } from "@/features/compact/ui";
+import { useIsCommonProject } from "@/features/projects/ui";
 import { RestrictionNotice } from "./RestrictionNotice";
 
 /** 「質問として送る」の説明 */
@@ -61,6 +62,8 @@ export function ChatComposerArea({
   // 作った子チャットは設定の「子チャットを作ったとき」で開く。上のピルの子チャットにも並ぶ。選択（モデルなど）は渡さず、設定どおりの既定）。
   // ノートのチャット・アーカイブ済みでは出さない
   const noteOrArchived = Boolean(chat.note_path) || chat.archived_at !== null;
+  // 共通のチャットは編集先の制限がいつも入（コアの守り guard/turnParts.ts）なので、オフの知らせを出さない
+  const common = useIsCommonProject(chat.project_id);
   const sendToChild = (inherit: boolean) => async ({ text, attachments }: OutgoingMessage) => {
     openCreatedChild(await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: chat.id }, body: { text, attachments, quote: null, inherit, event_id: null } }));
   };
@@ -115,7 +118,7 @@ export function ChatComposerArea({
   // 制限の知らせとピルの列（外に描く先があればそこへ）
   const aboveComposer = (
     <>
-      <RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />
+      <RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled || common} />
       {chips}
     </>
   );

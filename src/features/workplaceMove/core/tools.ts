@@ -14,6 +14,7 @@ const WORKPLACE_INSTRUCTIONS = [
   "新しいワークツリー（to: new_worktree）は、このチャットの作業場所のいまのコミットから作る。carry: true でコミットしていない変更も持っていく（新しいワークツリーのときだけ。持っていくファイルの一覧を利用者に見せて承認を聞く）。持っていかなければ変更は元の場所に残る。",
   "continuation（続きの指示）は、それだけで分かる文で書く（移す前に予約したコンテキストの消去・圧縮のあとに届くこともあるので、何をどこまでやったか・次に何をするかを書く）。移したことと移した先は Kickoff が添えて知らせる。",
   "予約したら、結果を返答で伝えて作業を終える（作業が終わるまで移らない）。同じ作業でもう一度頼むと、前の予約を置き換える。利用者に「やっぱり移らないで」と言われたら cancel_workplace_move で取り消す。",
+  "project（プロジェクトの名前か ID。to: main）を渡すと、このチャットをほかのプロジェクトか共通へ移す予約をする（画面の「プロジェクトを変更」と同じ。子チャットも一緒に、移った先の本体（共通なら共通の作業フォルダ）へ。作業したファイルは元のフォルダに残り、グループ・ワークツリーは外れる）。移せるのはいちばん上の親チャットだけ（ノートのチャットはノートごと move_note で）。共通のチャットから利用者のプロジェクトへ移すのはほかのプロジェクトへの書き込みなので、利用者の設定によっては承認を聞く。",
 ];
 
 /**
@@ -40,12 +41,13 @@ function workplaceTools(workplace: ReturnType<typeof createAiWorkplaceTools>) {
         branch: z.string().min(1).max(200).optional().describe("to が new_worktree のとき、新しく作るワークツリーのブランチの名前"),
         carry: z.boolean().optional().describe("コミットしていない変更も持っていく（new_worktree のときだけ。利用者に承認を聞く）"),
         continuation: z.string().min(1).optional().describe("移したあとに送る続きの指示（それだけで分かる文で。省くと移すだけ）"),
+        project: z.union([z.number().int(), z.string().min(1)]).optional().describe("ほかのプロジェクトか共通へ移すときの、移す先のプロジェクトの名前か ID（to は main。省くと、いまのプロジェクトの中で作業場所を移す）"),
       },
       run: (args, turn) =>
         workplace.move(args, async (request) => {
           const decision = await turn.ask({ toolName: AI_MOVE_WORKPLACE_TOOL, input: { ...args, files: request.files }, ...carryApprovalText(request), canRemember: false });
           return decision.action === "allow" || decision.action === "allow_always";
-        }),
+        }, (card) => turn.ask(card)),
     }),
     defineAiTool({ server: "kickoff_chat", name: "cancel_workplace_move", description: "このチャットの作業場所を移す予約を取り消す（利用者に「移らないで」と言われたとき）", input: {}, run: () => workplace.cancel() }),
   ];
