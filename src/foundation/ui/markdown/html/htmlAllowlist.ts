@@ -7,7 +7,7 @@ export const HTML_TAGS: ReadonlySet<string> = new Set([
   ..."br wbr hr".split(" "),
   ..."b i u strong em s strike del ins sub sup small big mark center font".split(" "),
   ..."code tt kbd samp var q cite dfn abbr time".split(" "),
-  ..."ruby rt rp".split(" "),
+  ..."details summary ruby rt rp".split(" "),
   ..."p div span blockquote pre h1 h2 h3 h4 h5 h6 section article aside header footer nav main address".split(" "),
   ..."ul ol li dl dt dd table thead tbody tfoot tr th td caption colgroup col figure figcaption a img picture".split(" "),
 ]);

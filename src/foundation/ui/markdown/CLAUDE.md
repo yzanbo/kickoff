@@ -11,8 +11,9 @@
 - 開きと閉じが同じ親の中でそろったものだけを要素にする（補わない）。タグ 2,000 個・入れ子 32 段・字下げ 10 段を超えたブロックは書いたままの文字。
 - 木にしたあと一覧ともう一度照らす（`html/htmlVerify.ts`）。Kickoff の印（`md-html` のクラス・数式・薄く出す段）は確かめのあとに付ける。ファイルのチップの印は Markdown の節にだけ付き、HTML から作った要素には付かない。
 - HTML の a はリンクの判定（`linkTargetOf`）を通した行き先だけ、img は http・https だけ（Markdown の画像と同じ部品）。一覧を広げるときは、先に攻撃の例（`html/htmlAttacks.test.ts`）に足す。
+- たたむ部分（details）は `MarkdownDetails.tsx` が state で開け閉めし、閉じている間は中身を DOM に置かない（コピー・引用・検索・画像の読み込みに入れない）。見出しがない・空なら「詳細」。
 - CSS: HTML でしか出ないタグは `MarkdownHtml.css`（state の層）で、ほかの CSS を戻してから見た目を付ける。文字の大きさを変えるタグは 10px から見出しの大きさまでに止める。
 
 ## 落とし穴
 - ブロックは空行で分けるが、HTML の入れ物の開きから閉じまでは 1 つにする（`streaming/htmlBlockDepth.ts`）。
-- テスト: `markdownProcessor.test.ts`（ブロックに分けても全文と同じ）・`html/*.test.ts`。
+- テスト: `markdownProcessor.test.ts`（ブロックに分けても全文と同じ）・`html/*.test.ts`・`markdownDetails.test.ts`。

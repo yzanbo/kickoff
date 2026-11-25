@@ -52,10 +52,29 @@ export function verifyHtml(parent: Root | Element): void {
   if (changed) parent.children = next;
 }
 
-/** 確かめたあとに付ける Kickoff の印（HTML から作った要素に md-html のクラス） */
+/** summary が空（文字も画像もない）か */
+const isEmptySummary = (node: ElementContent): boolean =>
+  node.type === "text" ? node.value.trim() === "" : node.type === "element" ? node.tagName !== "img" && node.children.every(isEmptySummary) : true;
+
+/** 見出しのないたたむ部分に「詳細」と出す（summary がない・空なら、ブラウザの既定の英語の文言でなく日本語で） */
+function ensureSummary(details: Element) {
+  const label = { type: "text", value: DETAILS_LABEL } as const;
+  const first = details.children.find((c) => !(c.type === "text" && c.value.trim() === ""));
+  if (first?.type === "element" && first.tagName === "summary") {
+    if (isEmptySummary(first)) first.children = [label];
+    return;
+  }
+  details.children.unshift({ type: "element", tagName: "summary", properties: {}, children: [label], data: { kickoffHtml: true } });
+}
+
+/** summary がない・空のたたむ部分の見出し */
+const DETAILS_LABEL = "詳細";
+
+/** 確かめたあとに付ける Kickoff の印（HTML から作った要素に md-html のクラス・たたむ部分の見出し） */
 function decorateHtml(parent: Root | Element): void {
   for (const child of parent.children) {
     if (child.type !== "element") continue;
+    if (child.data?.kickoffHtml && child.tagName === "details") ensureSummary(child);
     if (child.data?.kickoffHtml) child.properties.className = [HTML_ELEMENT_CLASS];
     decorateHtml(child);
   }

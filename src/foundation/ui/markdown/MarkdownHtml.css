@@ -43,8 +43,12 @@
     border-radius: var(--radius-sm);
   }
 
-  .markdown .md-html:is(dl, figure) {
+  .markdown .md-html:is(dl, figure, details) {
     margin-block: 0.55em;
+  }
+
+  .markdown .md-html:is(summary) {
+    cursor: pointer;
   }
 
   /* 文字の寄せ方（align。戻した要素では属性の見た目も消えるので、ここで付け直す。回り込みにはしない） */

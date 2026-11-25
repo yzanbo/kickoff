@@ -8,6 +8,7 @@ import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } f
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
 import { MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
+import { details, summary } from "@/foundation/ui/markdown/MarkdownDetails";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
@@ -173,7 +174,7 @@ const image: Components["img"] = function MarkdownImage({ node: _node, ...props 
 };
 
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
-const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image };
+const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image, details, summary };
 
 /** 描いたブロックの覚え（書きかけの返答から確定した返答に替わったとき・流れの窓で行を外して戻したときに解析し直さない） */
 const blockCache = createBlockCache();
