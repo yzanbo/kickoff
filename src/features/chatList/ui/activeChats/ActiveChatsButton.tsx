@@ -4,6 +4,7 @@ import { useCommandKeys } from "@/foundation/ui/commands";
 import type { Project } from "@shared/projects/types";
 import { ACTIVE_CHATS_LABEL } from "@/features/projects/ui";
 import { cx } from "@/foundation/ui/lib/cx";
+import { formatBadgeCount } from "@/foundation/ui/lib/format";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openActiveChats } from "./openActiveChats";
 import type { WaitingBadge } from "./useAllWaiting";
@@ -33,7 +34,7 @@ export function WaitingCountBadge({ waiting }: { waiting: WaitingBadge }) {
   if (waiting.count === 0) return null;
   return (
     <span className={cx("active-chats-badge", waiting.urgent && "urgent")} aria-hidden>
-      {waiting.count > 99 ? "99+" : waiting.count}
+      {formatBadgeCount(waiting.count)}
     </span>
   );
 }

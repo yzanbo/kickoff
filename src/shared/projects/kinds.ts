@@ -10,3 +10,7 @@ export type ProjectKind = (typeof PROJECT_KINDS)[number];
  * 見えないプロジェクトも API と画面の店には入っている（チャットの画面が店から引くため）ので、並べる所でこれを通す
  */
 export const isListedProject = (project: { kind: ProjectKind | null }): boolean => project.kind === null;
+
+/** 一覧に出すプロジェクトのうち、アーカイブしていないものか */
+export const isActiveListedProject = (project: { kind: ProjectKind | null; archived_at: string | null }): boolean =>
+  project.archived_at === null && isListedProject(project);

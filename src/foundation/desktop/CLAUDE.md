@@ -13,6 +13,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 - `src/shared/foundation/ipc` と機能の `ipc.ts` は zod を読まない（preload の砂場に束ねる）。値は種類だけを持つ（型の引数は必ず書く）。
 - 画面から届いたパスは信じない（解決してから比べる）。
 - メインはログインシェルの PATH・localStorage・SQL を読まない（窓の地の色はテーマを画面から受ける）。通知の要否と文・シェルはコア。
+- 画面が読み込み直される・落ちる・閉じるときに、持ち物（Dock のアイコン・内蔵ターミナルなど）を片付けるには `createRendererLifetimeWatcher` を使う。
 - OS ごとの処理は `platform/` の口に集める（DB ワーカーのシェルの口はワーカーの入口が選ぶ。OS を足すときは両方）。Electron に依らない判定は別のファイルに分けてテストする。
 - 子のプロセスは `utilityProcess` で起動する（`ELECTRON_RUN_AS_NODE` の形を足さない。製品版は fuses で切る）。DB ワーカーはコアと `MessageChannelMain` で直結する。
 - CDP は `KICKOFF_REMOTE_DEBUG` のときだけ開く。`KICKOFF_USER_DATA_DIR` は開発時だけ見る（製品版の DB を読まない）。ログイン時に起動は OS の設定を読む（DB に持たない）。

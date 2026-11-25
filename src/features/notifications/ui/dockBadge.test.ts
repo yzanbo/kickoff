@@ -24,3 +24,11 @@ test("dockBadgeCounts: 見えないプロジェクト（共通のノート）の
   const chats = [makeChat(1, { project_id: 1, status: "completed", unread: true }), makeChat(2, { project_id: 2, status: "completed", unread: true })];
   assert.deepEqual(dockBadgeCounts(chats, projects, new Set()), { running: 0, needs_input: 0, unread: 1 });
 });
+
+test("dockBadgeCounts: 子チャットも状態ごとに数える", () => {
+  const chats = [
+    makeChat(1, { project_id: 1, status: "running" }),
+    makeChat(2, { project_id: 1, parent_chat_id: 1, status: "completed", unread: true }),
+  ];
+  assert.deepEqual(dockBadgeCounts(chats, [makeProject(1)], new Set()), { running: 1, needs_input: 0, unread: 1 });
+});

@@ -1,5 +1,7 @@
 // Dock のアイコンに描く状態の数の丸の計算（位置・幅・文字・数字の色。描くのは dockIcon.ts。純粋に保つ）
 import type { CountedColumn, StateCounts } from "@/features/chat/ui";
+import { contrastRatio, parseColor, type Rgb } from "@shared/foundation/theme/color";
+import { formatBadgeCount } from "@/foundation/ui/lib/format";
 
 /** 状態ごとの隅（左上 = 作業中・右上 = 未読・左下 = 回答待ち。右下は Dock の起動中の点に近いので空ける） */
 const CORNER_OF = { running: "top_left", unread: "top_right", needs_input: "bottom_left" } as const satisfies Record<CountedColumn, string>;
@@ -20,9 +22,6 @@ const BADGE_INSET = 0.28;
 const FONT_RATIO = 0.62;
 /** 2 桁以上で横に伸ばすときの、文字の左右の余白の合計（丸の高さに対する割合） */
 const TEXT_PADDING = 0.55;
-
-/** 丸に出す文字（100 以上は「99+」） */
-export const badgeLabel = (count: number): string => (count > 99 ? "99+" : String(count));
 
 /** 数字の大きさ（px）。文字の幅を測るときと描くときに同じ値を使う */
 export const badgeFontSize = (size: number): number => Math.round(size * BADGE_SIZE * FONT_RATIO);
@@ -46,7 +45,7 @@ export function dockBadgeLayout(counts: StateCounts, size: number, measure: (lab
   const near = size * ART_MARGIN + height * BADGE_INSET - height / 2;
   const far = size * (1 - ART_MARGIN) - height * BADGE_INSET + height / 2;
   return DRAW_ORDER.filter((column) => counts[column] > 0).map((column) => {
-    const label = badgeLabel(counts[column]);
+    const label = formatBadgeCount(counts[column]);
     const width = Math.max(height, measure(label) + height * TEXT_PADDING);
     const corner = CORNER_OF[column];
     const x = corner === "top_right" ? far - width : near;
@@ -58,26 +57,16 @@ export function dockBadgeLayout(counts: StateCounts, size: number, measure: (lab
 /** 数字の色（白を基本に、白が読みにくい明るい丸では黒っぽい色） */
 const LIGHT_DIGIT = "#ffffff";
 const DARK_DIGIT = "#111111";
+const WHITE: Rgb = [255, 255, 255];
 /** 白い数字にしてよい対比の下限（WCAG の大きな文字の 3:1。丸の数字は太く大きい） */
 const MIN_CONTRAST = 3;
 
-/** 色（#rrggbb）の相対輝度（WCAG の式。読めなければ null） */
-function luminance(color: string): number | null {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color.trim());
-  if (!m) return null;
-  const [r, g, b] = m.slice(1).map((hex) => {
-    const c = parseInt(hex, 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
 /**
- * 丸の色（#rrggbb）に載せる数字の色: 白との対比が 3:1 あれば白、なければ黒っぽい色。
- * ダークのテーマの明るい状態の色では黒っぽく、ライトのテーマの濃い色では白くなる。色が読めなければ白
+ * 丸に載せる数字の色: 白との対比が 3:1 あれば白、なければ黒っぽい色。
+ * 半透明や読めない色は、下地との合成後の対比が分からないので白にする
  */
 export function digitColorFor(background: string): string {
-  const bg = luminance(background);
-  if (bg === null) return LIGHT_DIGIT;
-  return (1 + 0.05) / (bg + 0.05) >= MIN_CONTRAST ? LIGHT_DIGIT : DARK_DIGIT;
+  const bg = parseColor(background);
+  if (!bg || bg.alpha !== 1) return LIGHT_DIGIT;
+  return contrastRatio(WHITE, bg.rgb) >= MIN_CONTRAST ? LIGHT_DIGIT : DARK_DIGIT;
 }

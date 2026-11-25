@@ -25,7 +25,7 @@ import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { compareWorkplaces, type ChatWorkplace } from "@/foundation/ui/workplace/workplace";
 import { chatHead, draftHead, seedHeads } from "./bucketHeads";
-import { stateCounts, type ApprovalIndex, type StateCounts, byActive } from "@/features/chat/ui";
+import { EMPTY_STATE_COUNTS, stateCounts, type ApprovalIndex, type StateCounts, byActive } from "@/features/chat/ui";
 
 /** まとまりの分け方（1 段） */
 export type BucketBy = "project" | "group" | "worktree" | "status";
@@ -148,8 +148,6 @@ export function sortBuckets<T extends BucketHead>(list: readonly T[], projectOrd
   );
 }
 
-const ZERO_COUNTS: StateCounts = Object.freeze({ running: 0, needs_input: 0, unread: 0 });
-
 const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (typeof by === "string" ? [by] : by);
 
 /**
@@ -185,7 +183,7 @@ function bucketLevel<D extends DraftTarget>(
   const buckets = new Map<string, ChatBucket<D>>();
   const add = (head: BucketHead) => {
     let bucket = buckets.get(head.key);
-    if (!bucket) buckets.set(head.key, (bucket = { ...head, chats: [], drafts: [], counts: ZERO_COUNTS }));
+    if (!bucket) buckets.set(head.key, (bucket = { ...head, chats: [], drafts: [], counts: EMPTY_STATE_COUNTS }));
     return bucket;
   };
   // まとまりごとのアーカイブ済み（いちばん外の段だけ）: 固定も抜き出さずにこの段で分け、同じキーのまとまりの archived に入れる
@@ -212,7 +210,7 @@ function bucketLevel<D extends DraftTarget>(
   const sort = options.sort ?? byActive;
   for (const bucket of list) {
     const archived = archivedOf.get(bucket);
-    if (archived) bucket.archived = { ...bucket, key: `${bucket.key}/archived`, kind: "archived", label: "アーカイブ済み", title: "アーカイブ済みのチャット", chats: archived.sort(sort), drafts: [], counts: ZERO_COUNTS };
+    if (archived) bucket.archived = { ...bucket, key: `${bucket.key}/archived`, kind: "archived", label: "アーカイブ済み", title: "アーカイブ済みのチャット", chats: archived.sort(sort), drafts: [], counts: EMPTY_STATE_COUNTS };
     if (archived && bucket.chats.length === 0 && bucket.drafts.length === 0 && !keep(bucket)) continue;
     bucket.chats.sort(options.pinned === "nested" ? (a, b) => Number(b.pinned && !b.archived_at) - Number(a.pinned && !a.archived_at) || sort(a, b) : sort);
     bucket.counts = stateCounts(bucket.chats, options.pending);

@@ -1,15 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { badgeLabel, digitColorFor, dockBadgeLayout } from "./dockIconModel";
+import { digitColorFor, dockBadgeLayout } from "./dockIconModel";
 
 /** 1 文字 40px として測る */
 const measure = (label: string) => label.length * 40;
-
-test("badgeLabel: 99 まではそのまま、100 以上は 99+", () => {
-  assert.equal(badgeLabel(1), "1");
-  assert.equal(badgeLabel(99), "99");
-  assert.equal(badgeLabel(100), "99+");
-});
 
 test("dockBadgeLayout: 0 の状態は描かず、左上 = 作業中・右上 = 未読・左下 = 回答待ちに置く", () => {
   assert.deepEqual(dockBadgeLayout({ running: 0, needs_input: 0, unread: 0 }, 512, measure), []);
@@ -46,6 +40,7 @@ test("dockBadgeLayout: 1 桁は円、2 桁以上は横に伸び、右上は右�
 test("digitColorFor: ダークのテーマの明るい色では黒っぽく、ライトのテーマの濃い色では白い数字", () => {
   for (const dark of ["#65acee", "#45c66d", "#e4962f"]) assert.equal(digitColorFor(dark), "#111111", dark);
   for (const light of ["#1276c6", "#0c9d49", "#b97515"]) assert.equal(digitColorFor(light), "#ffffff", light);
-  // 読めない色は白
-  assert.equal(digitColorFor("rgba(0, 0, 0, 0.5)"), "#ffffff");
+  assert.equal(digitColorFor("rgb(255, 255, 255)"), "#111111");
+  assert.equal(digitColorFor("rgba(255, 255, 255, 0.5)"), "#ffffff");
+  assert.equal(digitColorFor("none"), "#ffffff");
 });

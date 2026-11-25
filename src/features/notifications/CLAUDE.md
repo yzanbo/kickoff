@@ -6,7 +6,7 @@
 - `core/center.ts`: 知らせるかの判断（1 か所）。届け先 `NoticeSink`（`desktop` = Mac、`push` = devices の `pushSink.ts` が `addSink`）
 - `core/viewing.ts`（`PUT /api/viewing`）・`core/notices.ts`（文。形 `Notice` は `@shared/foundation/ipc/notifications`）・`core/tools.ts`（`notify_user`）
 - `ui/viewingReport.ts`・`ui/notificationClicks.ts`・`ui/native.ts`
-- Dock のアイコン: 数え方 `ui/dockBadge.ts`・丸の位置と色 `ui/dockIconModel.ts`・描く `ui/dockIcon.ts`（canvas で元のアイコンに描いた PNG をメインの `foundation/desktop/app/dockIcon.ts` が当てる）
+- Dock のアイコン: 集計対象 `ui/dockBadge.ts`（数え方はチャットの `stateCounts`）・丸の位置と色 `ui/dockIconModel.ts`・更新順 `ui/dockIconUpdater.ts`・描画 `ui/dockIcon.ts`（canvas で描いた PNG をメインの `foundation/desktop/app/dockIcon.ts` が当てる）
 
 ## 決まり
 - 見ているチャットの通知は出さない（呼び主ごとの「見ているもの」。この Mac で見ていても、見ていない端末には送る）。

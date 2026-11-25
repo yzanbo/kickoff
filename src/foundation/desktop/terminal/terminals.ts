@@ -1,5 +1,6 @@
 import type { WebContents } from "electron";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
+import { createRendererLifetimeWatcher } from "@/foundation/desktop/app/rendererLifetime";
 
 /**
  * この Mac の画面の内蔵ターミナル（パネルのタブ）の、画面の生き死にの見張り。シェルはコアで動き、画面はコアの API
@@ -18,17 +19,7 @@ export function setTerminalCloser(fn: (owner: string) => void) {
 /** 画面ごとの持ち主の印 */
 const ownerOf = (wc: WebContents) => `wc:${wc.id}`;
 
-const watched = new WeakSet<WebContents>();
-function watchOwner(owner: WebContents) {
-  if (watched.has(owner)) return;
-  watched.add(owner);
-  const close = () => closeOwned(ownerOf(owner));
-  owner.on("destroyed", close);
-  owner.on("render-process-gone", close);
-  owner.on("did-start-navigation", (details) => {
-    if (details.isMainFrame && !details.isSameDocument) close();
-  });
-}
+const watchOwner = createRendererLifetimeWatcher((owner) => closeOwned(ownerOf(owner)));
 
 /** 内蔵ターミナル（IPC の terminal）。持ち主の印を返し、その画面を見張り始める */
 export const terminalHandlers: IpcHandlers["terminal"] = {

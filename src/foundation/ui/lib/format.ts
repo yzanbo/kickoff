@@ -24,3 +24,5 @@ export function formatTokens(n: number): string {
   return `${Number.isInteger(m) ? m : m.toFixed(1)}m`;
 }
 
+/** 件数バッジの文字。2 桁に収まらない件数は「99+」 */
+export const formatBadgeCount = (count: number): string => (count > 99 ? "99+" : String(count));
