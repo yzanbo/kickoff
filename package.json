@@ -115,5 +115,10 @@
   "engines": {
     "node": ">=22.13"
   },
-  "main": "out/main/index.js"
+  "main": "out/main/index.js",
+  "overrides": {
+    "rehype-katex": {
+      "katex": "$katex"
+    }
+  }
 }

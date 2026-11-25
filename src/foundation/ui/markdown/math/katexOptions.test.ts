@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { test } from "vitest";
 import katex from "katex";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -54,4 +56,29 @@ test("KaTeX の出力: 書いた大きさは maxSize（10em）で丸める。外
   assert.doesNotMatch(html(String.raw`\rule{500em}{500em}`), /500em/);
   assert.doesNotMatch(html(String.raw`\href{https://evil.example/}{x}`), /<a /);
   assert.doesNotMatch(html(String.raw`\htmlStyle{color:transparent}{x}`), /transparent/);
+});
+
+/** 返答の数式の CSS（katex.vendor.css が読む KaTeX の CSS と、Markdown.css） */
+const katexCss = readFileSync(createRequire(import.meta.url).resolve("katex/dist/katex.min.css"), "utf8");
+const markdownCss = readFileSync(new URL("../Markdown.css", import.meta.url), "utf8");
+
+test("返答の数式（rehype-katex）は、読み込む CSS と同じ版の KaTeX で描く（クラス名が CSS にある）", () => {
+  const html = visible(render(String.raw`\frac{a}{b} + x^2`));
+  for (const name of ["katex-base", "katex-strut"]) {
+    assert.match(html, new RegExp(`class="${name}"`), name);
+    assert.ok(katexCss.includes(`.${name}`), name);
+  }
+  // 古い版のクラス名（base・strut）は出ない
+  assert.doesNotMatch(html, /class="(base|strut)"/);
+});
+
+test("返答の数式も、式の箱（.katex-base）の外へ出た分を描かない（負の kern・raisebox）", () => {
+  assert.match(markdownCss, /\.markdown \.katex \.katex-base \{\s*clip-path: inset\(-0\.25em\);/);
+  for (const tex of [String.raw`a\kern-50em b`, String.raw`\raisebox{-30em}{x}`]) {
+    const html = visible(render(tex));
+    // ずらしたもの（負の余白・下げた箱）が、切り取る .katex-base の中にある
+    const base = html.indexOf('class="katex-base"');
+    const moved = html.search(/margin-right:-50em|vertical-align:-30em/);
+    assert.ok(base >= 0 && moved > base, tex);
+  }
 });
