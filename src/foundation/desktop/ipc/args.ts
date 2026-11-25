@@ -54,7 +54,9 @@ export const foundationArgs = {
       }),
     ]),
     openSettings: none,
-    setBadge: z.tuple([z.number().int().min(0).max(99999)]),
+    dockIconBase: none,
+    // 512px のアイコンの PNG は 100KB ほど（base64 で 4/3 倍）。上限は桁違いに大きいものを断るため
+    setDockIcon: z.tuple([z.string().startsWith("data:image/png;base64,").max(4_000_000).nullable()]),
   },
   loginItem: {
     get: none,

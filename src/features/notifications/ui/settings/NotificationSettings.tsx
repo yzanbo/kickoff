@@ -36,8 +36,8 @@ export function NotificationSettings() {
           onChange={(on) => applySettings({ desktop_notifications: on })}
         />
         <CheckField
-          label="Dock のアイコンに要対応の数を出す"
-          help="回答待ち・未読のチャットの数を、Dock の Kickoff のアイコンに赤い数字で出します（アーカイブしたプロジェクト・チャットは数えません）。"
+          label="Dock のアイコンに状態の数を出す"
+          help="作業中（左上）・未読（右上）・回答待ち（左下）のチャットの数を、Dock の Kickoff のアイコンの隅に、画面の状態と同じ色の丸で出します（アーカイブしたプロジェクト・チャットは数えません）。macOS の「アイコンにバッジを表示」の設定ではなく、ここで切り替えます。"
           checked={settings.dock_badge}
           onChange={(on) => applySettings({ dock_badge: on })}
         />

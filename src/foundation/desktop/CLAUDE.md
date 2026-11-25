@@ -4,7 +4,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 
 ## 口の一覧
 - `parts.ts`（`DesktopPart`。土台は `foundationPart.ts`、機能は各機能の `desktop/index.ts`。app が `mergeParts` で並べる）
-- `app/`: 窓 `window.ts`（`createAppWindow`・`showMainWindow`）・別ウィンドウ `popouts.ts`（`POPOUT_KINDS`）・終了 `shutdown.ts`・コアのプロセス `coreProcess.ts`（様子は `coreState.ts`）・子の Electron `childApps.ts`・外のアプリ `externalApps.ts`・眠らせない `keepAwakeRules.ts`・鍵 `secretCipher.ts`・マイク `mediaPermission.ts`・起動の記録 `startupLog.ts`・`bootRecorder.ts`・詰まり `stalls.ts`・通知 `notifications.ts`・`hangWatch.ts`
+- `app/`: 窓 `window.ts`（`createAppWindow`・`showMainWindow`）・別ウィンドウ `popouts.ts`（`POPOUT_KINDS`）・終了 `shutdown.ts`・コアのプロセス `coreProcess.ts`（様子は `coreState.ts`）・子の Electron `childApps.ts`・外のアプリ `externalApps.ts`・眠らせない `keepAwakeRules.ts`・鍵 `secretCipher.ts`・マイク `mediaPermission.ts`・起動の記録 `startupLog.ts`・`bootRecorder.ts`・詰まり `stalls.ts`・通知 `notifications.ts`・Dock のアイコン `dockIcon.ts`・`hangWatch.ts`
 - `ipc/`: 登録 `register.ts`・引数の zod `args.ts`。表は土台の `FOUNDATION_IPC` と機能の `@shared/<機能>/ipc.ts`（並べるのは `@/app/shared/ipc.ts`）
 - `platform/`（`hostPlatform`・`desktopPlatform`）・`terminal/`・URL の判定 `urls.ts`
 

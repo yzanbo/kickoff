@@ -1,8 +1,9 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
-import { Notification, app, shell } from "electron";
+import { Notification, shell } from "electron";
 import type { Notice, NotifyRequest, NotifyResult } from "@shared/foundation/ipc";
 import { mainWindow, showMainWindow } from "@/foundation/desktop/app/window";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
+import { dockIconBase, setDockIcon } from "./dockIcon";
 import { chatOfNotificationId, ciOfNotificationId, notificationIdOf } from "./notificationIds";
 
 /**
@@ -48,7 +49,7 @@ export function notifyFromCore(notice: Notice): void {
   void show({ title: notice.title, body: notice.body, ...target });
 }
 
-/** 通知（IPC の notifications。設定の「テスト通知を送る」・Mac の通知の設定・Dock の数） */
+/** 通知（IPC の notifications。設定の「テスト通知を送る」・Mac の通知の設定・Dock のアイコン） */
 export function notificationHandlers(): IpcHandlers["notifications"] {
   // 前回までに出して、まだ通知センターに残っているものも、押したらそのチャットを開けるようにする
   void Notification.getHistory()
@@ -58,8 +59,9 @@ export function notificationHandlers(): IpcHandlers["notifications"] {
   return {
     notify: (_e, request) => show(request),
     openSettings: () => shell.openExternal(NOTIFICATION_SETTINGS_URL),
-    // Dock のアイコンの赤い数字（Mac。0 で消える）
-    setBadge: (_e, count) => void app.setBadgeCount(count),
+    // Dock のアイコンに状態の数を描く（Mac。描くのは画面。null で元に戻す）
+    dockIconBase: () => dockIconBase(),
+    setDockIcon: (e, dataUrl) => setDockIcon(e.sender, dataUrl),
   };
 }
 
