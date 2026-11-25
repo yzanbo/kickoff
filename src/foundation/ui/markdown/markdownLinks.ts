@@ -18,5 +18,9 @@ const MARKDOWN_ROOT = ".markdown";
  */
 export function scrollToFragment(anchor: Element, id: string): void {
   const root = anchor.closest(MARKDOWN_ROOT);
-  root?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: "start" });
+  // Markdown の中の HTML の id は頭に user-content- を付けて描く（html/htmlAllowlist.ts）ので、#x はその形も探す
+  const target = root?.querySelector(`#${CSS.escape(id)}`) ?? (id.startsWith(ID_PREFIX) ? null : root?.querySelector(`#${CSS.escape(ID_PREFIX + id)}`));
+  target?.scrollIntoView({ block: "start" });
 }
+
+const ID_PREFIX = "user-content-";

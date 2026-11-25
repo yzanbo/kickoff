@@ -1,0 +1,66 @@
+/* ==== Markdown の中の HTML（html/。HTML から作った要素には md-html のクラスが付く） ==== */
+
+/*
+ * state の層（いちばん後ろ）に置く: HTML でしか出ないタグ（div・span・section など）には、まず Kickoff のほかの CSS を当てない決まり（all: revert）を置き、
+ * そのあとで Markdown 用の見た目を付ける。いまの CSS に悪用できる規則はないが、あとから足された規則（どの層・どの詳細度でも）で崩れないようにする。
+ * Markdown も作るタグ（p・a・表・箇条書き・コードなど）は戻さず、Markdown と同じ見た目にする。GitHub の本文（.github-html）は別の決まりなので除く
+ */
+@layer state {
+  .markdown .md-html:not(p, a, img, strong, em, del, code, pre, blockquote, ul, ol, li, table, thead, tbody, tfoot, tr, th, td, h1, h2, h3, h4, h5, h6, hr, br):not(
+      .github-html *
+    ) {
+    all: revert;
+  }
+
+  /*
+   * 文字の大きさを変えるタグは、重ねても 10px より小さくならず、見出し（h1 の大きさ）より大きくならない
+   * （ブラウザには下限がなく、small を 30 重にすると 0.06px になる。同じタグの重なりは読み取りが内側を外す。html/htmlTree.ts）
+   */
+  .markdown .md-html:is(small) {
+    font-size: max(0.83em, 10px);
+  }
+
+  .markdown .md-html:is(sub, sup) {
+    font-size: max(0.75em, 10px);
+  }
+
+  .markdown .md-html:is(rt) {
+    font-size: max(0.5em, 10px);
+  }
+
+  .markdown .md-html:is(big) {
+    font-size: min(1.2em, calc(19px * var(--chat-scale, 1)));
+  }
+
+  .markdown .md-html:is(tt, kbd, samp) {
+    font-family: var(--mono);
+    font-size: max(0.9em, 10px);
+  }
+
+  .markdown .md-html:is(kbd) {
+    padding: 0 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  .markdown .md-html:is(dl, figure) {
+    margin-block: 0.55em;
+  }
+
+  /* 文字の寄せ方（align。戻した要素では属性の見た目も消えるので、ここで付け直す。回り込みにはしない） */
+  .markdown .md-html[align="left"] {
+    text-align: left;
+  }
+
+  .markdown .md-html[align="center"] {
+    text-align: center;
+  }
+
+  .markdown .md-html[align="right"] {
+    text-align: right;
+  }
+
+  .markdown .md-html[align="justify"] {
+    text-align: justify;
+  }
+}

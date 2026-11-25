@@ -26,6 +26,19 @@
     font-size: var(--chat-fs-14);
   }
 
+  /* 見出しは決まった大きさ（em だと、Markdown の中の HTML で重ねたときに小さくなり続ける。MarkdownHtml.css） */
+  .markdown h4 {
+    font-size: var(--chat-fs-14);
+  }
+
+  .markdown h5 {
+    font-size: var(--chat-fs-13);
+  }
+
+  .markdown h6 {
+    font-size: var(--chat-fs-12);
+  }
+
   .markdown p,
   .markdown ul,
   .markdown ol {
@@ -42,7 +55,8 @@
     padding: 1px 5px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 0.9em;
+    /* 重ねても 10px より小さくしない（Markdown の中の HTML の小さくするタグの中など） */
+    font-size: max(0.9em, 10px);
     background: var(--bg-hover);
   }
 
@@ -206,6 +220,8 @@
 
   .markdown img {
     max-width: 100%;
+    /* 高さは幅に合わせる（HTML の img の width だけを通す） */
+    height: auto;
   }
 
   /* 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる */

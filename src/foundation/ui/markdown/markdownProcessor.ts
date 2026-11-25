@@ -5,7 +5,8 @@
  *
  * react-markdown の中身（公開されていない createProcessor・post）を写している。package.json で react-markdown と写した道具
  * （unified・remark-parse・remark-rehype・hast-util-to-jsx-runtime・html-url-attributes・unist-util-visit・vfile）の版を固定してあり、
- * 上げるときは markdownProcessor.test.ts（react-markdown そのものと描いた結果が等しいこと）を必ず流す
+ * 上げるときは markdownProcessor.test.ts（react-markdown そのものと描いた結果が等しいこと）を必ず流す。
+ * react-markdown と違うのは、Markdown の中の HTML のうち一覧を通したものだけを要素にする所（`html/`。react-markdown は文字にする）
  */
 import type { Root as HastRoot, Nodes } from "hast";
 import type { Root as MdastRoot } from "mdast";
@@ -21,6 +22,8 @@ import { visit } from "unist-util-visit";
 import { VFile } from "vfile";
 import { createLruMap, type LruMap } from "@/foundation/ui/lib/lruMap";
 import { wrapStreamTail } from "@/foundation/ui/markdown/streaming/streamReveal";
+import { isHtmlComment } from "./html/htmlTree";
+import { applyMarkdownHtml } from "./html/htmlVerify";
 import { isRiskyMarkdownBlock } from "./markdownGuard";
 import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
@@ -71,16 +74,17 @@ export function pipelineOf(links: PluggableList[number] | undefined, math: MathP
 }
 
 /**
- * 1 つのブロック（か全文）を、描く前の hast にする（生の HTML は文字にし、URL は安全にしたもの。`sanitizeHast`）。
+ * 1 つのブロック（か全文）を、描く前の hast にする（Markdown の中の HTML は一覧を通したものだけを要素にし（`html/`）、URL は安全にしたもの。`sanitizeHast`）。
  * tail（出たばかりの文字の段）があれば、木の終わりの文字を薄く包んでから rehype に渡す
- * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順）。
- * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）と、読む途中で投げたときは null（書いたままの文字で出す。呼ぶ側）
+ * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順。どちらも HTML の確かめのあとに付ける）。
+ * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）・HTML のタグと入れ子の上限を超えたもの・読む途中で投げたときは null（書いたままの文字で出す。呼ぶ側）
  */
 export function markdownToHast(pipeline: MarkdownPipeline, text: string, tail?: readonly number[]): HastRoot | null {
   if (isRiskyMarkdownBlock(text)) return null;
   try {
     const file = new VFile(text);
     let tree = pipeline.toHast.runSync(pipeline.toHast.parse(file), file);
+    if (!applyMarkdownHtml(tree)) return null;
     if (tail?.some((n) => n > 0)) wrapStreamTail(tree, tail);
     if (pipeline.rehype) tree = pipeline.rehype.runSync(tree, file);
     return sanitizeHast(tree);
@@ -102,15 +106,9 @@ export function renderMarkdown(pipeline: MarkdownPipeline, text: string, compone
 /** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
 const plainBlock = (text: string): ReactElement => jsx("p", { className: "markdown-plain", children: text });
 
-/** HTML のコメントだけ（前後の空白と、続けて並んだ複数のコメントは含む）の文か */
-const HTML_COMMENT_ONLY = /^\s*(?:<!--(?:(?!-->)[\s\S])*-->\s*)+$/;
-
-/** raw（生の HTML）の文が HTML のコメントだけか（`<!-- visual: v-… -->` のような目印。HTML として描いても何も出ないもの） */
-export const isHtmlComment = (value: string) => HTML_COMMENT_ONLY.test(value);
-
 /**
  * react-markdown の post と同じ: raw（HTML）を文字にし、URL を安全にする（defaultUrlTransform。その場で書き換える）。
- * ただし HTML のコメントだけの raw は文字にせず消す（HTML として描いても出ないものなので。ほかの生の HTML は動かさずに文字で出す）
+ * raw は HTML の読み取り（`html/`）が要素と文字にしたあとなので残らないが、残っても描かずに文字で出す（HTML のコメントだけのものは消す）
  */
 function sanitizeHast(tree: HastRoot): HastRoot {
   visit(tree, (node: Nodes, index, parent) => {

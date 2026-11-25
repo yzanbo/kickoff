@@ -1,4 +1,5 @@
 import "./Markdown.css";
+import "./MarkdownHtml.css";
 import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
@@ -184,7 +185,7 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
   a === b || (a !== undefined && b !== undefined && a.length === b.length && a.every((n, i) => n === b[i]));
 
 /**
- * AI の発言などの Markdown 表示（HTML は描画しない）。本文と設定（streaming・tail）が同じなら描き直さない
+ * AI の発言などの Markdown 表示（中の HTML は、安全と確かめた一覧のタグと属性だけを描き、ほかは文字のまま。`html/`）。本文と設定（streaming・tail）が同じなら描き直さない
  * （親が描き直るたびに全文を解析し直さないため。ファイルのリンクなど context の値が変わったときは描き直る）。```mermaid は図にする。
  * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。

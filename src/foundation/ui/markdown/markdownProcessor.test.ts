@@ -8,7 +8,10 @@ import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { remarkMathGuard } from "@/foundation/ui/markdown/math/remarkMathGuard";
-import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import type { Root as HastRoot } from "hast";
+import { isHtmlComment } from "./html/htmlTree";
+import { applyMarkdownHtml } from "./html/htmlVerify";
+import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
 import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
 /*
@@ -40,23 +43,15 @@ const math = {
   rehype: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]] as PluggableList,
 };
 
-/** HTML のコメントだけの raw を消す（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じにそろえる） */
-const dropHtmlComments = () => (tree: { children?: unknown[] }) => {
-  const walk = (node: { type?: string; value?: string; children?: unknown[] }) => {
-    if (!node.children) return;
-    node.children = node.children.filter((c) => {
-      const child = c as typeof node;
-      return !(child.type === "raw" && isHtmlComment(child.value ?? ""));
-    });
-    node.children.forEach((c) => walk(c as typeof node));
-  };
-  walk(tree);
+/** Markdown の中の HTML を一覧を通して要素にする（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じ段を足す。数式より前） */
+const markdownHtml = () => (tree: HastRoot) => {
+  applyMarkdownHtml(tree);
 };
 
-/** react-markdown で全文を描く（設定の組の remark-rehype の決まりも渡す。HTML のコメントは、作り置きの処理と同じく消す） */
+/** react-markdown で全文を描く（設定の組の remark-rehype の決まりも渡す。HTML は、作り置きの処理と同じく一覧を通したものだけを要素にする） */
 function whole(text: string, remarkPlugins: PluggableList, rehypePlugins: PluggableList): string {
   return renderToStaticMarkup(
-    createElement(ReactMarkdown, { remarkPlugins, remarkRehypeOptions: REMARK_REHYPE_OPTIONS, rehypePlugins: [...rehypePlugins, dropHtmlComments], components }, text),
+    createElement(ReactMarkdown, { remarkPlugins, remarkRehypeOptions: REMARK_REHYPE_OPTIONS, rehypePlugins: [markdownHtml, ...rehypePlugins], components }, text),
   );
 }
 
@@ -78,6 +73,7 @@ const SAMPLES = [
   "見出し\n===\n\n下線の見出し\n---\n\n* 星\n\n+ 足す\n\n1) かっこ\n2) かっこ",
   "&amp; &copy; \\* エスケープ \\`\n\n行末の空白で改行  \n次の行\n\n<br>\n\n最後",
   "**「強調」**は（https://example.com）を開く。所要時間は5~10秒\n\n- **ノート（.md）**と~~取消（x）~~です\n\n| a |\n|---|\n| **【済】**です |",
+  "<div align=\"center\">\n\n**中の Markdown**\n\n<img src=\"https://example.com/a.png\" width=\"120\">\n\n</div>\n\n文 <kbd>⌘</kbd> と <sub>下</sub><sup>上</sup> と <b>閉じない\n\n<table>\n<tr>\n<td colspan=\"2\">\n\n- 項目\n\n</td>\n</tr>\n</table>\n\n| 表 |\n|---|\n| 一<br>二 |",
 ];
 
 const MATH_SAMPLES = [
@@ -116,14 +112,14 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
   }
 });
 
-test("生の HTML: コメントだけのものは出さず、ほかはこれまでどおり文字で出す（動かさない）", () => {
+test("生の HTML: コメントだけのものは出さず、一覧のタグは要素に、ほかは文字で出す（動かさない）", () => {
   const render = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, components));
   assert.equal(render("前\n\n<!-- visual: v-s1xidvm4 -->\n\n後ろ"), "<p>前</p>\n\n<p>後ろ</p>");
   assert.equal(render("文の中 <!-- 目印 --> の続き"), "<p>文の中  の続き</p>");
   assert.equal(render("<!--\n複数行の\n\nコメント\n--> <!-- 続けて -->"), "");
-  // コメント以外の生の HTML・コメントと文が混ざったもの・閉じていないコメントは文字のまま
-  assert.match(render("<div onclick=\"x()\">中</div>"), /&lt;div onclick=&quot;x\(\)&quot;&gt;中&lt;\/div&gt;/);
-  assert.match(render("文 <b>太</b>"), /<p>文 &lt;b&gt;太&lt;\/b&gt;<\/p>/);
+  // 一覧のタグは要素にし、一覧にない属性（on…）は消す。コメントと文が混ざったもの・閉じていないコメントは文字のまま
+  assert.equal(render('<div onclick="x()">中</div>'), '<div class="md-html">中</div>');
+  assert.equal(render("文 <b>太</b>"), '<p>文 <b class="md-html">太</b></p>');
   assert.match(render("<!-- a --> 同じ行の文"), /&lt;!-- a --&gt; 同じ行の文/);
   assert.match(render("<!-- 閉じていない"), /&lt;!-- 閉じていない/);
   assert.ok(isHtmlComment("  <!-- a -->\n<!-- b -->  "));

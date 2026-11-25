@@ -33,6 +33,6 @@
 - ドラッグ中の見た目を変える state は `startDragGhost` の `after` で変える（`dragstart` の中で描き直すとドラッグが取り消される）。端のスクロールは `dragAutoScroll.ts`。
 - 戻る・進むは画面単位の履歴（`useHashRoute` が描く前に積む。たどるときは `replace`）。動けない方向は無効にする。
 - ページの ⌘F は `kit/usePageFind`（ページの要素は `position: relative`。エディタの検索に任せるなら `native`）。チャットの中の検索は捕捉で先に受ける。
-- Markdown の読み方は `markdown/syntax/` の組 1 つ（1 回の改行も改行。強調の判定は `cjkFlanking`）。
+- Markdown の読み方・中の HTML は `markdown/CLAUDE.md`。
 - 重いもの（Mermaid・図・色付け）は `useNearViewport` で手前まで来てから。色付けは Web Worker。
 - テスト: `store/`・`storage/`・`navigation/`・`markdown/` の `*.test.ts`。偽の時計は `createFakeScheduler`。
