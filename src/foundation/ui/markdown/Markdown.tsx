@@ -4,13 +4,12 @@ import { createContext, Fragment, memo, useContext, useState, useSyncExternalSto
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
-import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "@/foundation/ui/markdown/markdownProcessor";
+import { createBlockCache, pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
 import { MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
 import { details, summary } from "@/foundation/ui/markdown/MarkdownDetails";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
-import { imageSourcesIn } from "@shared/foundation/markdown/images";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/foundation/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
@@ -212,8 +211,6 @@ function MarkdownGuarded(props: MarkdownProps) {
 function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);
   const images = useContext(MarkdownImagesContext);
-  // 画像の描き方を差し込まれているときだけ、文に書かれた画像の src を拾って配る（「host から画像を n 件表示」の数）
-  const sources = images ? imageSourcesIn(children) : NO_SOURCES;
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
@@ -227,17 +224,21 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
     tail,
   );
   const last = blocks.length - 1;
+  // 書き終えたブロックは覚えから引く（同じ要素なので React も描き直さない）。薄く出す段のあるブロックは毎回描く
+  const rendered = blocks.map((b, i) => (tails[i] ? renderBlock(pipeline, b, COMPONENTS, tails[i]) : blockCache.render(pipeline, b, COMPONENTS)));
+  // 画像の描き方を差し込まれているときだけ、描く木の画像の src を配る（「host から画像を n 件表示」の数。HTML の img も入る）
+  const sources = images ? rendered.flatMap((r) => r.images) : NO_SOURCES;
   return (
     <div className="markdown">
       <MarkdownImageSourcesContext.Provider value={sources}>
         <StreamingFlag.Provider value={streaming}>
           {/* ブロックの間には、全文を 1 度に描いたときと同じく改行の文字を置く（HTML を文字で出す所の間の空白・選んでコピーした文を変えない） */}
-          {blocks.map((b, i) => (
+          {rendered.map((block, i) => (
             <Fragment key={i}>
               {i > 0 && "\n"}
               {/* 形をそろえて包む（最後のブロックが前のブロックになっても作り直さない） */}
               <OpenFence.Provider value={i === last ? openFence : null}>
-                <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+                {block.element}
               </OpenFence.Provider>
             </Fragment>
           ))}
@@ -246,12 +247,3 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
     </div>
   );
 }
-
-/** 1 つのブロック。文・処理の組・薄く出す段が同じなら描き直さない。薄く出す段がなければ、描いた要素を覚えから引く */
-// 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
-const MarkdownBlock = memo(
-  function MarkdownBlock({ pipeline, text, tail }: { pipeline: MarkdownPipeline; text: string; tail: readonly number[] | undefined }) {
-    return tail ? renderMarkdown(pipeline, text, COMPONENTS, tail) : blockCache.render(pipeline, text, COMPONENTS);
-  },
-  (a, b) => a.pipeline === b.pipeline && a.text === b.text && sameTail(a.tail, b.tail),
-);

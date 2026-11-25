@@ -25,6 +25,7 @@ import { wrapStreamTail } from "@/foundation/ui/markdown/streaming/streamReveal"
 import { isHtmlComment } from "./html/htmlTree";
 import { applyMarkdownHtml } from "./html/htmlVerify";
 import { isRiskyMarkdownBlock } from "./markdownGuard";
+import { imageSourcesOf } from "./markdownImages";
 import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
 type PluggableList = NonNullable<Options["remarkPlugins"]>;
@@ -93,15 +94,28 @@ export function markdownToHast(pipeline: MarkdownPipeline, text: string, tail?: 
   }
 }
 
+/** 描いたブロック: 要素と、中の画像の src（描く木から数えたもの。`imageSourcesOf`） */
+export interface RenderedBlock {
+  element: ReactElement;
+  images: readonly string[];
+}
+
+const NO_IMAGES: readonly string[] = [];
+
 /**
  * 1 つのブロック（か全文）を要素にする（`markdownToHast`）。読めなかったブロックは、書いたままの文字で出す
  * （そのブロックだけ。開くたびに同じ文を描くので、投げたままにするとそのチャット・ファイルが開けなくなる）
  */
-export function renderMarkdown(pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement {
+export function renderBlock(pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): RenderedBlock {
   const tree = markdownToHast(pipeline, text, tail);
-  if (!tree) return plainBlock(text);
-  return toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true }) as ReactElement;
+  if (!tree) return { element: plainBlock(text), images: NO_IMAGES };
+  const element = toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true }) as ReactElement;
+  return { element, images: imageSourcesOf(tree) };
 }
+
+/** 1 つのブロック（か全文）の要素（`renderBlock`） */
+export const renderMarkdown = (pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement =>
+  renderBlock(pipeline, text, components, tail).element;
 
 /** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
 const plainBlock = (text: string): ReactElement => jsx("p", { className: "markdown-plain", children: text });
@@ -133,26 +147,25 @@ function sanitizeHast(tree: HastRoot): HastRoot {
 /** ブロックの覚えの上限（要素は hast の節を props に持つので、数と文の長さの両方で抑える） */
 const BLOCK_CACHE_LIMITS = { count: 1000, chars: 500_000 };
 
-/** 描いたブロックの覚え（鍵は処理の組の番号と文） */
+/** 描いたブロックの覚え（鍵は文。処理の組が違えば描き直す） */
 export interface BlockCache {
-  render(pipeline: MarkdownPipeline, text: string, components: Components): ReactElement;
+  render(pipeline: MarkdownPipeline, text: string, components: Components): RenderedBlock;
 }
 
 /**
  * ブロックの覚えを作る。書きかけの返答から確定した返答に替わったとき・流れの窓で行を外して戻したときに、同じ文のブロックを解析し直さない
- * （薄く出す段のあるブロックは覚えない。呼ぶ側で renderMarkdown を直接呼ぶ）
+ * （薄く出す段のあるブロックは覚えない。呼ぶ側で renderBlock を直接呼ぶ）。
+ * 鍵は文そのもの（ブロックの文字列は分ける側が同じものを返すので、描くたびに鍵の文字列を作り直さない）
  */
 export function createBlockCache(limits = BLOCK_CACHE_LIMITS): BlockCache {
-  const cache: LruMap<string, ReactElement> = createLruMap(limits.count, { maxWeight: limits.chars, weigh: (_v, key) => key.length });
+  const cache: LruMap<string, { pipeline: MarkdownPipeline; block: RenderedBlock }> = createLruMap(limits.count, { maxWeight: limits.chars, weigh: (_v, key) => key.length });
   return {
     render(pipeline, text, components) {
-      const key = `${pipeline.id}\u0000${text}`;
-      let element = cache.get(key);
-      if (!element) {
-        element = renderMarkdown(pipeline, text, components);
-        cache.set(key, element);
-      }
-      return element;
+      const hit = cache.get(text);
+      if (hit?.pipeline === pipeline) return hit.block;
+      const block = renderBlock(pipeline, text, components);
+      cache.set(text, { pipeline, block });
+      return block;
     },
   };
 }
