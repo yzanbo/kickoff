@@ -27,3 +27,20 @@ test("linkDomainOf: 「今後確認しない」はホスト名の小文字（ポ
   assert.equal(linkDomainOf("https://Docs.Example.com:8443/a"), "docs.example.com");
   assert.equal(linkDomainOf("mailto:a@example.com"), null);
 });
+
+test("linkWarnings: リンクの文字にほかの文字・空白・見えない文字が混ざっていても、URL・ドメインに見える語があれば行き先と比べる", () => {
+  for (const text of [
+    "https://good.example x",
+    "https://good.example…",
+    "https://good.example\u200b",
+    "https://go\u200bod.example",
+    "公式 good.example のページ",
+    "（https://good.example）",
+    "https://good.\u202eexample",
+  ]) {
+    assert.deepEqual(linkWarnings("https://evil.example/", text), ["text_mismatch"], JSON.stringify(text));
+  }
+  // 同じホスト・サブドメイン・URL に見える語のない文字は当たらない
+  assert.deepEqual(linkWarnings("https://docs.good.example/a", "詳しくは https://good.example x を"), []);
+  assert.deepEqual(linkWarnings("https://evil.example/", "ここを押す"), []);
+});
