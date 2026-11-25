@@ -15,9 +15,11 @@ class FakeElement implements SvgElementLike {
     for (const [k, v] of Object.entries(attrs)) this.attrs.set(k, v);
     for (const n of nodes) this.append(n);
   }
-  append(node: FakeElement | string) {
-    if (typeof node !== "string") node.parent = this;
-    this.nodes.push(node);
+  append(...nodes: (FakeElement | string)[]) {
+    for (const node of nodes) {
+      if (typeof node !== "string") node.parent = this;
+      this.nodes.push(node);
+    }
   }
   get attributes() {
     return [...this.attrs].map(([name, value]) => ({ name, value }));
@@ -61,11 +63,18 @@ class FakeElement implements SvgElementLike {
 }
 
 const el = (tag: string, attrs: Record<string, string> = {}, ...nodes: (FakeElement | string)[]) => new FakeElement(tag, attrs, nodes);
+const group = () => new FakeElement("g");
+/** 偽の木を整える */
+const sanitize = (svg: FakeElement) => sanitizeSvgTree(svg, group);
 
-test("sanitizeSvgTree: click のリンク（a）は中身を残して外す", () => {
-  const svg = el("svg", {}, el("g", {}, el("a", { "xlink:href": "https://evil.example/", target: "_top" }, el("rect", { class: "node" }), el("text", {}, "A"))));
-  sanitizeSvgTree(svg);
-  assert.equal(String(svg), '<svg><g><rect class="node"></rect><text>A</text></g></svg>');
+test("sanitizeSvgTree: click のリンク（a）は外し、中身を位置と見た目だけを写した g に入れ直す", () => {
+  const svg = el(
+    "svg",
+    {},
+    el("g", {}, el("a", { "xlink:href": "https://evil.example/", target: "_top", transform: "translate(102, 35.25)", class: "clickable", rel: "opener" }, el("rect", { class: "node" }), el("text", {}, "A"))),
+  );
+  sanitize(svg);
+  assert.equal(String(svg), '<svg><g><g transform="translate(102, 35.25)" class="clickable"><rect class="node"></rect><text>A</text></g></g></svg>');
 });
 
 test("sanitizeSvgTree: 外を指す href・xlink:href・src を消し、# は残す", () => {
@@ -78,7 +87,7 @@ test("sanitizeSvgTree: 外を指す href・xlink:href・src を消し、# は残
     el("filter", {}, el("feImage", { href: "http://127.0.0.1:1/api/x" })),
     el("image", { src: "data:image/png;base64,AAAA" }),
   );
-  sanitizeSvgTree(svg);
+  sanitize(svg);
   assert.equal(String(svg), '<svg><image width="10"></image><image></image><use href="#arrow"></use><filter><feImage></feImage></filter><image></image></svg>');
 });
 
@@ -92,13 +101,13 @@ test("sanitizeSvgTree: foreignObject・スクリプトと on… の属性、href
     el("set", { attributeName: "href", to: "https://evil.example/" }),
     el("animate", { attributeName: "opacity", values: "0;1" }),
   );
-  sanitizeSvgTree(svg);
+  sanitize(svg);
   assert.equal(String(svg), '<svg><rect fill="red"></rect><animate attributeName="opacity" values="0;1"></animate></svg>');
 });
 
 test("sanitizeSvgTree: CSS（style の属性・<style>）の外を読む書き方を消し、# の url は残す", () => {
   const svg = el("svg", {}, el("style", {}, '@import "https://evil.example/a.css"; .a { marker-end: url(#arrowhead); background: url(https://evil.example/x.png); }'), el("rect", { style: "fill: url( 'https://evil.example/p' ); stroke: red" }));
-  sanitizeSvgTree(svg);
+  sanitize(svg);
   assert.equal(String(svg), '<svg><style> .a { marker-end: url(#arrowhead); background: none; }</style><rect style="fill: none; stroke: red"></rect></svg>');
 });
 

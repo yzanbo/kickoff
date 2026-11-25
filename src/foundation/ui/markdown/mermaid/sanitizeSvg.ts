@@ -1,13 +1,15 @@
 /**
  * Mermaid が描いた SVG を、画面に差し込む前に整える。Mermaid は securityLevel: "strict" でも、図に書いた click A "https://…" から
  * SVG のリンク（<a xlink:href>）を作り、画像の形（@{ img: … }）は <image href> で外を読みに行く（strict が止めるのは関数の呼び出しだけ）。
- * - リンク（a）は中身を残して外す（押すと確認なしで窓が移る・外が開くため）
+ * - リンク（a）は外し、中身は位置などを写した g に入れ直す（押すと確認なしで窓が移る・外が開くため。Mermaid は押せる箱の位置を a の transform に付けるので、そのまま外すと箱が左上へずれる）
  * - href・xlink:href・src は、同じ図の中を指す # のほかは消す（image・use・feImage などが外を読みに行かないように）
  * - 中に HTML を入れる foreignObject・スクリプト・埋め込みは消す。on… の属性も消す
  * - CSS の url(…) は # のほかを none にし、@import・image-set も消す（style の属性と <style> の中。外を読みに行かないように）
  * - href を書き換えるアニメーション（set・animate）は消す
  */
 import { decodeCss } from "./mermaidResources";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** 整えに使う DOM の口（Element の一部。テストでは偽の木を渡す） */
 export interface SvgElementLike {
@@ -21,7 +23,11 @@ export interface SvgElementLike {
   removeAttribute(name: string): void;
   remove(): void;
   replaceWith(...nodes: never[]): void;
+  append(...nodes: never[]): void;
 }
+
+/** リンク（a）の代わりの g に写す属性（見た目と位置だけ。行き先・開き方は写さない） */
+const GROUP_ATTRIBUTES = new Set(["transform", "class", "style", "id"]);
 
 /** 中身ごと消すもの（小文字） */
 const DROP = new Set(["foreignobject", "script", "iframe", "object", "embed", "audio", "video", "canvas", "noscript"]);
@@ -59,8 +65,8 @@ function cleanAttributes(el: SvgElementLike) {
   }
 }
 
-/** 要素とその中を整える（root そのものは消さない・外さない） */
-export function sanitizeSvgTree(root: SvgElementLike): void {
+/** 要素とその中を整える（root そのものは消さない・外さない）。makeGroup: リンクの代わりに置く、空の SVG の g を作る */
+export function sanitizeSvgTree(root: SvgElementLike, makeGroup: () => SvgElementLike): void {
   cleanAttributes(root);
   for (const child of Array.from(root.children)) {
     const tag = child.localName.toLowerCase();
@@ -68,10 +74,15 @@ export function sanitizeSvgTree(root: SvgElementLike): void {
       child.remove();
       continue;
     }
-    sanitizeSvgTree(child);
+    sanitizeSvgTree(child, makeGroup);
     if (tag === "style") child.textContent = stripCssUrls(child.textContent ?? "");
-    // リンクは中身（整えたあとのもの）を残して外す
-    if (tag === "a") child.replaceWith(...(Array.from(child.childNodes) as never[]));
+    // リンクは外し、中身（整えたあとのもの）を、位置と見た目の属性だけを写した g に入れ直す
+    if (tag === "a") {
+      const group = makeGroup();
+      for (const { name, value } of Array.from(child.attributes)) if (GROUP_ATTRIBUTES.has(name.toLowerCase())) group.setAttribute(name, value);
+      group.append(...(Array.from(child.childNodes) as never[]));
+      child.replaceWith(group as never);
+    }
   }
 }
 
@@ -85,6 +96,6 @@ export function sanitizeMermaidSvg(svg: string): string {
   const root = template.content.firstElementChild;
   if (!root || root.localName !== "svg") throw new Error("図の SVG を読めませんでした");
   for (const extra of Array.from(template.content.children)) if (extra !== root) extra.remove();
-  sanitizeSvgTree(root);
+  sanitizeSvgTree(root, () => document.createElementNS(SVG_NS, "g") as unknown as SvgElementLike);
   return template.innerHTML;
 }
