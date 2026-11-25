@@ -1,5 +1,6 @@
 // 全ノートの画面の状態と操作（欄の並び・右のタブの欄・探す文・選んでいる欄。欄の中は useNoteSection。描くのは AllNotesPage）
 import { useState } from "react";
+import { isUserProject } from "@shared/projects/kinds";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { usePanel } from "@/features/panel/ui";
 import { useVisibleProjects } from "@/features/projects/ui";
@@ -19,9 +20,10 @@ export function useAllNotesPage() {
   const [query, setQuery] = useState("");
   const [, setListHidden] = useSetting(storage.settings.listHidden);
   const common = useCommonNotes();
-  // サイドバーと同じ並び（アーカイブした・見えないプロジェクトは入らない。タグの絞り込みはチャットの一覧のものなので当てない）
-  const { active: projects } = useVisibleProjects();
-  const sections = allNotesSections(common.state === "ready" ? { projectId: common.projectId, title: COMMON_NOTES_LABEL } : null, projects);
+  // サイドバーと同じ並び（アーカイブしたものは入らない。タグの絞り込みはチャットの一覧のものなので当てない）。
+  // 共通は上の共通のノートの欄で出すので、プロジェクトの欄からは外す（二重に出さない）
+  const { active } = useVisibleProjects();
+  const sections = allNotesSections(common.state === "ready" ? { projectId: common.projectId, title: COMMON_NOTES_LABEL } : null, active.filter(isUserProject));
   // 取り直しの印は共通のノートの欄で出す（プロジェクトの欄は開いたものだけが読む）
   const commonList = useNoteList(common.state === "ready" ? common.projectId : 0, common.state === "ready");
   // 選んでいる欄（押した欄。ほかの欄で選んだ行はその欄が外す）

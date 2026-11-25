@@ -3,7 +3,9 @@ import { Fragment, memo, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { ChatGroup } from "@shared/groups/types";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
+import { COMMON_TONE } from "@/features/projects/ui";
 import { groupsApi } from "@/features/groups/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
@@ -22,6 +24,7 @@ import { DraftRow, DraftRows } from "./DraftRows";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { useChatRowReorder } from "./useChatRowReorder";
 import { WorkspaceHead } from "./WorkspaceHead";
+import { CommonChatsEmpty } from "./CommonChatsEmpty";
 import { useSidebarBucketColors } from "./bucketColor";
 import { useWorkspaceDrops } from "./useWorkspaceDrops";
 import { useChatRowRenderer } from "./useChatRowRenderer";
@@ -110,7 +113,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   return (
     <section
-      className={cx("workspace-page", drops.projectDrop.over === project.id && (drops.projectDrop.blockedAt(project.id) ? "chat-drop-blocked" : "chat-drop-over"))}
+      className={cx("workspace-page", isCommonProject(project) && COMMON_TONE, drops.projectDrop.over === project.id && (drops.projectDrop.blockedAt(project.id) ? "chat-drop-blocked" : "chat-drop-over"))}
       data-project-id={project.id}
       {...drops.projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
@@ -136,6 +139,8 @@ export const WorkspacePage = memo(function WorkspacePage({
       />
       {/* チャット一覧（開閉で高さがなめらかに変わる） */}
       <Collapse open={!collapsed}>
+        {/* 共通は、チャットがなくても枠を出し、何をする所かと始め方を出す */}
+        {isCommonProject(project) && list.counts.chats === 0 && <CommonChatsEmpty projectId={project.id} />}
         {list.counts.chats > 0 && <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />}
         {keyword && list.counts.visible === 0 && <p className="empty-note chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
         {!keyword && stateFilter && list.counts.visible === 0 && <p className="empty-note chat-search-empty">{COLUMN_LOOKS[stateFilter].label}のチャットはありません</p>}

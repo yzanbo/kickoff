@@ -3,12 +3,15 @@ import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { isUserProject } from "@shared/projects/kinds";
+import { isCommonProject, isUserProject } from "@shared/projects/kinds";
+import { NO_CHATS } from "@/features/chat/ui";
+import { NO_GROUPS } from "@/features/groups/ui";
 import { SelectionBar, useChatSelection } from "@/features/chatList/ui";
 import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { ProjectList } from "./ProjectList";
 import { useProjectNav } from "./useProjectNav";
 import { WaitingInbox } from "./WaitingInbox";
+import { WorkspacePage } from "./WorkspacePage";
 import { ProjectListHead } from "./ProjectListHead";
 import { tagLabel } from "@/features/projects/ui";
 
@@ -31,14 +34,30 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）。hooks は、下の早い return より前に呼ぶ
   const selection = useChatSelection();
 
-  // 共通だけのときも「プロジェクトがまだありません」の案内を出す
+  // 共通だけのときも「プロジェクトがまだありません」の案内を出す。共通の枠はその上に置く（並べ方によらず、すぐ共通で相談を始められるように）
   if (!projects.some(isUserProject)) {
+    const common = visible.find(isCommonProject);
     return (
-      <div className="workspace-empty">
-        <p className="empty-note workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>
-        <button className="sidebar-new" onClick={onNewProject}>
-          <Plus size={14} /> 新しいプロジェクト
-        </button>
+      <div className={cx("workspaces", nav.compact && "compact")}>
+        <div className="workspace-stack">
+          {common && (
+            <WorkspacePage
+              project={common}
+              chats={chats[common.id] ?? NO_CHATS}
+              groups={groups[common.id] ?? NO_GROUPS}
+              hidden={false}
+              collapsed={nav.collapsedMap.get(common.id)}
+              onCollapsedChange={nav.collapsedMap.set}
+            />
+          )}
+          <div className="workspace-empty">
+            <p className="empty-note workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>
+            <button className="sidebar-new" onClick={onNewProject}>
+              <Plus size={14} /> 新しいプロジェクト
+            </button>
+          </div>
+        </div>
+        {selection && <SelectionBar selection={selection} chats={chats} groups={groups} />}
       </div>
     );
   }
@@ -49,8 +68,8 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
     <FoldHead look={FOLD_ROW} className="archived-projects-head" icon={Archive} open={showArchived} onToggle={toggleArchived} label="アーカイブしたプロジェクト" count={archived.length} />
   );
 
-  /** タグで絞り込んで、合うプロジェクトがひとつもないとき（要対応より先に知らせる） */
-  const tagEmpty = tagFilter.active && visible.length === 0 && ordered.length === 0;
+  /** タグで絞り込んで、合うプロジェクトがひとつもないとき（要対応より先に知らせる。共通はタグによらず残るので数えない） */
+  const tagEmpty = tagFilter.active && !visible.some(isUserProject) && !ordered.some(isUserProject);
   const tagEmptyNotice = tagEmpty && (
     <div className="waiting-empty">
       <p className="empty-note chat-search-empty">タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません</p>

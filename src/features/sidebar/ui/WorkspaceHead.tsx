@@ -2,6 +2,7 @@ import { ArchiveRestore, ChevronDown, ChevronRight, Pin, SquarePen } from "lucid
 import { useCommandKeys } from "@/foundation/ui/commands";
 import type { DragEvent } from "react";
 import type { ChatGroup } from "@shared/groups/types";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { open } from "@/foundation/ui/navigation/open";
@@ -23,7 +24,7 @@ import type { CountedColumn, StateCounts } from "@/features/chat/ui";
  * 名前の下の 2 行目に、チャット数とタグ（小さなチップ）を出す。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
- * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
+ * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。共通は固定・並べ替え・アーカイブの外なので、ピンを出さない。
  * 右クリックで、プロジェクトに対するすべての操作をまとまりに分けたメニュー（useProjectMenu）
  */
 export function WorkspaceHead({
@@ -68,12 +69,14 @@ export function WorkspaceHead({
     if (collapsed) onToggleCollapsed();
   };
   const pressLabel = active && !collapsed ? "チャット一覧を閉じる" : `${project.name} のカンバンを開く`;
+  const common = isCommonProject(project);
+  const menuHint = common ? "右クリックでメニュー" : "右クリックで固定・アーカイブ";
   return (
     <>
       <div
         className={cx("workspace-head", active && "active", project.archived_at && "archived")}
         draggable={Boolean(headDrag)}
-        title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
+        title={headDrag ? `ドラッグでプロジェクトを並べ替える（${menuHint}）` : menuHint}
         onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
         onClick={(e) => {
           // カードの矢印以外のところを押すと、選んで開く / 開閉する。中のボタン（矢印・ピン・状態の数・＋）はそちらの動き
@@ -115,7 +118,7 @@ export function WorkspaceHead({
             </span>
           </span>
         </a>
-        {project.archived_at ? (
+        {common ? null : project.archived_at ? (
           <IconButton icon={ArchiveRestore} label={`${project.name} をアーカイブから戻す`} title="アーカイブから戻す" onClick={() => void confirmRestoreProject(project)} />
         ) : (
           // いつも出し、固定しているか見た目で分かるようにする（固定: プロジェクトの色で塗る / していない: 薄い灰の線）

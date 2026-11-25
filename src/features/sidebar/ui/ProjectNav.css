@@ -156,6 +156,12 @@
     transform: scale(1.08);
   }
 
+  /* 共通の丸: 選んでいるときの枠も灰色（どのプロジェクトの色でもない） */
+
+  .workspace-dot.common.active {
+    border-color: var(--border-strong);
+  }
+
   /* 上に固定したプロジェクトの丸: 中の下に小さな線（丸の列は横スクロールなので、外にはみ出すと切れる） */
 
   .workspace-dot.pinned::after {

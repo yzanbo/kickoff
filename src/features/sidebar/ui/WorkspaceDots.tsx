@@ -1,17 +1,19 @@
-import { Plus } from "lucide-react";
+import { MessageCircle, Plus } from "lucide-react";
+import { isCommonProject } from "@shared/projects/kinds";
 import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ProjectReorder } from "./useProjectNav";
 import { useProjectChatDrops } from "./projectChatDrop";
 import { useCommandKeyList } from "@/foundation/ui/commands";
-import { initialOf } from "@/features/projects/ui";
+import { COMMON_TONE, initialOf } from "@/features/projects/ui";
 import type { StateCounts } from "@/features/chat/ui";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・ほかのプロジェクトのチャットを落とすと確かめて移す・右クリックでメニュー）。
- * 丸の角に状態ごとの件数を出す（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ））。選んでいるプロジェクトの丸は、スクロールして見えるところに出す
+ * 丸の角に状態ごとの件数を出す（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ））。選んでいるプロジェクトの丸は、スクロールして見えるところに出す。
+ * 先頭の共通の丸は灰色に吹き出しの印で、並べ替え・チャットの落とし先にならない（後ろとの間に区切り）
  */
 export function WorkspaceDots({
   projects,
@@ -70,27 +72,29 @@ export function WorkspaceDots({
     >
       {projects.map((p, i) => {
         const counts = countsOf(p.id);
-        const draggable = !isArchived(p.id);
+        const common = isCommonProject(p);
+        const draggable = !isArchived(p.id) && !common;
         const summary = stateCountsSummary(counts);
-        // 固定したプロジェクトの丸と、残りの丸の間に区切りを入れる
-        const divider = i > 0 && projects[i - 1].pinned && !p.pinned;
+        // 共通の丸と後ろの丸の間、固定したプロジェクトの丸と残りの丸の間に区切りを入れる
+        const divider = i > 0 && (isCommonProject(projects[i - 1]) || (projects[i - 1].pinned && !p.pinned));
+        const hints = common ? "右クリックでメニュー" : `${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ`;
         return (
           <Fragment key={p.id}>
           {divider && <span className="workspace-dots-divider" role="separator" aria-hidden />}
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
+            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", common && `common ${COMMON_TONE}`, isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
             style={{ "--hue": `${p.hue}` } as CSSProperties}
             {...reorder.attrsFor(p.id, axis)}
-            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${dotKeys[i] ? `（${dotKeys[i]}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
+            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${dotKeys[i] ? `（${dotKeys[i]}）` : ""}（${hints}）`}
             onClick={() => onGo(i)}
             onContextMenu={(e) => onMenu(e, p)}
             draggable={draggable}
             {...reorder.handle(p.id)}
             {...dropProps(p.id)}
           >
-            {initialOf(p.name)}
+            {common ? <MessageCircle size={14} aria-hidden /> : initialOf(p.name)}
             {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 未読、左下 = 回答待ち */}
             <StateCornerCounts counts={counts} />
           </button>

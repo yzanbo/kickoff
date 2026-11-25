@@ -27,6 +27,31 @@
     font-size: var(--fs-11);
   }
 
+  /*
+   * 共通: どのプロジェクトの色でもない灰色。--hue から作る色の彩度を 0 にする（明るさは tokens.css の同じ名前の値にそろえる）。
+   * 印・横スライドの丸・サイドバーの見出しのカード・札・段の見出しに付ける（projectColor.ts の COMMON_TONE）
+   */
+
+  .project-common {
+    --hue-mark-fg: 0% 72%;
+    --hue-mark-bg: 0% 22%;
+    --hue-tint: 0% 13%;
+    --hue-tint-hover: 0% 16%;
+    --hue-edge: 0% 24%;
+    --hue-edge-hover: 0% 34%;
+    --hue-fg-pin: 0% 65%;
+  }
+
+  :root[data-theme="light"] .project-common {
+    --hue-mark-fg: 0% 32%;
+    --hue-mark-bg: 0% 90%;
+    --hue-tint: 0% 96%;
+    --hue-tint-hover: 0% 93%;
+    --hue-edge: 0% 82%;
+    --hue-edge-hover: 0% 70%;
+    --hue-fg-pin: 0% 38%;
+  }
+
   /* 全プロジェクト: どのプロジェクトの色でもない灰色 */
 
   .project-mark.all-projects {

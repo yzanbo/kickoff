@@ -11,6 +11,17 @@ export function useProjectHue(id: number): number {
   return useProjectsValue(() => projectHue(id));
 }
 
+/**
+ * 共通の色を灰色にするクラス（ProjectMark.css。--hue を使う色の彩度を 0 にする）。共通の印・丸・見出しのカード・札・段の見出しに付ける。
+ * 共通は DB の色相を使わない（どのプロジェクトの色でもないと分かるように）
+ */
+export const COMMON_TONE = "project-common";
+
+/** 共通のプロジェクトか（印を吹き出しに、色を灰色にする。一覧が届く前は違うものとして描く） */
+export function useIsCommonProject(id: number): boolean {
+  return useProjectsValue(() => currentProjects().find((p) => p.id === id)?.kind === "common");
+}
+
 /** 色相を要素に渡す style（CSS の --hue。印・札の地・横スライドの丸で使う） */
 export function hueStyle(hue: number): CSSProperties {
   return { "--hue": `${hue}` } as CSSProperties;

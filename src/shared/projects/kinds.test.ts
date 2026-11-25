@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeProject } from "./testing";
-import { isActiveListedProject, isActiveUserProject, isListedProject, isUserProject } from "./kinds";
+import { isActiveListedProject, isActiveUserProject, isCommonProject, isListedProject, isUserProject } from "./kinds";
 
 const ARCHIVED = { archived_at: "2026-01-01T00:00:00.000Z" };
 
@@ -24,4 +24,9 @@ test("isActiveUserProject・isActiveListedProject: それぞれから、アー�
   assert.equal(isActiveListedProject(makeProject(1)), true);
   assert.equal(isActiveListedProject(makeProject(2, ARCHIVED)), false);
   assert.equal(isActiveListedProject(makeProject(3, { kind: "common" })), true);
+});
+
+test("isCommonProject: 種類が共通のものだけ", () => {
+  assert.equal(isCommonProject(makeProject(1)), false);
+  assert.equal(isCommonProject(makeProject(2, { kind: "common" })), true);
 });

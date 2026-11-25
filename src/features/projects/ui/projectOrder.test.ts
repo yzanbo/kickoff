@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
 import { makeProject } from "@shared/projects/testing";
-import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";
+import { archivedProjects, recentOrder, reorderableIds, sidebarOrder } from "./projectOrder";
 
 const project = (id: number, patch: Partial<Project> = {}) => makeProject(id, { name: `p${id}`, created_at: `2026-01-0${id}T00:00:00Z`, ...patch });
 
@@ -42,12 +42,34 @@ test("archivedProjects: しまったものだけを名前順に", () => {
   );
 });
 
-test("sidebarOrder・archivedProjects: 見えないプロジェクト（共通のノート）は、しまっていても出さない", () => {
-  const projects = [project(1), project(2, { kind: "common" }), project(3, { archived_at: "x" }), project(4, { kind: "common", archived_at: "x", pinned: true })];
+test("sidebarOrder: 共通はいつも先頭（固定したものより前・固定や並べ替えた順に左右されない）。しまった共通は出さない", () => {
+  const projects = [project(1, { pinned: true, position: 1 }), project(2, { kind: "common", position: 0 }), project(3, { pinned: true, position: 2 }), project(4, { position: 0 })];
   assert.deepEqual(
     sidebarOrder(projects).map((p) => p.id),
+    [2, 1, 3, 4],
+  );
+  assert.deepEqual(
+    sidebarOrder([project(1), project(2, { kind: "common", archived_at: "x" })]).map((p) => p.id),
     [1],
   );
+});
+
+test("recentOrder: 最近動いた順でも共通が先頭（共通のチャットが古くても）", () => {
+  const projects = [project(1), project(2, { kind: "common" }), project(3, { pinned: true })];
+  const chats = [{ project_id: 1, active_at: "2026-03-09", archived_at: null }, { project_id: 2, active_at: "2026-01-01", archived_at: null }];
+  assert.deepEqual(
+    recentOrder(projects, chats).map((p) => p.id),
+    [2, 3, 1],
+  );
+});
+
+test("reorderableIds: 並べ替え（保存する並び）に共通を入れない", () => {
+  const projects = sidebarOrder([project(1), project(2, { kind: "common" }), project(3, { pinned: true })]);
+  assert.deepEqual(reorderableIds(projects), [3, 1]);
+});
+
+test("archivedProjects: しまえるのは利用者のプロジェクトだけ（共通は入れない）", () => {
+  const projects = [project(1), project(2, { kind: "common", archived_at: "x" }), project(3, { archived_at: "x" })];
   assert.deepEqual(
     archivedProjects(projects).map((p) => p.id),
     [3],

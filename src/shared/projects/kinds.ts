@@ -11,6 +11,9 @@ export type ProjectKind = (typeof PROJECT_KINDS)[number];
  */
 export const isUserProject = (project: { kind: ProjectKind | null }): boolean => project.kind === null;
 
+/** 共通（共通のチャットと共通のノートの持ち主）か。一覧ではいつも先頭に置き、並べ替え・固定・アーカイブの外にする */
+export const isCommonProject = (project: { kind: ProjectKind | null }): boolean => project.kind === "common";
+
 /** 利用者が作ったプロジェクトのうち、アーカイブしていないものか */
 export const isActiveUserProject = (project: { kind: ProjectKind | null; archived_at: string | null }): boolean => project.archived_at === null && isUserProject(project);
 

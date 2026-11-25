@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Placement } from "@/foundation/ui/lib/floating";
+import { isCommonProject } from "@shared/projects/kinds";
 import { MAX_TAG_LENGTH, MAX_TAGS, validateTagAdd } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { alert, prompt } from "@/foundation/ui/kit/ask";
@@ -45,6 +46,7 @@ export interface ProjectMenuExtras {
  * タグ（使っているタグの付け外しと、新しいタグ）/ 編集・削除（プロジェクトの編集のダイアログ）。
  * すべてのプロジェクトに効く設定（チャットの並べ方など）はここに入れず、一覧の上の見出しの行に置く。
  * 見出しのカードには、いつも使うもの（開閉・名前・状態ごとの数・＋）だけを常に出す。
+ * 共通は並べ替え・固定・アーカイブ・タグ・名前の変更・削除の外なので、それらを出さず、Finder は「作業フォルダを Finder で表示」（CommonMenu）。
  * open に右クリックのイベントを渡し、element を描く（メニューと編集のダイアログ）
  */
 export function useProjectMenu(projects: Project[]) {
@@ -111,6 +113,7 @@ function ProjectMenu({
     </MenuItem>
   );
   const archived = Boolean(project.archived_at);
+  if (isCommonProject(project)) return <CommonMenu at={at} project={project} extras={extras} item={item} onClose={onClose} />;
   return (
     <PopupMenu at={at} label={`${project.name} のメニュー`} onClose={onClose}>
       <div className="menu-label">このプロジェクト</div>
@@ -158,6 +161,38 @@ function ProjectMenu({
       <div className="menu-separator" role="separator" />
       {item("edit", <Settings size={14} />, "編集…", () => onEdit())}
       {item("delete", <Trash2 size={14} />, "削除…", () => onEdit("danger"), { danger: true })}
+    </PopupMenu>
+  );
+}
+
+/** 共通の右クリックメニュー: 新しいチャット・グループを作成・作業中・待ちのチャットを一覧・作業フォルダを Finder で表示・チャット一覧の開閉だけ */
+function CommonMenu({
+  at,
+  project,
+  extras,
+  item,
+  onClose,
+}: {
+  at: Placement;
+  project: Project;
+  extras?: ProjectMenuExtras;
+  item: (key: string, icon: ReactNode, label: string, run: () => void) => ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <PopupMenu at={at} label={`${project.name} のメニュー`} onClose={onClose}>
+      {item("new", <SquarePen size={14} />, "新しいチャット", () => openTarget({ kind: "newChat", projectId: project.id }))}
+      {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
+      {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openAppDialog("activeChats", { projectId: project.id }))}
+      {/* 作業フォルダ（AI が動く .common-work）は共通の画面に出さないので、ここからだけ開ける */}
+      {canOpenExternal() && item("finder", <FolderOpen size={14} />, "作業フォルダを Finder で表示", () => void openExternal({ kind: "path", path: project.repo_path }))}
+      {extras?.collapse &&
+        item(
+          "fold",
+          extras.collapse.collapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />,
+          extras.collapse.collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる",
+          extras.collapse.toggle,
+        )}
     </PopupMenu>
   );
 }

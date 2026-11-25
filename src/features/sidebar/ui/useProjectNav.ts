@@ -7,7 +7,7 @@ import { useCommandHandler } from "@/foundation/ui/commands";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { projectsSettings, projectsApi, useProjects, useVisibleProjects, loadCurrentProject, saveCurrentProject, useProjectMenu } from "@/features/projects/ui";
+import { projectsSettings, projectsApi, reorderableIds, useProjects, useVisibleProjects, loadCurrentProject, saveCurrentProject, useProjectMenu } from "@/features/projects/ui";
 import { chatListSettings, projectKey } from "@/features/chatList/ui";
 import { waitingChats, useChatStates, useChatSearch, useChatsWithChildrenByProject } from "@/features/chat/ui";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
@@ -55,16 +55,16 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const base = filterByWaiting ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);
-  // ドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通。しまったものは除く）。
+  // ドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通。しまったもの・いつも先頭の共通は除く）。
   // タグで絞り込んでいても、隠れたものを含む並び全体の中で動かす（隠れたものの位置を崩さない）。
   // 最近動いた順でも並べ替えられ、落とすと手動の並びに切り替える（見えている並びのまま、動かしたものだけが動く）
-  const projectIds = sorted.map((p) => p.id);
+  const projectIds = reorderableIds(sorted);
   const reorder = useReorder({
     keys: projectIds,
     type: PROJECT_DRAG_TYPE,
     axis: "y",
     sideBy: "order",
-    can: (id) => !isArchived(id),
+    can: (id) => projectIds.includes(id),
     onStart: ensureAllRows,
     onMove: (from, to, side) => {
       void projectsApi.reorderProjects(moveInList(projectIds, from, to, side) ?? projectIds);

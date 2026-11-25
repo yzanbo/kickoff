@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
+import { isUserProject } from "@shared/projects/kinds";
 import { cx } from "@/foundation/ui/lib/cx";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { NO_CHATS, stateCounts, useChatsWithChildrenByProject } from "@/features/chat/ui";
@@ -14,9 +15,9 @@ import { WorkspacePage } from "./WorkspacePage";
 
 /**
  * プロジェクトの一覧（layout で出し分ける）:
- * - 縦並び（stack）: 見出しの行・すべてのプロジェクトをまたぐ検索欄・プロジェクトのカードの列・下の「新しいプロジェクト」
+ * - 縦並び（stack）: 見出しの行・すべてのプロジェクトをまたぐ検索欄・プロジェクトのカードの列（先頭に共通）・下の「新しいプロジェクト」
  * - スライド: 1 ページ = 1 プロジェクトのチャット一覧で、スワイプ・丸・ショートカットで切り替える。横スライドは丸を下に並べて横にスワイプ、
- *   縦スライド（rail）は丸を左に縦に並べて縦にスワイプする
+ *   縦スライド（rail）は丸を左に縦に並べて縦にスワイプする（どちらも丸の列の先頭に共通）
  * archivedHead（しまったプロジェクトの見出し。縦並びだけ）・waitingEmpty（要対応がないとき）・topInbox（要対応を上にまとめるとき）・selectionBar は ProjectNav が作る
  */
 export function ProjectList({
@@ -44,9 +45,10 @@ export function ProjectList({
   // 丸の角の状態ごとの数は、子チャットも数える（見出しの数・要対応と同じ）
   const counted = useChatsWithChildrenByProject();
   if (stack) {
-    // 固定したプロジェクト（並びの先頭にある）と、その後ろの最初のプロジェクト
-    const hasPinned = ordered.some((p) => p.pinned && !isArchived(p.id));
-    const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
+    // 固定したプロジェクト（共通の次にある）の最初と、その後ろの最初のプロジェクト。共通は見出し「共通」のカードだけで、区切りの見出しを付けない
+    const firstPinned = ordered.findIndex((p) => p.pinned && !isArchived(p.id) && isUserProject(p));
+    const hasPinned = firstPinned >= 0;
+    const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id) && isUserProject(p));
     return (
       <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
         <ProjectListHead nav={nav} />
@@ -58,7 +60,7 @@ export function ProjectList({
           {ordered.map((p, i) => (
             <Fragment key={p.id}>
               {/* 固定したプロジェクトがあるときは、「固定」と「プロジェクト」の見出しで分ける */}
-              {hasPinned && i === 0 && <div className="project-section-label pinned">固定</div>}
+              {hasPinned && i === firstPinned && <div className="project-section-label pinned">固定</div>}
               {hasPinned && i === firstUnpinned && <div className="project-section-label">プロジェクト</div>}
               {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
               {i === visible.length && archivedHead}
