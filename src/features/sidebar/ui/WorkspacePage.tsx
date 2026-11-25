@@ -109,7 +109,10 @@ export const WorkspacePage = memo(function WorkspacePage({
       </Fragment>
     );
   };
-  const heads = workspaceHeads({ projectId: project.id, chats, ...list.layout, draftCounts: list.counts.drafts, colors, sections, drops });
+  // 共通は、チャットがなければ案内（CommonChatsEmpty）の「新しいチャット」だけを出す（一覧の「最初のチャットを始める」と二重にしない）
+  const commonEmpty = isCommonProject(project) && list.counts.chats === 0;
+  const mainEmpty = commonEmpty ? () => null : list.layout.mainEmpty;
+  const heads = workspaceHeads({ projectId: project.id, chats, ...list.layout, mainEmpty, draftCounts: list.counts.drafts, colors, sections, drops });
 
   return (
     <section
@@ -140,7 +143,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {/* チャット一覧（開閉で高さがなめらかに変わる） */}
       <Collapse open={!collapsed}>
         {/* 共通は、チャットがなくても枠を出し、何をする所かと始め方を出す */}
-        {isCommonProject(project) && list.counts.chats === 0 && <CommonChatsEmpty projectId={project.id} />}
+        {commonEmpty && <CommonChatsEmpty projectId={project.id} />}
         {list.counts.chats > 0 && <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />}
         {keyword && list.counts.visible === 0 && <p className="empty-note chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
         {!keyword && stateFilter && list.counts.visible === 0 && <p className="empty-note chat-search-empty">{COLUMN_LOOKS[stateFilter].label}のチャットはありません</p>}
