@@ -18,9 +18,11 @@ export function FileMenu({ at, file, links, onClose }: { at: Placement; file: Fi
           <PanelRight size={14} /> 右の欄で開く
         </MenuItem>
       )}
-      <MenuItem onSelect={() => links.openInEditor(file)}>
-        <SquareArrowOutUpRight size={14} /> ファイルタブで開く
-      </MenuItem>
+      {links.openInEditor && (
+        <MenuItem onSelect={() => links.openInEditor?.(file)}>
+          <SquareArrowOutUpRight size={14} /> ファイルタブで開く
+        </MenuItem>
+      )}
       <div className="menu-separator" role="separator" />
       <PathMenuItems root={links.root} paths={[file.path]} line={file.line} />
     </PopupMenu>

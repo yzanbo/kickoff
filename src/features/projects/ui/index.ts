@@ -10,7 +10,7 @@ export { InspectionList } from "./InspectionList";
 export { noteOverlapLines } from "./folderOverlaps";
 export { ACTIVE_CHATS_LABEL } from "./ProjectMenu";
 export { ProjectMark } from "./ProjectMark";
-export { useIsCommonProject, useProjectHue } from "./projectColor";
+export { isCommonProjectId, useIsCommonProject, useProjectHue } from "./projectColor";
 export { projectViewTab } from "./chatSideView";
 export { canShowProjectView, projectViewOf, projectViews } from "./projectViews";
 export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats";

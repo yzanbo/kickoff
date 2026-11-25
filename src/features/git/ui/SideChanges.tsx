@@ -130,7 +130,7 @@ function ChangeSection({ projectId, worktree, file, staged, version, fold, viewe
   const fingerprint = viewed.fingerprintOf(file.path);
   const open = fold.override ?? (state === "viewed" ? false : fold.byDefault || state === "changed");
   const links = useChatFileLinks();
-  const openInEditor = () => (links ? links.openInEditor({ path: file.path }) : openTarget({ kind: "file", projectId, path: file.path, worktree }));
+  const openInEditor = () => (links ? links.openInEditor?.({ path: file.path }) : openTarget({ kind: "file", projectId, path: file.path, worktree }));
   const mark = (on: boolean) => {
     if (on) {
       viewed.mark(file.path);
