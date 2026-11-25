@@ -29,8 +29,8 @@ test("isSeeThroughStyle: 透明・透明度のある文字色だけ（背景の�
   assert.equal(isHiddenMathml("mstyle", "red"), false);
 });
 
-test("見えない文字（phantom・transparent・#0000）は見えないまま場所を取り、選べない・コピーに入らない形にする", () => {
-  for (const tex of [String.raw`a\phantom{secret}b`, String.raw`\color{transparent}{secret}`, String.raw`\color{transparent}\text{secret}`, String.raw`\textcolor{#0000}{secret}`]) {
+test("見えない文字（phantom）は見えないまま場所を取り、選べない・コピーに入らない形にする", () => {
+  for (const tex of [String.raw`a\phantom{secret}b`, String.raw`\phantom{\text{secret}}`]) {
     const html = render(tex);
     // 見た目は変えない（透明のまま）。透明な文字の要素には、選べないクラスと aria-hidden を付ける
     const hidden = visible(html).match(/<span [^>]*color:(transparent|#0000)[^>]*>/g) ?? [];
@@ -45,9 +45,42 @@ test("見えない文字（phantom・transparent・#0000）は見えないまま
     assert.doesNotMatch(mathml, /secret/, tex);
     assert.match(html, /<annotation encoding="application\/x-tex">/);
   }
-  // 色の付いた見える文字・色の付いた背景はそのまま
-  assert.doesNotMatch(render(String.raw`\color{red}{x}`), /katex-see-through/);
-  assert.doesNotMatch(render(String.raw`\colorbox{transparent}{x}`), /katex-see-through/);
+});
+
+test("数式で色を変える命令（\\color・\\textcolor・\\colorbox・\\fcolorbox・色の名前の命令）は、色を変えずに中身だけ描く（\\let・\\noexpand・\\def でも戻らない）", () => {
+  const forms = [
+    String.raw`\color{#141818}{secret}`,
+    String.raw`a \color{#141818} secret`,
+    String.raw`\textcolor{#141818}{secret}`,
+    String.raw`\colorbox{#141818}{secret}`,
+    String.raw`\fcolorbox{#141818}{#141818}{secret}`,
+    String.raw`\color{transparent}\text{secret}`,
+    String.raw`\textcolor{#0000}{secret}`,
+    String.raw`\red{secret}`,
+    String.raw`\text{\color{#141818}secret}`,
+    String.raw`\let\c\textcolor\c{#141818}{secret}`,
+    String.raw`\def\c{\textcolor}\c{#141818}{secret}`,
+    String.raw`\edef\c{\noexpand\textcolor}\c{#141818}{secret}`,
+    String.raw`\noexpand\textcolor{#141818}{secret}`,
+    String.raw`\expandafter\textcolor\expandafter{\relax #141818}{secret}`,
+  ];
+  for (const tex of forms) {
+    for (const html of [render(tex), katex.renderToString(tex, { ...KATEX_OPTIONS })]) {
+      assert.doesNotMatch(html, /color:(?!inherit)|background|mathcolor|mathbackground|katex-see-through/, tex);
+      // 中身は見える文字で出る（書き方の誤りになったものは、書いた式が文字の色のまま出る）
+      const shown = html.includes("katex-html") ? visible(html) : html;
+      assert.match(shown.replace(/<[^>]+>/g, ""), /secret/, tex);
+    }
+  }
+  // 中身のまとまりは保つ（\textcolor の中身の上付きは中身全体に付く）
+  assert.equal(visible(render(String.raw`\textcolor{red}{a+b}^2`)), visible(render(String.raw`{a+b}^2`)));
+});
+
+test("KATEX_OPTIONS: \\gdef で定義したマクロは、次の式に残らない（描くたびに macros の新しい写しを渡す）", () => {
+  katex.renderToString(String.raw`\gdef\textcolor#1#2{X}\gdef\frac#1#2{Y}`, KATEX_OPTIONS);
+  katex.renderToString(String.raw`\gdef\frac#1#2{Y}`, { ...KATEX_OPTIONS });
+  assert.doesNotMatch(visible(render(String.raw`\frac{a}{b}`)), />Y</);
+  assert.doesNotMatch(visible(katex.renderToString(String.raw`\textcolor{red}{a}`, KATEX_OPTIONS)), />X</);
 });
 
 test("KaTeX の出力: 書いた大きさは maxSize（10em）で丸める。外へ出るものは trust: false で止める", () => {
