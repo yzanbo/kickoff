@@ -1,5 +1,18 @@
-import type { WebContents } from "electron";
-import { appNavigationAllowed, frameNavigationAllowed } from "@/foundation/desktop/urls";
+import type { WebContents, WebContentsWillFrameNavigateEventParams } from "electron";
+import { appNavigationAllowed, frameNavigationAllowed, type FrameNavigation } from "@/foundation/desktop/urls";
+
+/** アプリの画面の文書（窓の一番上の枠）か */
+const isTop = (frame: { parent: unknown } | null | undefined) => frame != null && frame.parent === null;
+
+/** Electron の枠の移動の知らせを、判定の形にする（枠が消えていて読めなければ、止める側の形） */
+function frameNavigationOf(e: WebContentsWillFrameNavigateEventParams): FrameNavigation {
+  try {
+    const frame = e.frame;
+    return { url: e.url, current: frame?.url ?? "-", inAppDocument: isTop(frame?.parent), byAppDocument: isTop(e.initiator) };
+  } catch {
+    return { url: e.url, current: "-", inAppDocument: false, byAppDocument: false };
+  }
+}
 
 /**
  * アプリの窓（メインのウィンドウと別ウィンドウ）は、新しいウィンドウの要求（target="_blank" のリンク・window.open・中クリック）では何も開かない。
@@ -22,8 +35,9 @@ export function guardAppNavigation(contents: WebContents, appUrl: () => string |
   contents.on("will-redirect", (e) => {
     if (!appNavigationAllowed(e.url, appUrl())) e.preventDefault();
   });
-  // 枠（iframe）の中の移動。図の枠のスクリプト・HTML の文書のリンクが、枠ごと外のページへ移らないように
+  // 枠（iframe）の移動。閉じた枠・HTML の文書の中から、枠ごと外のページ・アプリの出どころのほかのパスへ移らないように（urls.ts）
   contents.on("will-frame-navigate", (e) => {
-    if (!e.isMainFrame && !frameNavigationAllowed(e.url, appUrl())) e.preventDefault();
+    if (e.isMainFrame) return;
+    if (!frameNavigationAllowed(frameNavigationOf(e), appUrl())) e.preventDefault();
   });
 }

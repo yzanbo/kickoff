@@ -13,7 +13,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 - `src/shared/foundation/ipc` と機能の `ipc.ts` は zod を読まない（preload の砂場に束ねる）。値は種類だけを持つ（型の引数は必ず書く）。
 - 画面から届いたパスは信じない（解決してから比べる）。
 - 外のページは IPC の `externalApps.openWebUrl`（URL を読み直し、http(s) だけ）でだけ開く。アプリの窓の新しいウィンドウの要求は断るだけ（`denyNewWindows`）。
-- アプリの窓はアプリの出どころ（開発版は dev サーバー）の外へ移らせない（`guardAppNavigation`。枠の中も）。許可（`mediaPermission.ts`）もアプリの出どころにだけ出す。
+- アプリの窓はアプリの出どころ（開発版は dev サーバー）の外へ移らせない（`guardAppNavigation`）。枠がアプリの出どころへ移れるのは、画面の文書が作った枠の最初の読み込みだけ（読んだ枠は移れず、枠の中の枠は srcdoc・空のページだけ。`urls.ts`）。許可（`mediaPermission.ts`）もアプリの出どころにだけ出す。
 - メインはログインシェルの PATH・localStorage・SQL を読まない（窓の地の色はテーマを画面から受ける）。通知の要否と文・シェルはコア。
 - 画面が読み込み直される・落ちる・閉じるときに、持ち物（Dock のアイコン・内蔵ターミナルなど）を片付けるには `createRendererLifetimeWatcher` を使う。
 - OS ごとの処理は `platform/` の口に集める（DB ワーカーのシェルの口はワーカーの入口が選ぶ。OS を足すときは両方）。Electron に依らない判定は別のファイルに分けてテストする。
