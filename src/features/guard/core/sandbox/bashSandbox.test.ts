@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, sandboxPromptLines, scriptRunCommands } from "./bashSandbox";
+import { bashSandboxFor, COMMAND_TEMP_FOLDER, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, sandboxPromptLines, scriptRunCommands } from "./bashSandbox";
 
 const rules = (dirs: string[] = [], commands: string[] = []) => ({ tempDirs: [], writableDirs: async () => dirs, unsandboxedCommands: commands });
 
@@ -82,6 +82,22 @@ test("書かせないフォルダ（共通のチャットから見た利用者�
   assert.ok(!sandbox.readOnlyDirs.includes(parent));
   // 渡さなければ、これまでどおり（プロジェクトのチャット）
   assert.deepEqual((await bashSandboxFor({ rules: rules([tmp]), proxyPort: null, trashDir: null }, { workdir: work, writableDirs: [common], readOnlyDirs: [] })).readOnlyDirs, []);
+});
+
+test("書かせないフォルダが一時フォルダの中にあるときだけ、作業場所の中にコマンドの一時ファイルの置き場を作って返す", async () => {
+  const tmp = tempDir({ real: true });
+  const elsewhere = tempDir({ real: true });
+  const alpha = path.join(tmp, "repos", "alpha");
+  const work = path.join(elsewhere, ".common-work");
+  for (const dir of [alpha, work]) fs.mkdirSync(dir, { recursive: true });
+  const deps = (tempDirs: string[]) => ({ rules: { ...rules([tmp]), tempDirs }, proxyPort: null, trashDir: null });
+  const inTemp = await bashSandboxFor(deps([tmp]), { workdir: work, writableDirs: [], readOnlyDirs: [], deniedDirs: [alpha] });
+  assert.equal(inTemp.commandTempDir, path.join(work, COMMAND_TEMP_FOLDER));
+  assert.ok(fs.statSync(path.join(work, COMMAND_TEMP_FOLDER)).isDirectory());
+  // 一時フォルダの外のプロジェクトだけなら作らない
+  assert.equal((await bashSandboxFor(deps([path.join(tmp, "other")]), { workdir: work, writableDirs: [], readOnlyDirs: [], deniedDirs: [alpha] })).commandTempDir, null);
+  // 書かせないフォルダを渡さない（プロジェクトのチャット）なら、一時フォルダの中の参照資料があっても作らない
+  assert.equal((await bashSandboxFor(deps([tmp]), { workdir: work, writableDirs: [], readOnlyDirs: [alpha] })).commandTempDir, null);
 });
 
 test("Electron を使う作業場所だけ、Electron を起動するスクリプトを砂場の外で流す", async () => {

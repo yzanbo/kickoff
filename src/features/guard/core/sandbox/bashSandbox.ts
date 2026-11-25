@@ -84,7 +84,8 @@ function realDirs(dirs: (string | null)[]): string[] {
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
  * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）。
  * deniedDirs（共通のチャットから見た利用者のプロジェクト）は、一時フォルダなど書ける場所の中にあっても書かせない側に入れる。ただし書ける場所を中に持つものは入れない
- * （砂場の規則は「書ける → 書かせない」の順で後に書いたほうが勝ち、書かせない場所の中を書ける場所に戻せないため。入れると作業フォルダ・共通のノートまで書けなくなる）
+ * （砂場の規則は「書ける → 書かせない」の順で後に書いたほうが勝ち、書かせない場所の中を書ける場所に戻せないため。入れると作業フォルダ・共通のノートまで書けなくなる）。
+ * deniedDirs が一時フォルダの中にあれば commandTempDir も付ける（書かせない側を持てない Codex の砂場は、一時フォルダごと書ける場所から外す）
  */
 export async function bashSandboxFor(
   deps: BashSandboxDeps,
@@ -101,7 +102,22 @@ export async function bashSandboxFor(
     readOnlyDirs: realDirs([...readOnlyDirs, ...denied]),
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,
+    commandTempDir: await commandTempDirFor(workdir, denied, deps.rules.tempDirs),
   };
+}
+
+/** コマンドの一時ファイルの置き場（作業場所からの名前。一時フォルダを書ける場所から外す砂場のため） */
+export const COMMAND_TEMP_FOLDER = ".kickoff-tmp";
+
+/**
+ * 書かせないフォルダ（deniedDirs）が一時フォルダの中にあれば、作業場所の中に一時ファイルの置き場を作って返す（なければ null）。
+ * 書かせないフォルダを渡すのは共通のチャットだけなので、プロジェクトのチャットはいつも null（一時フォルダをそのまま書ける）
+ */
+async function commandTempDirFor(workdir: string, denied: string[], tempDirs: string[]): Promise<string | null> {
+  if (!denied.some((dir) => tempDirs.some((t) => isInside(realPathLoose(t), dir)))) return null;
+  const dir = path.join(realPathLoose(workdir), COMMAND_TEMP_FOLDER);
+  await fs.mkdir(dir, { recursive: true });
+  return dir;
 }
 
 /** システムプロンプトの砂場の行（書けない場所・外で流すコマンドを初めから伝え、止められてから試し直す手間を省く。editScopeEnabled: 書き込み先の守りがあるか） */

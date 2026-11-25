@@ -49,6 +49,22 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
   assert.equal(threadOverrides(params({ auth: { mode: "api_key", apiKey: "k" } })).config?.["shell_environment_policy.ignore_default_excludes"], false);
 });
 
+test("共通のチャットで一時フォルダに置いた利用者のプロジェクトがあれば、一時フォルダを書ける場所から外し、コマンドの一時ファイルを作業場所の置き場に向ける", () => {
+  const sandbox = { writableDirs: ["/note"], readOnlyDirs: ["/private/tmp/alpha"], unsandboxedCommands: [], proxyPort: null, commandTempDir: "/w/.kickoff-tmp" };
+  assert.deepEqual(codexSandboxPolicy(params({ sandbox })), { type: "workspaceWrite", writableRoots: ["/note"], networkAccess: true, excludeTmpdirEnvVar: true, excludeSlashTmp: true });
+  const config = threadOverrides(params({ sandbox, env: { GH_TOKEN: "g" } })).config;
+  assert.equal(config?.["sandbox_workspace_write.exclude_slash_tmp"], true);
+  assert.equal(config?.["sandbox_workspace_write.exclude_tmpdir_env_var"], true);
+  assert.deepEqual(config?.["shell_environment_policy.set"], { GH_TOKEN: "g", TMPDIR: "/w/.kickoff-tmp", TMPPREFIX: "/w/.kickoff-tmp/zsh" });
+  // 置き場がなければ（プロジェクトのチャット・ふつうの置き場所）これまでどおり一時フォルダを書ける
+  const plain = threadOverrides(params({ sandbox: { ...sandbox, commandTempDir: null } })).config;
+  assert.equal(plain?.["sandbox_workspace_write.exclude_slash_tmp"], undefined);
+  assert.equal(plain?.["shell_environment_policy.set"], undefined);
+  // 計画モード・砂場オフは変えない
+  assert.deepEqual(codexSandboxPolicy(params({ sandbox, permissionMode: "plan" })), { type: "readOnly", networkAccess: true });
+  assert.deepEqual(codexSandboxPolicy(params({ sandbox, sandboxOff: true })), { type: "dangerFullAccess" });
+});
+
 test("利用者が選んだ砂場オフは thread と turn の両方に渡す。計画モードは読むだけを維持する", () => {
   const off = params({ sandboxOff: true, permissionMode: "auto" });
   assert.equal(threadOverrides(off).sandbox, "danger-full-access");

@@ -197,6 +197,12 @@ export interface SandboxPlan {
   unsandboxedCommands: string[];
   /** Bash の通信を通す中継のポート（どこへでも通す。ネットワークは絞らない。なければ null = プロバイダーの中継のまま） */
   proxyPort: number | null;
+  /**
+   * 一時フォルダの代わりにコマンドの一時ファイルを置くフォルダ（作業場所の中。作ってある）。readOnlyDirs のどれかが一時フォルダの中にあるときだけ（共通のチャットで、
+   * 一時フォルダに置いた利用者のプロジェクト）。書けるフォルダの中を書かせない口がない砂場（Codex）は、一時フォルダを書ける場所から外してこちらを使わせる。
+   * 省略・null = 一時フォルダをそのまま書ける
+   */
+  commandTempDir?: string | null;
 }
 
 /** CLI の決まりでいつも書ける場所（実体のパス。Claude Code の計画とメモリ）。書き込み先の守りが聞かずに通す */
