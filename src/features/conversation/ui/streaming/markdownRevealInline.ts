@@ -212,8 +212,8 @@ export function scanInline(text: string, from: number, end: number, shown: numbe
  * 閉じられるなら、同じ文字のいちばん近い開きを閉じ（間の開きは文字のまま）、残りが開けるなら積む
  */
 function delimiter(stack: Opener[], char: "*" | "_" | "~", count: number, around: Around) {
-  // ~ は 1 つか 2 つだけ（3 つ以上は取り消し線にならない）
-  if (char === "~" && count > 2) return;
+  // ~ は 2 つだけ（1 つは表示でも文字のまま・3 つ以上は取り消し線にならない）
+  if (char === "~" && count !== 2) return;
   const { open: canOpen, close: canClose } = char === "~" ? strikethroughSides(around) : attentionSides(char, around);
   let rest = count;
   if (canClose) {

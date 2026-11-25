@@ -15,7 +15,13 @@ type PluggableList = NonNullable<Options["remarkPlugins"]>;
  * 印の内側が記号で外側が日本語でも開き・閉じとして読む。英語の文の読み方は変わらない）。日本語向けの部品は GFM の後ろに置く
  * （同じ印の読み取りを先に試す側に入れるため）
  */
-const SYNTAX: PluggableList = [remarkGfmParts, remarkCjkFriendly, remarkCjkFriendlyGfmStrikethrough];
+const SYNTAX: PluggableList = [
+  // 取り消し線は ~~ だけ（GFM の既定は ~ 1 つも取り消し線にするので、5~10秒、20~30秒 の間に線が引かれる）。
+  // 取り消し線の読み取りは GFM と日本語向けの 2 つがあり、片方だけ止めても残るほうが読むので両方に渡す
+  [remarkGfmParts, { singleTilde: false }],
+  remarkCjkFriendly,
+  [remarkCjkFriendlyGfmStrikethrough, { singleTilde: false }],
+];
 
 /**
  * remark のプラグインの組。extra（数式・ファイルのチップの差し込みなど、画面ごとに足すもの）は読み方の部品の後ろに入れる
