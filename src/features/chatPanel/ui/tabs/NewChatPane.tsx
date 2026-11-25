@@ -13,7 +13,7 @@ import { useChatHeaderItems, useChatHeaderRowHidden, DraftChatPage } from "@/fea
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { draftScope } from "@/features/panel/ui";
 import type { SidePanelHandle } from "@/features/chat/ui";
-import { useProjects, ProjectChip } from "@/features/projects/ui";
+import { useProjects, useIsCommonProject, ProjectChip } from "@/features/projects/ui";
 import { groupNameIn, useGroups, GroupPicker } from "@/features/groups/ui";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
@@ -44,6 +44,8 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const project = projectsById.get(projectId);
+  // 共通は Git で管理しないフォルダで動くので、作業場所（ワークツリー）を選ばせず、作業中のチャットがあっても聞かずに送る（共通のチャットはみな同じ作業フォルダ）
+  const common = useIsCommonProject(projectId);
   // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない）
   const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
   const provider: ProviderId = pickedProvider ?? project?.provider ?? "claude";
@@ -95,7 +97,7 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
     // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
     let target = place;
     const path = workplacePath(place);
-    if (path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
+    if (!common && path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
       // 既定（設定の「チャット」）を決めていれば聞かない
       const choice = await chooseBusyWorkplaceAction();
       if (!choice) throw new SendCancelled();
@@ -133,7 +135,7 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
           {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。グループと作業場所は、押すと選び直せる */}
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => changeGroup(next, groupNameIn(groups, next))} />}
-          {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
+          {shows("worktree") && !common && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
         </>
       }
       hero={
@@ -151,7 +153,7 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
       }
     >
       {/* 会話が始まったあとのチャット欄と同じく、ピルの列の上に作業中のほかのチャットの知らせ */}
-      <BusyNeighborsNotice count={busyNeighbors} />
+      {!common && <BusyNeighborsNotice count={busyNeighbors} />}
       {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
         {composerPills().map((Pill, i) => (

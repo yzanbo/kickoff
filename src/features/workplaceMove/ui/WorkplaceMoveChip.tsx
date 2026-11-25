@@ -11,12 +11,15 @@ import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import { worktreeLabel } from "@/foundation/ui/workplace/WorktreePicker";
 import { moveChatWorkplace, workplaceMoveBlock } from "./moveWorkplace";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
+import { useIsCommonProject } from "@/features/projects/ui";
 
 const NEW = "__new__";
 
 /** 作業場所を移す先の選択肢（本体・いまあるワークツリー・新しいワークツリー。値は本体 ""・ワークツリーのフォルダ・NEW） */
 export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_path">, reserved: readonly string[] = []) {
   const worktrees = useWorktrees(chat.project_id);
+  // 共通は Git で管理しないフォルダで動くので、移す先を出さない（作業フォルダがリポジトリの中でも、そのワークツリーは共通のものではない）
+  const common = useIsCommonProject(chat.project_id);
   const usable = (worktrees ?? []).filter((w) => !w.prunable);
   const values = [...usable.map((w) => (w.main ? "" : w.path)), NEW];
   const kindOf = (main: boolean) => WORKPLACE_SHORT_LABELS[main ? "main" : "worktree"];
@@ -36,13 +39,13 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
     if (!w) return null;
     return w.main ? { place: { kind: "main" } } : { place: { kind: "existing", path: w.path }, label: worktreeLabel(w) };
   };
-  return { available: worktrees !== undefined && usable.length > 0, values, labels, disabled, current, resolve };
+  return { available: !common && worktrees !== undefined && usable.length > 0, values, labels, disabled, current, resolve };
 }
 
 /**
  * チャットの見出しの作業場所の札: 見た目は WorktreeChip のまま ▾ を付け、押すと移す先を選ぶ。
  * 作業中・実行環境を整えるチャットは押せない（理由を説明に）。ワークツリーの一覧がない（Git でない）プロジェクトは押せない札のまま。
- * 札の後ろの印と説明に添える行は、WorktreeChip と同じく作業場所の飾り（workplaceDecor）から
+ * 札の後ろの印と説明に添える行は、WorktreeChip と同じく作業場所の飾り（workplaceDecor）から。共通のチャットには作業場所の札を出さない
  */
 export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
   const { place, hue } = useChatWorkplace(chat);
@@ -50,6 +53,8 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
   // 片付けを予約したワークツリー（開いたときに読み直す）
   const [reserved, setReserved] = useState<string[]>([]);
   const choices = useWorkplaceChoices(chat, reserved);
+  const common = useIsCommonProject(chat.project_id);
+  if (common) return null;
   if (!place.name || !choices.available) return <WorktreeChip chat={chat} />;
   const block = workplaceMoveBlock(chat);
   return (

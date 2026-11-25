@@ -12,6 +12,7 @@
 - 区切りより前へは戻れない: 巻き戻し・分岐・ファイルを戻すは断り（`@shared/chat/boundaries`）、起点は区切りで止まる。画像はそのときの作業場所から解く。
 - 移したあと最初の実行にだけ知らせを添える（知らせたかは保存せず `store.events.pendingWorkplaceMove` で決める）。
 - AI の移動は予約（`reserveAtTurnEnd`）だけで、作業が最後まで終わってから移す（続きは `placeContinuation`）。取り消しは AI にも伝える。
+- 共通のチャットは作業場所を移せない（`workplaceMoveBlocked`。利用者が移すのは 409。作業フォルダが Git の中でも）。プロジェクトと共通の間は `/move` で、ワークツリー・グループは外れる（ワークツリーは残す）。
 - 利用者が移すときは子チャットを移さない。持っていく変更は `@/foundation/core/workplace/carry.ts`、移せなければ `undo` で戻す。
 
 ## 落とし穴

@@ -6,14 +6,17 @@ import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
 import { useWorkplaceChoices } from "./WorkplaceMoveChip";
 import { moveChatWorkplace, workplaceMoveBlock } from "./moveWorkplace";
+import { useIsCommonProject } from "@/features/projects/ui";
 
 /**
  * チャットの右クリックの「作業場所を変更」（「プロジェクトを変更」の隣。子チャットは移らない）。乗せる・押す・→ で横に移す先の作業場所の一覧を開く。
- * ワークツリーの一覧がある = Git のプロジェクトだけに出し、作業中・実行環境を整えるチャットは押せない（理由を説明に）
+ * ワークツリーの一覧がある = Git のプロジェクトだけに出し（共通には出さない）、作業中・実行環境を整えるチャットは押せない（理由を説明に）
  */
 export function WorkplaceMoveItem({ chat, onDone }: { chat: Chat; onDone: () => void }) {
   const relocating = useSubmenu();
-  const canRelocate = (useWorktrees(chat.project_id)?.length ?? 0) > 0;
+  const worktrees = useWorktrees(chat.project_id);
+  const common = useIsCommonProject(chat.project_id);
+  const canRelocate = !common && (worktrees?.length ?? 0) > 0;
   const block = workplaceMoveBlock(chat);
   return (
     <>

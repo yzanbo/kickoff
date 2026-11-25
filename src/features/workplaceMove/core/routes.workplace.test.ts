@@ -116,3 +116,40 @@ test("Git でないプロジェクトは移せない（I4）。移す前の確�
   assert.equal(after.blocked, null);
   assert.deepEqual(after.terminals, [{ title: "dev", command: "npm run dev" }]);
 });
+
+test("共通: 作業フォルダが Git の中でも作業場所は移せない（新しいワークツリーも 409）。プロジェクトのワークツリーのチャットを共通へ移すと作業フォルダに付け替わり、ワークツリーは残る", async () => {
+  const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees", "groups"] });
+  const { api, project, store } = ctx;
+  const chatId = await mainChat(ctx);
+  // 共通の作業フォルダがプロジェクトのリポジトリの中にある形（ノートの親フォルダが Git の中）
+  const work = path.join(project.repo_path, ".common-work");
+  fs.mkdirSync(work);
+  const common = store.projects.create({ name: "共通", repo_path: work, provider: "claude", kind: "common" });
+
+  // プロジェクトのワークツリー・グループのチャットを共通へ: ワークツリーとグループが外れ、作業フォルダで動く。ワークツリーのフォルダは残る
+  const list = (await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feat/x" } })).body as { path: string; main: boolean }[];
+  const wt = list.find((w) => !w.main)!.path;
+  await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body: { worktree_path: wt } });
+  const group = (await api("POST /api/projects/:projectId/groups", { params: { projectId: project.id }, body: { name: "g" } })).body;
+  store.chats.setGroup(chatId, group.id);
+  const moved = await api("POST /api/chats/:chatId/move", { params: { chatId: chatId }, body: { project_id: common.id } });
+  assert.equal(moved.status, 200);
+  assert.deepEqual([moved.body.project_id, moved.body.worktree_path, moved.body.group_id], [common.id, null, null]);
+  assert.ok(fs.existsSync(wt));
+  const data = await boundaryOf(ctx, chatId);
+  assert.deepEqual([data?.from.dir, data?.to.dir], [wt, work]);
+
+  // 共通のチャットは作業場所を移せない（確かめに理由、移すのは 409）
+  const check: WorkplaceMoveCheck = (await api("GET /api/chats/:chatId/workplace", { params: { chatId: chatId } })).body;
+  assert.match(check.blocked ?? "", /共通のチャットは Git で管理しないフォルダで動く/);
+  for (const body of [{ worktree_path: null, new_worktree_branch: "feat/common" }, { worktree_path: wt }]) {
+    const refused = await api("POST /api/chats/:chatId/workplace", { params: { chatId: chatId }, body });
+    assert.equal(refused.status, 409);
+  }
+  assert.equal(gitIn(project.repo_path)("branch", "--list", "feat/common").trim(), "");
+
+  // 共通からプロジェクトへ戻すと、プロジェクトの本体で動く
+  const back = await api("POST /api/chats/:chatId/move", { params: { chatId: chatId }, body: { project_id: project.id } });
+  assert.deepEqual([back.body.project_id, back.body.worktree_path], [project.id, null]);
+  assert.equal((await boundaryOf(ctx, chatId))?.to.dir, project.repo_path);
+});

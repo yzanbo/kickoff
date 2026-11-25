@@ -17,7 +17,7 @@ export interface WorkplaceMoveCheck {
   terminals: { title: string; command: string | null }[];
   /** 片付けを予約したワークツリー（移す先にできない） */
   reserved: string[];
-  /** 移せない理由（実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
+  /** 移せない理由（共通のチャット・実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
   blocked: string | null;
   /** 元の作業場所のフォルダがない（変更の確かめは飛ばす） */
   missing: boolean;

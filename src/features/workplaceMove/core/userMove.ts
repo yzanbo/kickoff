@@ -4,11 +4,12 @@ import fs from "node:fs";
 import type { Chat } from "@shared/chat/types";
 import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/workplaceMove/types";
 import type { Project } from "@shared/projects/types";
+import { isCommonProject } from "@shared/projects/kinds";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "@/foundation/core/workplace/carry";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { findWorktree, newWorktreeProblem, removeWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
-import { Invalid, NotFound } from "@/foundation/core/errors";
+import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { workdirOf } from "@/features/chat/core/index";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./move";
 import type { RunningTerminal, RunningTerminalsPort } from "./target";
@@ -22,8 +23,12 @@ export interface WorkplaceUserMoveDeps {
   workplace: Pick<WorkplaceKit, "creator">;
 }
 
-/** 移せない理由（実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
+/** 共通のチャットを移せない理由（作業フォルダが Git のリポジトリの中にあっても、そのリポジトリのワークツリーは共通のものではない） */
+const COMMON_BLOCKED = "共通のチャットは Git で管理しないフォルダで動くので、作業場所（ワークツリー）を移せません。ワークツリーで作業したいときは、プロジェクトへ移してください";
+
+/** 移せない理由（共通のチャット・実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
 export async function workplaceMoveBlocked(chat: Chat, project: Project): Promise<string | null> {
+  if (isCommonProject(project)) return COMMON_BLOCKED;
   if (chat.untracked_only) return "実行環境を整えるチャットは、そのワークツリーのためのものなので作業場所を移せません";
   if (!(await isGitWorkTree(project.repo_path))) return "Git で管理していないプロジェクトにはワークツリーがないので、作業場所を移せません";
   return null;
@@ -55,6 +60,8 @@ export async function planUserWorkplaceMove(
   body: WorkplaceMoveBody,
   reason: "user" | "ai" = "user",
 ): Promise<{ input: WorkplaceMoveInput; steps?: WorkplaceMoveSteps }> {
+  // 共通にはワークツリーを作らせない（チャットを作るときの 409 と同じ扱い）
+  if (isCommonProject(project)) throw new Conflict(COMMON_BLOCKED);
   const blocked = await workplaceMoveBlocked(chat, project);
   if (blocked) throw new Invalid(blocked);
   const fromDir = workdirOf(chat, project);
