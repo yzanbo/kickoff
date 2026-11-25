@@ -1,7 +1,11 @@
 import "./Timeline.css";
 import { useLayoutEffect } from "react";
+import { READ_TOGGLE_LABELS, showsReadButton } from "@shared/chat/readTiming";
+import { agentStateOf } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
-import { TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
+import { reportFailure } from "@/foundation/ui/kit/ask";
+import { useAppSettings } from "@/foundation/ui/settings/appSettings";
+import { setChatRead, TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 import { chatLog, chatTail, chatWindow, useChatDetail, useStreaming } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
@@ -28,7 +32,7 @@ import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
  * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（scroll の following。送ったら付いていくに戻る）。
  * 上にスクロールしている間は、一番下へ戻るボタンを出す（⌘↓ でも戻る）。答えを待っているとき・その間に作業が終わったときは、
- * ボタンに文を添えて目立たせ、下へ戻るよう誘う。
+ * ボタンに文を添えて目立たせ、下へ戻るよう誘う。既読にするタイミングが「ボタンで」なら、一番下まで来て未読のとき同じ場所に既読ボタンを出す。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する。
  * スクロールの決まりは useTimelineScroll、上に貼り付ける指示は useStickyPrompt、作業中の文は useWorkingStatus、流れの終わりは TimelineEnd
  */
@@ -94,7 +98,10 @@ export function ChatTimeline({
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
-  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  const timing = useAppSettings().data?.read_timing ?? "at_bottom";
+  useMarkSeen({ timelineRef: scroll.ref, chat, events, timing, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  // ボタンで既読にする設定の既読ボタン（一番下まで来て、作業が終わって未読のとき。一番下へ戻るボタンと同じ場所）
+  const readButton = showsReadButton(timing, agentStateOf(chat, approvals.length > 0), !s.away);
   // ⌘⇧U で既読⇔未読（一番下にいるかによらない）
   useReadToggleKey(root, chat);
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
@@ -164,7 +171,19 @@ export function ChatTimeline({
           読み込み中…
         </div>
       )}
-      {s.away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />}
+      {s.away ? (
+        <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />
+      ) : (
+        readButton && (
+          <ScrollBottomPill
+            tone="arrived"
+            label={READ_TOGGLE_LABELS.seen}
+            dock={pillDock ?? null}
+            read
+            onClick={() => void setChatRead(chat, "seen").catch(reportFailure("既読にできませんでした"))}
+          />
+        )
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { isUnreadEvent } from "@shared/chat/state";
 import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ReadTiming } from "@shared/chat/readTiming";
 import type { Chat } from "@shared/chat/types";
 import { chatsApi, readHolds } from "@/features/chat/ui";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
@@ -11,7 +12,8 @@ const ACTIVITY_EVENTS = ["wheel", "pointerdown", "keydown", "touchstart"] as con
 const SETTLE_MS = 150;
 
 /**
- * 最新の結果を一番下まで見たら既読にする（作業中の返答も、終わった結果も同じ）。
+ * 最新の結果を一番下まで見たら既読にする（作業中の返答も、終わった結果も同じ）。既読にするタイミングが「ボタンで」なら自動では既読にしない
+ * （既読ボタン・⌘⇧U・右クリック・返信で既読にする）。
  * 見たことにするのは、チャットを表示していて（visible）、Kickoff が前にあり、流れの一番下が見えているときだけ。
  * 送るのは、自分で見たとき = チャットを表示した・一番下まで来た・チャットの画面の中でスクロール・クリック・キー入力したとき。
  * 開いたまま一番下に付いていても、新しい結果が届いただけ・Kickoff に戻っただけでは既読にしない
@@ -24,6 +26,7 @@ export function useMarkSeen({
   timelineRef,
   chat,
   events,
+  timing,
   visible,
   shown,
   away,
@@ -32,6 +35,7 @@ export function useMarkSeen({
   timelineRef: RefObject<HTMLDivElement | null>;
   chat: Chat;
   events: ChatEvent[];
+  timing: ReadTiming;
   /** 既読にしてよい見え方か（表示していて、途中の一部分を出していない） */
   visible: boolean;
   /** チャットを表示しているか（途中の一部分を出していても。開き直したかを見る） */
@@ -53,7 +57,7 @@ export function useMarkSeen({
    */
   const check = useEffectEvent(() => {
     const el = timelineRef.current;
-    if (!visible || !focused || !el) return;
+    if (timing !== "at_bottom" || !visible || !focused || !el) return;
     // スクロールの知らせより先に動くことがある（開いた発言へ移った直後など）ので、いまの位置で確かめる
     if (el.scrollHeight - el.scrollTop - el.clientHeight >= slackPx) return;
     if (sent.current.chatId !== chat.id) sent.current = { chatId: chat.id, upTo: 0 };

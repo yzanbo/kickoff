@@ -1,11 +1,13 @@
 import "./ScrollBottomPill.css";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, MailOpen } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
+import { keyLabel } from "@/foundation/ui/commands";
+import { READ_TOGGLE_KEY } from "@/features/chat/ui";
 import { lastResultIdOf } from "@/features/conversation/ui/working/workingLabel";
 import { CHAT_STATUS_LABELS, scrollPillOf, type ScrollPillTone } from "./scrollPill";
 
@@ -54,6 +56,7 @@ export function useScrollPill({
 
 /**
  * 一番下へ戻るボタン（上を読んでいる間だけ出す。いまの状態を添え、答えを待っている・返答が届いたときは目立たせて下へ誘う）。
+ * read のときは同じ場所の既読ボタン（ボタンで既読にする設定で、一番下まで来て未読のとき。⌘⇧U でも既読になる）。
  * チャット欄の上のピルの列に入る幅があれば、その右端に置いて 1 行にまとめる（dock。流れの最後の行に重ならない）。
  * ピルが 1 つもない・狭くて入らないときは、流れの右下の隅に浮かせる（列を 1 行増やすと流れの高さが変わり、画面が動くため）。
  * 入るかは、ピルの幅の合計とこのボタンの幅で決める（置き場所によらず同じ幅なので、置き直しても行き来しない）
@@ -62,10 +65,13 @@ export function ScrollBottomPill({
   tone,
   label,
   dock,
+  read = false,
   onClick,
 }: {
   tone: ScrollPillTone;
   label: ReactNode;
+  /** 既読ボタンとして出す（一番下へ戻るボタンと同じ場所に替わって出る） */
+  read?: boolean;
   /** ピルの列の右端の置き場所（ChatPane の .composer-chips-dock） */
   dock: HTMLElement | null;
   onClick: () => void;
@@ -106,12 +112,14 @@ export function ScrollBottomPill({
     <button
       ref={setButton}
       type="button"
-      className={cx("scroll-bottom guide", tone, (tone === "waiting" || tone === "arrived") && "attention")}
-      title="一番下までスクロール（⌘↓）"
-      aria-label="一番下までスクロール"
+      className={cx("scroll-bottom guide", tone, !read && (tone === "waiting" || tone === "arrived") && "attention")}
+      title={read ? `既読にする（${keyLabel(READ_TOGGLE_KEY)}）` : "一番下までスクロール（⌘↓）"}
+      aria-label={read ? "既読にする" : "一番下までスクロール"}
       onClick={onClick}
     >
-      {tone === "working" ? (
+      {read ? (
+        <MailOpen size={14} aria-hidden />
+      ) : tone === "working" ? (
         <span className="dots" aria-hidden>
           <span />
           <span />
@@ -121,7 +129,7 @@ export function ScrollBottomPill({
         <ArrowDown size={14} aria-hidden />
       )}
       <span className="scroll-bottom-label">{label}</span>
-      <kbd>⌘↓</kbd>
+      <kbd>{read ? keyLabel(READ_TOGGLE_KEY) : "⌘↓"}</kbd>
     </button>
   );
   return docked && dock ? createPortal(pill, dock) : pill;

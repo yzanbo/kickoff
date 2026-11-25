@@ -34,3 +34,6 @@ export function readToggleOf(state: AgentState): ReadToggle | null {
   if (state === "read") return "unseen";
   return null;
 }
+
+/** ボタンで既読にする設定で、一番下まで来たときに既読ボタンを出すか（作業が終わって未読のときだけ。パソコンとスマホで同じ） */
+export const showsReadButton = (timing: ReadTiming, state: AgentState, atBottom: boolean): boolean => timing === "button" && atBottom && readToggleOf(state) === "seen";
