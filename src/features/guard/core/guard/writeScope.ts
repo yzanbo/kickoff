@@ -13,9 +13,11 @@ import { writeTargetOf } from "./scope";
 export interface WriteScopeFacts {
   /** チャットの作業場所 */
   workdir: string;
-  /** いつも書けるフォルダ（ノートのフォルダ・プロバイダーの決まりの例外。Claude Code の計画 ~/.claude/plans など） */
+  /** チャット自身の書ける場所（ノートのフォルダ）。断るフォルダの中にあっても書ける */
   writableDirs: string[];
-  /** この下の「<名前>/memory」の中を書けるフォルダ（Claude Code のメモリ ~/.claude/projects/<プロジェクト>/memory） */
+  /** 決まりの例外で書けるフォルダ（OS の一時フォルダ・プロバイダーの決まり。Claude Code の計画 ~/.claude/plans など）。断るフォルダの中は書けない */
+  exceptionDirs: string[];
+  /** この下の「<名前>/memory」の中を書けるフォルダ（Claude Code のメモリ ~/.claude/projects/<プロジェクト>/memory。決まりの例外） */
   memoryParents: string[];
   /** プロジェクトの本体とワークツリー */
   workplaces(): Promise<Workplace[]>;
@@ -54,14 +56,18 @@ function otherWorkplaceReason(target: string, owner: Workplace, mine: string): s
 }
 
 /**
- * 書く先（実体のパス）を判定する。書ける = 作業場所・ノートのフォルダ・決まりの例外（Claude Code のメモリと計画・サブエージェントのワークツリー）。
- * 同じリポジトリのほかの作業場所と、断るフォルダ（denied）は断り、それ以外の外は聞く。どの作業場所のものかは、いちばん深く入る作業場所で決める
+ * 書く先（実体のパス）を判定する。書ける = 作業場所・ノートのフォルダ・決まりの例外（一時フォルダ・Claude Code のメモリと計画・サブエージェントのワークツリー）。
+ * 同じリポジトリのほかの作業場所と、断るフォルダ（denied）は断り、それ以外の外は聞く。断るフォルダは決まりの例外より強い（一時フォルダに置いた利用者のプロジェクトも断る）が、
+ * チャット自身の場所（作業場所・ノートのフォルダ）より弱い。どの作業場所のものかは、いちばん深く入る作業場所で決める
  * （本体の中に置いたワークツリーは、本体ではなくそのワークツリーのもの）。作業場所の一覧が取れなければ、作業場所の中かだけで見る。
  * 聞くときは、断られたら AI に返す文と「このチャットでは許可」で覚える書く先（target）を添える
  */
 export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Promise<GuardVerdict> {
   if (facts.writableDirs.some((dir) => isInside(dir, target))) return PASS;
-  if (facts.memoryParents.some((dir) => isMemoryOf(dir, target))) return PASS;
+  const denied = facts.denied?.dirs.some((dir) => isInside(dir, target)) ?? false;
+  const exception = facts.exceptionDirs.some((dir) => isInside(dir, target)) || facts.memoryParents.some((dir) => isMemoryOf(dir, target));
+  // 断るフォルダの中の決まりの例外は通さず、作業場所かを見てから断る（断るフォルダがなければ、これまでどおり作業場所より先に通す）
+  if (exception && !denied) return PASS;
   const workplaces = await facts.workplaces();
   const mine = deepestWorkplace(facts.workdir, workplaces)?.path ?? facts.workdir;
   const owner = deepestWorkplace(target, workplaces);
@@ -71,7 +77,7 @@ export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Pr
   }
   if (isInside(facts.workdir, target)) return PASS;
   // 書ける場所・作業場所より後に見る（断るフォルダが作業フォルダ・書けるフォルダを含んでいても、そこは書ける）
-  if (facts.denied?.dirs.some((dir) => isInside(dir, target))) return { kind: "deny", reason: `${shown(target)} には書き込めません。${facts.denied.reason}` };
+  if (denied && facts.denied) return { kind: "deny", reason: `${shown(target)} には書き込めません。${facts.denied.reason}` };
   return {
     kind: "ask",
     title: `作業場所の外のファイルに書き込もうとしています: ${shown(target)}`,

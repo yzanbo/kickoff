@@ -71,8 +71,11 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
       // 共通のチャット（共通のノートのチャットも）は、編集先の制限をいつも入にする（プロジェクトのコードを直接書かせない。書けるのは作業フォルダと共通のノート）
       const common = isCommonProject(project);
       const editScope = chat.edit_scope_enabled || common;
-      // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
-      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs }) : null;
+      // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス）
+      const deniedDirs = common ? [...(d.projects?.() ?? []).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : null;
+      // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない。
+      // 共通のチャットは、一時フォルダなどに置いた利用者のプロジェクトも書かせない）
+      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs, deniedDirs: deniedDirs ?? [] }) : null;
       const materials: GuardMaterials = {
         cwd,
         permissionMode: chat.permission_mode,
@@ -83,14 +86,15 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
         untrackedOnly: chat.untracked_only,
         // ファイルを書き換えるツールの先は、作業場所・ノートのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
         // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
-        // 共通のチャットでは、利用者のプロジェクトの本体と、読むだけで足したフォルダ（ほかのプロジェクトのノートのフォルダ・添付・参照資料）は聞かずに断る
+        // 共通のチャットでは、利用者のプロジェクトの本体と、読むだけで足したフォルダ（ほかのプロジェクトのノートのフォルダ・添付・参照資料）は聞かずに断る（一時フォルダの中でも）
         writeScope: chat.untracked_only || !editScope
           ? null
           : {
-              writableDirs: [...dirs.writableDirs.map(realPathOrSelf), ...(d.bashSandbox?.rules.tempDirs ?? [])],
+              writableDirs: dirs.writableDirs.map(realPathOrSelf),
+              exceptionDirs: d.bashSandbox?.rules.tempDirs ?? [],
               workplaces: () => workplacesOf(project.repo_path),
               allowed: allowedIn(chat.id),
-              denied: common ? { dirs: [...(d.projects?.() ?? []).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf), reason: COMMON_DENIED } : null,
+              denied: deniedDirs ? { dirs: deniedDirs, reason: COMMON_DENIED } : null,
             },
         // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
         deleteGuard: d.deleteGuard,

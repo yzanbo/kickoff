@@ -43,7 +43,9 @@ const writableRootsOf = (params: ProviderTurnParams): string[] => params.sandbox
 
 /**
  * Bash とファイルの変更の砂場（Codex の Seatbelt）。計画モードは読むだけ、ほかは作業場所と書けるフォルダ。ネットワークは絞らない（Kickoff の決まり）。
- * Kickoff の砂場の「書かせないフォルダ」（添付・参照資料）は Codex に読めるフォルダとして渡さないので、もともと書けない
+ * Kickoff の砂場の「書かせないフォルダ」（添付・参照資料）は Codex に読めるフォルダとして渡さないので、もともと書けない。
+ * Codex の砂場には書けるフォルダの中を書かせない口がないので、一時フォルダの中にある書かせないフォルダ（共通のチャットから見た利用者のプロジェクト）は Bash では止まらない
+ * （ファイルの変更は守りの門が断る）
  */
 export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
   if (params.permissionMode === "plan") return { type: "readOnly", networkAccess: true };

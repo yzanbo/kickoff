@@ -85,8 +85,11 @@ test("共通のチャットは、編集先の制限の既定をオフにして�
   // 断るフォルダは実体のパス
   assert.ok(scope.denied.dirs.includes(fs.realpathSync(project.repo_path)));
   assert.ok(!scope.denied.dirs.includes(fs.realpathSync(common.repo_path)));
+  // Bash の砂場でも、利用者のプロジェクトは書かせない側に入る（一時フォルダなど書ける場所の中にあっても）
+  assert.ok(provider.calls[0].sandbox?.readOnlyDirs.includes(fs.realpathSync(project.repo_path)));
   // プロジェクトのチャットは既定どおり（断るフォルダも持たない）
   const own = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.chats.get(own.id)?.status === "completed");
   assert.equal(gateMaterials[1].writeScope, null);
+  assert.ok(!provider.calls[1].sandbox?.readOnlyDirs.includes(fs.realpathSync(project.repo_path)));
 });

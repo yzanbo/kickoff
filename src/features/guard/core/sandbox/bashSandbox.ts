@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { git } from "@/foundation/core/workplace/git";
 import type { AgentSandboxRules } from "@/features/guard/core/platformRules";
-import { realPathLoose } from "@/foundation/core/system/paths";
+import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { SandboxPlan } from "@/features/ai/core/index";
 
 /** 実行のたびに使うもの（startCore が作る） */
@@ -82,16 +82,23 @@ function realDirs(dirs: (string | null)[]): string[] {
 /**
  * このチャットの実行の砂場を作る。書ける = 作業場所・ノートのフォルダ・決まりの例外（共有の .git・Claude Code のサブエージェントのワークツリー・ゴミ箱・
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
- * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）
+ * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）。
+ * deniedDirs（共通のチャットから見た利用者のプロジェクト）は、一時フォルダなど書ける場所の中にあっても書かせない側に入れる。ただし書ける場所を中に持つものは入れない
+ * （砂場の規則は「書ける → 書かせない」の順で後に書いたほうが勝ち、書かせない場所の中を書ける場所に戻せないため。入れると作業フォルダ・共通のノートまで書けなくなる）
  */
-export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, writableDirs, readOnlyDirs }: { workdir: string; writableDirs: string[]; readOnlyDirs: string[] }): Promise<SandboxPlan> {
+export async function bashSandboxFor(
+  deps: BashSandboxDeps,
+  { workdir, writableDirs, readOnlyDirs, deniedDirs = [] }: { workdir: string; writableDirs: string[]; readOnlyDirs: string[]; deniedDirs?: string[] },
+): Promise<SandboxPlan> {
   const home = os.homedir();
   const [commonDir, platformDirs, electronCommands] = await Promise.all([gitCommonDir(workdir), deps.rules.writableDirs(), electronCommandsOf(workdir)]);
   // Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）。共有の .git が <リポジトリ>/.git のときだけ分かる
   const subagentWorktrees = commonDir && path.basename(commonDir) === ".git" ? path.join(path.dirname(commonDir), ".claude", "worktrees") : null;
+  const writable = realDirs([workdir, ...writableDirs, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]);
+  const denied = realDirs(deniedDirs).filter((dir) => !writable.some((w) => isInside(dir, w)));
   return {
-    writableDirs: realDirs([workdir, ...writableDirs, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
-    readOnlyDirs: realDirs(readOnlyDirs),
+    writableDirs: writable,
+    readOnlyDirs: realDirs([...readOnlyDirs, ...denied]),
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,
   };

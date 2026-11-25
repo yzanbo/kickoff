@@ -65,6 +65,25 @@ test("書ける場所: 作業場所・ノートのフォルダ・共有の .git�
   assert.equal(sandbox.proxyPort, 4321);
 });
 
+test("書かせないフォルダ（共通のチャットから見た利用者のプロジェクト）は、一時フォルダの中でも書かせない側に入れる。書ける場所を中に持つものは入れない", async () => {
+  const tmp = tempDir({ real: true });
+  const alpha = path.join(tmp, "repos", "alpha");
+  const parent = path.join(tmp, "kickoff");
+  const work = path.join(parent, ".common-work");
+  const common = path.join(parent, "_common");
+  for (const dir of [alpha, work, common]) fs.mkdirSync(dir, { recursive: true });
+  const sandbox = await bashSandboxFor(
+    { rules: rules([tmp]), proxyPort: null, trashDir: null },
+    { workdir: work, writableDirs: [common], readOnlyDirs: [], deniedDirs: [alpha, parent] },
+  );
+  assert.ok(sandbox.writableDirs.includes(tmp));
+  assert.ok(sandbox.readOnlyDirs.includes(alpha));
+  // 作業フォルダ・共通のノートを中に持つプロジェクトを書かせない側に入れると、そこまで書けなくなる（砂場の規則は後に書いたほうが勝つ）
+  assert.ok(!sandbox.readOnlyDirs.includes(parent));
+  // 渡さなければ、これまでどおり（プロジェクトのチャット）
+  assert.deepEqual((await bashSandboxFor({ rules: rules([tmp]), proxyPort: null, trashDir: null }, { workdir: work, writableDirs: [common], readOnlyDirs: [] })).readOnlyDirs, []);
+});
+
 test("Electron を使う作業場所だけ、Electron を起動するスクリプトを砂場の外で流す", async () => {
   const dir = tempDir({ real: true });
   const pkg = (deps: Record<string, string>) =>

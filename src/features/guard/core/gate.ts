@@ -88,12 +88,12 @@ export function createToolGate(input: ToolGateInput): ToolGate {
   };
 }
 
-/** 書き込み先の守りの様子: チャットが渡したもの（作業場所・ノートのフォルダ・作業場所の一覧）に、その AI の CLI の決まりの例外（Claude Code の計画とメモリ）を足す */
+/** 書き込み先の守りの様子: チャットが渡したもの（作業場所・ノートのフォルダ・一時フォルダ・作業場所の一覧）に、その AI の CLI の決まりの例外（Claude Code の計画とメモリ）を足す */
 function writeFactsOf(m: GuardMaterials): WriteScopeFacts | null {
   const scope = m.writeScope;
   if (!scope) return null;
   const extra = m.writeExceptions;
-  return { workdir: realPathOrSelf(m.cwd), writableDirs: [...scope.writableDirs, ...(extra?.writableDirs ?? [])], memoryParents: extra?.memoryParents ?? [], workplaces: scope.workplaces, denied: scope.denied ?? null };
+  return { workdir: realPathOrSelf(m.cwd), writableDirs: scope.writableDirs, exceptionDirs: [...(scope.exceptionDirs ?? []), ...(extra?.writableDirs ?? [])], memoryParents: extra?.memoryParents ?? [], workplaces: scope.workplaces, denied: scope.denied ?? null };
 }
 
 /** 実行の材料から守りの決まりを並べる（材料のない守りは付けない。git のフック・NODE_COMPILE_CACHE はいつも。見せない DB・Docker は登録された口から） */
