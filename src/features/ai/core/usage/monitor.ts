@@ -36,15 +36,9 @@ function withSpending(usage: ProviderUsage, spend: PayAsYouGo | null): ProviderU
   return { ...usage, pay_as_you_go: { ...(usage.pay_as_you_go ?? NO_PAY_AS_YOU_GO), spending: spend.spending, checked_at: spend.checked_at } };
 }
 
-/** 取得・知らせを重ねた結果（publish = SSE の usage で配る） */
-interface Settled {
-  usage: ProviderUsage;
-  publish: boolean;
-}
-
 /**
  * 使用状況を AI ごとに取って配る。プランの枠（Claude）は 1 分ごとと実行のあとに取り（15 秒以内の続けての取得はまとめる）、
- * 取得に失敗しても直前の値を残して理由を添える。ほかの AI は頼まれたときに取り、1 つが失敗・遅れてもほかは出す（取得の時間も鮮度に数える）。
+ * 取得に失敗しても直前の値を残して理由を添える。ほかの AI は一覧などを頼まれたときに取り、終わったものから配る（取得の時間も鮮度に数える）。
  * 支払いの様子（超過分・クレジット）は実行中の知らせと取得を重ねる（spending.ts）
  */
 export class UsageMonitor {
@@ -138,7 +132,7 @@ export class UsageMonitor {
   private async loadAll(force: boolean): Promise<ProviderUsage[]> {
     const startedAt = this.clock.now();
     const ids = PROVIDER_IDS.filter((id) => this.fetchers[id]);
-    const usages = await Promise.all(ids.map((id) => (isPlan(id) ? (force ? this.refresh(id, true) : this.current(id)) : this.fetch(id))));
+    const usages = await Promise.all(ids.map((id) => (isPlan(id) && !force ? this.current(id) : this.refresh(id, force))));
     // あとから始めた取得（「更新」）が先に終わっていたら、古い一覧で上書きしない
     if (!this.list || this.list.at <= startedAt) this.list = { at: startedAt, usages };
     return usages;
@@ -158,30 +152,28 @@ export class UsageMonitor {
       usage = isPlan(id) ? (previous ? { ...previous, error: message } : failedUsage(id, message, this.clock.iso())) : failedUsage(id, `取得できませんでした（${message}）`, this.clock.iso());
     }
     const settled = this.settle(id, usage);
-    if (settled.publish) this.publish(settled.usage);
-    else this.latest.set(id, settled.usage);
-    return settled.usage;
+    this.publish(settled);
+    return settled;
   }
 
   /**
    * 取得した値に支払いの様子を重ねる（枠に空きが戻ったら、超過分ではもう動いていない。クレジットは残りを比べる）。
-   * プランの枠は取るたびに配り、ほかの AI はクレジットの様子が変わったときだけ配る
    */
-  private settle(id: ProviderId, usage: ProviderUsage): Settled {
+  private settle(id: ProviderId, usage: ProviderUsage): ProviderUsage {
     let spend = this.spend.get(id) ?? null;
     if (isPlan(id)) {
       if (spend?.spending && usage.status === "ok" && !usage.windows.some((w) => (w.utilization ?? 0) >= 100)) {
         spend = { ...spend, spending: null, checked_at: usage.fetched_at };
         this.spend.set(id, spend);
       }
-      return { usage: withSpending(usage, spend), publish: true };
+      return withSpending(usage, spend);
     }
     const pay = usage.status === "ok" ? usage.pay_as_you_go : null;
-    if (!pay) return { usage, publish: false };
+    if (!pay) return usage;
     const note = { has_credits: pay.enabled, unlimited: pay.unlimited, balance: pay.balance, limit_reached: limitReachedOf(usage.windows.map((w) => w.utilization)) };
     const step = applySpending(spend, note, this.clock.iso());
     this.spend.set(id, step.next);
-    return { usage: { ...usage, pay_as_you_go: step.next }, publish: step.changed };
+    return { ...usage, pay_as_you_go: step.next };
   }
 
   /** 最新の値にして、SSE の usage で配る */

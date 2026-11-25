@@ -1,4 +1,4 @@
-import { providerCan } from "@shared/ai/providers";
+import { PROVIDERS, providerCan } from "@shared/ai/providers";
 import type { ProviderStatus } from "@shared/ai/types";
 import type { ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
@@ -14,7 +14,7 @@ import { paysPerUse, statusOf } from "@/features/ai/ui/provider/providerChoice";
 export type UsageGroup =
   | { provider: ProviderId; kind: "plan" }
   | { provider: ProviderId; kind: "service"; service: ProviderUsage }
-  | { provider: ProviderId; kind: "pay" }
+  | { provider: ProviderId; kind: "pay"; guide?: string }
   | { provider: ProviderId; kind: "missing"; service?: ProviderUsage };
 
 /** いつも並べる AI（この順。Claude はいつも、Codex は使っているときだけ） */
@@ -35,8 +35,11 @@ export function usageGroups({ foreground, statuses, services }: {
   return ids.flatMap((provider): UsageGroup[] => {
     const status = statusOf(statuses, provider);
     if (providerCan(provider, "plan_usage")) return [paysPerUse(status) ? { provider, kind: "pay" } : { provider, kind: "plan" }];
-    if (paysPerUse(status) && (status?.has_api_key || provider === foreground)) return [{ provider, kind: "pay" }];
     const service = services?.find((s) => s.provider === provider);
+    if (paysPerUse(status) && (status?.has_api_key || provider === foreground)) {
+      const guide = PROVIDERS[provider].apiKeyOnly && service?.status === "unavailable" ? service.message : undefined;
+      return [{ provider, kind: "pay", guide }];
+    }
     if (service?.status === "ok") return [{ provider, kind: "service", service }];
     return provider === foreground ? [{ provider, kind: "missing", service }] : [];
   });

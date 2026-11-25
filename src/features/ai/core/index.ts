@@ -38,20 +38,17 @@ export interface AiApi {
   usage: UsageMonitor;
   /** プロジェクトの AI ごとのチャットの既定（新しいチャット・子チャット・AI の切り替えが選択を決めるときに読む） */
   defaults: ProjectAiDefaultsStore;
-  /** Copilot の使用状況が読む gh のログインのトークンの口（github が登録する。なければ未ログインの扱い） */
-  provideGhToken(fn: () => Promise<string | null>): void;
 }
 
 /** AI のつなぎ込み（プロバイダー・API キー・使用状況。使用枠の見張りは待ち受けのあとに始める） */
 export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv): CoreFeature<AiApi> {
   const keys = new ProviderKeyVault(k, env.secretCipher);
   const providers = env.providers((id) => keys.authFor(id));
-  let ghToken: () => Promise<string | null> = async () => null;
-  const usage = new UsageMonitor(k.bus, env.usage ?? realUsageFetchers(() => ghToken()));
+  const usage = new UsageMonitor(k.bus, env.usage ?? realUsageFetchers(providers));
   const defaults = createProjectAiDefaultsStore(k.db, (e) => k.bus.publish(e));
   return {
     name: "ai",
-    api: { providers, keys, usage, defaults, provideGhToken: (fn) => (ghToken = fn) },
+    api: { providers, keys, usage, defaults },
     aiTools: [usageToolGroup(usage)],
     routes: [aiDefaultsRoutes({ defaults, projectParam: deps.projects.param }), usageRoutes({ usage }), { legacy: (app) => providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }) }],
     start: () => usage.start(),

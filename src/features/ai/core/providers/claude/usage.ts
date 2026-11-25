@@ -1,34 +1,16 @@
 // Claude のプランの使用枠の取り方（/usage と同じもの。送らないセッションを一瞬開くだけで、使用枠を消費しない）
+import { withTimeout } from "@shared/foundation/time";
+import { USAGE_QUERY_TIMEOUT_MS } from "@/features/ai/core/providers/shared/usage";
 import { planUsageOf, resolveClaudeExecutable, type SDKControlGetUsageResponse } from "./wire";
-import { readFile } from "node:fs/promises";
 import type { UsageWindow } from "@shared/ai/types";
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
-import { claudeConfigPath } from "./internals";
 import { realClaudeSdk } from "./sdk";
 import { withIdleSession, type IdleSessionDeps } from "./idleSession";
 
-/** プランの表示名として受け付ける形（Claude Code と同じ。英数字・空白・. + - で 40 文字まで） */
-const PLAN_DISPLAY_NAME = /^[\p{L}\p{N}](?:[\p{L}\p{N} .+-]{0,38}[\p{L}\p{N}+])?$/u;
-
-/**
- * ログインしているアカウントのプランの表示名（"Ultra"・"Max 20x" など。分からなければ null）。
- * 種類（subscription_type）は Max の段階（Ultra・20x・5x）を区別せずどれも "max" になるので、Claude Code が
- * アカウントの情報から覚えている表示名（設定ファイルの oauthAccount.planDisplayName）を読む。読むだけで書き換えない
- */
-export async function readPlanDisplayName(path = claudeConfigPath()): Promise<string | null> {
-  try {
-    const config = JSON.parse(await readFile(path, "utf8")) as { oauthAccount?: { planDisplayName?: unknown } };
-    const name = config.oauthAccount?.planDisplayName;
-    return typeof name === "string" && PLAN_DISPLAY_NAME.test(name) ? name : null;
-  } catch {
-    return null;
-  }
-}
-
 type RawWindow = { utilization: number | null; resets_at: string | null } | null | undefined;
 
-/** SDK の /usage 応答を Kickoff の形に変換する（planDisplayName があれば、プランは種類ではなく表示名にする。枠は 5 時間・週・モデル別の週の順） */
-export function normalizeUsage(res: SDKControlGetUsageResponse, planDisplayName: string | null = null): ProviderUsage {
+/** SDK の /usage 応答を Kickoff の形に変換する（枠は 5 時間・週・モデル別の週の順） */
+export function normalizeUsage(res: SDKControlGetUsageResponse): ProviderUsage {
   const limits = res.rate_limits;
   const win = (key: string, label: string, raw: RawWindow): UsageWindow => ({
     key,
@@ -39,8 +21,7 @@ export function normalizeUsage(res: SDKControlGetUsageResponse, planDisplayName:
   return {
     provider: "claude",
     status: res.rate_limits_available && limits !== null ? "ok" : "unavailable",
-    // API キーなどでプランがないときは表示名も使わない
-    plan: res.subscription_type ? (planDisplayName ?? res.subscription_type) : null,
+    plan: res.subscription_type,
     account: null,
     windows: [
       win("five_hour", "5時間", limits?.five_hour),
@@ -75,5 +56,8 @@ function extraUsageOf(raw: RawExtraUsage): PayAsYouGo {
  * 注意: SDK 側で EXPERIMENTAL 扱いの API。形が変わったら normalizeUsage を直す
  */
 export async function fetchClaudeUsage(deps: IdleSessionDeps = { query: realClaudeSdk.query, executable: resolveClaudeExecutable() }): Promise<ProviderUsage> {
-  return withIdleSession(deps, async (q) => normalizeUsage(await planUsageOf(q), await readPlanDisplayName()));
+  return withIdleSession(deps, async (q) => {
+    const usage = await withTimeout(planUsageOf(q), USAGE_QUERY_TIMEOUT_MS, "Claude Code が時間内に使用枠を返しませんでした");
+    return normalizeUsage(usage);
+  });
 }

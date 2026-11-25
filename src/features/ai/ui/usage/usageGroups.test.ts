@@ -37,5 +37,12 @@ test("API キーで動かす AI は「使った分の支払い」。Codex はキ
   assert.deepEqual(kinds(usageGroups({ foreground: null, statuses: [makeProviderStatus("claude", apiKey)], services: [] })), ["claude:pay"]);
   assert.deepEqual(kinds(usageGroups({ foreground: null, statuses: [makeProviderStatus("codex", { ...apiKey, has_api_key: true })], services: [] })), ["claude:plan", "codex:pay"]);
   assert.deepEqual(kinds(usageGroups({ foreground: null, statuses: [makeProviderStatus("codex", { ...apiKey, has_api_key: false })], services: [] })), ["claude:plan"]);
-  assert.deepEqual(kinds(usageGroups({ foreground: "gemini", statuses: [makeProviderStatus("gemini", apiKey)], services: [] })), ["claude:plan", "gemini:pay"]);
+  const guide = "Google AI Studio で確認してください。";
+  const groups = usageGroups({
+    foreground: "gemini",
+    statuses: [makeProviderStatus("gemini", apiKey)],
+    services: [service("gemini", { status: "unavailable", windows: [], message: guide })],
+  });
+  assert.deepEqual(kinds(groups), ["claude:plan", "gemini:pay"]);
+  assert.deepEqual(groups.at(-1), { provider: "gemini", kind: "pay", guide });
 });

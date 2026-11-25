@@ -1,4 +1,5 @@
 import { StdioRpc, type StdioSpawn, type ServerRequestHandler } from "@/features/ai/core/providers/stdioRpc";
+import { withTimeout } from "@shared/foundation/time";
 import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 
 export interface SessionOpts {
@@ -17,17 +18,23 @@ const refuseAll: ServerRequestHandler = async (method) => {
   throw new Error(`Kickoff は ${method} に答えません`);
 };
 
-/**
- * app-server を起動して話し始める（initialize → initialized）。
- * experimentalApi は AI からの質問（item/tool/requestUserInput）などを受けるため
- */
-export async function openSession(opts: SessionOpts): Promise<StdioRpc> {
+function startSession(opts: SessionOpts): StdioRpc {
   const proc = opts.spawn(opts.args, { env: opts.env, cwd: opts.cwd });
   if (proc.pid !== undefined) opts.onProcessSpawned?.(proc.pid);
-  const rpc = new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuseAll, opts.onClosed, { label: "Codex の app-server", provider: "codex" });
+  return new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuseAll, opts.onClosed, { label: "Codex の app-server", provider: "codex" });
+}
+
+async function initialize(rpc: StdioRpc): Promise<void> {
+  // experimentalApi は AI からの質問（item/tool/requestUserInput）などを受けるため
+  await rpc.request("initialize", { clientInfo: CLIENT_INFO, capabilities: { experimentalApi: true, requestAttestation: false } });
+  rpc.notify("initialized");
+}
+
+/** app-server を起動して話し始める（initialize → initialized） */
+export async function openSession(opts: SessionOpts): Promise<StdioRpc> {
+  const rpc = startSession(opts);
   try {
-    await rpc.request("initialize", { clientInfo: CLIENT_INFO, capabilities: { experimentalApi: true, requestAttestation: false } });
-    rpc.notify("initialized");
+    await initialize(rpc);
     return rpc;
   } catch (e) {
     rpc.close();
@@ -36,10 +43,14 @@ export async function openSession(opts: SessionOpts): Promise<StdioRpc> {
 }
 
 /** 用事を 1 つ済ませるだけの短い会話（終わったら止める） */
-export async function withSession<T>(opts: SessionOpts, fn: (rpc: StdioRpc) => Promise<T>): Promise<T> {
-  const rpc = await openSession(opts);
+export async function withSession<T>(opts: SessionOpts & { timeoutMs?: number }, fn: (rpc: StdioRpc) => Promise<T>): Promise<T> {
+  const rpc = startSession(opts);
   try {
-    return await fn(rpc);
+    const use = async () => {
+      await initialize(rpc);
+      return fn(rpc);
+    };
+    return await (opts.timeoutMs === undefined ? use() : withTimeout(use(), opts.timeoutMs, "Codex の app-server が時間内に応答しませんでした"));
   } finally {
     rpc.close();
   }

@@ -378,7 +378,7 @@
 |---|---|---|---|
 | RUN-059 | Codex で動かす | ai | T:codex/provider |
 | RUN-060 | GitHub Copilot で動かす（一部） | ai | T:copilot/provider |
-| RUN-061 | Cursor・Gemini（Antigravity）で動かす（一部） | ai | T:acp/provider,geminiClient |
+| RUN-061 | Cursor・Gemini（Antigravity）で動かす（一部） | ai | T:acp/provider |
 
 ### 長いチャット
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -963,7 +963,7 @@
 | SET-014 | 使用枠とプランを出す | ai | M |
 | SET-015 | 使用枠の詳細を開く | ai | M |
 | SET-016 | 前に出しているチャットの AI の使用状況を出す（取りやめ: 下の帯に AI ごとに並べる形に替えた。SET-026） | ai | M |
-| SET-017 | サービスごとの使用状況を見る | ai | T:ai/routes.usage |
+| SET-017 | Claude・Codex・Copilot の使用枠を公式の CLI・SDK から取得する。Cursor と Gemini（Antigravity）は枠を取得せず、公式の確認先を出す | ai | T:ai/routes.usage |
 
 ### 通知
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -984,7 +984,7 @@
 ### 使用状況
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| SET-026 | 下の帯に、ログインしている AI ごとの使用状況を並べ、押して詳細を開く | ai | M |
+| SET-026 | 下の帯に取得できた使用枠を並べ、押して詳細を開く。表示中のチャットの AI は枠がなくても札を残す | ai | M |
 | SET-027 | 超過分（追加の使用枠）・Codex のクレジットで動いているかを出し、動き始めたらチャットに知らせる | ai | M |
 
 ## BASE 土台（保存・守り・OS）

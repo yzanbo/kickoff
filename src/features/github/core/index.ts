@@ -5,14 +5,13 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { ProjectsApi } from "@/features/projects/core/index";
-import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import type { GitApi } from "@/features/git/core/index";
 import { CiService } from "./ci";
 import { mergedPullRequestOf, type MergedPullRequest } from "./pulls";
 import { runAsGitHubAccount } from "./account";
-import { activeGhToken, githubEnvForGit, listGitHubAccounts } from "./gh";
+import { githubEnvForGit, listGitHubAccounts } from "./gh";
 import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes, resolveGitHubTarget } from "./target";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
@@ -55,7 +54,7 @@ export interface GitHubApi {
 const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_remote", "pr_watch", "ci_watch", "archived"]);
 
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
-export function createGitHub(k: Kernel, deps: { git: Pick<GitApi, "status" | "push" | "withRepoLock">; worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store" | "addTurnContributor">; ai: Pick<AiApi, "provideGhToken"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
+export function createGitHub(k: Kernel, deps: { git: Pick<GitApi, "status" | "push" | "withRepoLock">; worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store" | "addTurnContributor"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { bus } = k;
   const stores = createGitHubStores(k.db);
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
@@ -64,7 +63,6 @@ export function createGitHub(k: Kernel, deps: { git: Pick<GitApi, "status" | "pu
   // remote に触る git（Kernel.workplace.git）に、そのプロジェクトのアカウントのトークンを足す（取れなくても手元の操作は止めない）
   k.workplace.gitEnv.register(() => githubEnvForGit());
   // Copilot の使用状況は gh で有効なアカウントのトークンで読む（ai は github より下なので、ここから渡す）
-  deps.ai.provideGhToken(activeGhToken);
   // チャットの AI が動かす gh・git も、そのプロジェクトで選んだ GitHub のアカウントにする（環境変数 order 20。gh にそのアカウントがなければ、gh で有効なもののまま）
   deps.chat.addTurnContributor({
     name: "github",

@@ -10,7 +10,7 @@ const replace = (list: ProviderUsage[], usage: ProviderUsage) => (list.some((u) 
 
 /**
  * AI ごとの使用状況（Codex など。下の帯と詳細・設定の「使用状況」で共有する）。取り直しを待たずに、
- * SSE の usage（Claude の取り直し・Codex の実行中にクレジットの残りが減った・枠に空きが戻った）でその AI の分を当てる
+ * SSE の usage（AI ごとの取得結果やクレジットの変化）でその AI の分を当てる
  */
 export const serviceUsageStore = createStore<ProviderUsage[]>({
   load: () => usageApi("GET /api/usage"),
