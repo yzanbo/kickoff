@@ -272,3 +272,11 @@ test("共通: ふつうのチャットを作れて作業フォルダで動く。
     assert.match(refused.body.error ?? "", /共通は Git で管理しないので、ワークツリーのチャットは作れません/);
   }
 });
+
+test("既読にするタイミング: 初めは一番下まで見たら既読。決めた値だけを受ける", async () => {
+  const { call } = setup({ features: ["chat", "settings"] });
+  assert.equal((await call("GET", "/api/settings")).body.read_timing, "at_bottom");
+  assert.equal((await call("PUT", "/api/settings", { read_timing: "button" })).body.read_timing, "button");
+  assert.equal((await call("PUT", "/api/settings", { read_timing: "open" })).status, 400);
+  assert.equal((await call("GET", "/api/settings")).body.read_timing, "button");
+});

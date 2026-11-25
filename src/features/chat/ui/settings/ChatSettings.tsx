@@ -7,6 +7,7 @@ import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { AiCreateChatField } from "./AiCreateChatField";
 import { AiWriteOtherProjectsField } from "./AiWriteOtherProjectsField";
+import { ReadTimingField } from "./ReadTimingField";
 import { settingsItemsOf } from "@/features/settings/ui";
 
 /** 自動のアーカイブで選べる日数（null はしない） */
@@ -19,7 +20,7 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 30, label: "30 日" },
 ];
 
-/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・上の機能の欄（自動圧縮を始める量）・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い・AI が子チャットを作るとき。変えたらすぐ保存する） */
+/** 設定: チャットの扱い（既読にするタイミング・完了したチャットの自動のアーカイブ・上の機能の欄（自動圧縮を始める量）・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い・AI が子チャットを作るとき。変えたらすぐ保存する） */
 export function ChatSettings() {
   const settings = useAppSettings().data;
   // ✕ を押したときの扱い（この Mac の画面の設定）
@@ -31,6 +32,7 @@ export function ChatSettings() {
     <section className="section">
       <h2>チャット</h2>
       <div className="form">
+        <ReadTimingField />
         <Field
           label="完了したチャットを自動でアーカイブ"
           help="終わって既読になったチャットを、最後に動いてからこの日数がたったら、一覧からしまいます。未読・回答待ち・作業中・失敗した・固定したチャットはしまいません。会話の記録は残り、アーカイブ済みから戻せます。"

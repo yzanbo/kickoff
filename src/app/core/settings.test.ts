@@ -6,7 +6,7 @@ import { SETTING_SCHEMAS } from "./settings";
 
 test("設定の束ね: 全部の項目に PUT の zod があり、並びも同じ。AI ごとに重ねるのは provider_chat_defaults だけ", () => {
   assert.deepEqual(Object.keys(SETTING_SCHEMAS), Object.keys(ALL_SETTINGS));
-  assert.equal(Object.keys(ALL_SETTINGS).length, 33);
+  assert.equal(Object.keys(ALL_SETTINGS).length, 34);
   assert.deepEqual(entriesOf(ALL_SETTINGS), ["provider_chat_defaults"]);
   // 既定の値は zod を通る
   for (const [key, value] of Object.entries(defaultsOf(ALL_SETTINGS))) {

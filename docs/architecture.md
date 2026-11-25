@@ -200,7 +200,8 @@ scripts/  docs/           道具と文書
 | 作業の終わりの予約 | `reserveAtTurnEnd`・`TurnEndTask` | 自分を含む操作を終わりに行う |
 | 末尾 / 索引 | `CHAT_TAIL_TURNS`・`selectIndexIds` | 開くときに読む最新のターンと、全体から作る印 |
 | 書きかけの返答 | `StreamingTexts`・`chat_delta` | 確定する前の AI の文 |
-| 未読 / 既読 | `unread` / `read` | 画面が一番下まで見たら既読 |
+| 未読 / 既読 | `unread` / `read` | 作業が終わったら未読。既読にするのは利用者 |
+| 既読にするタイミング | `read_timing`・`READ_TIMINGS` | 一番下まで見たら / 一番下まで見て、ボタンで |
 | チャットの選択 | `ChatOptions`・`resolveChatOptions` | モデル・深さ・権限・ファスト |
 | 権限モード | `PermissionMode` | |
 | 圧縮前指示 / 圧縮後指示 | `pre_compact_prompt`・`post_compact_prompt` | 圧縮の前後に AI に送る指示 |
