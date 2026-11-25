@@ -12,9 +12,10 @@ import { startKeepAwake } from "@/foundation/desktop/app/keepAwake";
 import { openedAtLogin } from "@/foundation/desktop/app/loginItem";
 import { logLaunch, startupLog, watchChildProcesses } from "@/foundation/desktop/app/startupLog";
 import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundation/desktop/app/hangWatch";
-import { openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
+import { mainWindow, openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
 import { browserDesktop } from "@/features/browser/desktop";
 import { diagnosticsDesktop } from "@/features/diagnostics/desktop";
+import { createPinstageBadges } from "@/features/notifications/desktop";
 import { watchMainStalls } from "@/foundation/desktop/app/stalls";
 import { markMain, startMetricsLog } from "@/foundation/desktop/app/bootRecorder";
 import { coreDesktop, foundationDesktop, registerIpc } from "@/foundation/desktop/foundationPart";
@@ -43,6 +44,13 @@ const featureParts: DesktopPart[] = [browserDesktop, diagnosticsDesktop];
 for (const part of featureParts) part.start?.();
 
 let core: CoreProcess | undefined;
+const pinstageBadges = createPinstageBadges({
+  platform: process.platform,
+  packaged: app.isPackaged,
+  appData: () => app.getPath("appData"),
+  mainContents: () => mainWindow()?.webContents,
+  log: (operation, error) => startupLog(`Pinstage のバッジの${operation === "write" ? "書き出し" : "削除"}に失敗しました: ${errorMessage(error)}`),
+});
 
 // 4. 1 つだけ起動する（2 つ目は、いまのウィンドウを前に出して終わる）
 if (!app.requestSingleInstanceLock()) {
@@ -62,7 +70,7 @@ async function start() {
   startupLog("whenReady");
   // 開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る（URL はポートから先に分かる）
   const url = devUrl ?? `http://127.0.0.1:${port}`;
-  const parts: DesktopPart[] = [foundationDesktop(url), ...featureParts];
+  const parts: DesktopPart[] = [foundationDesktop(url, pinstageBadges.setStateBadges), ...featureParts];
   const coreProcess = createCoreProcess({ port, devUrl, hostMethods: mergeParts(parts).hostMethods });
   for (const part of parts) part.connectCore?.(coreProcess);
   core = coreProcess;
@@ -118,4 +126,4 @@ app.on("window-all-closed", () => {
 });
 
 // 5. 終了時の片付け（shutdown.ts。before-quit の流れは変えない）
-registerShutdown(() => core);
+registerShutdown(() => core, pinstageBadges.close);

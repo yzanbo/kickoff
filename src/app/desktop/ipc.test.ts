@@ -63,6 +63,18 @@ function preloadChannels() {
 
 const sorted = (list: Iterable<string>) => [...list].sort();
 
+test("状態バッジの IPC は非負の整数と色または null を受け付ける", () => {
+  const { listened, calls, warnings } = registerMain();
+  const send = listened.get("send:notifications.setStateBadges")!;
+  const badges = { counts: { running: 2, needsInput: 0, unread: 1_000_001 }, colors: { running: "#65acee", needsInput: null, unread: "不正な色" } };
+  for (const running of [-1, 0.5, NaN, Infinity, "2"]) send(fromScreen, { ...badges, counts: { ...badges.counts, running } });
+  send(fromScreen, { ...badges, colors: { ...badges.colors, running: 2 } });
+  assert.deepEqual(calls, []);
+  assert.equal(warnings.length, 6);
+  send(fromScreen, { ...badges, chatName: "ファイルに渡さない" });
+  assert.deepEqual(calls, [{ name: "notifications.setStateBadges", args: [badges] }]);
+});
+
 test("IPC: メインが登録するチャンネルと、preload が使うチャンネルが一致する（invoke・send・知らせ）", () => {
   const main = registerMain();
   const preload = preloadChannels();

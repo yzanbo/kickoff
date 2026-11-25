@@ -15,6 +15,8 @@ export const absolutePath = z.string().refine((p) => path.isAbsolute(p), { messa
 export const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
+const badgeCount = z.number().int().nonnegative();
+const badgeColor = z.string().nullable();
 
 export const foundationArgs = {
   dialog: {
@@ -57,6 +59,12 @@ export const foundationArgs = {
     dockIconBase: none,
     // 512px のアイコンの PNG は 100KB ほど（base64 で 4/3 倍）。上限は桁違いに大きいものを断るため
     setDockIcon: z.tuple([z.string().startsWith("data:image/png;base64,").max(4_000_000).nullable()]),
+    setStateBadges: z.tuple([
+      z.object({
+        counts: z.object({ running: badgeCount, needsInput: badgeCount, unread: badgeCount }),
+        colors: z.object({ running: badgeColor, needsInput: badgeColor, unread: badgeColor }),
+      }),
+    ]),
   },
   loginItem: {
     get: none,

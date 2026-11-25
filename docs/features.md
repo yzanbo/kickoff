@@ -973,6 +973,7 @@
 | SET-020 | 通知を押してそのチャットを開く | 土台:desktop | M |
 | SET-021 | Dock のアイコンの隅に作業中・未読・回答待ちの数を状態の色で出す | notifications | T:dockBadge,T:dockIconModel,T:dockIconUpdater |
 | SET-022 | ntfy でスマホに知らせる（取りやめ: 欄を保存するだけで知らせていなかった。スマホへはプッシュで知らせる。MOB-013） | notifications | M |
+| SET-028 | macOS 製品版で状態の件数と色を Pinstage に渡す。設定オフ・全件 0・画面の終了で空にし、終了確定後にファイルを片付ける | notifications | T:pinstageBadges,M |
 
 ### 診断
 | ID | 機能 | 持ち主 | 確かめ方 |

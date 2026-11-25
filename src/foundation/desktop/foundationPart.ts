@@ -10,13 +10,13 @@ import { externalAppHandlers } from "@/foundation/desktop/app/externalApps";
 import { loginItemHandlers } from "@/foundation/desktop/app/loginItem";
 import { popoutHandlers } from "@/foundation/desktop/app/popouts";
 import { foundationArgs } from "@/foundation/desktop/ipc/args";
-import { fromApp, registerIpcHandlers } from "@/foundation/desktop/ipc/register";
+import { fromApp, registerIpcHandlers, type IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { notificationHandlers } from "@/foundation/desktop/app/notifications";
 import { defineDesktopPart, type MergedParts } from "@/foundation/desktop/parts";
 import { terminalHandlers } from "@/foundation/desktop/terminal/terminals";
 
 /** 土台の部品（appUrl: Kickoff の画面の URL。別ウィンドウはそこから開く） */
-export const foundationDesktop = (appUrl: string) =>
+export const foundationDesktop = (appUrl: string, setStateBadges: IpcHandlers["notifications"]["setStateBadges"]) =>
   defineDesktopPart({
     name: "foundation",
     ipc: {
@@ -24,7 +24,7 @@ export const foundationDesktop = (appUrl: string) =>
       windows: popoutHandlers(appUrl),
       externalApps: externalAppHandlers,
       terminal: terminalHandlers,
-      notifications: notificationHandlers(),
+      notifications: notificationHandlers(setStateBadges),
       loginItem: loginItemHandlers,
       appearance: appearanceHandlers,
     },

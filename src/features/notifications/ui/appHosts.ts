@@ -12,7 +12,7 @@ import { useDockBadge } from "./dockBadge";
 function useNotificationsHost() {
   useViewingReport(useRoute());
   useNotificationTargets();
-  const enabled = useAppSettings().data?.dock_badge ?? true;
+  const enabled = useAppSettings().data?.dock_badge;
   const { projects } = useProjects();
   const { pending } = useChatStates();
   useDockBadge({ enabled, projects, pending });

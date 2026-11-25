@@ -20,6 +20,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 
 ## 落とし穴
 - メインはコアのプロセスを直接止めない（RPC の `close` を頼んで待つ）。片付けは `registerShutdown` 1 か所（子の Electron → コアの `close` → 終了）。`reallyExit` は後片付けを飛ばすのでコアを必ず先に終わらせる。`app.quit()` を呼び直さない。
+- 機能が渡す終了時のファイル片付けは、終了が確定したあとだけ始め、子・コアの片付けと同じ待ち時間の上限に収める。
 - 子の Electron のアプリを先に止める。止めるのはメインプロセスにだけ SIGTERM（シェルを先に止めると開発版の localStorage が消える）。
 - コアが落ちたら残った子を止めてから作り直す（古い子が書いている間に再開すると食い違う。`leftovers.ts`）。
 - RPC の形は `@/foundation/core/host/protocol.ts`（機能の分は `@/app/core/hostRemote.ts` が declare module で足す。時間の上限 `RPC_TIMEOUTS`）。HTTP・SSE・WebSocket は画面からコアへ直接。

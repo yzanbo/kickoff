@@ -1,5 +1,5 @@
 // notifications が window.kickoff を読む所（Mac のアプリの中だけ: Mac の通知・押したときの知らせ・Dock のアイコン）
-import type { NotifyRequest, NotifyResult } from "@shared/foundation/ipc";
+import type { NotifyRequest, NotifyResult, StateBadges } from "@shared/foundation/ipc";
 
 /** Mac の通知を出せるか（Mac のアプリの中だけ。ブラウザで開いた画面の通知は Web Push を作るまで出さない） */
 export const canNotify = () => window.kickoff !== undefined;
@@ -15,6 +15,9 @@ export const getDockIconBase = (): Promise<string | null> => window.kickoff?.not
 
 /** Dock のアイコンを差し替える（PNG の data URL）。null で元のアイコンに戻す */
 export const setDockIcon = (dataUrl: string | null) => window.kickoff?.notifications.setDockIcon(dataUrl);
+
+/** ローカル連携用の件数。Dock の下地や描画の状態によらない */
+export const setStateBadges = (badges: StateBadges) => window.kickoff?.notifications.setStateBadges(badges);
 
 /** Mac の通知が押された（チャット・CI の実行）を受ける。やめるときは返り値を呼ぶ */
 export function onNotificationClick(handlers: { chat: (projectId: number, chatId: number) => void; ci: (projectId: number, runId: number) => void }): () => void {

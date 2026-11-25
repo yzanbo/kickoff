@@ -50,7 +50,7 @@ export function notifyFromCore(notice: Notice): void {
 }
 
 /** 通知（IPC の notifications。設定の「テスト通知を送る」・Mac の通知の設定・Dock のアイコン） */
-export function notificationHandlers(): IpcHandlers["notifications"] {
+export function notificationHandlers(setStateBadges: IpcHandlers["notifications"]["setStateBadges"]): IpcHandlers["notifications"] {
   // 前回までに出して、まだ通知センターに残っているものも、押したらそのチャットを開けるようにする
   void Notification.getHistory()
     .then((list) => list.slice(-KEEP).forEach(keep))
@@ -62,6 +62,7 @@ export function notificationHandlers(): IpcHandlers["notifications"] {
     // Dock のアイコンに状態の数を描く（Mac。描くのは画面。null で元に戻す）
     dockIconBase: () => dockIconBase(),
     setDockIcon: (e, dataUrl) => setDockIcon(e.sender, dataUrl),
+    setStateBadges,
   };
 }
 
