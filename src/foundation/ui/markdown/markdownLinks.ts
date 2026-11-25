@@ -1,5 +1,6 @@
 import { createContext, type MouseEvent } from "react";
 import { HTML_ID_PREFIX } from "./html/htmlAllowlist";
+import { SEE_THROUGH_CLASS } from "./math/katexOptions";
 
 /**
  * Markdown の外部リンク（http・https。読み直した URL）を押したときに開く口（ここはドメインを知らない。中身は App・別ウィンドウが
@@ -24,15 +25,24 @@ export function scrollToFragment(anchor: Element, id: string): void {
   target?.scrollIntoView({ block: "start" });
 }
 
+/** 画面に出ない数式の部分（読み上げ用の MathML・書いた式の annotation）と、透明な数式の文字のクラス */
+const UNSEEN_MATH_CLASSES = ["katex-mathml", SEE_THROUGH_CLASS];
+
 /**
  * hast の要素の中の、画面に見える文字（リンクの文字。確認の画面で「文字と行き先が違う」を見分ける）。
- * 画像は alt も数える（読めない画像は alt が文字で出て、リンクの色で見えるため）
+ * 画像は alt も数える（読めない画像は alt が文字で出て、リンクの色で見えるため）。数式は見た目の部分だけを読む
+ * （読み上げ用の MathML と書いた式も読むと、\text{apple.com} が「apple.com\text{apple.com}apple.com」とつながってドメインに読めないため）
  */
 export function linkTextOf(node: unknown): string {
   if (!node || typeof node !== "object") return "";
-  const n = node as { type?: string; tagName?: string; value?: unknown; properties?: { alt?: unknown }; children?: unknown[] };
+  const n = node as { type?: string; tagName?: string; value?: unknown; properties?: { alt?: unknown; className?: unknown }; children?: unknown[] };
   if (n.type === "text" && typeof n.value === "string") return n.value;
-  // 画像の alt は前後の文字とつながらないよう空白で区切る
-  if (n.type === "element" && n.tagName === "img") return typeof n.properties?.alt === "string" ? ` ${n.properties.alt} ` : "";
+  if (n.type === "element") {
+    // 画像の alt は前後の文字とつながらないよう空白で区切る
+    if (n.tagName === "img") return typeof n.properties?.alt === "string" ? ` ${n.properties.alt} ` : "";
+    if (n.tagName === "annotation" || n.tagName === "math") return "";
+    const classes = n.properties?.className;
+    if (Array.isArray(classes) && classes.some((c) => UNSEEN_MATH_CLASSES.includes(String(c)))) return "";
+  }
   return (n.children ?? []).map(linkTextOf).join("");
 }

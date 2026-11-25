@@ -11,7 +11,7 @@
 - 開きと閉じが同じ親の中でそろったものだけを要素にする（補わない）。タグ 2,000 個・入れ子 32 段・字下げ 10 段を超えたブロックは書いたままの文字。
 - 木にしたあと一覧ともう一度照らす（`html/htmlVerify.ts`）。Kickoff の印（`md-html` のクラス・数式・薄く出す段）は確かめのあとに付ける。ファイルのチップの印は Markdown の節にだけ付き、HTML から作った要素には付かない。
 - HTML の a はリンクの判定（`linkTargetOf`）を通した行き先だけ、img は http・https だけ（Markdown の画像と同じ部品）。HTML の id と # の行き先は `user-html-` の頭（脚注の `user-content-` を横取りさせない）。一覧を広げるときは、先に攻撃の例（`html/htmlAttacks.test.ts`）に足す。
-- 確認の画面に渡すリンクの文字（`linkTextOf`）は画面に見える文字。画像は alt も数える。
+- 確認の画面に渡すリンクの文字（`linkTextOf`）は画面に見える文字。画像は alt も数え、数式は見た目の部分だけ（MathML・annotation・透明な文字を除く）。
 - 画像の src の一覧（「host から画像を n 件表示」）は描く木から数える（`imageSourcesOf`。文の正規表現で拾わない）。
 - たたむ部分（details）は `MarkdownDetails.tsx` が state で開け閉めし、閉じている間は中身を DOM に置かない（コピー・引用・検索・画像の読み込みに入れない）。見出しがない・空なら「詳細」。
 - 書式付きコピー（`markdownHtml.ts`）は表示と同じ木を書く。HTML から作った要素の id と印のクラスは書かず、たたむ部分は中身ごと書く。

@@ -8,6 +8,11 @@ import { visit } from "unist-util-visit";
 import { linkWarnings } from "@shared/foundation/linkWarnings";
 import { linkTextOf, scrollToFragment } from "./markdownLinks";
 import { markdownToHast, pipelineOf, type MarkdownPipeline } from "./markdownProcessor";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import type { PluggableList } from "unified";
+import { KATEX_OPTIONS, rehypeSafeMath } from "./math/katexOptions";
+import { remarkMathGuard } from "./math/remarkMathGuard";
 
 const html = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
 
@@ -82,4 +87,13 @@ test("linkTextOf: リンクの中の画像の alt も文字に数え、alt の�
   assert.deepEqual(linkWarnings("https://evil.example", linkTextOf(node)), ["text_mismatch"]);
   // alt と前後の文字はつながらない
   assert.equal(linkTextOf(firstLink("[a![b](https://example.com/i.png)c](https://example.com)")).replace(/\s+/g, " "), "a b c");
+});
+
+test("linkTextOf: リンクの中の数式は見た目の部分だけを読み（読み上げ用の MathML・書いた式・透明な文字を除く）、行き先と違えば警告する", () => {
+  // 返答と同じ組（useMathPlugins.ts の数式の部品）
+  const math = pipelineOf(undefined, { remark: [[remarkMath, { singleDollarTextMath: true }], remarkMathGuard] as PluggableList, rehype: [[rehypeKatex, KATEX_OPTIONS], rehypeSafeMath] as PluggableList });
+  const text = linkTextOf(firstLink("[$\\text{apple.com}$](https://evil.example)", math));
+  assert.equal(text, "apple.com");
+  assert.deepEqual(linkWarnings("https://evil.example", text), ["text_mismatch"]);
+  assert.equal(linkTextOf(firstLink("[$a\\phantom{b}c$](https://example.com)", math)), "ac");
 });
