@@ -77,6 +77,7 @@ const SAMPLES = [
   "````md\n```\n中\n\n```\n````\n\n~~~\nチルダ\n\n~~~\n\n```mermaid\ngraph TD\n  A-->B\n```\n\n閉じていない\n\n```py\nprint(1)\n\n",
   "見出し\n===\n\n下線の見出し\n---\n\n* 星\n\n+ 足す\n\n1) かっこ\n2) かっこ",
   "&amp; &copy; \\* エスケープ \\`\n\n行末の空白で改行  \n次の行\n\n<br>\n\n最後",
+  "**「強調」**は（https://example.com）を開く。所要時間は5~10秒\n\n- **ノート（.md）**と~~取消（x）~~です\n\n| a |\n|---|\n| **【済】**です |",
 ];
 
 const MATH_SAMPLES = [
