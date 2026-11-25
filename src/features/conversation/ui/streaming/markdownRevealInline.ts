@@ -1,5 +1,6 @@
-// 書きかけの返答の文の中（強調・コードスパン・リンク・自動リンク・文字参照・数式）で止める所と補う閉じの記号（markdownReveal.ts の revealCut が使う）
+// 書きかけの返答の文の中（強調・コードスパン・リンク・自動リンク・HTML のタグ・文字参照・数式）で止める所と補う閉じの記号（markdownReveal.ts の revealCut が使う）
 import { mayBecomeSingleDollarMath } from "@shared/foundation/markdown/mathGuard";
+import { HTML_TAGS, PHRASING_TAGS, VOID_TAGS } from "@/foundation/ui/markdown/html/htmlAllowlist";
 import { aroundRun, attentionSides, strikethroughSides, type Around } from "@/foundation/ui/markdown/syntax/cjkFlanking";
 
 /** 文の中の書きかけで止める長さの上限（閉じない [ などを書いた文で、止まり続けないように。およそ 2 行） */
@@ -11,6 +12,27 @@ export const MAX_BLOCK_HOLD = 2000;
 const AUTOLINK_TAIL = /^<[A-Za-z][A-Za-z0-9+.-]*(:[^\s<>]*)?$/;
 /** 文の終わりの、; がまだの文字参照 */
 const ENTITY_TAIL = /^&[A-Za-z0-9#]{0,31}$/;
+
+/** 閉じの > がまだの HTML のタグ（< と名前の書きかけ・名前のあとの属性の書きかけ）・コメントの書きかけ */
+const TAG_TAIL = /^<\/?([a-z][a-z0-9]*)?(\s[^<>]*)?$/;
+const COMMENT_TAIL = /^<!(-(-[\s\S]*)?)?$/;
+/** 書き終えた文の中の HTML のタグ（開き・閉じ） */
+const TAG_AT = /<(\/?)([a-z][a-z0-9]*)(?:\s[^<>]*)?(\/?)>/y;
+/** 閉じを補う HTML のタグ（Markdown の中で要素にする文の中のタグ。描く側は開きと閉じがそろったものだけを要素にするので、閉じるまで文字で見えないように） */
+const CLOSABLE_TAGS: ReadonlySet<string> = new Set([...PHRASING_TAGS].filter((t) => HTML_TAGS.has(t) && !VOID_TAGS.has(t) && t !== "picture"));
+const HTML_TAG_NAMES = [...HTML_TAGS];
+
+/**
+ * 文の終わりが書きかけの HTML のタグ（一覧のタグの名前の書きかけか、一覧のタグの属性の書きかけ）かコメントか。
+ * 描く側は書き終えるまでタグと読まないので、その間は文字（<deta など）が一瞬見える。自動リンクの書きかけと同じく手前で止める
+ */
+function isTagTail(rest: string): boolean {
+  if (COMMENT_TAIL.test(rest) && !rest.includes("-->")) return true;
+  const m = TAG_TAIL.exec(rest);
+  if (!m) return false;
+  const name = m[1] ?? "";
+  return m[2] === undefined ? HTML_TAG_NAMES.some((t) => t.startsWith(name)) : HTML_TAGS.has(name);
+}
 
 /** pos から続く同じ文字の数（end まで） */
 function runLength(text: string, pos: number, end: number, ch: string): number {
@@ -50,6 +72,7 @@ function findParenClose(text: string, from: number, end: number): number {
 }
 
 interface Opener {
+  /** 強調の印の文字か、HTML の閉じのタグ（</b> など。count は 1） */
   char: string;
   count: number;
 }
@@ -157,8 +180,22 @@ export function scanInline(text: string, from: number, end: number, shown: numbe
       continue;
     }
     if (c === "<") {
-      if (i + 1 >= end || AUTOLINK_TAIL.test(text.slice(i, end))) {
+      const rest = end - i <= MAX_INLINE_HOLD + 1 ? text.slice(i, end) : "";
+      if (i + 1 >= end || AUTOLINK_TAIL.test(rest) || isTagTail(rest)) {
         if (stop(i, MAX_INLINE_HOLD)) break;
+      }
+      TAG_AT.lastIndex = i;
+      const tag = TAG_AT.exec(text);
+      if (tag && tag.index + tag[0].length <= end && CLOSABLE_TAGS.has(tag[2]) && !tag[3]) {
+        // 文の中のタグ: 開きは閉じのタグを積み（強調と同じく補う）、閉じはいちばん近い同じ開きを閉じる
+        const closer = `</${tag[2]}>`;
+        if (!tag[1]) stack.push({ char: closer, count: 1 });
+        else {
+          const k = stack.findLastIndex((o) => o.char === closer);
+          if (k >= 0) stack.splice(k);
+        }
+        i += tag[0].length;
+        continue;
       }
     } else if (c === "&") {
       if (ENTITY_TAIL.test(text.slice(i, end))) {

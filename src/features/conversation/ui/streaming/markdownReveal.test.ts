@@ -3,6 +3,7 @@ import { test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
+import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
 import { createBlockScanner } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
 import { createMarkdownRevealLimit, cutText, MAX_SCAN, revealCut } from "./markdownReveal";
@@ -179,4 +180,33 @@ test("日本語の強調・取り消し線（~ 1 つは文字のまま）: 表�
     }
     assert.equal(render(limit(text, text.length).render), render(text));
   }
+});
+
+test("HTML のタグ: 書きかけのタグ・コメントは手前で止め、文の中のタグは閉じのタグを補う。一覧にないタグ・比べる < は止めない", () => {
+  check([
+    ["前 <deta", "前 "],
+    ["前 <details op", "前 "],
+    ['前 <a href="https://exa', "前 "],
+    ["前 <", "前 "],
+    ["前 <!-- 目", "前 "],
+    ["a <b>太", "a <b>太</b>"],
+    ["a <b>太</b", "a <b>太</b>"],
+    ["a <b>太</b> と <kbd>K", "a <b>太</b> と <kbd>K</kbd>"],
+    ["**強 <i>斜", "**強 <i>斜</i>**"],
+    ["x <y z", "x <y z"],
+    ["a < b", "a < b"],
+    ["a <br> b", "a <br> b"],
+  ]);
+});
+
+test("HTML のタグ: 1 文字ずつ伸ばしても、描いた HTML に書きかけのタグが文字で出ず、書き終えたら確定の形と同じ", () => {
+  const pipeline = pipelineOf(undefined, null);
+  const draw = (markdown: string) => renderToStaticMarkup(renderMarkdown(pipeline, markdown, {}));
+  const text = '押すのは <kbd>⌘</kbd>+<kbd>K</kbd> で、<b>太字</b>と <abbr title="説明">略</abbr> と H<sub>2</sub>O。';
+  const limit = createMarkdownRevealLimit();
+  for (let shown = 1; shown <= text.length; shown++) {
+    const html = draw(limit(text, shown).render);
+    assert.ok(!html.includes("&lt;"), `shown=${shown}: ${html}`);
+  }
+  assert.equal(draw(limit(text, text.length).render), draw(text));
 });
