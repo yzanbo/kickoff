@@ -99,6 +99,24 @@ test("数式の文字を小さくするサイズの命令（\\tiny・\\sixptsize
   assert.match(render(String.raw`x_{y_{z}}`), /reset-size3 size1/);
 });
 
+test("数式の \\scriptscriptstyle は \\scriptstyle の大きさ（0.7 倍）で描く（\\let・\\def・\\noexpand でも 0.5 倍に戻らない。ノートの描き方も同じ）。入れ子の添え字の自動の縮みは KaTeX のまま", () => {
+  for (const tex of [
+    String.raw`\scriptscriptstyle\text{secret}`,
+    String.raw`{\scriptscriptstyle{\text{secret}}}`,
+    String.raw`\let\s\scriptscriptstyle\s\text{secret}`,
+    String.raw`\def\s{\scriptscriptstyle}\s\text{secret}`,
+    String.raw`\noexpand\scriptscriptstyle\text{secret}`,
+  ]) {
+    for (const html of [render(tex), katex.renderToString(tex, { ...KATEX_OPTIONS, displayMode: true })]) {
+      // 0.5 倍は reset-size6 size1（本文の大きさから）。\scriptstyle は size3
+      assert.doesNotMatch(html, /reset-size\d+ size[12]\b/, tex);
+      assert.match(visible(html).replace(/<[^>]+>/g, ""), /secret/, tex);
+    }
+  }
+  assert.match(render(String.raw`\scriptscriptstyle x`), /reset-size6 size3/);
+  assert.match(render(String.raw`x_{y_{z}}`), /reset-size3 size1/);
+});
+
 test("KATEX_OPTIONS: \\gdef で定義したマクロは、次の式に残らない（描くたびに macros の新しい写しを渡す）", () => {
   katex.renderToString(String.raw`\gdef\textcolor#1#2{X}\gdef\frac#1#2{Y}`, KATEX_OPTIONS);
   katex.renderToString(String.raw`\gdef\frac#1#2{Y}`, { ...KATEX_OPTIONS });

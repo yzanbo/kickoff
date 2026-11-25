@@ -23,12 +23,18 @@ const COLOR_MACROS: Readonly<Record<string, string>> = {
 const SIZE_MACROS: Readonly<Record<string, string>> = { "\\tiny": "", "\\sixptsize": "", "\\scriptsize": "", "\\footnotesize": "", "\\small": "" };
 
 /**
+ * 数式の型の命令のうち、文字を 0.5 倍にする \scriptscriptstyle を、添え字の大きさ（0.7 倍）の \scriptstyle にするマクロ
+ * （\scriptscriptstyle\text{…} で本文の半分の大きさの長い文を書かせないため）。入れ子の添え字が自動で 0.5 倍になるのは数式に要るので KaTeX のまま
+ */
+const STYLE_MACROS: Readonly<Record<string, string>> = { "\\scriptscriptstyle": "\\scriptstyle" };
+
+/**
  * KaTeX に渡す設定。書き方の誤りは赤くせず、文字の色のまま元の式を出す。\href・\includegraphics など外へ出るものは trust: false で止める。
  * maxSize: \rule・\raisebox・\kern などに書いた大きさの上限（em）。KaTeX は正の大きさだけを丸める（\rule{500em}{500em} は 10em の箱、
  * \raisebox{30em} は 10em ほど上がる）。負の大きさ（\kern-50em・\raisebox{-30em}）は丸めないので、式の外へ出た分は CSS で描かない（Markdown.css）。
  * maxExpand: マクロを展開する回数の上限（KaTeX の既定と同じ 1000）。\neq・\dfrac・\cdots なども 1 回と数えるので、
  * 行列・和・極限を並べた式は 40 個並べると 1000 を超える（500 では 20 個で超える）。1000 回でも、長い \def を展開し続ける式は 219ms で止まる（M2 Pro で測った）。
- * macros: 色を変える命令を色なしにし（COLOR_MACROS）、小さくするサイズの命令を何もしない形にする（SIZE_MACROS）。KaTeX は \gdef で渡した macros の中身を書き換えるので、描くたびに新しい写しを渡す
+ * macros: 色を変える命令を色なしにし（COLOR_MACROS）、小さくするサイズの命令を何もしない形にし（SIZE_MACROS）、\scriptscriptstyle を \scriptstyle にする（STYLE_MACROS）。KaTeX は \gdef で渡した macros の中身を書き換えるので、描くたびに新しい写しを渡す
  * （返答の rehype-katex もノートも設定を広げて渡すので、広げるたびに getter が新しい写しを作る。式どうしで定義が残らないように）
  */
 export const KATEX_OPTIONS = {
@@ -39,7 +45,7 @@ export const KATEX_OPTIONS = {
   maxSize: 10,
   maxExpand: 1000,
   get macros(): Record<string, string> {
-    return { ...COLOR_MACROS, ...SIZE_MACROS };
+    return { ...COLOR_MACROS, ...SIZE_MACROS, ...STYLE_MACROS };
   },
 } as const;
 
