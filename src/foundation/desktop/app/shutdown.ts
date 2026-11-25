@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, powerMonitor, session } from "electron";
 import type { CoreProcess } from "./coreProcess";
 import { desktopPlatform, hostPlatform } from "@/foundation/desktop/platform/index";
 import { stopChildElectronApps } from "./childApps";
-import { quitConfirmText } from "./quitConfirm";
+import { createQuitRequest, quitConfirmText } from "./quitConfirm";
 import { sleep } from "@shared/foundation/time";
 
 /** 片付けの上限（この中にコアの終わりも収める） */
@@ -17,10 +17,7 @@ const CORE_CLOSE_MARGIN_MS = 300;
  * 作業中のチャットがあれば、片付けの前に終了してよいかを聞く（⌘Q・メニュー・Dock・AppleScript の quit。名前はコアに RPC の runningChats で聞く）。
  * Mac の終了・再起動・ログアウトと、シグナル（kill -TERM・Ctrl+C）では聞かない（止めた作業は、次に起動したときの再開の確かめで聞く）
  */
-export function registerShutdown(core: () => CoreProcess | undefined) {
-  let closing = false;
-  /** 終了してよいかを聞いているところ（聞いている間にもう一度 ⌘Q を押したら、そのまま終える） */
-  let asking = false;
+export function registerShutdown(core: () => CoreProcess | undefined, cleanupLocalFiles: () => Promise<void>) {
   /** 聞かずに終える（Mac を終える・シグナル） */
   let skipConfirm = false;
   // Mac の終了・再起動・ログアウト: 聞くと Mac の終了を止めてしまう
@@ -34,7 +31,6 @@ export function registerShutdown(core: () => CoreProcess | undefined) {
   }
 
   const closeAndExit = (coreToClose: CoreProcess) => {
-    closing = true;
     const deadline = Date.now() + SHUTDOWN_MS;
     const timeout = sleep(SHUTDOWN_MS);
     const cleanup = async () => {
@@ -42,27 +38,26 @@ export function registerShutdown(core: () => CoreProcess | undefined) {
       // ターミナルのシェルもコアが止める（core.close）。残りの時間で終わらなければ SIGTERM
       await coreToClose.close(Math.max(500, deadline - Date.now() - CORE_CLOSE_MARGIN_MS));
     };
-    void Promise.race([cleanup(), timeout])
-      .catch((err) => console.error("[main] 終了の片付けに失敗しました", err))
-      .finally(() => void exitKeepingNotifications());
+    // ファイルの片付けは子やコアを待たずに始め、同じ待ち時間の上限に収める。
+    const closing = Promise.allSettled([Promise.resolve().then(cleanupLocalFiles), cleanup()]).then((results) => {
+      for (const result of results) {
+        if (result.status === "rejected") console.error("[main] 終了の片付けに失敗しました", result.reason);
+      }
+    });
+    void Promise.race([closing, timeout]).finally(() => void exitKeepingNotifications());
   };
 
+  const requestQuit = createQuitRequest({
+    running: (coreToClose: CoreProcess) => coreToClose.call("runningChats"),
+    confirm: confirmQuit,
+    close: closeAndExit,
+  });
   app.on("before-quit", (e) => {
     const coreToClose = core();
     // コアがなければ止めるもの（シェルもコアの子）がない
     if (!coreToClose) return;
     e.preventDefault();
-    if (closing) return;
-    // 聞いている間にもう一度 ⌘Q を押した・シグナル・Mac の終了なら、待たずに終える
-    if (skipConfirm || asking) return closeAndExit(coreToClose);
-    asking = true;
-    void (async () => {
-      // 聞けない（コアが止まっている・応答しない）なら、聞かずに終える
-      const running = await coreToClose.call("runningChats").catch(() => []);
-      const quit = running.length === 0 || (await confirmQuit(running));
-      asking = false;
-      if (quit && !closing) closeAndExit(coreToClose);
-    })();
+    void requestQuit(coreToClose, skipConfirm);
   });
 }
 

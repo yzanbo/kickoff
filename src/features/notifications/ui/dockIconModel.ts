@@ -1,10 +1,8 @@
 // Dock のアイコンに描く状態の数の丸の計算（位置・幅・文字・数字の色。描くのは dockIcon.ts。純粋に保つ）
 import type { CountedColumn, StateCounts } from "@/features/chat/ui";
 import { contrastRatio, parseColor, type Rgb } from "@shared/foundation/theme/color";
+import { STATE_BADGE_LAYOUT } from "@shared/notifications/stateBadges";
 import { formatBadgeCount } from "@/foundation/ui/lib/format";
-
-/** 状態ごとの隅（左上 = 作業中・右上 = 未読・左下 = 回答待ち。右下は Dock の起動中の点に近いので空ける） */
-const CORNER_OF = { running: "top_left", unread: "top_right", needs_input: "bottom_left" } as const satisfies Record<CountedColumn, string>;
 
 /** 描く順（重なったときに後のものが上。急ぐ回答待ちを最後にする） */
 const DRAW_ORDER = ["running", "unread", "needs_input"] as const satisfies readonly CountedColumn[];
@@ -47,9 +45,9 @@ export function dockBadgeLayout(counts: StateCounts, size: number, measure: (lab
   return DRAW_ORDER.filter((column) => counts[column] > 0).map((column) => {
     const label = formatBadgeCount(counts[column]);
     const width = Math.max(height, measure(label) + height * TEXT_PADDING);
-    const corner = CORNER_OF[column];
-    const x = corner === "top_right" ? far - width : near;
-    const y = corner === "bottom_left" ? far - height : near;
+    const { corner } = STATE_BADGE_LAYOUT[column];
+    const x = corner === "topRight" ? far - width : near;
+    const y = corner === "bottomLeft" ? far - height : near;
     return { column, label, x, y, width, height };
   });
 }

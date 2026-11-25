@@ -12,3 +12,30 @@ export function quitConfirmText(chats: readonly { title: string }[]): { message:
     detail: [...names, ...(rest > 0 ? [`ほか ${rest} 件`] : []), "", "終了すると作業が止まります。次に起動したときに、続けるかを聞きます。"].join("\n"),
   };
 }
+
+/** 終了が決まるまで片付けを始めない。確認中にもう一度終了を頼まれたら、そのまま終える。 */
+export function createQuitRequest<Core>({ running, confirm, close }: {
+  running(core: Core): Promise<{ title: string }[]>;
+  confirm(chats: { title: string }[]): Promise<boolean>;
+  close(core: Core): void;
+}) {
+  let closing = false;
+  let asking = false;
+  return async (core: Core, skipConfirm: boolean): Promise<void> => {
+    if (closing) return;
+    const finish = () => {
+      closing = true;
+      close(core);
+    };
+    if (skipConfirm || asking) return finish();
+    asking = true;
+    try {
+      const chats = await running(core).catch(() => []);
+      if (closing) return;
+      const quit = chats.length === 0 || (await confirm(chats));
+      if (quit && !closing) finish();
+    } finally {
+      asking = false;
+    }
+  };
+}

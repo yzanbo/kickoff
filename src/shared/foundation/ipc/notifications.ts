@@ -25,6 +25,12 @@ export interface NotifyRequest {
 /** 通知を出した結果（届かなかったら理由。Mac の設定で許可していないときなど） */
 export type NotifyResult = { ok: true } | { ok: false; error: string };
 
+/** 集計済みの状態だけを渡す。色が読めなかった項目は null。 */
+export interface StateBadges {
+  counts: { running: number; needsInput: number; unread: number };
+  colors: { running: string | null; needsInput: string | null; unread: string | null };
+}
+
 /** コアが決めた知らせの、押したときに開くもの（チャットか CI の実行） */
 export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };
 

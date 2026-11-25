@@ -1,11 +1,9 @@
 // Dock のアイコンに状態の数を描いて当てる（canvas。メインプロセスには canvas がないので画面で描き、PNG で渡す）
-import type { CountedColumn, StateCounts } from "@/features/chat/ui";
+import type { StateCounts } from "@/features/chat/ui";
 import { badgeFontSize, digitColorFor, dockBadgeLayout } from "./dockIconModel";
 import { createDockIconUpdater } from "./dockIconUpdater";
 import { getDockIconBase, setDockIcon } from "./native";
-
-/** 丸の色の変数（画面の状態の点と同じ。tokens.css の --dot-*） */
-const COLOR_VARS = { running: "--dot-running", unread: "--dot-unread", needs_input: "--dot-needs-input" } as const satisfies Record<CountedColumn, string>;
+import { badgeColorVariable } from "./stateBadgeModel";
 
 const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
 
@@ -40,7 +38,7 @@ function draw(base: HTMLImageElement, counts: StateCounts): string | null {
     ctx.shadowOffsetY = size * 0.006;
     // canvas では CSS 変数が使えないので、テーマの値を読み、fillStyle が正規化した色で対比も計算する
     ctx.fillStyle = "#888888";
-    ctx.fillStyle = css.getPropertyValue(COLOR_VARS[badge.column]).trim();
+    ctx.fillStyle = css.getPropertyValue(badgeColorVariable(badge.column)).trim();
     const background = ctx.fillStyle;
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, height / 2);

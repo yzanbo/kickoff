@@ -5,7 +5,7 @@
 import type { CoreStatus } from "./core";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
-import type { NotifyRequest, NotifyResult } from "./notifications";
+import type { NotifyRequest, NotifyResult, StateBadges } from "./notifications";
 import type { ThemeChoice } from "@shared/foundation/theme/backgrounds";
 
 /** 呼び方の種類: invoke = 画面から呼んで返事を待つ / send = 画面から送るだけ（返事なし） / event = メインから画面への知らせ */
@@ -113,6 +113,8 @@ export const FOUNDATION_IPC = {
     dockIconBase: invoke<[], string | null>(),
     /** Dock のアイコンを差し替える（PNG の data URL）。null で元のアイコンに戻す */
     setDockIcon: send<[dataUrl: string | null]>(),
+    /** メインのウィンドウで数えた状態。Dock の絵とは独立して渡す */
+    setStateBadges: send<[badges: StateBadges]>(),
     /** 通知が押されて、そのチャットを開くとき（Kickoff を起動し直したあとに、前の通知が押されたときも） */
     onOpenChat: event<[projectId: number, chatId: number]>(),
     /** CI の失敗の通知が押されて、その実行を CI のタブで開くとき */
