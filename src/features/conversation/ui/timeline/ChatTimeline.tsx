@@ -94,7 +94,7 @@ export function ChatTimeline({
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
-  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
   // ⌘⇧U で既読⇔未読（一番下にいるかによらない）
   useReadToggleKey(root, chat);
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
