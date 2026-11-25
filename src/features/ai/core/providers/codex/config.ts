@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { EffortLevel } from "@shared/settings/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
+import { isInside } from "@/foundation/core/system/paths";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { launchEnv } from "@/features/ai/core/providers/shared/process";
 import { HOOK_TOKEN_ENV, HOOK_URL_ENV, hookConfig } from "./hooks";
@@ -39,8 +40,16 @@ export function mcpServerOverrides(tools: ToolEndpoint[], permissionMode: Provid
   return Object.fromEntries(entries);
 }
 
-/** 書けるフォルダ（Bash の砂場の一覧。作業場所は Codex が自分で入れる） */
-const writableRootsOf = (params: ProviderTurnParams): string[] => params.sandbox?.writableDirs ?? [];
+/**
+ * 書けるフォルダ（Bash の砂場の一覧。作業場所は Codex が自分で入れる）。一時フォルダを外すとき（tempDirOf）は、書かせないフォルダを中に持つもの
+ * （砂場の一覧に入っている /private/tmp・$TMPDIR の実体）も渡さない（excludeSlashTmp は /tmp の既定の書ける場所を外すだけで、書けるフォルダに名前で渡せば書ける）
+ */
+function writableRootsOf(params: ProviderTurnParams): string[] {
+  const dirs = params.sandbox?.writableDirs ?? [];
+  if (tempDirOf(params) === null) return dirs;
+  const denied = params.sandbox?.readOnlyDirs ?? [];
+  return dirs.filter((dir) => !denied.some((d) => isInside(dir, d)));
+}
 
 /**
  * 一時フォルダ（/tmp と app-server の $TMPDIR）を書ける場所から外すか。Codex の砂場（workspaceWrite）には書けるフォルダの中を書かせない口がないので、

@@ -50,15 +50,18 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
 });
 
 test("共通のチャットで一時フォルダに置いた利用者のプロジェクトがあれば、一時フォルダを書ける場所から外し、コマンドの一時ファイルを作業場所の置き場に向ける", () => {
-  const sandbox = { writableDirs: ["/note"], readOnlyDirs: ["/private/tmp/alpha"], unsandboxedCommands: [], proxyPort: null, commandTempDir: "/w/.kickoff-tmp" };
-  assert.deepEqual(codexSandboxPolicy(params({ sandbox })), { type: "workspaceWrite", writableRoots: ["/note"], networkAccess: true, excludeTmpdirEnvVar: true, excludeSlashTmp: true });
+  // 砂場の一覧には一時フォルダの実体（/private/tmp・$TMPDIR）も書けるフォルダとして入っている。書かせないフォルダを中に持つ /private/tmp は渡さない
+  const sandbox = { writableDirs: ["/note", "/private/tmp", "/private/var/folders/x/T"], readOnlyDirs: ["/private/tmp/alpha"], unsandboxedCommands: [], proxyPort: null, commandTempDir: "/w/.kickoff-tmp" };
+  assert.deepEqual(codexSandboxPolicy(params({ sandbox })), { type: "workspaceWrite", writableRoots: ["/note", "/private/var/folders/x/T"], networkAccess: true, excludeTmpdirEnvVar: true, excludeSlashTmp: true });
   const config = threadOverrides(params({ sandbox, env: { GH_TOKEN: "g" } })).config;
+  assert.deepEqual(config?.["sandbox_workspace_write.writable_roots"], ["/note", "/private/var/folders/x/T"]);
   assert.equal(config?.["sandbox_workspace_write.exclude_slash_tmp"], true);
   assert.equal(config?.["sandbox_workspace_write.exclude_tmpdir_env_var"], true);
   assert.deepEqual(config?.["shell_environment_policy.set"], { GH_TOKEN: "g", TMPDIR: "/w/.kickoff-tmp", TMPPREFIX: "/w/.kickoff-tmp/zsh" });
   // 置き場がなければ（プロジェクトのチャット・ふつうの置き場所）これまでどおり一時フォルダを書ける
   const plain = threadOverrides(params({ sandbox: { ...sandbox, commandTempDir: null } })).config;
   assert.equal(plain?.["sandbox_workspace_write.exclude_slash_tmp"], undefined);
+  assert.deepEqual(plain?.["sandbox_workspace_write.writable_roots"], ["/note", "/private/tmp", "/private/var/folders/x/T"]);
   assert.equal(plain?.["shell_environment_policy.set"], undefined);
   // 計画モード・砂場オフは変えない
   assert.deepEqual(codexSandboxPolicy(params({ sandbox, permissionMode: "plan" })), { type: "readOnly", networkAccess: true });
