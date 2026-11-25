@@ -26,13 +26,13 @@
 
 ## 落とし穴
 - `public/boot.js` は保存の読み方・骨組みの色と高さを写す。変えたら `@/app/renderer/bootScript.test.ts` を通す。
-- React Compiler: 描く中で ref・外の値（`readSetting`・モジュールの変数）を読み書きしない。effect の依存を抑止コメントで減らさない（`useEffectEvent`）。hook が返した ref は分けて受ける。外すのは `"use no memo"` と理由と `react-compiler-skips.json` の 3 つが揃うときだけ（ないとビルドが落ちる）。
+- React Compiler: 描く中で ref・外の値（`readSetting`・モジュールの変数）を読み書きしない。effect の依存を抑止コメントで減らさない（`useEffectEvent`）。hook が返した ref は分けて受ける。外すのは `"use no memo"` と理由と `react-compiler-skips.json` の 3 つが揃うときだけ。
 - 裏のタブは `Activity` の hidden で止める。隠すと effect が流れ直すので、外の値は `useSyncExternalStore` で読み、隠しても続ける仕事は殻に置く。
 - memo した部品・`Markdown` へ描くたびに新しい値を渡さない。店の値は中身が同じなら同じ参照を返す。速く変わる値（書いている途中の返答）は state に入れない。
 - 長い一覧は窓か段階に分けて描く。行の DOM を読む操作の前に `ensureAllRows()`。`content-visibility` で省いた行の中の位置を読まない。
 - ドラッグ中の見た目を変える state は `startDragGhost` の `after` で変える（`dragstart` の中で描き直すとドラッグが取り消される）。端のスクロールは `dragAutoScroll.ts`。
 - 戻る・進むは画面単位の履歴（`useHashRoute` が描く前に積む。たどるときは `replace`）。動けない方向は無効にする。
 - ページの ⌘F は `kit/usePageFind`（ページの要素は `position: relative`。エディタの検索に任せるなら `native`）。チャットの中の検索は捕捉で先に受ける。
-- Markdown の読み方は `markdown/syntax/` の組 1 つ（強調の判定は `cjkFlanking`）。
+- Markdown の読み方は `markdown/syntax/` の組 1 つ（1 回の改行も改行。強調の判定は `cjkFlanking`）。
 - 重いもの（Mermaid・図・色付け）は `useNearViewport` で手前まで来てから。色付けは Web Worker。
 - テスト: `store/`・`storage/`・`navigation/`・`markdown/` の `*.test.ts`。偽の時計は `createFakeScheduler`。

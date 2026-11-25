@@ -7,6 +7,7 @@ import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough";
 import type { Options as RemarkRehypeOptions } from "remark-rehype";
 import { remarkGfmParts } from "./remarkGfmParts";
+import { remarkSoftBreaks } from "./remarkSoftBreaks";
 
 type PluggableList = NonNullable<Options["remarkPlugins"]>;
 
@@ -24,10 +25,11 @@ const SYNTAX: PluggableList = [
 ];
 
 /**
- * remark のプラグインの組。extra（数式・ファイルのチップの差し込みなど、画面ごとに足すもの）は読み方の部品の後ろに入れる
+ * remark のプラグインの組。extra（数式・ファイルのチップの差し込みなど、画面ごとに足すもの）は読み方の部品の後ろに入れる。
+ * 1 回の改行を改行にするのは最後（数式の決まりが数式でない $…$ を文に戻したあとの改行も、同じく改行にするため）
  */
 export function markdownRemarkPlugins(extra: PluggableList = []): PluggableList {
-  return [...SYNTAX, ...extra];
+  return [...SYNTAX, ...extra, remarkSoftBreaks];
 }
 
 /**

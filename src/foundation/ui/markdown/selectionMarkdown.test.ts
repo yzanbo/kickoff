@@ -66,3 +66,7 @@ test("hastToMarkdown: 強調・取り消し線の後ろに日本語が続いて�
   assert.equal(markdown, "**「強調」**は\n\n**ノート（.md）**と~~取消（x）~~です");
   assert.doesNotMatch(markdown, /&#x/);
 });
+
+test("hastToMarkdown: 改行（br）は \\ を付けずに改行だけで書く（表示は 1 回の改行を改行として読む）", () => {
+  assert.equal(hastToMarkdown(root(h("p", {}, "行1", h("br", {}), "\n行2"))), "行1\n行2");
+});

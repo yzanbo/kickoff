@@ -144,6 +144,18 @@ test("renderMarkdown: tail があれば終わりの文字を薄く包む（コ�
   assert.match(html, /<code>code\n<\/code>/);
 });
 
+test("renderMarkdown: 1 回の改行を改行（br）にしても、薄く出す段は同じ文字を包む（改行の文字が br の後ろに残る）", () => {
+  const faded = (html: string) => [...html.matchAll(/<span class="stream-fade-\d">([^<]*)<\/span>/g)].map((m) => m[1]).join("");
+  const plain = createPipeline([], []);
+  const withBreaks = pipelineOf(undefined, null);
+  for (const [text, n] of [["前の行\n後ろの行", 5], ["前の行\n後ろの行", 8], ["a\nb\nc", 3], ["**太\n字**の\n続き", 6]] as const) {
+    const before = faded(renderToStaticMarkup(renderMarkdown(plain, text, components, [n, 0, 0])));
+    const after = renderToStaticMarkup(renderMarkdown(withBreaks, text, components, [n, 0, 0]));
+    assert.match(after, /<br\/>/);
+    assert.equal(faded(after), before, text);
+  }
+});
+
 test("createBlockCache: 同じ処理の組と文なら同じ要素を返し、数と字数の上限で古いものから捨てる", () => {
   const pipeline = pipelineOf(undefined, null);
   const cache = createBlockCache({ count: 2, chars: 1000 });

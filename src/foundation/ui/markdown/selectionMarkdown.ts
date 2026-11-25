@@ -4,7 +4,7 @@ import type { Element as HastElement, Nodes as HastNodes, Root as HastRoot } fro
 import { fromDom } from "hast-util-from-dom";
 import { toMdast } from "hast-util-to-mdast";
 import { gfmToMarkdown } from "mdast-util-gfm";
-import { toMarkdown } from "mdast-util-to-markdown";
+import { defaultHandlers, toMarkdown } from "mdast-util-to-markdown";
 import { cjkFriendlyToMarkdown } from "mdast-util-to-markdown-cjk-friendly";
 import { cjkFriendlyGfmStrikethroughToMarkdown } from "mdast-util-to-markdown-cjk-friendly-gfm-strikethrough";
 
@@ -73,11 +73,20 @@ const mathHandlers = {
     node.properties.dataTex === undefined ? state.all(node) : { type: node.properties.dataDisplay ? "math" : "inlineMath", value: String(node.properties.dataTex) },
 } as unknown as NonNullable<Parameters<typeof toMdast>[1]>["handlers"];
 
-/** 数式を書き出す（式の中の記号を書き換えの形にしない。表示と同じ $…$ と、$$ の行で挟んだブロック） */
-const mathToMarkdown = {
+type Handlers = NonNullable<NonNullable<Parameters<typeof toMarkdown>[1]>["handlers"]>;
+
+/**
+ * 数式を書き出す（式の中の記号を書き換えの形にしない。表示と同じ $…$ と、$$ の行で挟んだブロック）。
+ * 改行（br）は、表示が 1 回の改行を改行として読む（syntax/remarkSoftBreaks.ts）ので、\ を付けずに改行だけで書く（見出し・表の中は元のとおり空白）
+ */
+const handlers = {
   inlineMath: (node: { value: string }) => ["$", node.value, "$"].join(""),
   math: (node: { value: string }) => ["$$", node.value, "$$"].join("\n"),
-} as unknown as NonNullable<Parameters<typeof toMarkdown>[1]>["handlers"];
+  break: (...args: Parameters<typeof defaultHandlers.break>) => {
+    const out = defaultHandlers.break(...args);
+    return out === "\\\n" ? "\n" : out;
+  },
+} as unknown as Handlers;
 
 /**
  * 描いた Markdown の木（hast）を Markdown の文にする（前後の空白は削る。数式は書いた式に戻す）。
@@ -85,7 +94,7 @@ const mathToMarkdown = {
  */
 export function hastToMarkdown(tree: HastRoot): string {
   const mdast = toMdast(withMathAsTex(withoutDecorations(tree)), { handlers: mathHandlers });
-  return toMarkdown(mdast, { extensions: [gfmToMarkdown(), cjkFriendlyToMarkdown(), cjkFriendlyGfmStrikethroughToMarkdown()], handlers: mathToMarkdown, bullet: "-", emphasis: "*", strong: "*", rule: "-", fences: true }).trim();
+  return toMarkdown(mdast, { extensions: [gfmToMarkdown(), cjkFriendlyToMarkdown(), cjkFriendlyGfmStrikethroughToMarkdown()], handlers, bullet: "-", emphasis: "*", strong: "*", rule: "-", fences: true }).trim();
 }
 
 /** 選んだ範囲の中身を、書式が分かるよう外側の要素で包み直した断片にする（root より外はたどらない） */

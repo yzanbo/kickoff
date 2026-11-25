@@ -69,3 +69,19 @@ test("脚注: 見出しは読み上げ用（sr-only）の「脚注」、戻る�
   assert.match(out, /aria-label="本文の注 2 へ戻る"/);
   assert.doesNotMatch(out, /Footnotes|Back to reference/);
 });
+
+test("1 回の改行: 段落・箇条書きの項目・引用・脚注の中で改行にし、空行・空白 2 つ・\\・コード・表はこれまでと同じ", () => {
+  check([
+    ["行1\n行2", "<p>行1<br/>\n行2</p>"],
+    ["- 項目の1行目\n  2行目", "<ul>\n<li>項目の1行目<br/>\n2行目</li>\n</ul>"],
+    ["> 引用1\n> 引用2", "<blockquote>\n<p>引用1<br/>\n引用2</p>\n</blockquote>"],
+    ["**太字の\n続き**", "<p><strong>太字の<br/>\n続き</strong></p>"],
+    ["段落1\n\n段落2", "<p>段落1</p>\n<p>段落2</p>"],
+    ["空白2つ  \n次", "<p>空白2つ<br/>\n次</p>"],
+    ["バックスラッシュ\\\n次", "<p>バックスラッシュ<br/>\n次</p>"],
+    ["```\na\nb\n```", "<pre><code>a\nb\n</code></pre>"],
+    ["`a\nb` の中", "<p><code>a b</code> の中</p>"],
+    ["| a |\n|---|\n| 1 |\n表の後ろ\n次", "<table><thead><tr><th>a</th></tr></thead><tbody><tr><td>1</td></tr><tr><td>表の後ろ</td></tr><tr><td>次</td></tr></tbody></table>"],
+    ["見出しの前\n# 見出し\n後ろ", "<p>見出しの前</p>\n<h1>見出し</h1>\n<p>後ろ</p>"],
+  ]);
+});
