@@ -12,7 +12,7 @@ import { discardDraft, forgetDraftsOfMissingProjects, moveDraftToProject, openDr
 import { openSeededChat } from "./openSeededChat";
 import type { PanelOp } from "./windowMessages";
 
-/** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
+/** 新しいチャット: 開いている（なければサイドバーで選んでいる。共通も）プロジェクトで始める（もうないものは飛ばして利用者のプロジェクトの先頭、1 つもなければ共通） */
 function startNewChat() {
   const target = projectInView(routeProjectId(parse(location.hash)));
   if (target) open({ kind: "newChat", projectId: target });

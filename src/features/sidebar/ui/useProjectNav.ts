@@ -7,7 +7,7 @@ import { useCommandHandler } from "@/foundation/ui/commands";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { projectsSettings, projectsApi, reorderableIds, useProjects, useVisibleProjects, loadCurrentProject, saveCurrentProject, useProjectMenu } from "@/features/projects/ui";
+import { projectsSettings, projectsApi, reorderableIds, useProjects, useVisibleProjects, loadCurrentProject, saveCurrentProject, useProjectMenu, firstTargetOf } from "@/features/projects/ui";
 import { chatListSettings, projectKey } from "@/features/chatList/ui";
 import { waitingChats, useChatStates, useChatSearch, useChatsWithChildrenByProject } from "@/features/chat/ui";
 import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
@@ -82,7 +82,10 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const { set: setProjectOpen } = projectFolds;
   const setCollapsed = useCallback((id: number, collapsed: boolean) => setProjectOpen(projectKey(id), !collapsed), [setProjectOpen]);
   const collapsedMap = { get: (id: number) => !projectFolds.isOpen(projectKey(id)), set: setCollapsed };
-  const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
+  // 覚えがない・もうないときは利用者のプロジェクトの先頭（1 つもなければ共通。並びの先頭の共通をいきなり選ばない）
+  const picked = ordered.findIndex((p) => p.id === currentId);
+  const fallbackId = firstTargetOf(ordered);
+  const index = picked >= 0 ? picked : Math.max(0, ordered.findIndex((p) => p.id === fallbackId));
   const current = ordered[index];
 
   // 開いた画面のプロジェクトにサイドバーも合わせる

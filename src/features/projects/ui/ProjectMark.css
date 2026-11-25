@@ -74,7 +74,9 @@
   .lane-project.board-lane-head:hover,
   button.project-switch:hover,
   .project-switch[aria-expanded="true"],
-  .project-chip-link:hover .project-chip {
+  .project-chip-link:hover .project-chip,
+  .project-picker:hover .project-chip,
+  .project-picker[aria-expanded="true"] .project-chip {
     border-color: hsl(var(--hue, 150) var(--hue-edge-hover));
     background: hsl(var(--hue, 150) var(--hue-tint-hover));
   }

@@ -1,5 +1,6 @@
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { Chat } from "@shared/chat/types";
+import { isCommonProject, type ProjectKind } from "@shared/projects/kinds";
 import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatTitle } from "./chatTitle";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -128,20 +129,22 @@ export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachC
 
 /**
  * 確かめてから、チャットを別のプロジェクトへ移す（右クリックの「プロジェクトを変更」・サイドバーのプロジェクトへのドラッグで共通。やめたら false）。
- * 作業フォルダが変わり、グループ・作業場所（ワークツリー）は外れる（子チャットも一緒に移る）。group を渡すと、移したあとそのグループへ入れる
+ * 作業フォルダが変わり（共通へなら共通の作業フォルダ）、グループ・作業場所（ワークツリー）は外れる（子チャットも一緒に移る）。作業のファイルは元の場所に残る。group を渡すと、移したあとそのグループへ入れる
  * （ほかのプロジェクトのグループへ落としたとき）。いま開いているチャットなら、移した先のプロジェクトで開き直す（元のボードからは消えるため）
  */
 export async function confirmMoveChatToProject(
   chat: Chat,
-  project: { id: number; name: string },
+  project: { id: number; name: string; kind?: ProjectKind | null },
   { group }: { group?: { id: number; name: string } } = {},
 ): Promise<boolean> {
+  const common = isCommonProject({ kind: project.kind ?? null });
   const lost = [chat.group_id !== null && "グループ", chat.worktree_path && "作業場所（ワークツリー）"].filter(Boolean).join("・");
   const children = knownDescendantCount(chat.id);
   const ok = await confirm({
     title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
     message: [
-      "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。会話はそのまま続けられます。",
+      common ? "これからの作業は、共通の作業フォルダで行います。" : "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。",
+      "作業したファイルは元のフォルダに残ります。会話はそのまま続けられます。",
       lost && !group ? `いまの${lost}は外れます。` : "",
       lost && group ? `いまの${lost}は外れ、グループ「${group.name}」に入れます。` : "",
       !lost && group ? `グループ「${group.name}」に入れます。` : "",
@@ -158,5 +161,5 @@ export async function confirmMoveChatToProject(
 }
 
 /** confirmMoveChatToProject の、失敗をお知らせで出す形（ドラッグで落としたときなど、待つ人がいないとき） */
-export const moveDroppedChatToProject = (chat: Chat, project: { id: number; name: string }, group?: { id: number; name: string }) =>
+export const moveDroppedChatToProject = (chat: Chat, project: Parameters<typeof confirmMoveChatToProject>[1], group?: { id: number; name: string }) =>
   void confirmMoveChatToProject(chat, project, { group }).catch((e: unknown) => alert("チャットを移せませんでした", errorMessage(e)));

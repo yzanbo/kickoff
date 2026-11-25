@@ -6,7 +6,7 @@ import { chatPaneSlot, createdChildPlace, openChat, useKeepAlive, chatsApi } fro
 import { ChatScreen, NewChildPane, SideChildChat, SubagentScreen } from "@/features/conversation/ui";
 import { childTab, useTabPage, type PanelTab, type TabPageProps } from "@/features/panel/ui";
 import { NewChatPane } from "./tabs/NewChatPane";
-import { openNewChat } from "./drafts/panelDrafts";
+import { moveDraftToProject, openNewChat } from "./drafts/panelDrafts";
 import { newChatDraft } from "@/features/composer/ui";
 import { moveDraftSidePanel } from "./agents/draftSide";
 import { sidePanelPort } from "./sidePanelPort";
@@ -26,6 +26,8 @@ export function NewChatPage({ tab: t, panel, visible }: PageOf<"new">) {
         moveDraftSidePanel(t.key, chat.id);
         panel.replaceWithChat(t.key, chat);
       }}
+      // 作成先を選び直したら、右クリックの「プロジェクトを変更」と同じく移す先のパネルで開き直す
+      onProjectChange={(projectId) => moveDraftToProject({ panel: panel.key, key: t.key }, projectId)}
     />
   );
 }

@@ -1,6 +1,5 @@
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
-import { isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
@@ -10,7 +9,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 /**
  * メニューの項目の横に開く、プロジェクトを選ぶ一覧:
  * 上に「プロジェクトを検索または作成」の欄、その下に「新規プロジェクト」、区切り線、プロジェクトの一覧（サイドバーの並び。
- * いまのプロジェクトにチェック。しまったもの・共通は出さない。共通を行き先にするのは、共通へ移すときの守りを入れてから）。Enter で絞り込んだ先頭を選び、合うものがなければ書いた名前で新しく作る。
+ * 先頭に共通。いまのプロジェクトにチェック。しまったものは出さない）。Enter で絞り込んだ先頭を選び、合うものがなければ書いた名前で新しく作る。
  * 置き場所・↑↓・← で戻るは MenuFlyout
  */
 export function ProjectPickFlyout({
@@ -34,7 +33,7 @@ export function ProjectPickFlyout({
   const [query, setQuery] = useState("");
 
   const words = query.trim().toLowerCase();
-  const shown = sidebarOrder(projects).filter((p) => isUserProject(p) && (!words || p.name.toLowerCase().includes(words)));
+  const shown = sidebarOrder(projects).filter((p) => !words || p.name.toLowerCase().includes(words));
   const pick = (project: Project) => (project.id === current ? onBack() : onPick(project));
 
   return (

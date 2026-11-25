@@ -22,6 +22,8 @@ export { newProjectNoteField, type NewProjectNoteFieldProps } from "./new/NoteDi
 export { useEditedProject } from "./settings/editedProject";
 export { projectGit, type ProjectGit } from "./projectGit";
 export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";
+export { firstTargetOf } from "./projectTargets";
+export { ProjectPicker } from "./ProjectPicker";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const projectsSettings = { listOrder: storage.settings.listOrder, sideView: storage.settings.sideView } as const;

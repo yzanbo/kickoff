@@ -16,4 +16,30 @@
     text-overflow: ellipsis;
     color: var(--text);
   }
+
+  /* 新しいチャットの作成先を選び直す札（ProjectPicker）: ボタンは枠を持たず、中のバッジに ▾ を足す。乗せた・開いたときの地と枠の色は ProjectMark.css */
+
+  .project-picker {
+    display: inline-flex;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    background: none;
+    cursor: pointer;
+  }
+
+  .project-picker-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-picker-caret {
+    flex: none;
+    margin-left: -2px;
+    opacity: 0.8;
+  }
 }

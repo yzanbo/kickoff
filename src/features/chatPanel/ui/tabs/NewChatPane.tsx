@@ -13,7 +13,7 @@ import { useChatHeaderItems, useChatHeaderRowHidden, DraftChatPage } from "@/fea
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { draftScope } from "@/features/panel/ui";
 import type { SidePanelHandle } from "@/features/chat/ui";
-import { useProjects, useIsCommonProject, ProjectChip } from "@/features/projects/ui";
+import { useProjects, useIsCommonProject, ProjectPicker } from "@/features/projects/ui";
 import { groupNameIn, useGroups, GroupPicker } from "@/features/groups/ui";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
@@ -26,19 +26,21 @@ interface Props {
   visible?: boolean;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
   onCreated: (chat: Chat) => void;
+  /** 作成先を選び直したとき（書きかけの文と添付を持って、選んだ先のチャットのパネルで開き直す。グループ・作業場所はその先の初めの値から） */
+  onProjectChange: (projectId: number) => void;
 }
 
 /**
  * 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる）。中身（書きかけの文・添付・名前・作成先）は composer の下書きの店。
  * チャットの画面と同じく右の欄を持ち（AgentSplit。範囲は下書きのタブの draft-<key>）、ノートのピルから開いたノートはここに開く。送ったら中身はできたチャットの右の欄へ移る
  */
-export function NewChatPane({ draftKey, visible = true, onCreated }: Props) {
+export function NewChatPane({ draftKey, visible = true, onCreated, onProjectChange }: Props) {
   const saved = useNewChatDraft(draftKey);
   if (!saved) return null;
-  return <NewChatForm draft={saved} visible={visible} onCreated={onCreated} />;
+  return <NewChatForm draft={saved} visible={visible} onCreated={onCreated} onProjectChange={onProjectChange} />;
 }
 
-function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft; visible: boolean; onCreated: (chat: Chat) => void }) {
+function NewChatForm({ draft: saved, visible, onCreated, onProjectChange }: Omit<Props, "draftKey" | "visible"> & { draft: NewChatDraft; visible: boolean }) {
   const { key: draftKey, projectId, group, title, worktree, seed } = saved;
   const { projectsById, loaded: projectsLoaded } = useProjects();
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
@@ -132,8 +134,8 @@ function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft
       provider={provider}
       badges={
         <>
-          {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。グループと作業場所は、押すと選び直せる */}
-          {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
+          {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。どれも押すと選び直せる（作成先は共通と各プロジェクト） */}
+          {project && shows("project") && <ProjectPicker value={project.id} onPick={onProjectChange} />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => changeGroup(next, groupNameIn(groups, next))} />}
           {shows("worktree") && !common && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
         </>
