@@ -15,7 +15,7 @@ export const filesChatFileLinks: ChatFileLinksPort = {
   // チップはいまの一覧の名前で出し（作業場所のフォルダはそのときのもの。変更カードの絶対パスも作業場所の中として読む）、押すと開けないと知らせる
   goneSource: (current, root, tell) => {
     const links = own(current);
-    return { index: { ...links.index, root: root ?? links.index.root }, side: links.side, open: tell, openInEditor: links.openInEditor && tell, openChanges: tell } satisfies FileLinkSource;
+    return { index: { ...links.index, root: root ?? links.index.root }, side: links.side, common: links.common, open: tell, openInEditor: links.openInEditor && tell, openChanges: tell } satisfies FileLinkSource;
   },
   popout: (source, place) => popoutFileLinks(own(source), place),
 };

@@ -4,8 +4,12 @@ import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/foundation/u
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ChatFileLinksContext, openByClick, type ChatFileLinks, type ChatFileSource } from "@/features/chat/ui";
 import { FileMenu } from "./FileMenu";
+import { fileLinkPlaceOf, fileMenuPlaces, type FileLinkPlace } from "./linkPlace";
 import { createFileLookup, remarkFileLinks, type FileRef } from "./fileRefs";
 import type { FileLinkSource } from "./useFileLinks";
+
+/** 押したときの開き方の呼び名（リンクの説明） */
+const CLICK_PLACE: Record<FileLinkPlace, string> = { side: "右の欄", window: "別ウィンドウ", tab: "ファイルタブ" };
 
 /**
  * チャットのパネルの中で、返答のファイルのパス（Markdown）・ターンの変更カード・ツールの行・右の欄の変更を、押して開けるようにする。
@@ -31,6 +35,7 @@ export function FileLinksProvider({ source, children }: { source: ChatFileSource
   const latest = useLatest(links);
   const root = index?.root;
   const side = links?.side ?? false;
+  const common = value?.common ?? false;
   const markdown = useMemo<MarkdownFileLinks | undefined>(
     () =>
       root === undefined
@@ -43,14 +48,14 @@ export function FileLinksProvider({ source, children }: { source: ChatFileSource
               if (latest.current) openByClick(latest.current, e, { path, ...(line ? { line } : {}) });
             },
             menu: (e, path, line) => latest.current?.showMenu(e, { path, ...(line ? { line } : {}) }),
-            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${side ? "右の欄" : "ファイルタブ"}で開く（⌘クリックでファイルタブ・右クリックでほかの開き方）`,
+            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${CLICK_PLACE[fileLinkPlaceOf({ side, common })]}で開く（${common ? "右クリックでパスのコピーなど" : "⌘クリックでファイルタブ・右クリックでほかの開き方"}）`,
           },
-    [root, side, store, latest],
+    [root, side, common, store, latest],
   );
   return (
     <ChatFileLinksContext.Provider value={links}>
       <MarkdownFileLinksContext.Provider value={markdown}>{children}</MarkdownFileLinksContext.Provider>
-      {links && menu.menu && <FileMenu at={menu.menu.at} file={menu.menu.value} links={links} onClose={menu.close} />}
+      {links && menu.menu && <FileMenu at={menu.menu.at} file={menu.menu.value} links={links} places={fileMenuPlaces({ side, common })} onClose={menu.close} />}
     </ChatFileLinksContext.Provider>
   );
 }
