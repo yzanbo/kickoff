@@ -1,6 +1,6 @@
 import "./NotePlanDialog.css";
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NotePlan } from "@shared/notes/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { notesApi } from "@/features/notes/ui/api";
@@ -29,6 +29,13 @@ export function NotePlanDialog({
   const [chosen, setChosen] = useState<ReadonlySet<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const instructionRef = useRef<HTMLTextAreaElement>(null);
+
+  // 案を作る間は頼みを書き換えられない（disabled）。無効にすると入力欄からフォーカスが外れるので、
+  // 終わって頼みの欄が残る（失敗・案がない）ときは、書き直せるように戻す
+  useEffect(() => {
+    if (!busy) instructionRef.current?.focus();
+  }, [busy]);
 
   const makePlan = async () => {
     if (busy) return;
@@ -82,7 +89,9 @@ export function NotePlanDialog({
                 : "ノートの名前と書き出しを AI に見せて、フォルダ分けと名前の付け直しの案を作ります。案を見て、選んだものだけを動かします（消す・中身を書き換える案は出ません）。"}
             </p>
             <textarea
+              ref={instructionRef}
               autoFocus
+              disabled={busy}
               rows={2}
               value={instruction}
               placeholder="頼み（空ならおまかせ。例: 日付ごとのフォルダに分けて）。Enter で案を作る"

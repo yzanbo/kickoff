@@ -32,6 +32,7 @@ select {
   cursor: pointer;
 }
 
+textarea:disabled,
 select:disabled {
   cursor: default;
   opacity: 0.6;
