@@ -82,3 +82,17 @@ test("createBlockSplitter: 最後のブロックで閉じていないコード�
   assert.equal(splitter.split("前\n\n説明\n```mermaid\ngraph\n```").openFence, null);
   assert.equal(createBlockSplitter().split("前\n\n```ts\nconst a").openFence, 0);
 });
+
+test("splitBlocks: HTML の入れ物の開きから閉じまでは、空行があっても分けない（書きかけの返答も同じ）", () => {
+  const text = "前\n\n<details>\n<summary>題</summary>\n\n本文\n\n<div align=\"center\">\n\n中\n\n</div>\n\n</details>\n\n後ろ";
+  assert.deepEqual(splitBlocks(text), ["前", text.slice(3, text.indexOf("\n\n後ろ")), "後ろ"]);
+  // 閉じがまだ（書きかけ）なら最後まで 1 つ。閉じたら次の空行で分ける
+  const splitter = createBlockSplitter();
+  assert.deepEqual(splitter.split("前\n\n<div>\n\na\n\nb").blocks, ["前", "<div>\n\na\n\nb"]);
+  assert.deepEqual(splitter.split("前\n\n<div>\n\na\n\nb\n\n</div>\n\nc").blocks, ["前", "<div>\n\na\n\nb\n\n</div>", "c"]);
+  // 文の中のコードの中・自分で閉じる形・大文字のタグ・閉じを省ける li は数えない
+  assert.deepEqual(splitBlocks("`<div>`\n\na"), ["`<div>`", "a"]);
+  assert.deepEqual(splitBlocks("<div/>\n\na"), ["<div/>", "a"]);
+  assert.deepEqual(splitBlocks("<DIV>\n\na"), ["<DIV>", "a"]);
+  assert.deepEqual(splitBlocks("<ul><li>x</ul>\n\na"), ["<ul><li>x</ul>", "a"]);
+});
