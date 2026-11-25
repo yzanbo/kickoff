@@ -240,6 +240,7 @@ export default {
       "src/foundation/ui/document/useDocument.ts", // 文書の土台（ファイルとノートが同じ口で読み書きする）
       "src/foundation/ui/document/HtmlFrame.tsx", // HTML の文書の iframe（ファイルと HTML のノートが使う）
       "src/foundation/ui/kit/layout/ListDetail.tsx", // 一覧＋詳細の 2 欄の型（いまは GitHub・CI。ファイル・ノート・履歴の 2 欄も乗せる先）
+      "src/foundation/ui/markdown/markdownHtml.ts", // 書式付きコピーの HTML（表示と同じ読み方の組・ブロック分け・中の HTML の確かめを使うので、Markdown の土台と同じ所に置く）
     ],
   },
 };
