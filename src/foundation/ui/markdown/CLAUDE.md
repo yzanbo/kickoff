@@ -13,6 +13,7 @@
 - HTML の a はリンクの判定（`linkTargetOf`）を通した行き先だけ、img は http・https だけ（Markdown の画像と同じ部品）。一覧を広げるときは、先に攻撃の例（`html/htmlAttacks.test.ts`）に足す。
 - 画像の src の一覧（「host から画像を n 件表示」）は描く木から数える（`imageSourcesOf`。文の正規表現で拾わない）。
 - たたむ部分（details）は `MarkdownDetails.tsx` が state で開け閉めし、閉じている間は中身を DOM に置かない（コピー・引用・検索・画像の読み込みに入れない）。見出しがない・空なら「詳細」。
+- 書式付きコピー（`markdownHtml.ts`）は表示と同じ木を書く。HTML から作った要素の id と印のクラスは書かず、たたむ部分は中身ごと書く。
 - CSS: HTML でしか出ないタグは `MarkdownHtml.css`（state の層）で、ほかの CSS を戻してから見た目を付ける。文字の大きさを変えるタグは 10px から見出しの大きさまでに止める。
 
 ## 落とし穴

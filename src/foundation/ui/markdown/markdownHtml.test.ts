@@ -23,9 +23,10 @@ test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1
   const shown = splitBlocks(text)
     .map((b) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), b, {})))
     .join("\n");
-  // 書き出し方の違い（自分で閉じる印・文字参照の形・真偽の属性）だけをそろえて比べる
+  // 書き出し方の違い（自分で閉じる印・文字参照の形・真偽の属性・コピーに書かない HTML の要素の印）だけをそろえて比べる
   const normalize = (s: string) =>
     s
+      .replace(/ class="md-html"/g, "")
       .replace(/<h2 class="sr-only" id="footnote-label">脚注<\/h2>/, "")
       .replace(/<br\/>/g, "<br>")
       .replace(/&#x3C;/g, "&lt;")
@@ -45,4 +46,14 @@ test("書式付きコピー: 数式は式の文字のまま、読むと危ない
   assert.match(markdownToHtml("式 $x^2$ です"), /<p>式 \$x\^2\$ です<\/p>/);
   const risky = "*a".repeat(7000);
   assert.equal(markdownToHtml(`前\n\n${risky}`), `<p>前</p>\n<p>${risky}</p>`);
+});
+
+test("書式付きコピー: 文中の HTML は一覧を通した結果だけを書く（id・Kickoff の印は書かない・たたむ部分は中身ごと・値と文字はエスケープ）", () => {
+  const html = markdownToHtml(
+    '<p id="top" onclick="x()" title="a&quot;<b>">段落</p>\n\n<details>\n<summary>題</summary>\n\n中身 <kbd>K</kbd>\n\n</details>\n\n<a href="javascript:alert(1)">危</a> <a href="https://example.com/?a=1&b=2">安</a> <iframe src="https://evil.example"></iframe>',
+  );
+  assert.match(html, /<p title="a&#x22;<b>">段落<\/p>/);
+  assert.match(html, /<details>\n<summary>題<\/summary>\n<p>中身 <kbd>K<\/kbd><\/p>\n<\/details>/);
+  assert.match(html, /<a>危<\/a> <a href="https:\/\/example.com\/\?a=1&#x26;b=2">安<\/a> &#x3C;iframe src="https:\/\/evil.example">&#x3C;\/iframe>/);
+  assert.doesNotMatch(html, /id=|class="md-html"|onclick|javascript:/);
 });
