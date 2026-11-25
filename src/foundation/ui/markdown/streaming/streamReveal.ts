@@ -94,11 +94,12 @@ type Parent = Root | Element;
 
 /**
  * 木の文字を後ろから数え、新しい段から順に `span.stream-fade-<段>` で包む（その場で書き換える）。
- * コードブロック（pre）の中は数えない（色付け・コピーが文字を読むため）
+ * コードブロック（pre）の中は数えない（色付け・コピーが文字を読むため）。
+ * 包んだ節は親ごとにまとめて、親の並びを 1 回だけ組み直す（節ごとに位置を探して差し替えると、文字の節の数の 2 乗かかるため）
  */
 export function wrapStreamTail(tree: Root, bands: readonly number[]) {
   if (!bands.some((n) => n > 0)) return;
-  // 文字の節を、親と並びの位置とともに前から集める
+  // 文字の節を、親とともに前から集める
   const texts: { parent: Parent; node: { type: "text"; value: string } }[] = [];
   const walk = (parent: Parent) => {
     for (const child of parent.children as (RootContent | ElementContent)[]) {
@@ -117,20 +118,27 @@ export function wrapStreamTail(tree: Root, bands: readonly number[]) {
     }
   };
   nextBand();
+  // 親ごとの、差し替える節と包んだあとの並び
+  const replaced = new Map<Parent, Map<object, ElementContent[]>>();
   for (let t = texts.length - 1; t >= 0 && band < bands.length; t--) {
     const { parent, node } = texts[t];
     const pieces: ElementContent[] = [];
     let end = node.value.length;
     while (end > 0 && band < bands.length) {
       const start = Math.max(0, end - left);
-      pieces.unshift(fadeSpan(node.value.slice(start, end), band + 1));
+      pieces.push(fadeSpan(node.value.slice(start, end), band + 1));
       left -= end - start;
       end = start;
       nextBand();
     }
-    if (end > 0) pieces.unshift({ type: "text", value: node.value.slice(0, end) });
-    const siblings = parent.children as ElementContent[];
-    siblings.splice(siblings.indexOf(node), 1, ...pieces);
+    if (end > 0) pieces.push({ type: "text", value: node.value.slice(0, end) });
+    pieces.reverse();
+    let mine = replaced.get(parent);
+    if (!mine) replaced.set(parent, (mine = new Map()));
+    mine.set(node, pieces);
+  }
+  for (const [parent, mine] of replaced) {
+    parent.children = (parent.children as ElementContent[]).flatMap((child) => mine.get(child) ?? [child]);
   }
 }
 

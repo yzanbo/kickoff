@@ -75,3 +75,17 @@ test("splitTail: 段は後ろのブロックから長さまで割り当て、あ
   assert.deepEqual(splitTail([1, 2], undefined), [undefined, undefined]);
   assert.deepEqual(splitTail([1, 2], [0, 0, 0]), [undefined, undefined]);
 });
+
+test("wrapStreamTail: 1 つの親に文字の節が 16 万個あっても、節の数に比例する時間で包む", () => {
+  const count = 160_000;
+  const p: Element = { type: "element", tagName: "p", properties: {}, children: Array.from({ length: count }, () => ({ type: "text" as const, value: "a" })) };
+  const tree: Root = { type: "root", children: [p] };
+  const start = performance.now();
+  wrapStreamTail(tree, [count / 2, count / 4, count / 8]);
+  const elapsed = performance.now() - start;
+  assert.ok(elapsed < 500, `${elapsed.toFixed(0)}ms`);
+  // 前の 1/8 は包まず、あとは古い段から新しい段の順に並ぶ
+  const classes = p.children.map((c) => (c.type === "element" ? String(c.properties.className) : "text"));
+  assert.equal(classes.length, count);
+  assert.deepEqual([classes[0], classes[count / 8], classes[count / 4], classes[count / 2], classes[count - 1]], ["text", "stream-fade-3", "stream-fade-2", "stream-fade-1", "stream-fade-1"]);
+});
