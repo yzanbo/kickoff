@@ -4,6 +4,7 @@ import { createLruMap } from "@/foundation/ui/lib/lruMap";
 import { fixLabelContrast } from "./fixLabelContrast";
 import { diagramBackground, mermaidConfig } from "./mermaidConfig";
 import { sanitizeMermaidSvg } from "./sanitizeSvg";
+import { mermaidReadsOutside } from "./mermaidResources";
 
 /**
  * 描いた図（SVG）を覚えておく数と SVG の字数の合計（同じ図を開き直したとき・タブを切り替えたとき・流れの窓で行を外して戻したときに、描き直さない。
@@ -50,6 +51,8 @@ export function renderMermaid(code: string, theme: AppliedTheme): Promise<string
   const key = cacheKey(code, theme);
   const hit = cache.get(key);
   if (hit !== undefined) return Promise.resolve(hit);
+  // 描く途中で外の画像・CSS を読みに行く図は、Mermaid に渡さない（描けなかった図としてソースのまま出る。mermaidResources.ts）
+  if (mermaidReadsOutside(code)) return Promise.reject(new Error("外の画像・CSS を読む図は描きません"));
   const task = queue.then(async () => {
     const mermaid = await loadMermaid();
     mermaid.initialize(mermaidConfig(theme));

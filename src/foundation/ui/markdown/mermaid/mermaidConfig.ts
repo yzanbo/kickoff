@@ -61,6 +61,9 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
     securityLevel: "strict",
     suppressErrorRendering: true,
     htmlLabels: false,
+    // 図の中の %%{init}%%・前書き（---）で書き換えられない設定。Mermaid の既定の 6 つに、HTML のラベル（<img> などで外を読む・
+    // foreignObject）と、ラベルの無害化の設定（タグを足せる）を足す。Mermaid は入れ子の同じ名前（flowchart.htmlLabels）も消す
+    secure: ["secure", "securityLevel", "startOnLoad", "maxTextSize", "suppressErrorRendering", "maxEdges", "htmlLabels", "dompurifyConfig"],
     maxTextSize: MAX_TEXT_SIZE,
     maxEdges: MAX_EDGES,
     theme: "base",
