@@ -1,5 +1,5 @@
 // 共通のノート（Kickoff が用意する見えないプロジェクトのノート）の画面の口: 欄の名前・使えるか・ノートの持ち主の名前・見えないプロジェクトの代わりに使うプロジェクト。
-// 見えないプロジェクトの画面はないので、そのノートから画面を移る所（開く・新しいチャット）はここでいま見ているプロジェクトに置き換える
+// 見えないプロジェクトのノートのタブへは行かないので、そのノートを開くときはここでいま見ているプロジェクトに置き換える
 import type { NoteDefaults } from "@shared/notes/types";
 import type { Project } from "@shared/projects/types";
 import { isUserProject } from "@shared/projects/kinds";
@@ -41,6 +41,13 @@ export const noteOwnerName = (project: Project | undefined): string => (project 
 export function isHiddenProject(projectId: number): boolean {
   const project = currentProjectsIndex().projectsById.get(projectId);
   return project !== undefined && !isUserProject(project);
+}
+
+/** いま画面（URL）で見ている利用者のプロジェクト（共通の画面・全ノートの画面・別ウィンドウなど、見ていなければ null） */
+export function viewedUserProject(): { id: number; name: string } | null {
+  const id = routeProjectId(parse(location.hash));
+  const project = id === null ? undefined : currentProjectsIndex().projectsById.get(id);
+  return project && isUserProject(project) ? { id: project.id, name: project.name } : null;
 }
 
 /**
