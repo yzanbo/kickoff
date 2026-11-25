@@ -24,6 +24,13 @@ test("Markdown のリンク: # で始まるものは href を # のまま（窓�
   assert.match(html("[見出し](#a)"), /<a href="#a" rel="noreferrer">見出し<\/a>/);
 });
 
+test("Markdown の脚注: 番号と戻る印のリンクは id・説明を残す（戻る印の行き先は番号の id）", () => {
+  const out = html("本文[^1]。\n\n[^1]: 注");
+  assert.match(out, /<a href="#user-content-fn-1" id="user-content-fnref-1" aria-describedby="footnote-label" rel="noreferrer">1<\/a>/);
+  assert.match(out, /<a href="#user-content-fnref-1" aria-label="本文の注 1 へ戻る" rel="noreferrer">↩<\/a>/);
+  assert.match(out, /<li id="user-content-fn-1">/);
+});
+
 /** 偽の Markdown の表示（返答 1 つ）: 中の ID の要素と、スクロールした記録（どの返答の何か） */
 function fakeReply(name: string, ids: string[], scrolled: string[]) {
   const targets = new Map(ids.map((id) => [id, { scrollIntoView: () => void scrolled.push(`${name}:${id}`) }]));

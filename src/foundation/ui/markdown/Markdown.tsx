@@ -26,7 +26,7 @@ import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
  * 開く口（MarkdownLinkOpenerContext。確認の画面・開き先の設定）で開く（中クリックも同じ）。# は窓を開かず、同じ返答の中の行き先へスクロールする。
  * ほか（相対のパス・mailto: など）はリンクにせず文字だけ（書かれた文字列を href に入れない。窓の URL に解決されてコアの URL などへ行かないように）
  */
-const link: Components["a"] = function MarkdownLink({ node, href, children }) {
+const link: Components["a"] = function MarkdownLink({ node, href, children, id, "aria-label": label, "aria-describedby": describedBy }) {
   const opener = useContext(MarkdownLinkOpenerContext);
   const path = node?.properties.dataFilePath;
   const target = linkTargetOf(href);
@@ -41,7 +41,8 @@ const link: Components["a"] = function MarkdownLink({ node, href, children }) {
     target === null ? (
       <>{children}</>
     ) : (
-      <a href={target.kind === "web" ? target.url : href} rel="noreferrer" onClick={activate} onAuxClick={activate}>
+      // id・説明は脚注の番号と戻る印のもの（remark-rehype が付ける。戻る印の行き先は番号の id）
+      <a href={target.kind === "web" ? target.url : href} id={id} aria-label={label} aria-describedby={describedBy} rel="noreferrer" onClick={activate} onAuxClick={activate}>
         {children}
       </a>
     );

@@ -179,6 +179,29 @@
     background: var(--bg-active);
   }
 
+  /* 脚注の欄（remark-rehype の section.footnotes）。本文と分かるよう、上に細い線を引いて少し小さい字にする */
+
+  .markdown .footnotes {
+    margin-top: 1em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--border);
+    font-size: var(--chat-fs-13);
+  }
+
+  /* 画面には出さず、読み上げにだけ残す文（脚注の見出し「脚注」。remark-rehype が sr-only を付ける） */
+
+  .markdown .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border: 0;
+    clip-path: inset(50%);
+  }
+
   /* 返答の中の画像は欄の幅に収める */
 
   .markdown img {

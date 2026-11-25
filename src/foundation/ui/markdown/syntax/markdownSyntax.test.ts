@@ -60,3 +60,12 @@ test("強調: 崩れていなかった書き方・英語の文・_ の印は、�
     ["__下線（x）__です", "<p>__下線（x）__です</p>"],
   ]);
 });
+
+test("脚注: 見出しは読み上げ用（sr-only）の「脚注」、戻る印の説明は「本文の注 n へ戻る」", () => {
+  const out = html("本文[^1]と[^a]と[^1]。\n\n[^1]: 一つ目\n[^a]: 二つ目");
+  assert.match(out, /<h2 class="sr-only" id="footnote-label">脚注<\/h2>/);
+  assert.match(out, /aria-label="本文の注 1 へ戻る"/);
+  assert.match(out, /aria-label="本文の注 1-2 へ戻る"/);
+  assert.match(out, /aria-label="本文の注 2 へ戻る"/);
+  assert.doesNotMatch(out, /Footnotes|Back to reference/);
+});

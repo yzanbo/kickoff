@@ -30,5 +30,13 @@ export function markdownRemarkPlugins(extra: PluggableList = []): PluggableList 
   return [...SYNTAX, ...extra];
 }
 
-/** mdast から hast にするときの決まり（生の HTML は木に残し、描く前に文字にする。react-markdown と同じ） */
-export const REMARK_REHYPE_OPTIONS: RemarkRehypeOptions = { allowDangerousHtml: true };
+/**
+ * mdast から hast にするときの決まり（生の HTML は木に残し、描く前に文字にする。react-markdown と同じ）。
+ * 脚注の見出しは画面に出さず読み上げにだけ残す（sr-only。Markdown.css）ので、文言は読み上げる日本語にする
+ */
+export const REMARK_REHYPE_OPTIONS: RemarkRehypeOptions = {
+  allowDangerousHtml: true,
+  footnoteLabel: "脚注",
+  // 同じ注を何度も指したときは 2 回目から「-2」のように数を足す（remark-rehype の既定と同じ数え方）
+  footnoteBackLabel: (referenceIndex, rereferenceIndex) => `本文の注 ${referenceIndex + 1}${rereferenceIndex > 1 ? `-${rereferenceIndex}` : ""} へ戻る`,
+};
