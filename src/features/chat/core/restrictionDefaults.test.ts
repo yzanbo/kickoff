@@ -93,3 +93,25 @@ test("共通のチャットは、編集先の制限の既定をオフにして�
   assert.equal(gateMaterials[1].writeScope, null);
   assert.ok(!provider.calls[1].sandbox?.readOnlyDirs.includes(fs.realpathSync(project.repo_path)));
 });
+
+test("共通のチャットは、砂場の既定・チャットの切り替えをオフにしても Bash の砂場をかける（プロジェクトのチャットはオフのまま）", async () => {
+  const provider = makeProvider();
+  const { store, runner, project } = setupCore(provider, { bashSandbox });
+  store.settings.update({ sandbox_enabled_by_default: false });
+  const common = store.projects.create({ name: "共通", repo_path: `${project.repo_path}-common`, provider: "claude", kind: "common" });
+  fs.mkdirSync(common.repo_path, { recursive: true });
+  for (const providerId of ["claude", "codex"] as const) {
+    const chat = await runner.start({ projectId: common.id, provider: providerId, prompt: "調べもの" });
+    await until(() => ["completed", "failed"].includes(store.chats.get(chat.id)?.status ?? ""));
+    assert.equal(store.chats.get(chat.id)?.error ?? null, null);
+    assert.equal(chat.sandbox_enabled, false);
+  }
+  for (const call of provider.calls) {
+    assert.equal(call.sandboxOff, false);
+    assert.ok(call.sandbox?.readOnlyDirs.includes(fs.realpathSync(project.repo_path)));
+  }
+  const own = await runner.start({ projectId: project.id, provider: "claude", prompt: "x" });
+  await until(() => store.chats.get(own.id)?.status === "completed");
+  assert.equal(provider.calls[2].sandboxOff, true);
+  assert.equal(provider.calls[2].sandbox, null);
+});

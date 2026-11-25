@@ -132,6 +132,7 @@ function NewChatForm({ draft: saved, visible, onCreated, onProjectChange }: Omit
     <AgentSplit scope={draftScope(draftKey)} handleRef={side}>
     <DraftChatPage
       provider={provider}
+      projectId={projectId}
       badges={
         <>
           {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。どれも押すと選び直せる（作成先は共通と各プロジェクト）。
