@@ -1,5 +1,6 @@
 // 書きかけの返答の文の中（強調・コードスパン・リンク・自動リンク・文字参照・数式）で止める所と補う閉じの記号（markdownReveal.ts の revealCut が使う）
 import { mayBecomeSingleDollarMath } from "@shared/foundation/markdown/mathGuard";
+import { aroundRun, attentionSides, strikethroughSides, type Around } from "@/foundation/ui/markdown/syntax/cjkFlanking";
 
 /** 文の中の書きかけで止める長さの上限（閉じない [ などを書いた文で、止まり続けないように。およそ 2 行） */
 export const MAX_INLINE_HOLD = 120;
@@ -10,9 +11,6 @@ export const MAX_BLOCK_HOLD = 2000;
 const AUTOLINK_TAIL = /^<[A-Za-z][A-Za-z0-9+.-]*(:[^\s<>]*)?$/;
 /** 文の終わりの、; がまだの文字参照 */
 const ENTITY_TAIL = /^&[A-Za-z0-9#]{0,31}$/;
-
-const isSpace = (ch: string | undefined) => ch === undefined || /\s/.test(ch);
-const isPunct = (ch: string | undefined) => ch !== undefined && /[\p{P}\p{S}]/u.test(ch);
 
 /** pos から続く同じ文字の数（end まで） */
 function runLength(text: string, pos: number, end: number, ch: string): number {
@@ -125,7 +123,7 @@ export function scanInline(text: string, from: number, end: number, shown: numbe
         stop(i);
         break;
       }
-      delimiter(stack, c, n, i > from ? text[i - 1] : undefined, text[i + n]);
+      delimiter(stack, c, n, aroundRun(text, i, i + n, from, end));
       i += n;
       continue;
     }
@@ -210,16 +208,13 @@ export function scanInline(text: string, from: number, end: number, shown: numbe
 }
 
 /**
- * 強調・取り消し線の印の並び（CommonMark の左右の flanking の決まりの近似。3 の倍数の決まりは見ない）。
+ * 強調・取り消し線の印の並び（開き・閉じは表示の読み取りと同じ日本語向けの決まり `cjkFlanking.ts`。3 の倍数の決まりは見ない）。
  * 閉じられるなら、同じ文字のいちばん近い開きを閉じ（間の開きは文字のまま）、残りが開けるなら積む
  */
-function delimiter(stack: Opener[], char: string, count: number, before: string | undefined, after: string) {
+function delimiter(stack: Opener[], char: "*" | "_" | "~", count: number, around: Around) {
   // ~ は 1 つか 2 つだけ（3 つ以上は取り消し線にならない）
   if (char === "~" && count > 2) return;
-  const left = !isSpace(after) && (!isPunct(after) || isSpace(before) || isPunct(before));
-  const right = !isSpace(before) && (!isPunct(before) || isSpace(after) || isPunct(after));
-  const canOpen = char === "_" ? left && (!right || isPunct(before)) : left;
-  const canClose = char === "_" ? right && (!left || isPunct(after)) : right;
+  const { open: canOpen, close: canClose } = char === "~" ? strikethroughSides(around) : attentionSides(char, around);
   let rest = count;
   if (canClose) {
     for (let k = stack.length - 1; k >= 0 && rest > 0; k--) {

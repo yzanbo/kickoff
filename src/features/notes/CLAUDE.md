@@ -21,15 +21,16 @@
 - ノートのチャットに送る前・ノートを添付する前に書きかけを保存し、保存できなければ送らない・足さない。
 - ノートのフォルダ（と共通のノートのフォルダ）は、どのチャットでも書ける場所に足し、システムプロンプトで伝える（`core/turnParts.ts`・`core/tools.ts`）。AI に渡すパスは区切りが分かる形に。
 - 共通のチャットはプロジェクトのノートを `write_project_note`（`core/projectNoteWrite.ts`）・`move_note` の `project` で書く（承認）。
-- 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外。コアも 400）。
+- 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後はページの外。コアも 400）。
 - ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` で除く）
 - ノートを足すときは付けたときの写し（`note/snapshot`。`taken_at`）。足す口は `appendToDraft`（別ウィンドウはメインに頼む）。
 
 ## 落とし穴
 
-- 行へ移る `?line=`（`ui/noteReveal.ts`）は開く前に `requestNoteReveal` で頼み、編集の部品ができたとき（`onReady`）に受け取る。古い頼みは捨てる（あとで開いたときに急に移らない）。
-- 動かす・ゴミ箱に入れると `onMoved`・`onTrashed` で知らせ、ノートのチャット（chat の `noteChats`）と DB の手順ノートを付け替える・同じ行に入れる。
-- 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
-- HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
+- 行へ移る `?line=`（`ui/noteReveal.ts`）は開く前に `requestNoteReveal` で頼み、編集の部品ができたとき（`onReady`）に受け取る。古い頼みは捨てる（後で急に移らない）。
+- 動かす・ゴミ箱に入れると `onMoved`・`onTrashed` で知らせ、ノートのチャット（chat の `noteChats`）と DB の手順ノートを付け替える。
+- 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻っても確かめる（`checkFresh`）。
+- 編集の画面の強調・取り消し線は表示と同じ判定（`cjkEmphasis.ts`）。
+- HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は CSS）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。
 - テスト: `core/routes.test.ts`（`noteFake`）。

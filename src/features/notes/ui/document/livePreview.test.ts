@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { GFM, parser } from "@lezer/markdown";
+import { cjkFriendlyEmphasis } from "./cjkEmphasis";
 import { previewMarks, type PreviewMark } from "./livePreview";
 
 const md = parser.configure(GFM);
+/** 返答の表示と同じ日本語向けの強調の拡張を足した読み取り（NoteEditor と同じ組） */
+const cjk = parser.configure([GFM, cjkFriendlyEmphasis]);
 /** 印を、種類と対象の文字で並べる（読みやすく比べる） */
-function marksOf(text: string, activeLine: number | null = null) {
+function marksOf(text: string, activeLine: number | null = null, reader = md) {
   const lineOf = (pos: number) => text.slice(0, pos).split("\n").length - 1;
-  const marks = previewMarks(md.parse(text), text, (pos) => lineOf(pos) === activeLine);
+  const marks = previewMarks(reader.parse(text), text, (pos) => lineOf(pos) === activeLine);
   return marks.map((m: PreviewMark) => (m.kind === "line" ? `line:${m.cls}@${lineOf(m.at)}` : `${m.kind}${"cls" in m ? `:${m.cls}` : ""}${"checked" in m ? `:${m.checked}` : ""}=${JSON.stringify(text.slice(m.from, m.to))}`));
 }
 
@@ -57,4 +60,27 @@ test("livePreview: 引用は行ごとに見た目を付けて > を隠し、コ�
   ]);
   // カーソルのある行（``` の行）は残す
   assert.deepEqual(marksOf("```js\na\n```", 0), ["line:md-codeblock@0", "line:md-codeblock@1", "line:md-codeblock@2", 'hide="```"']);
+});
+
+const cjkMarksOf = (text: string) => marksOf(text, null, cjk);
+
+test("livePreview: 印の内側が記号で外側が日本語の太字・取り消し線も、返答の表示と同じく読む（日本語向けの拡張）", () => {
+  assert.deepEqual(cjkMarksOf("**「強調」**は"), ['span:md-strong="**「強調」**"', 'hide="**"', 'hide="**"']);
+  assert.deepEqual(cjkMarksOf("**ノート（.md）**と**チャット（.json）**の違い"), [
+    'span:md-strong="**ノート（.md）**"',
+    'hide="**"',
+    'hide="**"',
+    'span:md-strong="**チャット（.json）**"',
+    'hide="**"',
+    'hide="**"',
+  ]);
+  assert.deepEqual(cjkMarksOf("~~取消（x）~~です"), ['span:md-strike="~~取消（x）~~"', 'hide="~~"', 'hide="~~"']);
+  // 拡張がないと太字にならない（直す前の形）
+  assert.deepEqual(marksOf("**「強調」**は"), []);
+});
+
+test("livePreview: 英語の文・語の中の _・~ 1 つの木は、日本語向けの拡張があっても変わらない", () => {
+  for (const text of ["foo**bar**baz", "snake_case_name", "__init__", "x * y * z", "a *b* c ~~d~~ e", "5~10秒", "**太字**は", "__下線（x）__です"]) {
+    assert.equal(cjk.parse(text).toString(), md.parse(text).toString(), text);
+  }
 });

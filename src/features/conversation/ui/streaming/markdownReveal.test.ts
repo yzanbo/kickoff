@@ -160,3 +160,20 @@ test("生の記号が出ない: 例の文のどの書きかけでも、描いた
     for (const raw of ["**", "~~", "](", "`"]) assert.ok(!html.includes(raw), `shown=${shown} ${raw}: ${html}`);
   }
 });
+
+test("日本語の強調・取り消し線: 表示と同じ決まりで補い、1 文字ずつ伸ばしても生の記号が出ず、書き終えたら確定の形と同じ", () => {
+  check([
+    ["**「強調", "**「強調**"],
+    ["**「強調」**", "**「強調」**"],
+    ["**ノート（.md）**と**チャット", "**ノート（.md）**と**チャット**"],
+    ["~~取消（x）~~で", "~~取消（x）~~で"],
+  ]);
+  for (const text of ["**スポークスマン（spokesman）**は", "**ノート（.md）**と**チャット（.json）**の違い", "***強調（x）***は。~~取消（x）~~です"]) {
+    const limit = createMarkdownRevealLimit();
+    for (let shown = 1; shown <= text.length; shown++) {
+      const html = render(limit(text, shown).render);
+      for (const raw of ["**", "~~"]) assert.ok(!html.includes(raw), `${text} shown=${shown} ${raw}: ${html}`);
+    }
+    assert.equal(render(limit(text, text.length).render), render(text));
+  }
+});

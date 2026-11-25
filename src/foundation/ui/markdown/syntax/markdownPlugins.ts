@@ -1,15 +1,21 @@
 /**
- * Markdown の読み方の設定の組。表示（markdownProcessor.ts の pipelineOf）と書式付きコピー（markdownHtml.ts）が同じものを使う
- * （別々に組むと、表示とコピーで読み方がずれていくため）
+ * Markdown の読み方の設定の組。表示（markdownProcessor.ts の pipelineOf）が使う
+ * （読み方を変えるときはここだけを直す）
  */
 import type { Options } from "react-markdown";
+import remarkCjkFriendly from "remark-cjk-friendly";
+import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough";
 import type { Options as RemarkRehypeOptions } from "remark-rehype";
 import { remarkGfmParts } from "./remarkGfmParts";
 
 type PluggableList = NonNullable<Options["remarkPlugins"]>;
 
-/** 読み方の部品（GitHub の書き方） */
-const SYNTAX: PluggableList = [remarkGfmParts];
+/**
+ * 読み方の部品: GitHub の書き方と、日本語向けに緩めた強調・取り消し線の決まり（markdown-cjk-friendly。**「強調」**は のように、
+ * 印の内側が記号で外側が日本語でも開き・閉じとして読む。英語の文の読み方は変わらない）。日本語向けの部品は GFM の後ろに置く
+ * （同じ印の読み取りを先に試す側に入れるため）
+ */
+const SYNTAX: PluggableList = [remarkGfmParts, remarkCjkFriendly, remarkCjkFriendlyGfmStrikethrough];
 
 /**
  * remark のプラグインの組。extra（数式・ファイルのチップの差し込みなど、画面ごとに足すもの）は読み方の部品の後ろに入れる

@@ -5,6 +5,8 @@ import { fromDom } from "hast-util-from-dom";
 import { toMdast } from "hast-util-to-mdast";
 import { gfmToMarkdown } from "mdast-util-gfm";
 import { toMarkdown } from "mdast-util-to-markdown";
+import { cjkFriendlyToMarkdown } from "mdast-util-to-markdown-cjk-friendly";
+import { cjkFriendlyGfmStrikethroughToMarkdown } from "mdast-util-to-markdown-cjk-friendly-gfm-strikethrough";
 
 /** Markdown に入れない飾り（コードブロックの上の帯の言語名とコピーのボタン） */
 const DECORATION_CLASSES = ["code-block-head"];
@@ -77,10 +79,13 @@ const mathToMarkdown = {
   math: (node: { value: string }) => ["$$", node.value, "$$"].join("\n"),
 } as unknown as NonNullable<Parameters<typeof toMarkdown>[1]>["handlers"];
 
-/** 描いた Markdown の木（hast）を Markdown の文にする（前後の空白は削る。数式は書いた式に戻す） */
+/**
+ * 描いた Markdown の木（hast）を Markdown の文にする（前後の空白は削る。数式は書いた式に戻す）。
+ * 強調・取り消し線は表示と同じ日本語向けの決まりで書く（ないと **…**は の「は」を、CommonMark で読み直せるよう &#x306F; にする）
+ */
 export function hastToMarkdown(tree: HastRoot): string {
   const mdast = toMdast(withMathAsTex(withoutDecorations(tree)), { handlers: mathHandlers });
-  return toMarkdown(mdast, { extensions: [gfmToMarkdown()], handlers: mathToMarkdown, bullet: "-", emphasis: "*", strong: "*", rule: "-", fences: true }).trim();
+  return toMarkdown(mdast, { extensions: [gfmToMarkdown(), cjkFriendlyToMarkdown(), cjkFriendlyGfmStrikethroughToMarkdown()], handlers: mathToMarkdown, bullet: "-", emphasis: "*", strong: "*", rule: "-", fences: true }).trim();
 }
 
 /** 選んだ範囲の中身を、書式が分かるよう外側の要素で包み直した断片にする（root より外はたどらない） */

@@ -56,3 +56,13 @@ test("hastToMarkdown: 数式（KaTeX）は書いた式（TeX）に戻す。文�
   assert.equal(markdownOf("a $x^2_{i}$ b"), "a $x^2_{i}$ b");
   assert.equal(markdownOf("$$\n\\frac{a}{b}\n$$"), "$$\n\\frac{a}{b}\n$$");
 });
+
+test("hastToMarkdown: 強調・取り消し線の後ろに日本語が続いても、文字参照にせず日本語向けの決まりで読める形に書く", () => {
+  const tree = root(
+    h("p", {}, h("strong", {}, "「強調」"), "は"),
+    h("p", {}, h("strong", {}, "ノート（.md）"), "と", h("del", {}, "取消（x）"), "です"),
+  );
+  const markdown = hastToMarkdown(tree);
+  assert.equal(markdown, "**「強調」**は\n\n**ノート（.md）**と~~取消（x）~~です");
+  assert.doesNotMatch(markdown, /&#x/);
+});
