@@ -36,7 +36,12 @@ interface Built {
   /** 閉じのタグの書いたままの文字（閉じを省いたもの・閉じの要らないものは空） */
   end: string;
 }
-type Child = ElementContent | Built;
+/** そろわなかったタグの中身（親へ写さずにまとめて置き、要素にするときに 1 回だけ広げる。閉じないタグを重ねても写す手間が 2 乗にならないように） */
+interface Group {
+  type: "group";
+  children: Child[];
+}
+type Child = ElementContent | Built | Group;
 
 /** 開いたままのタグ */
 interface Frame {
@@ -77,7 +82,7 @@ function buildLevel(children: readonly (RootContent | ElementContent)[], parentN
   // そろわなかった: 開きのタグは文字にして、中身は親へ
   const flattenTop = () => {
     const frame = stack.pop() as Frame & { token: StartToken };
-    top().children.push(text(frame.token.source), ...frame.children);
+    top().children.push(text(frame.token.source), { type: "group", children: frame.children });
   };
 
   const onStart = (t: StartToken) => {
@@ -158,11 +163,18 @@ function childrenFit(b: Built): boolean {
   return !allowed || b.children.every((c) => isBlank(c) || (c.type === "built" && allowed.includes(c.name)));
 }
 
-/** 開きと閉じのそろったものを、親の中の位置で確かめて要素にする。置けない所のものは、書いたままの文字に戻す */
-function materialize(children: Child[], parentName: string): ElementContent[] {
-  const out: ElementContent[] = [];
+/**
+ * 開きと閉じのそろったものを、親の中の位置で確かめて要素にする。置けない所のものは、書いたままの文字に戻す。
+ * 外した要素・そろわなかった中身は同じ out へ書く（入れ子の分だけ配列を写し直さない）
+ */
+function materialize(children: Child[], parentName: string, out: ElementContent[] = []): ElementContent[] {
   let significant = 0;
   for (const child of children) {
+    if (child.type === "group") {
+      materialize(child.children, parentName, out);
+      significant++;
+      continue;
+    }
     if (child.type !== "built") {
       out.push(child);
       if (!isBlank(child)) significant++;
@@ -179,10 +191,11 @@ function materialize(children: Child[], parentName: string): ElementContent[] {
       childrenFit(child);
     significant++;
     if (!fits) {
-      out.push(text(child.token.source), ...materialize(child.children, parentName));
+      out.push(text(child.token.source));
+      materialize(child.children, parentName, out);
       if (child.end) out.push(text(child.end));
     } else if (child.name === "picture") {
-      out.push(...materialize(child.children, parentName));
+      materialize(child.children, parentName, out);
     } else if (child.name !== "rp") {
       out.push(elementOf(child));
     }

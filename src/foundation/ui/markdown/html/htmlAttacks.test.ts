@@ -5,7 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { Element, Nodes, Root } from "hast";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { Markdown } from "../Markdown";
+import { VFile } from "vfile";
 import { markdownToHast, pipelineOf } from "../markdownProcessor";
+import { tokenizeHtml } from "./htmlTokens";
+import { applyMarkdownHtml } from "./htmlVerify";
 
 /*
  * Markdown の中の HTML の攻撃の例（仕様書 0037 の 3.6・5・7）。描く前の木を歩いて、出てきた要素と属性が一覧（仕様書の表を、ここに別に写したもの）の中だけで、
@@ -265,4 +268,39 @@ test("攻撃の例: 上限（タグ 2,000 個・入れ子 32 段・字下げ 10 
   assert.equal(markdownToHast(pipeline, `${"> ".repeat(11)}x`), null);
   // 描く部品は、書いたままの文字で出す
   assert.match(htmlOf(`${"<div>".repeat(33)}x${"</div>".repeat(33)}`), /<p class="markdown-plain">&lt;div&gt;/);
+});
+
+/** HTML の読み取りの段（Markdown の読み取りのあとの raw を要素にする所）だけの時間（ms） */
+function htmlStepTime(text: string): number {
+  const file = new VFile(text);
+  const hast = pipeline.toHast.runSync(pipeline.toHast.parse(file), file);
+  const start = performance.now();
+  applyMarkdownHtml(hast);
+  return performance.now() - start;
+}
+
+/** 読み取りを悪くする形（コメント・--!>・閉じない引用符・閉じないタグ・CDATA・<? の並び） */
+const SLOW_UNITS = ["<!--", "<!-- --!> ", '<a href="', "<b a='<b a=' ", "<b>x", "<details>", "<![CDATA[", "<?", "<!X", "</b"];
+
+test("攻撃の例: 悪い形の 100KB・300KB でも、HTML の読み取りは入力の長さに比例する時間で終わる", () => {
+  for (const unit of SLOW_UNITS) {
+    for (const size of [100_000, 300_000]) {
+      const text = unit.repeat(Math.ceil(size / unit.length));
+      const start = performance.now();
+      tokenizeHtml(text);
+      const tokenize = performance.now() - start;
+      assert.ok(tokenize < 300, `${JSON.stringify(unit)} ${size} 字の読み取り: ${tokenize.toFixed(0)}ms`);
+      const step = htmlStepTime(text);
+      assert.ok(step < 300, `${JSON.stringify(unit)} ${size} 字の要素にする段: ${step.toFixed(0)}ms`);
+    }
+  }
+});
+
+test("攻撃の例: 書きかけの返答（20KB を 200 字ずつ伸ばす）でも、HTML の読み取りの合計は短い", () => {
+  for (const unit of SLOW_UNITS) {
+    const text = unit.repeat(Math.ceil(20_000 / unit.length));
+    let total = 0;
+    for (let length = 200; length <= text.length; length += 200) total += htmlStepTime(text.slice(0, length));
+    assert.ok(total < 300, `${JSON.stringify(unit)}: ${total.toFixed(0)}ms`);
+  }
 });

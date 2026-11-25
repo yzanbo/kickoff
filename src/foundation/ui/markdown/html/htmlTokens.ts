@@ -47,14 +47,26 @@ function attributeValueOf(raw: string | undefined): string | null {
   return decodeCharacterReferences(unquoted);
 }
 
-/** pos から始まるコメントの長さ（<!-->・<!--->・<!-- … -->。--!> を含むもの・閉じのないものは 0 = コメントでない） */
-function commentLength(raw: string, pos: number): number {
-  if (!raw.startsWith("<!--", pos)) return 0;
-  if (raw.startsWith("<!-->", pos)) return 5;
-  if (raw.startsWith("<!--->", pos)) return 6;
-  const close = raw.indexOf("-->", pos + 4);
-  if (close < 0 || raw.slice(pos + 4, close).includes("--!>")) return 0;
-  return close + 3 - pos;
+/**
+ * コメントの長さを求める関数（<!-->・<!--->・<!-- … -->。--!> を含むもの・閉じのないものは 0 = コメントでない）。
+ * 閉じ（-->）と --!> の位置は前に求めた所から先だけを探す（<!-- を並べた文で、<!-- のたびに終わりまで探すと入力の 2 乗になるため）
+ */
+function createCommentFinder(raw: string) {
+  // -2 はまだ探していない、-1 は後ろにない
+  let close = -2;
+  let bang = -2;
+  return (pos: number): number => {
+    if (!raw.startsWith("<!--", pos)) return 0;
+    if (raw.startsWith("<!-->", pos)) return 5;
+    if (raw.startsWith("<!--->", pos)) return 6;
+    const from = pos + 4;
+    if (close !== -1 && close < from) close = raw.indexOf("-->", from);
+    if (close < 0) return 0;
+    if (bang !== -1 && bang < from) bang = raw.indexOf("--!>", from);
+    // --!> と --> は重ならないので、閉じより手前にあれば中身に含む
+    if (bang >= 0 && bang < close) return 0;
+    return close + 3 - pos;
+  };
 }
 
 /**
@@ -106,6 +118,7 @@ export function tokenizeHtml(raw: string): HtmlToken[] {
       tokens.push({ type: "text", value: decodeCharacterReferences(source), source });
     }
   };
+  const commentLength = createCommentFinder(raw);
   let pos = raw.indexOf("<");
   while (pos >= 0) {
     const declaration = declarationLength(raw, pos);
@@ -117,7 +130,7 @@ export function tokenizeHtml(raw: string): HtmlToken[] {
       pos = raw.indexOf("<", textStart);
       continue;
     }
-    const comment = commentLength(raw, pos);
+    const comment = commentLength(pos);
     const token = comment > 0 ? ({ type: "comment", source: raw.slice(pos, pos + comment) } as const) : tagAt(raw, pos);
     if (token) {
       flushText(pos);

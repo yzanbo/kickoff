@@ -210,3 +210,14 @@ test("HTML のタグ: 1 文字ずつ伸ばしても、描いた HTML に書き�
   }
   assert.equal(draw(limit(text, text.length).render), draw(text));
 });
+
+test("HTML のタグ: 悪い形の 20KB を 200 字ずつ伸ばしても、止める所の判定の合計は短い", () => {
+  for (const unit of ["<!--", "<!-- --!> ", '<a href="', "<b>x", "<details op", "</b"]) {
+    const text = unit.repeat(Math.ceil(20_000 / unit.length));
+    const limit = createMarkdownRevealLimit();
+    const start = performance.now();
+    for (let shown = 200; shown <= text.length; shown += 200) limit(text, shown);
+    const total = performance.now() - start;
+    assert.ok(total < 300, `${JSON.stringify(unit)}: ${total.toFixed(0)}ms`);
+  }
+});
