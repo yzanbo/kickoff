@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createCell, useCell } from "@/foundation/ui/store";
 import type { MathPlugins } from "@/foundation/ui/markdown/markdownProcessor";
 import { remarkMathGuard } from "./remarkMathGuard";
+import { KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
 
 // KaTeX は大きいので、数式が出てきたときに初めて読み込む（読み込んだら、すべての Markdown で使う）
 const plugins = createCell<MathPlugins | null>(null);
@@ -12,8 +13,8 @@ function loadMath(): Promise<void> {
     plugins.set({
       // 1 つの $ も数式として読み、remarkMathGuard が数式らしくないもの（値段・シェルの変数）を元の文に戻す
       remark: [[remarkMath.default, { singleDollarTextMath: true }], remarkMathGuard],
-      // 書き方の誤りは赤くせず、文字の色のまま元の式を出す
-      rehype: [[rehypeKatex.default, { throwOnError: false, errorColor: "inherit", strict: false }]],
+      // 設定は katexOptions.ts（ノートのライブプレビューと同じ）。描いたあとに透明な色を外す
+      rehype: [[rehypeKatex.default, KATEX_OPTIONS], rehypeSafeMath],
     });
   });
   return loading;

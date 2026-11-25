@@ -7,6 +7,7 @@ import type KaTeX from "katex";
 import { mathRanges, mayContainMath } from "@shared/foundation/markdown/mathGuard";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
+import { KATEX_OPTIONS, safeMathHtml } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
@@ -33,8 +34,8 @@ class MathWidget extends WidgetType {
   toDOM() {
     const el = document.createElement(this.display ? "div" : "span");
     el.className = this.display ? "cm-md-math cm-md-math-display" : "cm-md-math";
-    // 書き方の誤りは赤くせず、文字の色のまま元の式を出す
-    el.innerHTML = katex!.renderToString(this.tex, { displayMode: this.display, throwOnError: false, errorColor: "inherit", strict: false });
+    // 設定と整え（透明な色を外す）は返答の数式と同じ（katexOptions.ts）
+    el.innerHTML = safeMathHtml(katex!.renderToString(this.tex, { ...KATEX_OPTIONS, displayMode: this.display }));
     return el;
   }
   ignoreEvent() {

@@ -42,3 +42,17 @@ test("hastToMarkdown: 表は GitHub の書き方の表にする", () => {
 test("hastToMarkdown: 文だけなら文のまま（前後の空白は削る）", () => {
   assert.equal(hastToMarkdown({ type: "root", children: [{ type: "text", value: "  ただの文  " }] }), "ただの文");
 });
+
+test("hastToMarkdown: 数式（KaTeX）は書いた式（TeX）に戻す。文の中は $…$、ブロックは $$ の行で挟む", async () => {
+  const [{ unified }, remarkParse, remarkMath, remarkRehype, rehypeKatex] = await Promise.all([
+    import("unified"),
+    import("remark-parse"),
+    import("remark-math"),
+    import("remark-rehype"),
+    import("rehype-katex"),
+  ]);
+  const processor = unified().use(remarkParse.default).use(remarkMath.default, { singleDollarTextMath: true }).use(remarkRehype.default).use(rehypeKatex.default, { throwOnError: false, strict: false });
+  const markdownOf = (md: string) => hastToMarkdown(processor.runSync(processor.parse(md)) as Root);
+  assert.equal(markdownOf("a $x^2_{i}$ b"), "a $x^2_{i}$ b");
+  assert.equal(markdownOf("$$\n\\frac{a}{b}\n$$"), "$$\n\\frac{a}{b}\n$$");
+});

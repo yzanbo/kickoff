@@ -150,6 +150,11 @@
   font-size: 1.1em;
 }
 
+/* 式の箱の外へ出た分は描かない（返答の数式と同じ。理由は foundation/ui/markdown/Markdown.css） */
+.md-editor .cm-md-math .katex .katex-base {
+  clip-path: inset(-0.25em);
+}
+
 .md-editor .cm-md-math-display {
   padding: 0.4em 0;
   overflow-x: auto;

@@ -191,6 +191,14 @@
     font-size: 1.1em;
   }
 
+  /*
+   * 式の箱（KaTeX の .katex-base。高さは中の支柱が決める）の外へ出た分は描かない（負の \kern・\hspace は KaTeX の maxSize で丸まらず、
+   * 式の外の文字・画面に重ねられるため。katexOptions.ts）。斜体の張り出し・アクセントが欠けないよう、少しだけ広げて切る
+   */
+  .markdown .katex .katex-base {
+    clip-path: inset(-0.25em);
+  }
+
   .markdown .katex-display {
     margin: 0.6em 0;
     padding: 0.2em 0;
