@@ -18,7 +18,7 @@ import { createNoteAi } from "./noteAi";
 import { createNoteChat } from "./noteChat";
 import { createNoteTransfer } from "./noteTransfer";
 import { noteRoutes } from "./routes/notes";
-import { moveNoteToolGroup, openNoteToolGroup } from "./tools";
+import { moveNoteToolGroup, openNoteToolGroup, projectNoteDirToolGroup } from "./tools";
 import { noteTurnParts } from "./turnParts";
 
 export type { NoteMoved, NoteTrashed } from "./service";
@@ -76,7 +76,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   deps.attachments.addImageDir(dirs.dirOf);
   deps.attachments.useNoteDir(dirs.dirOf);
   // チャットの実行に、ノートのフォルダと共通のノートのフォルダ（なければ決めて作る）・「ノート」の節・ノートのチャットの知らせを足す
-  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, commonProject: common.project, publish }));
+  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, peekDirOf: dirs.dirOf, projects: () => projects.list(), commonProject: common.project, publish }));
   // 欄の間で動かす（ノートのチャットごと）。同じプロジェクトの中ならふつうの移動
   const transfer = createNoteTransfer({ notes, store: chat.store, isBusy: (chatId) => chat.runner.isBusy(chatId), moveChat: deps.workplaceMove.move, common });
   const toolDeps = { store: chat.store, dirOf: dirs.dirOf, transfer, common, publish };
@@ -85,7 +85,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
     name: "notes",
     api: { dirOf: dirs.dirOf, onMoved: (fn) => notes.onMoved(fn), onTrashed: (fn) => notes.onTrashed(fn), syncCommon: common.sync },
     routes: [noteRoutes({ projectParam: deps.projects.param, chatParam: chat.chatParam, dirs, notes, transfer, common, ai, chat: createNoteChat({ notes, chat }), uploads: deps.attachments.uploads })],
-    aiTools: [openNoteToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
+    aiTools: [openNoteToolGroup(toolDeps), projectNoteDirToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
     start: () => void common.sync(),
     stop: () => {
       stopDirChanges();

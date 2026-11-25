@@ -1,6 +1,7 @@
 // チャット自身が 1 回の実行に足すもの（contributor "chat"・order 30）: システムプロンプトのプロジェクト・作業の進め方・ゴミ箱の行・参照資料の節、
 // kickoff-trash の環境変数、一度だけ添える知らせ、読めるフォルダ（添付の保存先・参照資料。作業場所の外の参照資料と添付は書かせない）、作業の終わりの会話記録の乗り換え
 import { errorMessage } from "@shared/foundation/errors";
+import { isActiveUserProject, isUserProject } from "@shared/projects/kinds";
 import { trashCommandEnv } from "@/features/trash/core/index";
 import { projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "@/features/chat/core/prompt/system";
 import { switchAfterCompact } from "@/features/chat/core/sessionSwitch";
@@ -18,13 +19,15 @@ export function chatTurnParts(deps: RunnerDeps, runtime: ChatRun): TurnContribut
       const note = kind === "compact" ? null : runtime.pendingNote;
       if (kind !== "compact") runtime.pendingNote = null;
       const references = referenceSection(project);
+      // 共通のチャット（ノートのチャットはノートの横で話すので除く）には、利用者のプロジェクトの名前を伝える（送るたびに引き直す）
+      const commonChat = !isUserProject(project) && chat.note_path === null ? { projectNames: deps.store.projects.list().filter(isActiveUserProject).map((p) => p.name) } : null;
       return {
         // rm の代わりに Kickoff のゴミ箱へ入れる kickoff-trash を PATH に足す（どこで消しても、どのチャットが消したか分かるようにチャットの ID も）
         ...(deps.trashCommand ? { env: trashCommandEnv(deps.trashCommand, chat.id) } : {}),
         // 添付ファイルの保存先と参照資料を読めるようにする（添付と、作業場所の外の参照資料は Bash の砂場で書かせない）
         readableDirs: [...(deps.attachments ? [deps.attachments.dir] : []), ...referenceDirectories(project)],
         readOnlyDirs: [...(deps.attachments ? [deps.attachments.dir] : []), ...readOnlyReferences(project, cwd)],
-        promptSections: [projectSection(project, cwd, chat.edit_scope_enabled || chat.untracked_only), WORK_SECTION, ...(deps.trashCommand ? [TRASH_SECTION] : []), ...(references ? [references] : [])],
+        promptSections: [projectSection(project, cwd, chat.edit_scope_enabled || chat.untracked_only, commonChat), WORK_SECTION, ...(deps.trashCommand ? [TRASH_SECTION] : []), ...(references ? [references] : [])],
         turnContext: note,
       };
     },

@@ -22,21 +22,9 @@ const PROJECT_FOLDER_WORDS = [
  * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path。呼び名は PROJECT_FOLDER_WORDS）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・ノートフォルダ（note.dir）。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
-export function projectSection(project: Project, workdir = project.repo_path, editScopeEnabled?: boolean): PromptSection {
+export function projectSection(project: Project, workdir = project.repo_path, editScopeEnabled?: boolean, commonChat: CommonChatInfo | null = null): PromptSection {
   // 共通（共通のチャット・共通のノートのチャット）は、利用者から見てどのプロジェクトにも属さないので「プロジェクトフォルダ」と呼ばない
-  if (!isUserProject(project)) {
-    return {
-      order: 100,
-      heading: `# Kickoff からの指示`,
-      lines: [
-        `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
-        ``,
-        `## 作業フォルダ`,
-        `- このチャットは、どのプロジェクトにも属しません。作業フォルダ: ${workdir}`,
-        `- 作業フォルダ・ノートフォルダは、利用者が会話の途中で変えることがあります。ここに書いた場所がいまの場所です。前の会話に出てきたパスと違っていたら、こちらを使ってください。`,
-      ],
-    };
-  }
+  if (!isUserProject(project)) return commonChat ? commonChatSection(project, workdir, commonChat) : commonNoteChatSection(workdir);
   const lines = [
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
     ``,
@@ -51,6 +39,55 @@ export function projectSection(project: Project, workdir = project.repo_path, ed
   ];
   const description = project.description?.trim();
   if (description) lines.push(`- 概要:\n${indent(description)}`);
+  return { order: 100, heading: `# Kickoff からの指示`, lines };
+}
+
+/** 共通のチャット（ノートのチャットでないもの）に伝える、ほかのプロジェクトのこと */
+export interface CommonChatInfo {
+  /** アーカイブしていない利用者のプロジェクトの名前（サイドバーの並び。中身・チャット・ノートは入れず、要るときにツールで読んでもらう） */
+  projectNames: readonly string[];
+}
+
+/** 共通のノートのチャット: ノートの横で話すので、作業フォルダだけを伝える（ノートのことはノートの節） */
+function commonNoteChatSection(workdir: string): PromptSection {
+  return {
+    order: 100,
+    heading: `# Kickoff からの指示`,
+    lines: [
+      `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
+      ``,
+      `## 作業フォルダ`,
+      `- このチャットは、どのプロジェクトにも属しません。作業フォルダ: ${workdir}`,
+      `- 作業フォルダ・ノートフォルダは、利用者が会話の途中で変えることがあります。ここに書いた場所がいまの場所です。前の会話に出てきたパスと違っていたら、こちらを使ってください。`,
+    ],
+  };
+}
+
+/**
+ * 共通のチャット: どのプロジェクトにも属さない調べもの・相談のチャット。作業フォルダ（利用者の画面に出ない .common-work）と、
+ * 利用者のプロジェクトの名前だけを伝える（名前を知らないと「〇〇のあれ」をプロジェクトのことだと気づけない）。
+ * ほかのプロジェクトのコードは書かせない（砂場の書ける場所に入れない。書き込みはツールを通して利用者に聞く）
+ */
+function commonChatSection(project: Project, workdir: string, { projectNames }: CommonChatInfo): PromptSection {
+  const lines = [
+    `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
+    ``,
+    `## 共通のチャット`,
+    `- このチャットは「共通のチャット」です。利用者のどのプロジェクトにも属さない、調べもの・相談のためのチャットです。`,
+    `- 作業フォルダ: ${workdir}（利用者の画面には出ない、共通のチャットの作業用のフォルダです。作業用のファイルはここに置いてください）`,
+    `- 作業フォルダ・共通のノートのフォルダは、利用者が会話の途中で変えることがあります。ここに書いた場所がいまの場所です。前の会話に出てきたパスと違っていたら、こちらを使ってください。`,
+  ];
+  const description = project.description?.trim();
+  if (description) lines.push(`- 概要（利用者が共通のチャットでいつも守ってほしいこと）:\n${indent(description)}`);
+  lines.push(
+    ``,
+    `## 利用者のプロジェクト`,
+    projectNames.length > 0
+      ? `- 利用者が Kickoff で使っているプロジェクト: ${projectNames.map((n) => `「${n}」`).join("")}`
+      : `- 利用者のプロジェクトは、いまはありません。`,
+    `- 会話にプロジェクトの名前が出たら（大文字・小文字、略し方、日本語と英語の言い換えの違いだけでも）、そのプロジェクトのことです。そのプロジェクトのチャットは kickoff_chat の list_project_chats・read_chat に project を渡して読めます。`,
+    `- ほかのプロジェクトへの書き込み（チャットを作って頼む・チャットの名前などを変える・ノートを書く）は、kickoff_chat のツールを通してください（利用者に承認を聞きます）。プロジェクトのフォルダ（コード）は直接書き換えず、そのプロジェクトにチャットを作って頼んでください。`,
+  );
   return { order: 100, heading: `# Kickoff からの指示`, lines };
 }
 

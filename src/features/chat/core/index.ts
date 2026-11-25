@@ -46,6 +46,7 @@ export { preCompactSent } from "./run/machine/marks";
 export { depthOf, descendantsOf, lineageOf } from "./family";
 export { openPlaceInput } from "./tools/open";
 export { toolChat } from "./tools/context";
+export { isCommonChatProject, projectForTool, projectRefInput } from "./tools/projectScope";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";

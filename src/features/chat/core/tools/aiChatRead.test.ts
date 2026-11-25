@@ -1,4 +1,4 @@
-// チャットの AI が読むだけのツールの中身（read.ts。同じプロジェクトのチャットの一覧・会話。ほかのプロジェクトは読めない）
+// チャットの AI が読むだけのツールの中身（read.ts。同じプロジェクトのチャットの一覧・会話。ほかのプロジェクトは共通のチャットからだけ）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ScriptedProvider } from "@/features/ai/core/testing";
@@ -93,4 +93,56 @@ test("read_chat: 添付のある発言は場所を後から読み、欠けた添
   assert.doesNotMatch(JSON.stringify(result), /秘密の内容/);
   await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.outside.id, event_id: outside.id }), /このプロジェクトにありません/);
   await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
+});
+
+/** 共通のプロジェクトと、その中のチャット・アーカイブしたプロジェクト・ゴミ箱のプロジェクトを足す */
+function setupCommon() {
+  const ctx = setup();
+  const base = { provider: "claude" as const, status: "completed" as const, parent_chat_id: null, note_path: null };
+  const common = ctx.store.projects.create({ name: "共通", repo_path: "/tmp/common-not-used", provider: "claude", kind: "common" });
+  const commonChat = ctx.store.chats.create({ ...base, project_id: common.id, title: "相談" });
+  const archived = ctx.store.projects.create({ name: "しまった", repo_path: "/tmp/archived-not-used", provider: "claude" });
+  ctx.store.projects.update(archived.id, { archived_at: "2026-01-01T00:00:00.000Z" });
+  const archivedChat = ctx.store.chats.create({ ...base, project_id: archived.id, title: "しまったチャット" });
+  const trashed = ctx.store.projects.create({ name: "消した", repo_path: "/tmp/trashed-not-used", provider: "claude" });
+  const trashedChat = ctx.store.chats.create({ ...base, project_id: trashed.id, title: "消したチャット" });
+  ctx.store.projects.setTrashed(trashed.id, "2026-01-01T00:00:00.000Z");
+  return { ...ctx, common, commonChat, archived, archivedChat, trashed, trashedChat };
+}
+
+test("共通のチャット: project（名前・ID）でほかのプロジェクトのチャットの一覧と会話を読め、アーカイブ・ゴミ箱のプロジェクトは指せない", () => {
+  const ctx = setupCommon();
+  ctx.store.events.add(ctx.outside.id, { type: "user", text: "決めて", message_uuid: "u1" });
+  ctx.store.events.add(ctx.outside.id, { type: "text", text: "q で決めたこと" });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.commonChat.id);
+  // 省けば共通の中
+  assert.deepEqual(JSON.parse(tools.listProjectChats()).chats.map((c: { id: number }) => c.id), [ctx.commonChat.id]);
+  // 名前（大文字・小文字・全角の違いも）か ID で、ほかのプロジェクトの一覧
+  for (const project of ["q", "Ｑ", ctx.outside.project_id]) {
+    const listed = JSON.parse(tools.listProjectChats({ project }));
+    assert.deepEqual(listed.project, { id: ctx.outside.project_id, name: "q" });
+    assert.deepEqual(listed.chats.map((c: { id: number; relation: string }) => [c.id, c.relation]), [[ctx.outside.id, "ほかのプロジェクト"]]);
+  }
+  // 会話は project を省いても、指しても読める（違うプロジェクトを指したら断る）
+  assert.match(tools.readChat({ chat_id: ctx.outside.id }), /プロジェクト「q」のチャット「別のプロジェクト」（ID \d+・ほかのプロジェクト・終わった）[\s\S]*q で決めたこと/);
+  assert.match(tools.readChat({ chat_id: ctx.outside.id, project: "q" }), /q で決めたこと/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.outside.id, project: "p" }), /プロジェクト「p」にありません/);
+  // アーカイブ・ゴミ箱のプロジェクトは名前・ID でも指せず、そのチャットも読めない
+  for (const project of ["しまった", ctx.archived.id, "消した", ctx.trashed.id]) {
+    assert.throws(() => tools.listProjectChats({ project }), /見つかりません（指せるのは、アーカイブしていないプロジェクトだけです）/);
+  }
+  assert.throws(() => tools.readChat({ chat_id: ctx.archivedChat.id }), /このプロジェクトにありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.trashedChat.id }), /このプロジェクトにありません/);
+});
+
+test("プロジェクトのチャット: project でほかのプロジェクト・共通を指すと断り、自分のプロジェクトはいまどおり読める", () => {
+  const ctx = setupCommon();
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id);
+  for (const project of ["q", ctx.outside.project_id, "共通", ctx.common.id]) {
+    assert.throws(() => tools.listProjectChats({ project }), /プロジェクトのチャットからは、ほかのプロジェクトを指せません/);
+  }
+  assert.throws(() => tools.readChat({ chat_id: ctx.outside.id, project: "q" }), /ほかのプロジェクトを指せません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.commonChat.id }), /このプロジェクトにありません/);
+  assert.equal(JSON.parse(tools.listProjectChats({ project: "p" })).chats.length, 3);
+  assert.equal(JSON.parse(tools.listProjectChats({ project: "p" })).project, undefined);
 });

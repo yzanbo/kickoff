@@ -1,4 +1,4 @@
-// ノートを開く・動かすツール（open_note・move_note）
+// ノートを開く・動かすツール（open_note・move_note）と、共通のチャットがほかのプロジェクトのノートの場所を知るツール（get_project_note_dir）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -11,7 +11,7 @@ import { callDef, testTurn } from "@/foundation/core/testing/toolCalls";
 import { createNoteDirs } from "./noteDir";
 import { createNoteTransfer } from "./noteTransfer";
 import { NoteService } from "./service";
-import { moveNoteToolGroup, notePathIn, openNoteToolGroup } from "./tools";
+import { moveNoteToolGroup, notePathIn, openNoteToolGroup, projectNoteDirToolGroup } from "./tools";
 
 /** 組のツールを chatId のチャットから呼ぶ */
 const callIn = (group: AiToolGroup, chatId: number, args: Record<string, unknown>) => callDef(group.open(testTurn({ chatId }))![0], args);
@@ -51,7 +51,7 @@ function setup() {
   const moveChat = async (chatId: number, input: { projectId?: number }) => store.chats.move(chatId, input.projectId!);
   const transfer = createNoteTransfer({ notes: service, store, isBusy: (chatId) => busy.has(chatId), moveChat, common });
   const deps = { store, dirOf: dirs.dirOf, transfer, common, publish: (e: BusEvent) => published.push(e) };
-  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, busy, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps) };
+  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, busy, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps), noteDir: projectNoteDirToolGroup(deps) };
 }
 
 test("notePathIn: 相対・中の絶対パスはノートのフォルダからの相対パスに、外・フォルダそのもの・「.」で始まる名前は断る", () => {
@@ -147,3 +147,21 @@ test("move_note: 共通のノートの中で動かせる。共通のノートと
   const chat = ctx.store.chats.get(noteChat.id)!;
   assert.deepEqual([chat.project_id, chat.note_path], [commonProject.id, "メモ/案.md"]);
 });
+
+test("get_project_note_dir: 共通のチャットにだけ出し、アーカイブしていないプロジェクトのノートのフォルダを返す（アーカイブしたプロジェクトは指せない）", async () => {
+  const { ctx, root, dir, commonProject, noteDir } = setup();
+  const commonChat = ctx.store.chats.create({ project_id: commonProject.id, provider: "claude", title: "相談", status: "completed", parent_chat_id: null, note_path: null });
+  // プロジェクトのチャットには出さない
+  assert.equal(noteDir.open(testTurn({ chatId: root.id, projectId: ctx.project.id })), null);
+  const call = (args: Record<string, unknown>) => callDef(noteDir.open(testTurn({ chatId: commonChat.id, projectId: commonProject.id }))![0], args);
+  const found = JSON.parse(await call({ project: "P" }));
+  assert.deepEqual([found.project.id, found.note_dir, found.exists], [ctx.project.id, dir, true]);
+  // まだノートのないプロジェクトはフォルダを作らずに「まだない」
+  const empty = ctx.store.projects.create({ name: "新しい", repo_path: tempDir(), provider: "claude" });
+  const none = JSON.parse(await call({ project: empty.id }));
+  assert.equal(none.exists, false);
+  assert.equal(fs.existsSync(none.note_dir), false);
+  ctx.store.projects.update(empty.id, { archived_at: "2026-01-01T00:00:00.000Z" });
+  await assert.rejects(call({ project: empty.id }), /見つかりません/);
+});
+

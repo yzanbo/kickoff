@@ -11,7 +11,7 @@ import { createAiConnections } from "@/features/database/core/aiConnections";
 import { terminalToolGroup } from "@/features/terminal/core/tools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { diagnosticToolGroup } from "@/features/guard/core/index";
-import { moveNoteToolGroup, openNoteToolGroup } from "@/features/notes/core/tools";
+import { moveNoteToolGroup, openNoteToolGroup, projectNoteDirToolGroup } from "@/features/notes/core/tools";
 import { openFileToolGroup } from "@/features/files/core/tools";
 import { openDiffToolGroup } from "@/features/git/core/tools";
 import { snippetToolGroup } from "@/features/snippets/core/tools";
@@ -29,6 +29,7 @@ import type { AiWorktreeFinish } from "@/features/worktrees/core/index";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
+import { tempDir } from "@/foundation/core/testing/tempDir";
 import { setupCore, until } from "@/app/core/testing/testCore";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 
@@ -99,6 +100,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
     aiTools: () => [
       diagnosticToolGroup,
       openNoteToolGroup(noteTools),
+      projectNoteDirToolGroup(noteTools),
       moveNoteToolGroup(noteTools),
       openFileToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       openDiffToolGroup({ store, publish: (e) => core.bus.publish(e) }),
@@ -155,6 +157,12 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
       return sendTo(core, { title: "孫", parent: child, aiGeneration: 2 });
     }),
   note: () => toolsSeenBy((core) => sendTo(core, { title: "ノート", notePath: "a.md" })),
+  // 共通のチャット（ほかのプロジェクトを読む使い方と、ノートの場所のツールが出る）
+  common: () =>
+    toolsSeenBy(async ({ store, runner }) => {
+      const common = store.projects.create({ name: "共通", repo_path: tempDir(), provider: "claude", kind: "common" });
+      return (await runner.start({ projectId: common.id, prompt: "x" })).id;
+    }),
   createOff: () =>
     toolsSeenBy(async (core) => {
       core.store.settings.update({ ai_create_chat: "off" });
