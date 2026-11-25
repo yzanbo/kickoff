@@ -72,3 +72,23 @@ test("Markdown が作る、大きさを em で変える要素（脚注の番号�
   assert.match(revert?.selector ?? "", /:not\([^)]*\bsup\b[^)]*\)/);
   assert.ok(!rulesOf(htmlCss).some((r) => /\bsup\b/.test(r.selector) && /font-size/.test(r.body)));
 });
+
+test("数式（.katex）は、大きさを変えるタグをどう重ねた中でも会話の本文（14px）より小さくならない（入れ子の添え字は KaTeX の既定で 0.5 倍まで）", () => {
+  const rule = rulesOf(markdownCss).find((r) => r.selector === ".markdown .katex");
+  const size = /font-size:\s*([^;]+);/.exec(rule?.body ?? "")?.[1].trim();
+  const m = /^max\(([\d.]+)em, var\(--chat-fs-(\d+)\)\)$/.exec(size ?? "");
+  assert.ok(m, `読めない大きさの書き方: ${size}`);
+  const katexSize = (parent: number) => Math.max(Number(m[1]) * parent, Number(m[2]));
+  const rules = sizeRules();
+  const tags = [...rules.keys()];
+  let smallest = Infinity;
+  const visit = (parentSize: number, last: string, depth: number) => {
+    smallest = Math.min(smallest, katexSize(parentSize));
+    if (depth === 0) return;
+    for (const tag of tags) if (tag !== last) visit(rules.get(tag)?.(parentSize) ?? parentSize, tag, depth - 1);
+  };
+  for (const base of [10, 12, 13, 14, 16, 19]) visit(base, "", 4);
+  assert.equal(smallest, 14);
+  // 入れ子の添え字（x_{y_{z}}）は KaTeX が数式の大きさの 0.5 倍まで縮める（いちばん小さい数式で 7px）
+  assert.equal(smallest * 0.5, 7);
+});

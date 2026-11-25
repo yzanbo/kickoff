@@ -229,10 +229,13 @@
     height: auto;
   }
 
-  /* 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる */
+  /*
+   * 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる。
+   * HTML の小さくするタグ（small・sub・sup・rt）の中でも会話の本文（14px）より小さくしない（KaTeX の CSS（vendor の層）の 1.21em より、この ui の層が勝つ）
+   */
 
   .markdown .katex {
-    font-size: 1.1em;
+    font-size: max(1.1em, var(--chat-fs-14));
   }
 
   /*

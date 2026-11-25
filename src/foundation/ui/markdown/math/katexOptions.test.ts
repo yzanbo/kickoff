@@ -76,6 +76,29 @@ test("数式で色を変える命令（\\color・\\textcolor・\\colorbox・\\fc
   assert.equal(visible(render(String.raw`\textcolor{red}{a+b}^2`)), visible(render(String.raw`{a+b}^2`)));
 });
 
+test("数式の文字を小さくするサイズの命令（\\tiny・\\sixptsize・\\scriptsize・\\footnotesize・\\small）は、大きさを変えずに中身だけ描く（\\let・\\noexpand でも戻らない。ノートの描き方も同じ）", () => {
+  const forms = ["tiny", "sixptsize", "scriptsize", "footnotesize", "small"].flatMap((name) => [
+    `\\${name} secret`,
+    `{\\${name}{secret}}`,
+    `\\text{\\${name} secret}`,
+    `\\let\\s\\${name}\\s secret`,
+    `\\def\\s{\\${name}}\\s secret`,
+    `\\noexpand\\${name} secret`,
+  ]);
+  for (const tex of forms) {
+    // 返答（rehype-katex）と、ノートのライブプレビュー（liveRich.ts の renderToString に設定を広げて渡す）
+    for (const html of [render(tex), katex.renderToString(tex, { ...KATEX_OPTIONS, displayMode: true })]) {
+      assert.doesNotMatch(html, /katex-sizing reset-size\d+ size[1-5]\b/, tex);
+      assert.match(visible(html).replace(/<[^>]+>/g, ""), /secret/, tex);
+    }
+  }
+  // 大きくする命令と、添え字の縮みは KaTeX のまま
+  assert.match(render(String.raw`\large x`), /katex-sizing reset-size6 size7/);
+  // 添え字は 0.7 倍、その添え字は合わせて 0.5 倍（reset-size3 size1）
+  assert.match(render(String.raw`x_{y_{z}}`), /reset-size6 size3/);
+  assert.match(render(String.raw`x_{y_{z}}`), /reset-size3 size1/);
+});
+
 test("KATEX_OPTIONS: \\gdef で定義したマクロは、次の式に残らない（描くたびに macros の新しい写しを渡す）", () => {
   katex.renderToString(String.raw`\gdef\textcolor#1#2{X}\gdef\frac#1#2{Y}`, KATEX_OPTIONS);
   katex.renderToString(String.raw`\gdef\frac#1#2{Y}`, { ...KATEX_OPTIONS });
