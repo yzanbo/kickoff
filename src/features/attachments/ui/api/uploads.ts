@@ -16,6 +16,8 @@ export const uploadsApi = {
   chatTranscript: (chatId: number) => request<FileAttachment>("POST", `/api/chats/${chatId}/transcript`),
   /** 「AI に渡す」で押したときの中身を添付にする（コアが鍵らしい値を伏せ、大きすぎれば頭と終わりを残して切る） */
   capture: (body: CaptureBody) => request<CaptureAttachment>("POST", "/api/captures", body),
+  /** 添付ファイルのフルパス（札の右クリックの Finder で表示・ファイルをコピー・パスをコピー。ないファイルは ApiError の 404） */
+  path: async (id: string): Promise<string> => (await request<{ path: string }>("GET", `/api/uploads/${id}/path`)).path,
   /** 添付ファイルの中身を文字で読む（capture の札を押して中身を見るとき） */
   attachmentText: async (a: Attachment): Promise<string> => (await requestBlob(`/api/uploads/${a.id}`)).blob.text(),
   /**

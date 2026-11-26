@@ -3,14 +3,14 @@ import type { Attachment, NoteAttachment } from "@shared/chat/types";
 import { attachmentUrl } from "@/features/attachments/ui/api/uploads";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat, useOptionalChatScreen } from "@/features/chat/ui";
-import type { ViewerImage } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { cx } from "@/foundation/ui/lib/cx";
 import { AttachmentCard } from "./AttachmentCard";
 import { ATTACHMENT_CARDS, type ChipAttachment, type FileChip } from "./attachmentCards";
 import { CaptureAttachmentChip } from "./CaptureAttachmentChip";
-import { useAttachmentViewer } from "./useAttachmentViewer";
+import { useAttachmentViewer, type AttachmentViewerImage } from "./useAttachmentViewer";
+import { useFileMenu } from "./useFileMenu";
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
 
@@ -18,14 +18,15 @@ const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
 export const isPreviewable = (mime: string) => PREVIEWABLE.test(mime);
 
 /** 添付のうち画像だけを、大きく見る一覧にする（同じ発言・送信待ちの行の画像を前後に移って見る） */
-export function viewerImagesOf(attachments: Attachment[]): ViewerImage[] {
-  return attachments.filter((a) => isPreviewable(a.mime)).map((a) => ({ src: attachmentUrl(a), name: a.name }));
+export function viewerImagesOf(attachments: Attachment[]): AttachmentViewerImage[] {
+  return attachments.filter((a) => isPreviewable(a.mime)).map((a) => ({ src: attachmentUrl(a), name: a.name, uploadId: a.id }));
 }
 
 /**
  * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイルの種類のアイコンと名前・種類・大きさ / ノート / 「AI に渡す」で取ったもの）。
  * どれも同じ骨組みの札（AttachmentCard）で、文は種類ごとの表（ATTACHMENT_CARDS）から。
- * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
+ * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）。
+ * 送ったファイルの右クリックは、ファイルをコピー・保存・Finder で表示・パスをコピー（useFileMenu）
  */
 export function AttachmentChip({
   attachment,
@@ -61,11 +62,15 @@ function FileAttachmentChip({
   onRemove?: () => void;
 }) {
   const isImage = isPreviewable(attachment.mime);
-  const src = previewUrl ?? (attachment.id ? attachmentUrl({ id: attachment.id, mime: attachment.mime }) : undefined);
+  const id = attachment.id;
+  // 保存した添付の URL（選んだばかりでまだ送っていない添付にはない）
+  const href = id ? attachmentUrl({ id, mime: attachment.mime }) : undefined;
+  const src = previewUrl ?? href;
   // 大きく見る画像: 同じ発言の画像（押した画像から前後へ）。並びにない（選んだばかりの添付など）なら、この 1 枚だけ
   const siblingImages = siblings ? viewerImagesOf(siblings) : [];
   const at = siblingImages.findIndex((image) => image.src === src);
-  const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name }] : []);
+  const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name, uploadId: id }] : []);
+  const fileMenu = useFileMenu();
   const index = Math.max(0, at);
   const text = ATTACHMENT_CARDS.file(attachment, { clock: formatDayTime, uploading });
   return (
@@ -79,14 +84,15 @@ function FileAttachmentChip({
       open={
         isImage && src
           ? { kind: "button", className: "attachment-open", tip: "大きく表示", label: `${attachment.name} を大きく表示`, onClick: () => viewer.open(index), onContextMenu: (e) => viewer.menu(e, index) }
-          : attachment.id && !onRemove
-            ? { kind: "download", href: attachmentUrl({ id: attachment.id, mime: attachment.mime }), download: attachment.name }
+          : id && href && !onRemove
+            ? { kind: "download", href, download: attachment.name, onContextMenu: (e) => fileMenu.open(e, { id, href, name: attachment.name }) }
             : undefined
       }
       onRemove={onRemove}
       removeLabel={`${attachment.name} を外す`}
     >
       {viewer.element}
+      {fileMenu.element}
     </AttachmentCard>
   );
 }

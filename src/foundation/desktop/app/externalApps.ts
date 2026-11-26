@@ -3,7 +3,7 @@ import { shell } from "electron";
 import { expandHomeWith } from "@shared/foundation/path";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { desktopPlatform } from "@/foundation/desktop/platform/index";
-import { existingFolder, vscodeFileUrl } from "./openCommands";
+import { existingFile, existingFolder, vscodeFileUrl } from "./openCommands";
 import { webLinkOf } from "@shared/foundation/linkTarget";
 
 /** アプリの外で開く（IPC の externalApps）。OS ごとの開き方は platform/ の DesktopPlatform */
@@ -12,6 +12,8 @@ export const externalAppHandlers: IpcHandlers["externalApps"] = {
   openPath: async (_e, target) => void (await shell.openPath(target)),
   // Finder で入っているフォルダを開いて選ぶ
   revealPath: (_e, target) => shell.showItemInFolder(target),
+  // Finder・ほかのアプリ・入力欄にファイルとして貼れる形でクリップボードに入れる（添付の札の右クリック）
+  copyFile: (_e, target) => desktopPlatform.copyFileToClipboard(existingFile(target)),
   // VS Code がなければ失敗を返す
   openInVSCode: (_e, target, line) => shell.openExternal(vscodeFileUrl(target, line)),
   // 設定・パネルのターミナルの ▾ で選ぶ

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { existingFolder, vscodeFileUrl } from "./openCommands";
+import { existingFile, existingFolder, vscodeFileUrl } from "./openCommands";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("外部のターミナルで開くフォルダ: いまあるフォルダだけ", () => {
@@ -12,6 +12,16 @@ test("外部のターミナルで開くフォルダ: いまあるフォルダだ
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "x");
   assert.throws(() => existingFolder(file), /フォルダが見つかりません/);
+});
+
+test("クリップボードに入れるファイル: いまあるファイルだけ（解決したパスを返す。フォルダ・ないパスは断る）", () => {
+  const dir = tempDir();
+  const file = path.join(dir, "a.mp4");
+  fs.writeFileSync(file, "x");
+  assert.equal(existingFile(file), file);
+  assert.equal(existingFile(path.join(dir, "sub", "..", "a.mp4")), file);
+  assert.throws(() => existingFile(dir), /ファイルが見つかりません/);
+  assert.throws(() => existingFile(path.join(dir, "nope.mp4")), /ファイルが見つかりません/);
 });
 
 test("VS Code で開く URL: パスを区切りごとに符号化し（# と ? も）、行は正の数のときだけ添える", () => {

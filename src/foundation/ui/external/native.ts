@@ -29,6 +29,17 @@ export async function openExternal(target: ExternalTarget): Promise<boolean> {
   return true;
 }
 
+/**
+ * ファイルをクリップボードに入れる（Finder・ほかのアプリ・入力欄にファイルとして貼れる形）。書くのはメイン（画面のクリップボードはファイルを書けない）。
+ * Mac のアプリでなければ書かずに false（ないファイルなどで書けなかったときの失敗はそのまま投げる）
+ */
+export async function copyFileToClipboard(path: string): Promise<boolean> {
+  const apps = window.kickoff?.externalApps;
+  if (!apps) return false;
+  await apps.copyFile(path);
+  return true;
+}
+
 /** この Mac に入っている外部のターミナル（Mac のアプリでなければ undefined） */
 export const installedTerminals = (): Promise<ExternalTerminalId[]> | undefined => window.kickoff?.externalApps.terminals();
 

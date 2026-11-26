@@ -79,6 +79,14 @@ export function uploadRoutes(app: Hono, { uploads, store, imageDirs }: { uploads
     });
   });
 
+  // 添付のファイルのフルパス（札の右クリックの「Finder で表示」「ファイルをコピー」「パスをコピー」。画面は保存先を知らないので、ここで解く）。
+  // 端末（スマホ）には開かない（その Mac の中のパスは端末では使えない）
+  app.get("/api/uploads/:id/path", async (c) => {
+    const file = await uploads.resolve(c.req.param("id"));
+    if (!file) throw new NotFound("ファイルが見つかりません");
+    return c.json({ path: file.path });
+  });
+
   // ツールの結果の画像（読むで読んだ画像。記録には画像を残さないので、呼び出しの入力のパスから、いまのファイルを返す）。
   // 読めるのはチャットの作業場所・本体・添付の保存先・ノートのフォルダの中の画像だけ。ページとして開かれても何も動かないよう sandbox の CSP を付ける
   app.get("/api/chats/:id/tool-image", withChat, async (c) => {

@@ -452,6 +452,10 @@
     "device": "full"
   },
   {
+    "route": "GET /api/uploads/:id/path",
+    "device": "none"
+  },
+  {
     "route": "GET /api/usage",
     "device": "none"
   },

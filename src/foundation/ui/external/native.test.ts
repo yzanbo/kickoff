@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import { canOpenExternal, openExternal, openInDefaultBrowser } from "./native";
+import { canOpenExternal, copyFileToClipboard, openExternal, openInDefaultBrowser } from "./native";
 
 test("openExternal: 行き先の種類ごとに外のアプリの口を呼ぶ。Mac のアプリでなければ開かずに false", async () => {
   const calls: unknown[][] = [];
@@ -27,6 +27,15 @@ test("openExternal: 行き先の種類ごとに外のアプリの口を呼ぶ。
   vi.stubGlobal("window", {});
   assert.equal(canOpenExternal(), false);
   assert.equal(await openExternal({ kind: "path", path: "/a" }), false);
+});
+
+test("copyFileToClipboard: Mac のアプリではメインの copyFile で書き、そうでなければ書かずに false", async () => {
+  const copied: string[] = [];
+  vi.stubGlobal("window", { kickoff: { externalApps: { copyFile: async (path: string) => void copied.push(path) } } });
+  assert.equal(await copyFileToClipboard("/data/uploads/x/a.mp4"), true);
+  vi.stubGlobal("window", {});
+  assert.equal(await copyFileToClipboard("/data/uploads/x/a.mp4"), false);
+  assert.deepEqual(copied, ["/data/uploads/x/a.mp4"]);
 });
 
 test("openInDefaultBrowser: Mac のアプリではメインの openWebUrl で開き、そうでなければ開き元を渡さない新しいタブ", () => {

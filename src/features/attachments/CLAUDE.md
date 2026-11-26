@@ -9,6 +9,7 @@
 - `ui/handoff/`: 「AI に渡す」。渡すものは各タブが `HandOffItem` で作る。ボタンは `HandOffButton`・項目は `HandOffItems`。渡し先は拡張点 `handOffTargets`（composer が this・thisPath・inner・innerPath・other、childChats が child、chatPanel が new を登録）。
 - 開いた所（足す先のチャットと右の欄の中の子チャット・ノートのチャット）は `HandOffPlace`（決め方は chat の `addTargetsOf`）、`item.path` があればパスの渡し先（`hands: "path"`）も出る。コードの行の選択の引用は `codePick.ts` の `pickedInCode`。
 - 札は骨組み `AttachmentCard` 1 つで、文は種類ごとの表 `ATTACHMENT_CARDS`（`attachmentCards.ts`）。出どころの名前と外かは `@shared/attachments/sources.ts` の `ATTACHMENT_SOURCE_LOOKS`。
+- 札の右クリック: 画像は `useAttachmentViewer`（土台の `useImageMenu` に `ImagePathItems` を足す）、画像以外の送った添付は `useFileMenu`。パスを使う項目は `AttachmentPathItems.tsx`（パスは開いたときに `GET /api/uploads/:id/path` で取る。ファイルをコピーはメインの IPC `externalApps.copyFile`）。
 
 ## 決まり
 

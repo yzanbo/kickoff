@@ -43,6 +43,7 @@ export const foundationArgs = {
   externalApps: {
     openPath: z.tuple([absolutePath]),
     revealPath: z.tuple([absolutePath]),
+    copyFile: z.tuple([absolutePath]),
     openInVSCode: z.tuple([absolutePath, z.number().optional()]),
     terminals: none,
     openTerminal: z.tuple([absoluteOrHome, terminalId.optional()]),

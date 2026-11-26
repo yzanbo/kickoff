@@ -441,7 +441,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | ATT-001 | ファイルを添付する（📎・ドロップ・貼り付け） | composer | M |
-| ATT-002 | 添付の画像を大きく見る | attachments | M |
+| ATT-002 | 画像の拡大・札の右クリック | attachments | M |
 | ATT-003 | ノート・「AI に渡す」の札を開いて見る | attachments | M |
 | ATT-004 | 添付を 1 行にまとめて見せる | attachments | M |
 | ATT-005 | ほかのチャットを参照して添える | composer | M |

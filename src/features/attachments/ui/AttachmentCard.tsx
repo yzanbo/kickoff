@@ -6,7 +6,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 /** 札を押したとき（button = アプリの中で開く・download = ダウンロード。省けば押せない） */
 export type CardOpen =
   | { kind: "button"; label: string; onClick: () => void; onContextMenu?: (e: MouseEvent) => void; tip?: string; className?: string }
-  | { kind: "download"; href: string; download: string };
+  | { kind: "download"; href: string; download: string; onContextMenu?: (e: MouseEvent) => void };
 
 export interface CardProps {
   /** 種類のクラス（file-attachment など） */
@@ -46,7 +46,7 @@ export function AttachmentCard({ className, title, thumb, icon, name, sub, open,
           {body}
         </button>
       ) : open?.kind === "download" ? (
-        <a className="attachment-link" href={open.href} download={open.download}>
+        <a className="attachment-link" href={open.href} download={open.download} onContextMenu={open.onContextMenu}>
           {body}
         </a>
       ) : (

@@ -11,6 +11,8 @@ export interface DesktopPlatform {
   installedBrowsers: () => ExternalBrowserId[];
   /** 外部のブラウザでページを開く（url がなければ空の新しいタブ。開けなければ失敗） */
   openBrowser: (id: ExternalBrowserId, url?: string) => Promise<void>;
+  /** ファイルをクリップボードに入れる（Finder・ほかのアプリにファイルとして貼れる形。file はいまあるファイルの絶対パス） */
+  copyFileToClipboard: (file: string) => Promise<void>;
   /** コマンドが、開発中の Electron のアプリのメインプロセスか（終わるときに子の Electron を先に止めるため。Helper は含まない） */
   isDevElectronMain: (command: string) => boolean;
 }

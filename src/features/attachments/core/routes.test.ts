@@ -120,3 +120,17 @@ test("note/snapshot: 付けたときの中身を写し、送るときは写し�
   assert.equal((await api("POST /api/projects/:projectId/note/snapshot", { params: { projectId: project.id }, body: { path: "ない.md" } })).status, 404);
   assert.equal((await api("POST /api/projects/:projectId/note/snapshot", { params: { projectId: project.id }, body: { path: "../外.md" } })).status, 400);
 });
+
+test("uploads/:id/path: 添付のファイルのフルパスを返す（札の右クリックの Finder で表示・コピー）。ない ID・不正な ID は 404", async () => {
+  const { call, uploads } = setup({ features: ["attachments", "chat"] });
+  const saved = await call("POST", "/api/captures", { name: "memo.md", text: "中身", source: issue });
+  assert.equal(saved.status, 201);
+  const id = (saved.body as CaptureAttachment).id;
+  const res = await call("GET", `/api/uploads/${id}/path`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { path: (await uploads.resolve(id))!.path });
+  // 添付の置き場の中（uploads/<id>/<名前>）
+  assert.equal(path.dirname(path.dirname(res.body.path)), uploads.dir);
+  assert.equal((await call("GET", "/api/uploads/00000000-0000-0000-0000-000000000000/path")).status, 404);
+  assert.equal((await call("GET", "/api/uploads/..%2F..%2Fetc/path")).status, 404);
+});
