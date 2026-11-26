@@ -16,9 +16,11 @@ import { useChatOf } from "@/features/chat/ui/store/useChatStore";
 export function ReadToggleItem({ chat, onError }: { chat: Chat; /** 失敗を出す（省けばダイアログ） */ onError?: (message: string) => void }) {
   const toggle = readToggleOf(useChatStates().stateOf(chat));
   const fail = onError ? (e: unknown) => onError(errorMessage(e)) : reportFailure("未読・既読を変えられませんでした");
+  // 押せないとき（作業中・回答待ち）も、印の有無に合わせた名前とアイコンを出す（作業中に返答が届いて印が付いていれば「既読にする」）
+  const shown = toggle ?? (chat.unread ? "seen" : "unseen");
   return (
     <MenuItem disabled={!toggle} title={toggle ? undefined : READ_TOGGLE_BUSY_NOTE} onSelect={() => toggle && void setChatRead(chat, toggle).catch(fail)}>
-      {toggle === "seen" ? <MailOpen size={14} /> : <Mail size={14} />} {READ_TOGGLE_LABELS[toggle ?? (chat.unread ? "seen" : "unseen")]}
+      {shown === "seen" ? <MailOpen size={14} /> : <Mail size={14} />} {READ_TOGGLE_LABELS[shown]}
       <kbd className="menu-key">{keyLabel(READ_TOGGLE_KEY)}</kbd>
     </MenuItem>
   );
