@@ -13,7 +13,7 @@ import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui";
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・ほかのプロジェクトのチャットを落とすと確かめて移す・右クリックでメニュー）。
  * 丸の角に状態ごとの件数を出す（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ））。選んでいるプロジェクトの丸は、スクロールして見えるところに出す。
- * 先頭の共通の丸は灰色に吹き出しの印で、並べ替えはできない（後ろとの間に区切り。チャットを落とすと共通へ移す）
+ * 先頭の共通の丸は灰色に吹き出しの印で、並べ替えはできず、いつも先頭（ほかの丸を前に落とせない。チャットを落とすと共通へ移す）
  */
 export function WorkspaceDots({
   projects,
@@ -76,8 +76,8 @@ export function WorkspaceDots({
         const tone = projectTone(p);
         const draggable = !isArchived(p.id) && !common;
         const summary = stateCountsSummary(counts);
-        // 共通の丸と後ろの丸の間、固定したプロジェクトの丸と残りの丸の間に区切りを入れる
-        const divider = i > 0 && (isCommonProject(projects[i - 1]) || (projects[i - 1].pinned && !p.pinned));
+        // 固定したプロジェクトの丸と残りの丸の間に区切りを入れる（共通の後ろには入れない。先頭に固定なのは並べ替えから外して守る）
+        const divider = i > 0 && !isCommonProject(projects[i - 1]) && projects[i - 1].pinned && !p.pinned;
         const hints = common ? "チャットを落とすと共通へ移す・右クリックでメニュー" : `${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ`;
         return (
           <Fragment key={p.id}>
