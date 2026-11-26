@@ -1,6 +1,10 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ElementContent, Properties, Root } from "hast";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { markdownToHast, pipelineOf } from "./markdownProcessor";
+import { mathPluginsOf } from "./math/mathPlugins";
 import { hastToMarkdown } from "./selectionMarkdown";
 
 const h = (tagName: string, properties: Properties, ...children: (ElementContent | string)[]): ElementContent => ({
@@ -43,16 +47,10 @@ test("hastToMarkdown: 文だけなら文のまま（前後の空白は削る）"
   assert.equal(hastToMarkdown({ type: "root", children: [{ type: "text", value: "  ただの文  " }] }), "ただの文");
 });
 
-test("hastToMarkdown: 数式（KaTeX）は書いた式（TeX）に戻す。文の中は $…$、ブロックは $$ の行で挟む", async () => {
-  const [{ unified }, remarkParse, remarkMath, remarkRehype, rehypeKatex] = await Promise.all([
-    import("unified"),
-    import("remark-parse"),
-    import("remark-math"),
-    import("remark-rehype"),
-    import("rehype-katex"),
-  ]);
-  const processor = unified().use(remarkParse.default).use(remarkMath.default, { singleDollarTextMath: true }).use(remarkRehype.default).use(rehypeKatex.default, { throwOnError: false, strict: false });
-  const markdownOf = (md: string) => hastToMarkdown(processor.runSync(processor.parse(md)) as Root);
+test("hastToMarkdown: 数式（KaTeX）は書いた式（TeX）に戻す。文の中は $…$、ブロックは $$ の行で挟む", () => {
+  // 返答と同じ組（読み方の組と数式の部品）で描いた木
+  const pipeline = pipelineOf(undefined, mathPluginsOf(remarkMath, rehypeKatex));
+  const markdownOf = (md: string) => hastToMarkdown(markdownToHast(pipeline, md)!);
   assert.equal(markdownOf("a $x^2_{i}$ b"), "a $x^2_{i}$ b");
   assert.equal(markdownOf("$$\n\\frac{a}{b}\n$$"), "$$\n\\frac{a}{b}\n$$");
 });

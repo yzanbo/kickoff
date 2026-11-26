@@ -4,10 +4,11 @@ import { test } from "vitest";
 import type { Element, ElementContent, Root } from "hast";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import type { PluggableList } from "unified";
 import { createPipeline, markdownToHast } from "@/foundation/ui/markdown/markdownProcessor";
+import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
 import { SEE_THROUGH_CLASS, TALL_MATH_CLASS, TIDY_KATEX_SCRIPT, tidyRenderedMath, type KatexElementLike } from "@shared/foundation/math/katexSettings";
-import { KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
+import { rehypeSafeMath } from "./katexOptions";
+import { mathPluginsOf } from "./mathPlugins";
 
 /*
  * 描いた式の整えは 3 か所にある（返答の rehypeSafeMath・ノートの tidyRenderedMath・スマホのページの TIDY_KATEX_SCRIPT）。
@@ -84,8 +85,10 @@ const TIDIES: [string, (tree: Root) => void][] = [
   ["TIDY_KATEX_SCRIPT", (tree) => pageTidy(domOf(tree))],
 ];
 
-/** 返答と同じ設定で KaTeX が描いた木（整える前） */
-const katexOnly = createPipeline([[remarkMath, { singleDollarTextMath: true }]] as PluggableList, [[rehypeKatex, KATEX_OPTIONS]] as PluggableList);
+/** 返答と同じ組から、最後の整え（rehypeSafeMath）だけを外した組で KaTeX が描いた木（整える前） */
+const math = mathPluginsOf(remarkMath, rehypeKatex);
+assert.equal(math.rehype.at(-1), rehypeSafeMath);
+const katexOnly = createPipeline(markdownRemarkPlugins(math.remark), math.rehype.slice(0, -1));
 const rendered = (markdown: string): Root => {
   const tree = markdownToHast(katexOnly, markdown);
   assert.ok(tree, markdown);
@@ -138,17 +141,18 @@ const tall = (node: Element) => classesOf(node).includes(TALL_MATH_CLASS);
 const emptyPhantom = (node: Element) => node.tagName === "mphantom" && node.children.length === 0;
 
 test("描いた式の整え: 返答・ノート・スマホのページの 3 つが、KaTeX の同じ木に同じ整えをする（見えない文字・MathML の見えない部分・高すぎる行の中の式）", () => {
-  const phantom = tidied(() => rendered(String.raw`$a\phantom{secret}b$`), "phantom");
-  assert.ok(count(phantom, seeThrough) > 0 && count(phantom, emptyPhantom) > 0);
-  // 段落の式は $$ を別の行に書く（同じ行の $$…$$ は行の中の式）
+  // 文の中の式は $$…$$ で書く（1 つの $ は英単語・記号だけの式を数式と読まない）。段落の式は $$ を別の行に書く
+  const inline = (tex: string) => rendered(["式 $$", tex, "$$"].join(""));
   const display = (tex: string) => rendered(["$$", tex, "$$"].join("\n"));
+  const phantom = tidied(() => inline(String.raw`a\phantom{secret}b`), "phantom");
+  assert.ok(count(phantom, seeThrough) > 0 && count(phantom, emptyPhantom) > 0);
   const displayPhantom = tidied(() => display(String.raw`\phantom{\text{secret}}`), "段落の phantom");
   assert.ok(count(displayPhantom, seeThrough) > 0);
   // 行の中の高すぎる式だけに印を付ける（段落の式・8 行の行列には付けない）
   const stretched = String.raw`\def\arraystretch{50}\begin{matrix}a\\b\end{matrix}`;
-  assert.equal(count(tidied(() => rendered(`$${stretched}$`), "行の中の高い式"), tall), 1);
+  assert.equal(count(tidied(() => inline(stretched), "行の中の高い式"), tall), 1);
   assert.equal(count(tidied(() => display(stretched), "段落の高い式"), tall), 0);
-  assert.equal(count(tidied(() => rendered(String.raw`$\begin{matrix}1\\2\\3\\4\\5\\6\\7\\8\end{matrix}$`), "8 行の行列"), tall), 0);
+  assert.equal(count(tidied(() => inline(String.raw`\begin{matrix}1\\2\\3\\4\\5\\6\\7\\8\end{matrix}`), "8 行の行列"), tall), 0);
   const plain = tidied(() => rendered("$x^2$ と $\\frac{a}{b}$"), "ふつうの式");
   assert.equal(count(plain, (node) => seeThrough(node) || tall(node)), 0);
 });

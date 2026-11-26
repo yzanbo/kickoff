@@ -7,7 +7,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
-import { remarkMathGuard } from "@/foundation/ui/markdown/math/remarkMathGuard";
+import { mathPluginsOf } from "@/foundation/ui/markdown/math/mathPlugins";
 import type { Root as HastRoot } from "hast";
 import { isHtmlComment } from "./html/htmlTree";
 import { applyMarkdownHtml } from "./html/htmlVerify";
@@ -38,10 +38,8 @@ const fakeFileLinks = () => (tree: { children?: unknown[] }) => {
   walk(tree);
 };
 
-const math = {
-  remark: [[remarkMath, { singleDollarTextMath: true }], remarkMathGuard] as PluggableList,
-  rehype: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]] as PluggableList,
-};
+/** 数式の部品（返答と同じ組） */
+const math = mathPluginsOf(remarkMath, rehypeKatex);
 
 /** Markdown の中の HTML を一覧を通して要素にする（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じ段を足す。数式より前） */
 const markdownHtml = () => (tree: HastRoot) => {

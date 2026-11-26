@@ -6,16 +6,20 @@ import katex from "katex";
 import { renderToStaticMarkup } from "react-dom/server";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import type { PluggableList } from "unified";
-import { createPipeline, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
 import { DISPLAY_MATH_MAX_EM, INLINE_MATH_MAX_EM, isHiddenMathml, isSeeThroughStyle, TALL_MATH_CLASS } from "@shared/foundation/math/katexSettings";
-import { KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
+import { KATEX_OPTIONS } from "./katexOptions";
+import { mathPluginsOf } from "./mathPlugins";
 
 /** 見た目の HTML の部分（読み上げ用の MathML と、書いた式の annotation は画面に出ないので除く） */
 const visible = (html: string) => html.slice(html.indexOf('<span class="katex-html"'));
-/** 返答と同じ組（rehype-katex のあとに rehypeSafeMath）で描いた HTML */
-const pipeline = createPipeline([[remarkMath, { singleDollarTextMath: true }]] as PluggableList, [[rehypeKatex, KATEX_OPTIONS], rehypeSafeMath] as PluggableList);
-const render = (tex: string) => renderToStaticMarkup(renderMarkdown(pipeline, ["$", tex, "$"].join(""), {}));
+/** 返答と同じ組（mathPluginsOf。rehype-katex のあとに rehypeSafeMath）で描いた HTML */
+const pipeline = pipelineOf(undefined, mathPluginsOf(remarkMath, rehypeKatex));
+/**
+ * 文の中の数式として描く。1 つの $ は英単語（secret）を含む式・記号だけの式を数式と読まない（remarkMathGuard）ので、
+ * 決まりを通さずに KaTeX へ渡る文の中の $$…$$ で書く（KaTeX の設定の守りはこちらで確かめる）
+ */
+const render = (tex: string) => renderToStaticMarkup(renderMarkdown(pipeline, ["式 $$", tex, "$$"].join(""), {}));
 
 test("isSeeThroughStyle: 透明・透明度のある文字色だけ（背景の色・ふつうの色は当たらない）", () => {
   assert.equal(isSeeThroughStyle("color:transparent;"), true);
@@ -46,6 +50,8 @@ test("見えない文字（phantom）は見えないまま場所を取り、選�
     assert.doesNotMatch(mathml, /secret/, tex);
     assert.match(html, /<annotation encoding="application\/x-tex">/);
   }
+  // 1 つの $ で英単語を隠す書き方は、数式と読まずに書いたままの文字で出る
+  assert.equal(renderToStaticMarkup(renderMarkdown(pipeline, String.raw`$a\phantom{secret}b$`, {})), String.raw`<p>$a\phantom{secret}b$</p>`);
 });
 
 test("数式で色を変える命令（\\color・\\textcolor・\\colorbox・\\fcolorbox・色の名前の命令）は、色を変えずに中身だけ描く（\\let・\\noexpand・\\def でも戻らない）", () => {
