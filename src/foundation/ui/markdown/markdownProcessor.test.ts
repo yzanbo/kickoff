@@ -11,7 +11,7 @@ import { mathPluginsOf } from "@/foundation/ui/markdown/math/mathPlugins";
 import type { Root as HastRoot } from "hast";
 import { isHtmlComment } from "./html/htmlTree";
 import { applyMarkdownHtml } from "./html/htmlVerify";
-import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { createBlockCache, createPipeline, pipelineOf, renderBlock } from "./markdownProcessor";
 import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 import { fakeFileLinks } from "./testing";
 
@@ -76,7 +76,7 @@ test("ブロックに分けて作り置きの処理で描いた結果は、react
   const plain = pipelineOf(undefined, null);
   for (const text of SAMPLES) {
     assert.equal(
-      blocks(text, (b) => renderMarkdown(plain, b, components)),
+      blocks(text, (b) => renderBlock(plain, b, components).element),
       whole(text, markdownRemarkPlugins(), []),
       JSON.stringify(text),
     );
@@ -87,7 +87,7 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
   const withLinks = createPipeline(markdownRemarkPlugins([fakeFileLinks]), []);
   for (const text of SAMPLES) {
     assert.equal(
-      blocks(text, (b) => renderMarkdown(withLinks, b, components)),
+      blocks(text, (b) => renderBlock(withLinks, b, components).element),
       whole(text, markdownRemarkPlugins([fakeFileLinks]), []),
       JSON.stringify(text),
     );
@@ -96,7 +96,7 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
   for (const source of [...MATH_SAMPLES, ...SAMPLES]) {
     const text = convertTexDelimiters(source);
     assert.equal(
-      blocks(text, (b) => renderMarkdown(withMath, b, components)),
+      blocks(text, (b) => renderBlock(withMath, b, components).element),
       whole(text, markdownRemarkPlugins(math.remark), math.rehype),
       JSON.stringify(text),
     );
@@ -104,7 +104,7 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
 });
 
 test("生の HTML: コメントだけのものは出さず、一覧のタグは要素に、ほかは文字で出す（動かさない）", () => {
-  const render = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, components));
+  const render = (text: string) => renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), text, components).element);
   assert.equal(render("前\n\n<!-- visual: v-s1xidvm4 -->\n\n後ろ"), "<p>前</p>\n\n<p>後ろ</p>");
   assert.equal(render("文の中 <!-- 目印 --> の続き"), "<p>文の中  の続き</p>");
   assert.equal(render("<!--\n複数行の\n\nコメント\n--> <!-- 続けて -->"), "");
@@ -126,7 +126,7 @@ test("pipelineOf: 差し込み・数式の組ごとに 1 つだけ作る", () =>
 });
 
 test("renderMarkdown: tail があれば終わりの文字を薄く包む（コードブロックの中は包まない）", () => {
-  const html = renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), "前の文字\n\n```\ncode\n```\n\n後ろ", components, [2, 0, 0]));
+  const html = renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), "前の文字\n\n```\ncode\n```\n\n後ろ", components, [2, 0, 0]).element);
   assert.match(html, /<p><span class="stream-fade-1">後ろ<\/span><\/p>/);
   assert.match(html, /<code>code\n<\/code>/);
 });
@@ -136,8 +136,8 @@ test("renderMarkdown: 1 回の改行を改行（br）にしても、薄く出す
   const plain = createPipeline([], []);
   const withBreaks = pipelineOf(undefined, null);
   for (const [text, n] of [["前の行\n後ろの行", 5], ["前の行\n後ろの行", 8], ["a\nb\nc", 3], ["**太\n字**の\n続き", 6]] as const) {
-    const before = faded(renderToStaticMarkup(renderMarkdown(plain, text, components, [n, 0, 0])));
-    const after = renderToStaticMarkup(renderMarkdown(withBreaks, text, components, [n, 0, 0]));
+    const before = faded(renderToStaticMarkup(renderBlock(plain, text, components, [n, 0, 0]).element));
+    const after = renderToStaticMarkup(renderBlock(withBreaks, text, components, [n, 0, 0]).element);
     assert.match(after, /<br\/>/);
     assert.equal(faded(after), before, text);
   }
@@ -169,7 +169,7 @@ test("書いている途中の閉じていないコードブロックは、そ�
       return null;
     },
   };
-  renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), blocks[1], probe));
+  renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), blocks[1], probe).element);
   assert.deepEqual(
     starts.map((s) => s >= openFence),
     [false, true],

@@ -113,10 +113,6 @@ export function renderBlock(pipeline: MarkdownPipeline, text: string, components
   return { element, images: imageSourcesOf(tree) };
 }
 
-/** 1 つのブロック（か全文）の要素（`renderBlock`） */
-export const renderMarkdown = (pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement =>
-  renderBlock(pipeline, text, components, tail).element;
-
 /** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
 const plainBlock = (text: string): ReactElement => jsx("p", { className: "markdown-plain", children: text });
 

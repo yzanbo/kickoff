@@ -8,7 +8,6 @@ import { buildHtml } from "./htmlTree";
 /** HTML から作った要素に付けるクラス（Markdown.css の「ほかの CSS を当てない決まり」と見た目の相手） */
 export const HTML_ELEMENT_CLASS = "md-html";
 
-
 /** 木の上の属性 1 つが一覧の決まりどおりか（値は読み直して同じ形になるものだけ） */
 function propertyFits(tag: string, prop: string, value: unknown): boolean {
   if (tag === "font" || !Object.hasOwn(ATTRIBUTE_BY_PROP, prop)) return false;

@@ -6,7 +6,7 @@ import katex from "katex";
 import { renderToStaticMarkup } from "react-dom/server";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { DISPLAY_MATH_MAX_EM, INLINE_MATH_MAX_EM, isHiddenMathml, isSeeThroughStyle, TALL_MATH_CLASS } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "./katexOptions";
 import { mathPluginsOf } from "./mathPlugins";
@@ -19,7 +19,7 @@ const pipeline = pipelineOf(undefined, mathPluginsOf(remarkMath, rehypeKatex));
  * 文の中の数式として描く。1 つの $ は英単語（secret）を含む式・記号だけの式を数式と読まない（remarkMathGuard）ので、
  * 決まりを通さずに KaTeX へ渡る文の中の $$…$$ で書く（KaTeX の設定の守りはこちらで確かめる）
  */
-const render = (tex: string) => renderToStaticMarkup(renderMarkdown(pipeline, ["式 $$", tex, "$$"].join(""), {}));
+const render = (tex: string) => renderToStaticMarkup(renderBlock(pipeline, ["式 $$", tex, "$$"].join(""), {}).element);
 
 test("isSeeThroughStyle: 透明・透明度のある文字色だけ（背景の色・ふつうの色は当たらない）", () => {
   assert.equal(isSeeThroughStyle("color:transparent;"), true);
@@ -51,7 +51,7 @@ test("見えない文字（phantom）は見えないまま場所を取り、選�
     assert.match(html, /<annotation encoding="application\/x-tex">/);
   }
   // 1 つの $ で英単語を隠す書き方は、数式と読まずに書いたままの文字で出る
-  assert.equal(renderToStaticMarkup(renderMarkdown(pipeline, String.raw`$a\phantom{secret}b$`, {})), String.raw`<p>$a\phantom{secret}b$</p>`);
+  assert.equal(renderToStaticMarkup(renderBlock(pipeline, String.raw`$a\phantom{secret}b$`, {}).element), String.raw`<p>$a\phantom{secret}b$</p>`);
 });
 
 test("数式で色を変える命令（\\color・\\textcolor・\\colorbox・\\fcolorbox・色の名前の命令）は、色を変えずに中身だけ描く（\\let・\\noexpand・\\def でも戻らない）", () => {
@@ -165,7 +165,7 @@ test("返答の数式も、式の箱（.katex-base）の外へ出た分を描か
 });
 
 test("式の箱の縦の上限: 長さの命令でない形（\\arraystretch・空の行）で高すぎる行の中の式に印を付け、CSS がその高さで切る・段落の式はスクロール", () => {
-  const block = (tex: string) => renderToStaticMarkup(renderMarkdown(pipeline, ["$$", tex, "$$"].join("\n"), {}));
+  const block = (tex: string) => renderToStaticMarkup(renderBlock(pipeline, ["$$", tex, "$$"].join("\n"), {}).element);
   const rows = (n: number) => Array.from({ length: n }, (_, i) => `a_{${i}} & b`).join(String.raw`\\`);
   for (const tex of [String.raw`\def\arraystretch{50}\begin{matrix}a\\b\end{matrix}`, `\\begin{matrix}${String.raw`\\`.repeat(100)}\\end{matrix}`]) {
     assert.match(render(tex), new RegExp(`class="katex ${TALL_MATH_CLASS}"`), tex);

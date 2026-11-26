@@ -51,7 +51,6 @@ export const KATEX_SETTINGS = {
   maxExpand: 1000,
 } as const;
 
-
 /** 透明・透明度のある色（KaTeX が色に通すのは色の名前と #rgb・#rgba・#rrggbb・#rrggbbaa だけ） */
 const SEE_THROUGH = /^\s*(?:transparent|#[0-9a-f]{4}|#[0-9a-f]{8})\s*$/i;
 /** 文字の色の項目（背景・枠の色は文字を隠さないので見ない） */

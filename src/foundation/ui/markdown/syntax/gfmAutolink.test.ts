@@ -5,13 +5,13 @@ import { gfmAutolinkLiteralFromMarkdown } from "mdast-util-gfm-autolink-literal"
 import { gfmAutolinkLiteral } from "micromark-extension-gfm-autolink-literal";
 import type { Extension } from "micromark-util-types";
 import type { Processor } from "unified";
-import { createPipeline, pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { createPipeline, pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { gfmAutolinkFromMarkdown, gfmAutolinkSyntax } from "./gfmAutolink";
 import { isUrlStop } from "./urlStop";
 
 type FromMarkdownExtension = ReturnType<typeof gfmAutolinkLiteralFromMarkdown>;
 
-const html = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, {}));
+const html = (text: string) => renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), text, {}).element);
 const link = (url: string, text = url) => `<a href="${url}">${text}</a>`;
 
 /** 自動リンクの部品だけで読む処理（元の部品と止める版を、同じ形で比べる） */
@@ -81,8 +81,8 @@ test("URL: 止まる文字がなければ、元の自動リンクの部品と同
     "foo@bar.baz と a.b-c_d@a.b. と mailto:x@y.z",
   ];
   for (const text of samples) {
-    const expected = renderToStaticMarkup(renderMarkdown(original, text, {}));
-    const actual = renderToStaticMarkup(renderMarkdown(stopping, text, {}));
+    const expected = renderToStaticMarkup(renderBlock(original, text, {}).element);
+    const actual = renderToStaticMarkup(renderBlock(stopping, text, {}).element);
     assert.equal(actual, expected, text);
   }
 });

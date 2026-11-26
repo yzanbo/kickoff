@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 
 /*
  * 読み方の設定の組（markdownPlugins.ts）で描いた HTML を、例文ごとに確かめる。
  * 例文は日本語の返答で崩れていた書き方と、崩れていなかった書き方・英語の文（読み方を変えないもの）
  */
 
-const html = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, {}));
+const html = (text: string) => renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), text, {}).element);
 
 function check(cases: [string, string][]) {
   for (const [input, expected] of cases) assert.equal(html(input), expected, JSON.stringify(input));
