@@ -3,10 +3,9 @@ import { READ_TOGGLE_BUSY_NOTE, READ_TOGGLE_LABELS, readToggleOf } from "@shared
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { keyLabel } from "@/foundation/ui/commands";
-import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { READ_TOGGLE_KEY, setChatRead } from "@/features/chat/ui/state/readToggle";
+import { READ_TOGGLE_KEY, reportReadFailure, setChatRead } from "@/features/chat/ui/state/readToggle";
 import { useChatOf } from "@/features/chat/ui/store/useChatStore";
 
 /**
@@ -15,7 +14,7 @@ import { useChatOf } from "@/features/chat/ui/store/useChatStore";
  */
 export function ReadToggleItem({ chat, onError }: { chat: Chat; /** 失敗を出す（省けばダイアログ） */ onError?: (message: string) => void }) {
   const toggle = readToggleOf(useChatStates().stateOf(chat));
-  const fail = onError ? (e: unknown) => onError(errorMessage(e)) : reportFailure("未読・既読を変えられませんでした");
+  const fail = onError ? (e: unknown) => onError(errorMessage(e)) : reportReadFailure;
   // 押せないとき（作業中・回答待ち）も、印の有無に合わせた名前とアイコンを出す（作業中に返答が届いて印が付いていれば「既読にする」）
   const shown = toggle ?? (chat.unread ? "seen" : "unseen");
   return (

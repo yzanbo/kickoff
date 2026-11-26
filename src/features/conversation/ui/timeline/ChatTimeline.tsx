@@ -1,11 +1,8 @@
 import "./Timeline.css";
 import { useLayoutEffect } from "react";
-import { READ_TOGGLE_LABELS, showsReadButton } from "@shared/chat/readTiming";
-import { agentStateOf } from "@shared/chat/state";
+import { READ_TOGGLE_LABELS } from "@shared/chat/readTiming";
 import type { Chat } from "@shared/chat/types";
-import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useAppSettings } from "@/foundation/ui/settings/appSettings";
-import { setChatRead, TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
+import { TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 import { chatLog, chatTail, chatWindow, useChatDetail, useStreaming } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
@@ -23,7 +20,7 @@ import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
 import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
-import { useReadToggleKey } from "./useReadToggleKey";
+import { useReadControls } from "./useReadControls";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
 import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
@@ -98,12 +95,9 @@ export function ChatTimeline({
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
-  const timing = useAppSettings().data?.read_timing ?? "at_bottom";
-  useMarkSeen({ timelineRef: scroll.ref, chat, events, timing, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
-  // ボタンで既読にする設定の既読ボタン（一番下まで来て、作業が終わって未読のとき。一番下へ戻るボタンと同じ場所）
-  const readButton = showsReadButton(timing, agentStateOf(chat, approvals.length > 0), !s.away);
-  // ⌘⇧U で既読⇔未読（一番下にいるかによらない）
-  useReadToggleKey(root, chat);
+  // 既読にするタイミング・⌘⇧U・既読ボタン
+  const read = useReadControls(root, chat, s.away);
+  useMarkSeen({ timelineRef: scroll.ref, chat, events, timing: read.timing, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
   const jumping = useCell(nav.jumping);
   const pinned = sticky.pinned;
@@ -174,15 +168,7 @@ export function ChatTimeline({
       {s.away ? (
         <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />
       ) : (
-        readButton && (
-          <ScrollBottomPill
-            tone="arrived"
-            label={READ_TOGGLE_LABELS.seen}
-            dock={pillDock ?? null}
-            read
-            onClick={() => void setChatRead(chat, "seen").catch(reportFailure("既読にできませんでした"))}
-          />
-        )
+        read.readButton && <ScrollBottomPill tone="arrived" label={READ_TOGGLE_LABELS.seen} dock={pillDock ?? null} read onClick={read.markSeen} />
       )}
     </div>
   );

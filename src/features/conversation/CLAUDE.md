@@ -3,7 +3,7 @@
 1 つのチャットの画面・流れ・発言・ツールの行・作業中の様子・動き・承認・検索（パスは `ui/` から）。チャットの店は `src/features/chat/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `CHT-`。
 
 ## 地図
-- `screen/`: `ChatScreen` → 殻 `ChatShell` → 会話の欄 `ChatColumn`・画面の口 `createScreenActions`。見出しと「表示」は `display/`、キーは `chatHotkeys.ts`（⌘⇧U は `useReadToggleKey`）
+- `screen/`: `ChatScreen` → 殻 `ChatShell` → 会話の欄 `ChatColumn`・画面の口 `createScreenActions`。見出しと「表示」は `display/`、キーは `chatHotkeys.ts`（⌘⇧U は `useReadControls`）
 - `timeline/`・`streaming/`: 項目 `ui/timelineItems.ts`・種類の表 `rowKinds.tsx`・窓 `useTimelineWindow`・付いていき `useFollowBottom`・書いている途中 `StreamingReply`
 - `messages/`（引用 `quotable.ts`）・`tools/`（`toolText`・`toolRowViewOf`・出力の店 `commandOutputs.ts`）
 - `working/`・`background/`・`todo/`・`activity/`・`approvals/`・`promptList/`・`find/`・`rewind/`（失敗の直す操作 `failedTurnOf`）

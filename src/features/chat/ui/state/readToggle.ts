@@ -1,7 +1,11 @@
 import type { ReadToggle } from "@shared/chat/readTiming";
 import type { Chat } from "@shared/chat/types";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { chatsApi } from "@/features/chat/ui/api/chats";
 import { readHolds } from "./readHolds";
+
+/** 手で既読・未読を変えられなかったとき（右クリック・⌘⇧U・既読ボタンで同じ知らせ） */
+export const reportReadFailure = reportFailure("未読・既読を変えられませんでした");
 
 /** 既読⇔未読の切り替えのキー（⌘⇧U。チャットの画面で、一番下にいるかによらず効く） */
 export const READ_TOGGLE_KEY = "mod+shift+u";
