@@ -63,7 +63,7 @@ function chatStateText(chat: Chat, waiting: boolean): string {
 
 /** chatId のチャットの AI に渡す、読むだけのツールの中身。チャットは呼ぶたびに引き直す */
 export function createAiChatReadTools({ store, approvals, attachments: files }: AiChatReadDeps, chatId: number): AiChatReadTools {
-  const { self: requireSelf } = toolChat(store.chats, chatId);
+  const { self: requireSelf, chatIn } = toolChat(store.chats, chatId);
   /** 家系の中なら関係の呼び名、外なら「ほかの家系」、ほかのプロジェクト（共通のチャットから読むとき）なら「ほかのプロジェクト」 */
   const relations = (self: Chat) => {
     const { members, relationOf } = familyOf(store.chats, self);
@@ -73,11 +73,12 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
   /** 読む相手のチャット（呼んだチャットから指せるプロジェクトのものだけ。project を渡したらそのプロジェクトのものだけ） */
   const readableChat = (self: Chat, id: number, project: string | number | undefined): Chat => {
     const within = project === undefined ? readableProjects(store.projects, self) : [projectForTool(store.projects, self, project)];
-    const target = store.chats.get(id);
-    if (!target || !within.some((p) => p.id === target.project_id)) {
-      throw new Error(`チャット ID ${id} は、${project === undefined ? "このプロジェクト" : `プロジェクト「${within[0].name}」`}にありません。読めるのは${isCommonChatProject(store.projects, self.project_id) ? "共通とアーカイブしていないプロジェクト" : "同じプロジェクト"}のチャットだけです。list_project_chats で ID を確かめてください`);
-    }
-    return target;
+    return chatIn(
+      id,
+      within,
+      () =>
+        `チャット ID ${id} は、${project === undefined ? "このプロジェクト" : `プロジェクト「${within[0].name}」`}にありません。読めるのは${isCommonChatProject(store.projects, self.project_id) ? "共通とアーカイブしていないプロジェクト" : "同じプロジェクト"}のチャットだけです。list_project_chats で ID を確かめてください`,
+    );
   };
   const tools: AiChatReadTools = {
     listProjectChats(input = {}) {
