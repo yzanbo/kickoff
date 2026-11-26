@@ -48,14 +48,15 @@ export const MERMAID_SECURE_KEYS = [
 
 /**
  * 図を描く守りの設定（パソコンとスマホで同じ。配色・字体は描く側が足す）。
- * 文字は HTML ではなく SVG で描き（htmlLabels: false）、図の中のリンクやスクリプトは動かさない（securityLevel: strict）。
- * 図に使える文字数・線の数の上限を超えたら図にせず、コードのまま出す
+ * 文字は HTML ではなく SVG で描き（htmlLabels: false。flowchart の形の一部は flowchart.htmlLabels を直に読むので、そちらも false）、
+ * 図の中のリンクやスクリプトは動かさない（securityLevel: strict）。図に使える文字数・線の数の上限を超えたら図にせず、コードのまま出す
  */
 export const MERMAID_SAFE_CONFIG = {
   startOnLoad: false,
   securityLevel: "strict",
   suppressErrorRendering: true,
   htmlLabels: false,
+  flowchart: { htmlLabels: false },
   secure: MERMAID_SECURE_KEYS,
   maxTextSize: 20_000,
   maxEdges: 400,

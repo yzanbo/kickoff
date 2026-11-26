@@ -54,7 +54,8 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
 
   return {
     ...MERMAID_SAFE_CONFIG,
-    // Mermaid が設定の一覧を書き換えても共有の一覧が変わらないよう、写しを渡す
+    // Mermaid が設定を書き換えても共有の値が変わらないよう、写しを渡す
+    flowchart: { ...MERMAID_SAFE_CONFIG.flowchart },
     secure: [...MERMAID_SAFE_CONFIG.secure],
     theme: "base",
     // Mermaid 12 の既定（neo）は影と立体の枠が付き、ダークでは浮くので、平らな見た目にする

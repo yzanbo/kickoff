@@ -37,7 +37,6 @@ const MERMAID_PAGE_CSP = isolatedFrameCsp({ script: PAGE_SCRIPTS, style: ["'unsa
 const MERMAID_CONFIG = {
   ...MERMAID_SAFE_CONFIG,
   theme: "dark",
-  flowchart: { htmlLabels: false },
 };
 
 /** スマホの配色の図の変数（アプリはダークだけ） */
