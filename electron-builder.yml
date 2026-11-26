@@ -1,4 +1,5 @@
-appId: dev.zanbo.kickoff
+# アプリ ID（scripts/mac-privacy.mjs の PRODUCTION_BUNDLE_ID・notifications の KICKOFF_BUNDLE_ID と同じ）。保存先はアプリの名前で決まるので、替えてもデータは引き継がれる
+appId: app.kickoff.desktop
 productName: Kickoff
 directories:
   output: dist

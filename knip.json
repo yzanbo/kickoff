@@ -18,5 +18,5 @@
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
   "ignoreExportsUsedInFile": true,
-  "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto"]
+  "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto", "tccutil"]
 }

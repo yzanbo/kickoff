@@ -22,7 +22,7 @@ test("メインのウィンドウの本体だけを受け付け、読み込み�
   const first = windowFixture();
   const second = windowFixture();
   let main = first;
-  const file = path.join(appData, "Pinstage", "BadgeSources", "dev.zanbo.kickoff.json");
+  const file = path.join(appData, "Pinstage", "BadgeSources", "app.kickoff.desktop.json");
   const read = () => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")).badges : undefined;
   const link = createPinstageBadges({ platform: "darwin", packaged: true, appData: () => appData, mainContents: () => main.sender, log: assert.fail });
   try {

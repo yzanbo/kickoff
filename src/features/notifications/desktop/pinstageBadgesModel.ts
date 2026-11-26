@@ -2,7 +2,8 @@ import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { StateBadges } from "@shared/foundation/ipc";
 import { STATE_BADGE_COLUMNS, STATE_BADGE_LAYOUT, type StateBadgeColumn } from "@shared/notifications/stateBadges";
 
-export const KICKOFF_BUNDLE_ID = "dev.zanbo.kickoff";
+/** 製品版のアプリ ID（electron-builder.yml の appId と同じ。Pinstage はこれで Dock のアイコンを見分ける） */
+export const KICKOFF_BUNDLE_ID = "app.kickoff.desktop";
 const MAX_BYTES = 8_192;
 const MAX_COUNT = 1_000_000;
 export interface PinstageBadge {

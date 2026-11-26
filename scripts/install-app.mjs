@@ -6,11 +6,11 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { checkAgentUpdates } from "./check-agent-updates.mjs";
+import { bundleIdOf, cdhashOf, PRODUCTION_BUNDLE_ID, resetPrivacyPermissions } from "./mac-privacy.mjs";
 
 const root = path.join(import.meta.dirname, "..");
 const target = "/Applications/Kickoff.app";
 const built = path.join(root, "dist", "mac-arm64", "Kickoff.app");
-const bundleId = "dev.zanbo.kickoff";
 // 本番の保存先とポート（src/foundation/core/system/appEnv.ts の production と同じ）
 const prodDir = path.join(os.homedir(), "Library", "Application Support", "Kickoff");
 const prodPort = 4317;
@@ -65,10 +65,14 @@ execSync("npx electron-builder --mac --arm64 --dir", { cwd: root, stdio: "inheri
 
 // ビルドの間に始まったチャットがないか、もう一度確かめる
 await assertIdle();
+// 入れ替える前のアプリの ID とハッシュ。ID は版によって違うことがあるので、終了の宛先と許可の片付けに前の値を使う
+const installed = existsSync(target);
+const previousId = installed ? bundleIdOf(target) : null;
+const previousHash = installed ? cdhashOf(target) : null;
 const wasRunning = isRunning();
 if (wasRunning) {
   // ⌘Q と同じ終わり方（before-quit の片付けが走る。片付けは 5 秒で打ち切られる）
-  execFileSync("osascript", ["-e", `tell application id "${bundleId}" to quit`]);
+  execFileSync("osascript", ["-e", `tell application id "${previousId ?? PRODUCTION_BUNDLE_ID}" to quit`]);
   for (let i = 0; i < 30 && isRunning(); i++) await sleep(500);
   if (isRunning()) {
     console.error("本番の Kickoff が終了しませんでした。手で終了してから、もう一度実行してください");
@@ -87,6 +91,10 @@ if (existsSync(target)) rmSync(target, { recursive: true, force: true });
 execFileSync("ditto", [built, target]);
 execFileSync("codesign", ["--verify", "--deep", "--strict", target]);
 console.log(`${target} を入れ替えました`);
+// 中身が変わったら、アクセシビリティ・画面収録の許可を消して聞き直してもらう（前の ID の古い記録も片付ける）
+if (cdhashOf(target) !== previousHash) {
+  if (resetPrivacyPermissions([previousId ?? PRODUCTION_BUNDLE_ID, PRODUCTION_BUNDLE_ID]).length > 0) console.log("アクセシビリティ・画面収録の許可を消しました（次に使うときに macOS が聞き直します）");
+}
 if (wasRunning) execFileSync("open", ["-a", target]);
 
 // Claude Code（同梱の SDK）・Codex（入れた CLI）に新しい版が出ていれば 1 行ずつ知らせる（入れ替えは止めない）

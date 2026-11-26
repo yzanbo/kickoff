@@ -63,6 +63,9 @@ node scripts/ui-snapshot.mjs take <名前>   # 開発版の画面の DOM と計�
 | 名前（Dock・メニューバー） | Kickoff | Kickoff Dev（アイコンに DEV の帯） |
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
+| アプリ ID | `app.kickoff.desktop` | `app.kickoff.desktop.dev` |
+
+どちらも仮の署名（ad-hoc）なので、アクセシビリティ・画面収録の許可は中身に結びつき、作り直すと効かなくなる。`npm run install-app`（製品版）と `npm install`（開発版。Electron.app が置き直されたとき）は、中身が変わったらその許可を消すので、次に使うときに macOS が聞き直す（`scripts/mac-privacy.mjs`）。
 
 製品版を入れ替えるときは、macOS のターミナルで流す（Kickoff の中のチャット・ターミナルからは流さない）:
 
