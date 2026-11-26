@@ -1,13 +1,39 @@
 // スマホのチャットで、数式を含む返答と AI が描いた図（SVG・HTML・Mermaid）を WebView に描くページを組み立てる（純粋な関数）。
 // 数式（KaTeX）と Mermaid は、APK を大きくしないよう CDN（cdn.jsdelivr.net）から読む（スマホは本体とつなぐのにネットワークを使う）。
-// どのページも、図の枠と同じ CSP（決めた CDN のほかへは通信しない）で、高さを React Native へ知らせる
+// 数式・Mermaid のページの CSP は、本体のスクリプト（と KaTeX の CSS・フォント）だけを CDN から読ませ、画像は data: と blob: だけにする
+// （CDN は GitHub のファイルも配れるので、図の書き方（参加者の icon・形の img・CSS の url）で読む画像を許すと、見たことが外に伝わる）。
+// 高さは React Native へ知らせる
+import { isolatedFrameCsp } from "@shared/foundation/isolatedFrame";
 import { mathRanges } from "@shared/foundation/markdown/mathGuard";
-import { VISUAL_FRAME_CSP, VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
+import { MERMAID_SECURE_KEYS, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
+import { SANITIZE_SVG_SCRIPT } from "@shared/foundation/mermaidSvg";
+import { VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
 import { colors } from "../ui/colors";
 
-/** KaTeX と Mermaid の版（CDN の URL に入れる） */
-const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist";
-const MERMAID = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+/** KaTeX と Mermaid を読む CDN と版（CDN の URL に入れる） */
+const CDN = "https://cdn.jsdelivr.net";
+const KATEX = `${CDN}/npm/katex@0.16.22/dist`;
+const MERMAID = `${CDN}/npm/mermaid@11/dist/mermaid.min.js`;
+
+/** 本体のスクリプト（ページに書いたものと CDN のもの） */
+const PAGE_SCRIPTS = ["'unsafe-inline'", "'unsafe-eval'", CDN];
+/** 数式のページの CSP（KaTeX の CSS とフォントも CDN から） */
+const MATH_PAGE_CSP = isolatedFrameCsp({ script: PAGE_SCRIPTS, style: ["'unsafe-inline'", CDN], img: ["data:", "blob:"], font: ["data:", CDN] });
+/** Mermaid のページの CSP（図が書く CSS・画像・フォントは外を読めない。スタイルは Mermaid が SVG に書くものだけ） */
+const MERMAID_PAGE_CSP = isolatedFrameCsp({ script: PAGE_SCRIPTS, style: ["'unsafe-inline'"], img: ["data:", "blob:"], font: ["data:"] });
+
+/** Mermaid の設定（パソコンと同じく、図の中の前書き・%%{init}%% から HTML のラベル・配色・CSS・字体を変えさせない） */
+const MERMAID_CONFIG = {
+  startOnLoad: false,
+  theme: "dark",
+  securityLevel: "strict",
+  suppressErrorRendering: true,
+  htmlLabels: false,
+  flowchart: { htmlLabels: false },
+  secure: MERMAID_SECURE_KEYS,
+  maxTextSize: 20_000,
+  maxEdges: 400,
+};
 
 /** スマホの配色の図の変数（アプリはダークだけ） */
 export const MOBILE_VISUAL_THEME: VisualThemeValues = {
@@ -45,10 +71,10 @@ const SIZE_SCRIPT = `(() => {
 })();`;
 
 /** 数式・Mermaid のページの頭（CSP・配色・高さの知らせ） */
-function pageHead(extra: string): string {
+function pageHead(csp: string, extra: string): string {
   return [
     `<meta charset="utf-8">`,
-    `<meta http-equiv="Content-Security-Policy" content="${VISUAL_FRAME_CSP}">`,
+    `<meta http-equiv="Content-Security-Policy" content="${csp}">`,
     `<meta name="viewport" content="width=device-width, initial-scale=1">`,
     `<style>${visualThemeCss(MOBILE_VISUAL_THEME)}
 html, body { margin: 0; background: var(--vis-bg); color: var(--vis-text); font-family: var(--vis-font); font-size: 15px; line-height: 1.5; overflow-y: hidden; }
@@ -77,22 +103,44 @@ export function mathPage(text: string): string {
   body += escapeHtml(text.slice(at));
   const render = `<link rel="stylesheet" href="${KATEX}/katex.min.css"><script src="${KATEX}/katex.min.js"></script>
 <script>addEventListener("DOMContentLoaded", () => { if (!window.katex) return; for (const el of document.querySelectorAll(".tex")) { try { katex.render(el.dataset.tex, el, { displayMode: el.dataset.display === "1", throwOnError: false, errorColor: "inherit", strict: false }); } catch {} } });</script>`;
-  return `<!doctype html><html><head>${pageHead(render)}</head><body>${body}</body></html>`;
+  return `<!doctype html><html><head>${pageHead(MATH_PAGE_CSP, render)}</head><body>${body}</body></html>`;
 }
 
-/** Mermaid の図のページ（読めない・書き方の誤りなら、書いたとおりの文のまま、理由を React Native へ知らせる） */
+/** 描けなかった理由を React Native へ知らせる関数 fail をページに置く */
+const FAIL_SCRIPT = `const fail = (message) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: ${JSON.stringify(VISUAL_MESSAGES.error)}, message }));`;
+
+/**
+ * Mermaid の図のページ（読めない・書き方の誤りなら、書いたとおりの文のまま、理由を React Native へ知らせる）。
+ * 描く途中で外を読む書き方の図は Mermaid を読まずに断る（パソコンと同じ判定）。描いた SVG はパソコンと同じ決まりで整えてから置く
+ * （リンク・外を指す属性・foreignObject・on… の属性・外を読む CSS を外す。リンクを押して確かめずにブラウザが開かないように）
+ */
 export function mermaidPage(code: string): string {
-  const render = `<script src="${MERMAID}"></script>
-<script>addEventListener("DOMContentLoaded", async () => {
-  const fail = (message) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: ${JSON.stringify(VISUAL_MESSAGES.error)}, message }));
+  const render = mermaidReadsOutside(code)
+    ? `<script>${FAIL_SCRIPT}
+addEventListener("DOMContentLoaded", () => fail("外の画像・CSS を読む図は描きません"));</script>`
+    : `<script src="${MERMAID}"></script>
+<script>${SANITIZE_SVG_SCRIPT}
+${FAIL_SCRIPT}
+addEventListener("DOMContentLoaded", async () => {
   if (!window.mermaid) return fail("Mermaid を読み込めませんでした（ネットワークを確かめてください）");
-  mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "strict" });
+  mermaid.initialize(${JSON.stringify(MERMAID_CONFIG)});
   const el = document.getElementById("src");
-  try { const { svg } = await mermaid.render("m1", el.textContent); el.outerHTML = '<div class="diagram">' + svg + '</div>'; }
-  catch (e) { fail("図を描けませんでした: " + String((e && e.message) || e)); }
-});</script>
-<style>body { white-space: normal; } #src { white-space: pre; font-family: var(--vis-mono); font-size: 12px; } .diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }</style>`;
-  return `<!doctype html><html><head>${pageHead(render)}</head><body><div id="src">${escapeHtml(code)}</div></body></html>`;
+  try {
+    const { svg } = await mermaid.render("m1", el.textContent);
+    // 文書に入れる前に template の中で整える（文書の外なので、整える前に画像などを読みに行かない）
+    const template = document.createElement("template");
+    template.innerHTML = svg;
+    const root = template.content.firstElementChild;
+    if (!root || root.localName !== "svg") throw new Error("図の SVG を読めませんでした");
+    mermaidSanitizeSvgTree(root, () => document.createElementNS("http://www.w3.org/2000/svg", "g"));
+    const box = document.createElement("div");
+    box.className = "diagram";
+    box.append(root);
+    el.replaceWith(box);
+  } catch (e) { fail("図を描けませんでした: " + String((e && e.message) || e)); }
+});</script>`;
+  const style = `<style>body { white-space: normal; } #src { white-space: pre; font-family: var(--vis-mono); font-size: 12px; } .diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }</style>`;
+  return `<!doctype html><html><head>${pageHead(MERMAID_PAGE_CSP, render + "\n" + style)}</head><body><div id="src">${escapeHtml(code)}</div></body></html>`;
 }
 
 /** SVG・HTML の図のページ（パソコンと同じページに、CSP の meta とスマホの配色）。maxHeight: 高さの上限（超えたら中でスクロール） */

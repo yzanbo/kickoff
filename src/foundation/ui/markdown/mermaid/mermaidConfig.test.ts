@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
-import { MERMAID_SECURE_KEYS } from "./mermaidConfig";
+import { MERMAID_SECURE_KEYS } from "@shared/foundation/mermaidResources";
 
 test("MERMAID_SECURE_KEYS: 前書き（字下げ・CRLF・タブ）と %%{init}%%（閉じのないものも）の config から、配色・CSS・字体を変えられない", async () => {
   const { default: mermaid } = await import("mermaid");

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import vm from "node:vm";
 import { test } from "vitest";
-import { sanitizeSvgTree, stripCssUrls, type SvgElementLike } from "./sanitizeSvg";
+import { SANITIZE_SVG_SCRIPT, sanitizeSvgTree, stripCssUrls, type SvgElementLike } from "./mermaidSvg";
 
 /** 偽の要素（整えに使う口だけ。テストに DOM がないため） */
 class FakeElement implements SvgElementLike {
@@ -64,10 +65,16 @@ class FakeElement implements SvgElementLike {
 
 const el = (tag: string, attrs: Record<string, string> = {}, ...nodes: (FakeElement | string)[]) => new FakeElement(tag, attrs, nodes);
 const group = () => new FakeElement("g");
-/** 偽の木を整える */
-const sanitize = (svg: FakeElement) => sanitizeSvgTree(svg, group);
+/** 整える関数（TS のものと、スマホの WebView のページに入れるスクリプトのもの。同じ例で同じ結果になる） */
+type SanitizeTree = (root: SvgElementLike, makeGroup: () => SvgElementLike) => void;
+const pageSanitize = vm.runInNewContext(`${SANITIZE_SVG_SCRIPT}\nmermaidSanitizeSvgTree`) as SanitizeTree;
+const IMPLS: [string, SanitizeTree][] = [
+  ["TS", sanitizeSvgTree],
+  ["ページのスクリプト", pageSanitize],
+];
 
-test("sanitizeSvgTree: click のリンク（a）は外し、中身を位置と見た目だけを写した g に入れ直す", () => {
+test.each(IMPLS)("sanitizeSvgTree（%s）: click のリンク（a）は外し、中身を位置と見た目だけを写した g に入れ直す", (_where, sanitizeTree) => {
+  const sanitize = (svg: FakeElement) => sanitizeTree(svg, group);
   const svg = el(
     "svg",
     {},
@@ -77,7 +84,8 @@ test("sanitizeSvgTree: click のリンク（a）は外し、中身を位置と�
   assert.equal(String(svg), '<svg><g><g transform="translate(102, 35.25)" class="clickable"><rect class="node"></rect><text>A</text></g></g></svg>');
 });
 
-test("sanitizeSvgTree: 外を指す href・xlink:href・src を消し、# は残す", () => {
+test.each(IMPLS)("sanitizeSvgTree（%s）: 外を指す href・xlink:href・src を消し、# は残す", (_where, sanitizeTree) => {
+  const sanitize = (svg: FakeElement) => sanitizeTree(svg, group);
   const svg = el(
     "svg",
     {},
@@ -91,7 +99,8 @@ test("sanitizeSvgTree: 外を指す href・xlink:href・src を消し、# は残
   assert.equal(String(svg), '<svg><image width="10"></image><image></image><use href="#arrow"></use><filter><feImage></feImage></filter><image></image></svg>');
 });
 
-test("sanitizeSvgTree: foreignObject・スクリプトと on… の属性、href を書き換えるアニメーションを消す", () => {
+test.each(IMPLS)("sanitizeSvgTree（%s）: foreignObject・スクリプトと on… の属性、href を書き換えるアニメーションを消す", (_where, sanitizeTree) => {
+  const sanitize = (svg: FakeElement) => sanitizeTree(svg, group);
   const svg = el(
     "svg",
     { onload: "alert(1)" },
@@ -105,7 +114,8 @@ test("sanitizeSvgTree: foreignObject・スクリプトと on… の属性、href
   assert.equal(String(svg), '<svg><rect fill="red"></rect><animate attributeName="opacity" values="0;1"></animate></svg>');
 });
 
-test("sanitizeSvgTree: CSS（style の属性・<style>）の外を読む書き方を消し、# の url は残す", () => {
+test.each(IMPLS)("sanitizeSvgTree（%s）: CSS（style の属性・<style>）の外を読む書き方を消し、# の url は残す", (_where, sanitizeTree) => {
+  const sanitize = (svg: FakeElement) => sanitizeTree(svg, group);
   const svg = el("svg", {}, el("style", {}, '@import "https://evil.example/a.css"; .a { marker-end: url(#arrowhead); background: url(https://evil.example/x.png); }'), el("rect", { style: "fill: url( 'https://evil.example/p' ); stroke: red" }));
   sanitize(svg);
   assert.equal(String(svg), '<svg><style> .a { marker-end: url(#arrowhead); background: none; }</style><rect style="fill: none; stroke: red"></rect></svg>');
@@ -122,4 +132,10 @@ test("stripCssUrls: エスケープ・コメントで隠した url・@import・i
   assert.equal(stripCssUrls('.a{background:\\69 mage-set("https://evil.example/a.png" 1x)}'), ".a{background:none}");
   assert.equal(stripCssUrls("@font-face{font-family:x;src:url(https://evil.example/f.woff)} .a{fill:red}"), " .a{fill:red}");
   assert.equal(stripCssUrls('fill: url("#g")'), 'fill: url("#g")');
+});
+
+test("SANITIZE_SVG_SCRIPT: ページの中の CSS の整えも、エスケープ・コメントで隠した url・@import を消す", () => {
+  const svg = el("svg", {}, el("style", {}, ".a{background:\\75 rl(https://evil.example/a.png)} \\40 import 'https://evil.example/a.css';"), el("rect", { style: "fill:u/**/rl(https://evil.example/p)" }));
+  pageSanitize(svg, group);
+  assert.equal(String(svg), '<svg><style>.a{background:none} </style><rect style="fill:none"></rect></svg>');
 });

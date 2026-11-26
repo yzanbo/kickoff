@@ -1,9 +1,9 @@
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
+import { mermaidReadsOutside } from "@shared/foundation/mermaidResources";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
 import { fixLabelContrast } from "./fixLabelContrast";
 import { diagramBackground, mermaidConfig } from "./mermaidConfig";
 import { sanitizeMermaidSvg } from "./sanitizeSvg";
-import { mermaidReadsOutside } from "./mermaidResources";
 import { renderInMermaidFrame } from "./mermaidFrame";
 
 /**
@@ -50,11 +50,11 @@ export function renderMermaid(code: string, theme: AppliedTheme): Promise<string
   const hit = cache.get(key);
   if (hit !== undefined) return Promise.resolve(hit);
   // 描く途中で外の画像・CSS を読みに行く図は、枠にも渡さない（守りの重ね。枠の中でも読めないが、読めない画像を待って時間切れになる図を早く断る。
-  // 描けなかった図としてソースのまま出る。mermaidResources.ts）
+  // 描けなかった図としてソースのまま出る。@shared/foundation/mermaidResources.ts）
   if (mermaidReadsOutside(code)) return Promise.reject(new Error("外の画像・CSS を読む図は描きません"));
   const task = queue.then(async () => {
     const rendered = await renderInMermaidFrame(code, mermaidConfig(theme));
-    // 枠から戻った SVG を信じず、文書に入れる前に、リンクと外を指す画像・CSS を外す（sanitizeSvg.ts。下の fixLabelContrast は文書に入れて測る）。覚えるのも整えたもの
+    // 枠から戻った SVG を信じず、文書に入れる前に、リンクと外を指す画像・CSS を外す（sanitizeSvg.ts・@shared/foundation/mermaidSvg.ts。下の fixLabelContrast は文書に入れて測る）。覚えるのも整えたもの
     const safe = sanitizeMermaidSvg(rendered);
     // 図を書く側が指定した塗り・文字色と、テーマの色が重なって、文字が読めなくならないようにする
     const svg = fixLabelContrast(safe, diagramBackground());
