@@ -77,7 +77,8 @@ const SIZE_SCRIPT = `(() => {
     if (h !== last && window.ReactNativeWebView) { last = h; window.ReactNativeWebView.postMessage(JSON.stringify({ type: ${JSON.stringify(VISUAL_MESSAGES.size)}, height: h })); }
   };
   addEventListener("load", report);
-  new ResizeObserver(report).observe(document.body);
+  // この文は head の中で動き、まだ body がないので、文書を読み終えてから見張る
+  addEventListener("DOMContentLoaded", () => new ResizeObserver(report).observe(document.body));
   setTimeout(report, 300);
 })();`;
 

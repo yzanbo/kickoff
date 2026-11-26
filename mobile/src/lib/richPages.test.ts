@@ -77,3 +77,10 @@ test("visualPage: SVG・HTML はパソコンと同じページに CSP とスマ�
   assert.match(svg, /--vis-bg: #1b1f20;/);
   assert.match(svg, /ReactNativeWebView/);
 });
+
+test("高さの知らせ: head の中の文なので、body の大きさは文書を読み終えてから見張る（読み込み中の body は null）", () => {
+  for (const page of [mathPage("$x$"), mermaidPage("flowchart LR\nA-->B")]) {
+    assert.match(page, /addEventListener\("DOMContentLoaded", \(\) => new ResizeObserver\(report\)\.observe\(document\.body\)\)/);
+    assert.ok(page.indexOf("ResizeObserver") < page.indexOf("<body>"));
+  }
+});
