@@ -271,7 +271,7 @@
 | CHT-055 | 中の HTML は一覧のタグと属性だけ描く（details は開け閉め・文字は 10px 以上） | 土台:ui | T:htmlAttacks,markdownDetails,markdownHtmlCss |
 | CHT-056 | 描く処理が落ちても固まっても、そのブロックだけ文字で出す | 土台:ui | T:markdownGuard |
 | CHT-057 | 書式付きコピーを表示と同じ読み方で書く | 土台:ui | T:markdownHtml |
-| CHT-058 | 数式で色を変えず、本文より小さくせず、式の外へはみ出させない | 土台:ui | T:katexOptions |
+| CHT-058 | 数式で色を変えず、本文より小さくせず、式の外へはみ出させない | 土台:ui | T:katexOptions,katexLengths |
 | CHT-059 | Mermaid を外を読めない閉じた枠で描く | 土台:ui | T:mermaidFrame,mermaidSvg |
 
 ### 画像とリンク

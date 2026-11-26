@@ -124,9 +124,9 @@ test("KATEX_OPTIONS: \\gdef で定義したマクロは、次の式に残らな�
   assert.doesNotMatch(visible(katex.renderToString(String.raw`\textcolor{red}{a}`, KATEX_OPTIONS)), />X</);
 });
 
-test("KaTeX の出力: 書いた大きさは maxSize（10em）で丸める。外へ出るものは trust: false で止める", () => {
+test("KaTeX の出力: 書いた大きさは丸める（横は maxSize の 10em、縦は katexLengths.ts の 3em）。外へ出るものは trust: false で止める", () => {
   const html = (tex: string) => visible(katex.renderToString(tex, KATEX_OPTIONS));
-  assert.match(html(String.raw`\rule{500em}{500em}`), /border-right-width:10em;border-top-width:10em/);
+  assert.match(html(String.raw`\rule{500em}{500em}`), /border-right-width:10em;border-top-width:3em/);
   assert.doesNotMatch(html(String.raw`\rule{500em}{500em}`), /500em/);
   assert.doesNotMatch(html(String.raw`\href{https://evil.example/}{x}`), /<a /);
   assert.doesNotMatch(html(String.raw`\htmlStyle{color:transparent}{x}`), /transparent/);
@@ -152,7 +152,7 @@ test("返答の数式も、式の箱（.katex-base）の外へ出た分を描か
     const html = visible(render(tex));
     // ずらしたもの（負の余白・下げた箱）が、切り取る .katex-base の中にある
     const base = html.indexOf('class="katex-base"');
-    const moved = html.search(/margin-right:-50em|vertical-align:-30em/);
+    const moved = html.search(/margin-right:-10em|vertical-align:-3em/);
     assert.ok(base >= 0 && moved > base, tex);
   }
 });
