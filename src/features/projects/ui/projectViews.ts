@@ -7,6 +7,7 @@ import { definePoint } from "@/foundation/ui/points";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import type { FileTarget, ReopenRoute } from "@/foundation/ui/navigation/router";
 import type { PanelFrame } from "@/features/panel/ui";
+import { shownInCommon } from "@/features/settings/ui";
 import type { TabGroup } from "./page/tabOrder";
 import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
 
@@ -123,7 +124,7 @@ export const projectViews = definePoint<ProjectViewDef>("projectViews", { key: (
  * このウィンドウ・このプロジェクトで出せる画面か（この Mac のアプリの外では desktopOnly を、共通では common を付けていない画面を出さない）。
  * 画面を並べる所（真ん中のタブ・右サイドバー・チャットの右の欄）はどこもこれで絞る
  */
-export const canShowProjectView = (v: ProjectViewDef, common: boolean): boolean => (!v.desktopOnly || inDesktopApp()) && (!common || v.common === true);
+export const canShowProjectView = (v: ProjectViewDef, common: boolean): boolean => (!v.desktopOnly || inDesktopApp()) && shownInCommon(v, common);
 
 /** その置き場所で出せる画面（canShowProjectView で絞る。common: 共通の画面か。置き方では絞らない） */
 export const availableProjectViews = (place: ProjectViewPlace, common: boolean): ProjectViewDef[] =>
@@ -150,6 +151,9 @@ export function projectViewGroups(views: readonly ProjectViewDef[]): ProjectView
   }
   return groups;
 }
+
+/** 並べ替えの全体（真ん中に置ける画面のまとまり。共通でも絞らない = 共通で並べ替えても、ふつうのプロジェクトのタブの並びとして覚える） */
+export const allProjectViewGroups = (): ProjectViewTabGroup[] => projectViewGroups(availableProjectViews("center", false));
 
 /**
  * URL の画面の名前から出す画面（知らない名前・この Mac のアプリの外の desktopOnly・共通で出さない画面・置き方が「分けない」ときの onlyWhenSeparate は

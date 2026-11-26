@@ -21,6 +21,6 @@
 ## 落とし穴
 - タグの絞り込み（`useProjectTagFilter`）はサイドバーの並び・ショートカット・要対応の数・全プロジェクトの画面・⌘⇧A に効く。
 - もうないプロジェクト（`missing`）は中身を出さない。
-- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（違いは中身が `place` で。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。出すかはどこも `canShowProjectView`（共通は `common` を付けた画面だけ。設定の節は `projectSettingsSections`）。並べ替えは `ui/page/tabOrder.ts`（共通は全体に戻して覚える）。書きかけは `viewLeave.ts`。
+- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（違いは中身が `place` で。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。出すかはどこも `canShowProjectView`（共通は `common` の印だけ = settings の `shownInCommon`）。並べ替えは `ui/page/tabOrder.ts`（共通は全体 `allProjectViewGroups` に戻して覚える）。書きかけは `viewLeave.ts`。
 - 名前の行の「寄せたときだけ表示」はドラッグ領域にしない。
 - テスト: `core/*.test.ts`（API は `routes.projects`）・`ui/**/*.test.ts`。

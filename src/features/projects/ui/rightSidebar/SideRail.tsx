@@ -5,7 +5,7 @@ import { useMemo, type ComponentProps } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
-import { availableProjectViews, projectViewGroups } from "@/features/projects/ui/projectViews";
+import { allProjectViewGroups, availableProjectViews } from "@/features/projects/ui/projectViews";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
 import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -21,7 +21,7 @@ function useRailGroups(common: boolean) {
   return useMemo(() => {
     // 列は出せる画面だけ（共通はノート・ゴミ箱）。全体のまとまりは並べ替えを覚えるためのもので、共通でも絞らない
     const side = availableProjectViews("rightSidebar", common);
-    const all = projectViewGroups(availableProjectViews("center", false)).map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
+    const all = allProjectViewGroups().map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
     return { all, rail: railGroupsOf<LucideIcon>(all, (tab) => side.some((v) => v.id === tab)), own: side.filter((v) => !v.places.includes("center")) };
   }, [common]);
 }

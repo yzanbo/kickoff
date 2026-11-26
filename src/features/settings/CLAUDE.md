@@ -3,7 +3,7 @@
 アプリの設定のダイアログ `SettingsDialog`（節の id で開く。部品からは `openSettings(section)`）と、設定の値の宣言の束ね。受け入れの一覧: `docs/features.md` の `SET-`。
 
 ## 地図
-- `ui/points.ts`: 拡張点 `settingsSections`・`settingsItems`（`scope: "app"` はアプリの設定、`project` はプロジェクトの編集 `ProjectEditDialog`。共通の設定に出す節は `common: true` を付け、並べるのは `projectSettingsSections`）
+- `ui/points.ts`: 拡張点 `settingsSections`・`settingsItems`（`scope: "app"` はアプリの設定、`project` はプロジェクトの編集 `ProjectEditDialog`。共通の設定に出す節は `common: true` を付け、並べるのは `projectSettingsSections`。印の絞り込み `shownInCommon` は projects の画面の表も使う）
 - アプリの設定の店は土台の `@/foundation/ui/settings/appSettings.ts`（`useAppSettings`・`saveSettings(patch)`・`applySettings(patch)`）。`ui/DisplaySettings`（`section: "display"` の欄を並べる）
 - 節と欄の部品は各機能の `ui/settings/`（AI・音声・スマホ連携・通知など）
 - 値の表 `@shared/<機能>/settings.ts`（`setting({ default })`）・PUT の zod は機能の `core/settings.ts`（`defineSettingSchemas`）。束ね `@/app/shared/settings.ts`（`ALL_SETTINGS`）・`@/app/core/settings.ts`

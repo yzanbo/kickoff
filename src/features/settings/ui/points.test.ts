@@ -2,7 +2,7 @@ import { onTestFinished, test } from "vitest";
 import assert from "node:assert/strict";
 import { Settings } from "lucide-react";
 import { swapContributions } from "@/foundation/ui/points";
-import { projectSettingsSections, settingsItems, settingsItemsOf, settingsSections, settingsSectionsOf, type SettingsSectionDef } from "./points";
+import { projectSettingsSections, settingsItems, shownInCommon, settingsItemsOf, settingsSections, settingsSectionsOf, type SettingsSectionDef } from "./points";
 
 const Empty = () => null;
 const section = (id: string, scope: SettingsSectionDef["scope"], order: number, common?: boolean) =>
@@ -32,4 +32,11 @@ test("プロジェクトの設定の節: ふつうのプロジェクトは全部
 
 test("同じ scope に同じ名前の節を 2 つ入れると断る", () => {
   assert.throws(() => onTestFinished(swapContributions([section("ai", "app", 1), section("ai", "app", 2)])), /同じ key「app:ai」/);
+});
+
+test("shownInCommon: 共通では common の印を付けた項目だけ、ほかは全部", () => {
+  assert.equal(shownInCommon({ common: true }, true), true);
+  assert.equal(shownInCommon({}, true), false);
+  assert.equal(shownInCommon({ common: false }, true), false);
+  assert.equal(shownInCommon({}, false), true);
 });
