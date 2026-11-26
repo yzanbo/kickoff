@@ -10,7 +10,7 @@ export { InspectionList } from "./InspectionList";
 export { noteOverlapLines } from "./folderOverlaps";
 export { ACTIVE_CHATS_LABEL } from "./ProjectMenu";
 export { ProjectMark } from "./ProjectMark";
-export { isCommonProjectId, useIsCommonProject, useProjectHue } from "./projectColor";
+export { useProjectHue } from "./projectColor";
 export { projectViewTab } from "./chatSideView";
 export { canShowProjectView, projectViewOf, projectViews } from "./projectViews";
 export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats";
@@ -21,7 +21,7 @@ export { projectChats, projectGroups, type ProjectChat, type ProjectChats, type 
 export { newProjectNoteField, type NewProjectNoteFieldProps } from "./new/NoteDirField";
 export { useEditedProject } from "./settings/editedProject";
 export { projectGit, type ProjectGit } from "./projectGit";
-export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";
+export { isCommonProjectId, projectInView, useFallbackProject, useExistingProject, useIsCommonProject } from "./currentProject";
 export { firstTargetOf } from "./projectTargets";
 export { ProjectPicker } from "./ProjectPicker";
 

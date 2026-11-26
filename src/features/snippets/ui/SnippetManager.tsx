@@ -2,7 +2,7 @@ import "./SnippetManager.css";
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
-import { isActiveUserProject, isCommonProject } from "@shared/projects/kinds";
+import { isActiveUserProject, isCommonProject, projectOwnerLabel } from "@shared/projects/kinds";
 import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets";
 import { useAllSnippets } from "@/features/snippets/ui/store";
 import { useProjects } from "@/features/projects/ui";
@@ -56,7 +56,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
         <span className="muted small">
           {projectId === null
             ? `すべての定型文 ${all.length} 件`
-            : `${projectId === commonId ? "共通" : "このプロジェクト"}で使う定型文 ${shown.length} 件（すべてのプロジェクトのものを含む）`}
+            : `${projectOwnerLabel(projectId === commonId)}で使う定型文 ${shown.length} 件（すべてのプロジェクトのものを含む）`}
         </span>
         <button type="button" className="btn" disabled={editing === "new"} onClick={() => setEditing("new")}>
           <Plus size={13} aria-hidden />

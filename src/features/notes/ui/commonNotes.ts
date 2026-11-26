@@ -6,7 +6,7 @@ import { isUserProject } from "@shared/projects/kinds";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 import { parse, routeProjectId } from "@/foundation/ui/navigation/router";
-import { currentProjectsIndex, projectInView } from "@/features/projects/ui";
+import { currentProjectsIndex, isCommonProjectId, projectInView } from "@/features/projects/ui";
 import { notesApi } from "./api";
 
 /** 共通のノートの欄・持ち主の名前（見えないプロジェクトの name は言語によらない作ったときの名前なので、画面ではこちらを出す） */
@@ -37,12 +37,6 @@ export function useCommonNotes(): CommonNotes {
 /** ノートの持ち主の名前（見えないプロジェクトなら「共通のノート」。まだ分からなければ空） */
 export const noteOwnerName = (project: Project | undefined): string => (project ? (isUserProject(project) ? project.name : COMMON_NOTES_LABEL) : "");
 
-/** 見えないプロジェクトか（部品の外から。プロジェクトの一覧がまだ届いていなければふつうのプロジェクトとみなす） */
-export function isHiddenProject(projectId: number): boolean {
-  const project = currentProjectsIndex().projectsById.get(projectId);
-  return project !== undefined && !isUserProject(project);
-}
-
 /** いま画面（URL）で見ている利用者のプロジェクト（共通の画面・全ノートの画面・別ウィンドウなど、見ていなければ null） */
 export function viewedUserProject(): { id: number; name: string } | null {
   const id = routeProjectId(parse(location.hash));
@@ -55,6 +49,6 @@ export function viewedUserProject(): { id: number; name: string } | null {
  * = URL のプロジェクトか、なければサイドバーで最後に選んだもの。プロジェクトが 1 つもなければ undefined）
  */
 export function screenProjectFor(projectId: number): number | undefined {
-  if (!isHiddenProject(projectId)) return projectId;
+  if (!isCommonProjectId(projectId)) return projectId;
   return projectInView(routeProjectId(parse(location.hash)));
 }

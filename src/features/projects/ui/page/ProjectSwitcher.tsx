@@ -1,10 +1,11 @@
 import "./ProjectSwitcher.css";
 import { Check, ChevronDown, Trash2 } from "lucide-react";
-import { isUserProject } from "@shared/projects/kinds";
+import { hasUserProjects } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { sidebarOrder } from "@shared/projects/order";
 import { archivedProjects } from "@/features/projects/ui/projectOrder";
-import { COMMON_TONE, hueStyle, useIsCommonProject, useProjectHue } from "@/features/projects/ui/projectColor";
+import { COMMON_TONE, hueStyle, useProjectHue } from "@/features/projects/ui/projectColor";
+import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate, type ProjectViewId } from "@/foundation/ui/navigation/router";
 import type { Placement } from "@/foundation/ui/lib/floating";
@@ -38,7 +39,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
     </>
   );
   // 共通だけのときも、プロジェクトがないのと同じに押せなくする
-  if (!projects.some(isUserProject)) {
+  if (!hasUserProjects(projects)) {
     return (
       <span className={className} style={hue}>
         {identity}

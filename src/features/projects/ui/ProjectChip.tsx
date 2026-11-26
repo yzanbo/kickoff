@@ -1,7 +1,8 @@
 import "./ProjectChip.css";
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { COMMON_TONE, hueStyle, useIsCommonProject, useProjectHue } from "./projectColor";
+import { COMMON_TONE, hueStyle, useProjectHue } from "./projectColor";
+import { useIsCommonProject } from "./currentProject";
 import { href } from "@/foundation/ui/navigation/router";
 import { ProjectMark } from "./ProjectMark";
 

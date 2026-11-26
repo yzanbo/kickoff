@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "./types";
 import { makeProject } from "./testing";
-import { chatTargetChoices, sidebarOrder } from "./order";
+import { chatTargetChoices, commonFirst, sidebarOrder } from "./order";
 
 const project = (id: number, patch: Partial<Project> = {}) => makeProject(id, { name: `p${id}`, created_at: `2026-01-0${id}T00:00:00Z`, ...patch });
 const common = project(9, { name: "共通", kind: "common" });
@@ -42,4 +42,12 @@ test("chatTargetChoices: 共通が先頭、あとはアーカイブしていな�
   assert.deepEqual(choices.values, ["9", "2", "1"]);
   assert.equal(choices.labels["9"], "共通");
   assert.deepEqual(chatTargetChoices(projects, 3).values, ["9", "2", "1", "3"]);
+});
+
+test("commonFirst: 共通を先頭に寄せ、ほかは元の並びのまま（しまったものも残す）", () => {
+  const projects = [project(3), project(1, { archived_at: "x" }), common, project(2)];
+  assert.deepEqual(
+    commonFirst(projects).map((p) => p.id),
+    [9, 3, 1, 2],
+  );
 });

@@ -18,12 +18,15 @@ export function isCommonChatProject(projects: Pick<ProjectStore, "get">, project
   return project !== undefined && isCommonProject(project);
 }
 
-/** 呼んだチャットから指せるプロジェクト（共通のチャット: 共通と、アーカイブしていない利用者のプロジェクト（サイドバーの並び）。ほか: 自分のプロジェクトだけ） */
+/** 共通のチャットから指せる利用者のプロジェクト（アーカイブしていないもの。サイドバーの並び）。システムプロンプトで名前を伝えるのもこの範囲 */
+export const userProjectsForCommonChat = (projects: Pick<ProjectStore, "list">): Project[] => projects.list().filter(isActiveUserProject);
+
+/** 呼んだチャットから指せるプロジェクト（共通のチャット: 共通と userProjectsForCommonChat。ほか: 自分のプロジェクトだけ） */
 export function readableProjects(projects: Projects, self: Chat): Project[] {
   const own = projects.get(self.project_id);
   if (!own) return [];
   if (!isCommonProject(own)) return [own];
-  return [own, ...projects.list().filter(isActiveUserProject)];
+  return [own, ...userProjectsForCommonChat(projects)];
 }
 
 /** 名前の比べ方（大文字・小文字・全角半角・前後の空白の違いは同じに見る） */

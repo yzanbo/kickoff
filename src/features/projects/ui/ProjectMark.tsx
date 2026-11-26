@@ -1,7 +1,8 @@
 import "./ProjectMark.css";
 import { LayoutGrid, MessageCircle } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { COMMON_TONE, hueStyle, initialOf, useIsCommonProject, useProjectHue } from "./projectColor";
+import { COMMON_TONE, hueStyle, initialOf, useProjectHue } from "./projectColor";
+import { useIsCommonProject } from "./currentProject";
 
 /**
  * プロジェクトの印（プロジェクトの色の角丸の四角に、名前の頭文字）。プロジェクトの色はこの印だけで出し、名前はどこでも普通の文字色にする

@@ -10,6 +10,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { FoldHead, type FoldLook } from "@/foundation/ui/kit/FoldHead";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
+import { isCommonProject } from "@shared/projects/kinds";
 import { COMMON_TONE, ProjectMark, hueStyle, projectHue, useProjects } from "@/features/projects/ui";
 import { newChatPlaceOf, type ChatBucket, type DraftTarget, type ChatGrouping, useBucketHueOf } from "@/features/chatList/ui";
 import { NewChatItem } from "@/features/chat/ui";
@@ -105,7 +106,7 @@ function useLaneTint(lanes: readonly ChatBucket<PlacedDraft>[]): (lane: ChatBuck
     if (lane.kind === "project" && lane.projectId !== undefined) {
       const project = projectsById.get(lane.projectId);
       // 共通の段は灰色の地（どのプロジェクトの色でもない）
-      return { className: project?.kind === "common" ? `lane-project ${COMMON_TONE}` : "lane-project", style: hueStyle(project?.hue ?? projectHue(lane.projectId)) };
+      return { className: project && isCommonProject(project) ? `lane-project ${COMMON_TONE}` : "lane-project", style: hueStyle(project?.hue ?? projectHue(lane.projectId)) };
     }
     const hue = hueOf(lane);
     return hue === null ? { className: "lane-plain" } : { className: "lane-hued", style: { "--hue": hue } as CSSProperties };

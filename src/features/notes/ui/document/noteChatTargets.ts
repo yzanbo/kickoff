@@ -11,7 +11,8 @@ import type { NoteChatHandle } from "@/features/notes/ui/chat/NoteChat";
 import type { NoteChatTarget, NoteChatTargets, NoteNewChat } from "./useNoteEditMenu";
 import { notesApi } from "@/features/notes/ui/api";
 import { openSeededChat } from "@/features/chatPanel/ui";
-import { isHiddenProject, viewedUserProject } from "@/features/notes/ui/commonNotes";
+import { viewedUserProject } from "@/features/notes/ui/commonNotes";
+import { isCommonProjectId } from "@/features/projects/ui";
 import { noteChatStartChoices, noteChatStartOf } from "./noteChatStartModel";
 
 /**
@@ -64,7 +65,7 @@ export function useNoteChatTargets({
   };
   const startIn = (chatProject: number, quote: string) => openSeededChat(chatProject, { kind: "main" }, { text: quote });
   const startQuote = (quote: string) => {
-    const start = noteChatStartOf({ noteProjectId: projectId, commonNote: isHiddenProject(projectId), viewing: viewedUserProject() });
+    const start = noteChatStartOf({ noteProjectId: projectId, commonNote: isCommonProjectId(projectId), viewing: viewedUserProject() });
     if (start.kind === "open") return startIn(start.projectId, quote);
     void choose({
       title: "新しいチャットをどこで始めますか",

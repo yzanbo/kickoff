@@ -1,6 +1,6 @@
 import "./ProjectPage.css";
 import { useEffect, useEffectEvent, useState } from "react";
-import { isUserProject } from "@shared/projects/kinds";
+import { hasUserProjects } from "@shared/projects/kinds";
 import { useChatPlacement } from "./chatPlacement";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
 import { ProjectHeader } from "./ProjectHeader";
@@ -12,7 +12,7 @@ import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/Projec
 import type { FileTarget, ProjectViewId, ReopenRoute } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
 import { resolveProjectView } from "@/features/projects/ui/projectViews";
-import { useIsCommonProject } from "@/features/projects/ui/projectColor";
+import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { ProjectViewHost } from "@/features/projects/ui/ProjectViewHost";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
@@ -38,7 +38,7 @@ export function ProjectPage(props: ProjectPageProps) {
   // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）。プロジェクトが 1 つもなければ始め方の案内
   const { missing, projects } = useProjects();
   if (missing(props.id))
-    return <div className="page page-wide">{!projects.some(isUserProject) ? <NoProjectsWelcome /> : <MissingProject id={props.id} />}</div>;
+    return <div className="page page-wide">{!hasUserProjects(projects) ? <NoProjectsWelcome /> : <MissingProject id={props.id} />}</div>;
   return <ProjectPageBody {...props} />;
 }
 

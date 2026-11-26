@@ -10,7 +10,7 @@ import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { chatRestrictions, restrictionNotice } from "@shared/chat/restrictionNotice";
-import { isCommonProject } from "@shared/projects/kinds";
+import { isCommonProjectIn } from "@shared/projects/kinds";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
@@ -26,7 +26,7 @@ export default function ChatScreen() {
   const running = chat?.status === "running";
   const client = session?.client;
   // 共通のチャットは、チャットでオフにしても制限が効くので知らせない（パソコンの入力欄と同じ判定）
-  const common = chat ? state.projects.some((p) => p.id === chat.project_id && isCommonProject(p)) : false;
+  const common = chat ? isCommonProjectIn(state.projects, chat.project_id) : false;
   const restrictions = chat ? chatRestrictions(chat, common) : null;
   const notice = restrictions ? restrictionNotice(restrictions.sandboxEnabled, restrictions.editScopeEnabled) : "";
   return (

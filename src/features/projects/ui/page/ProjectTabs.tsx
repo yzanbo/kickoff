@@ -12,7 +12,7 @@ import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { availableProjectViews, projectViewGroups, type ProjectViewBadge, type ProjectViewBadgeProps, type ProjectViewDef } from "@/features/projects/ui/projectViews";
 import { useChatPlacement } from "./chatPlacement";
 import { useProjectTabOrder } from "./useProjectTabOrder";
-import { useIsCommonProject } from "@/features/projects/ui/projectColor";
+import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { useMemo } from "react";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */

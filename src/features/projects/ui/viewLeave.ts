@@ -7,7 +7,7 @@ import { readSetting } from "@/foundation/ui/storage";
 import { CHAT_PLACEMENT } from "@/foundation/ui/storage/storageKeys";
 import { boardTabOf } from "./page/chatPlacement";
 import { resolveProjectView, type ProjectViewPlace } from "./projectViews";
-import { isCommonProjectId } from "./projectColor";
+import { isCommonProjectId } from "./currentProject";
 
 /** 画面 1 つの、未保存の登録簿の置き場所の名前（真ん中・右サイドバーはプロジェクトごと、チャットの右の欄はチャットごと） */
 export const projectViewSurface = ({ place, projectId, chatId, view }: { place: ProjectViewPlace; projectId: number; chatId?: number; view: string }): string =>

@@ -5,7 +5,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
 import { panelKey, panelStateOf, setPanelOpen, sidePanelsHandedOut } from "@/features/panel/ui";
 import { availableProjectViews } from "@/features/projects/ui/projectViews";
-import { isCommonProjectId, useIsCommonProject } from "@/features/projects/ui/projectColor";
+import { isCommonProjectId, useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { openSideWindow } from "./useRightSidebar";
 
 /** 右サイドバーの中身（画面の表 projectViews のうち右サイドバーに置ける画面の名前。初めはブラウザ） */

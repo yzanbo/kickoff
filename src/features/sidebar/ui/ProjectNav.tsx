@@ -3,7 +3,7 @@ import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { isCommonProject, isUserProject } from "@shared/projects/kinds";
+import { hasUserProjects, isCommonProject } from "@shared/projects/kinds";
 import { NO_CHATS } from "@/features/chat/ui";
 import { NO_GROUPS } from "@/features/groups/ui";
 import { SelectionBar, useChatSelection } from "@/features/chatList/ui";
@@ -35,7 +35,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   const selection = useChatSelection();
 
   // 共通だけのときも「プロジェクトがまだありません」の案内を出す。共通の枠はその上に置く（並べ方によらず、すぐ共通で相談を始められるように）
-  if (!projects.some(isUserProject)) {
+  if (!hasUserProjects(projects)) {
     const common = visible.find(isCommonProject);
     return (
       <div className={cx("workspaces", nav.compact && "compact")}>
@@ -69,7 +69,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   );
 
   /** タグで絞り込んで、合うプロジェクトがひとつもないとき（要対応より先に知らせる。共通はタグによらず残るので数えない） */
-  const tagEmpty = tagFilter.active && !visible.some(isUserProject) && !ordered.some(isUserProject);
+  const tagEmpty = tagFilter.active && !hasUserProjects(visible) && !hasUserProjects(ordered);
   const tagEmptyNotice = tagEmpty && (
     <div className="waiting-empty">
       <p className="empty-note chat-search-empty">タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません</p>

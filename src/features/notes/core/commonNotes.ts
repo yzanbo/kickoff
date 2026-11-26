@@ -7,15 +7,13 @@ import path from "node:path";
 import { COMMON_NOTES_FOLDER, COMMON_WORK_FOLDER } from "@shared/notes/names";
 import type { CommonNotesUnavailable } from "@shared/notes/types";
 import type { AppSettings, SettingsPatch } from "@shared/foundation/contract/settings";
+import { COMMON_PROJECT_LABEL, isCommonProject, isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import type { ProjectsApi } from "@/features/projects/core/index";
 import type { SettingsUpdateHook } from "@/features/settings/core/index";
 import { Conflict } from "@/foundation/core/errors";
 import { expandHome, isInside, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
 import type { NoteDirs } from "./noteDir";
-
-/** 共通のプロジェクトの名前（画面には出さないが、チャットの画面などがプロジェクト名で引くので、画面の見出しと同じにしておく） */
-const COMMON_NAME = "共通";
 
 /** フォルダを決める設定の値 */
 type FolderSettings = Pick<AppSettings, "notes_dir" | "common_notes_dir">;
@@ -56,12 +54,12 @@ export function createCommonNotes(d: {
   });
   const samePlace = (a: CommonPlace, b: CommonPlace) => a.work === b.work && a.notes === b.notes;
   // 共通はゴミ箱に入れさせないので、ゴミ箱は探さない
-  const owned = () => store.list().find((p) => p.kind === "common");
+  const owned = () => store.list().find(isCommonProject);
   /** そのフォルダ（実体）を本体にしている、共通でないプロジェクト（ゴミ箱のものも。repo_path は 1 つのプロジェクトにだけ登録できる） */
   const clashAt = (real: string, except: number | undefined) =>
     [...store.list(), ...store.trashed()].find((p) => p.id !== except && (p.repo_path === real || realPathOrSelf(p.repo_path) === real));
   /** そのフォルダ（実体）をノートのフォルダにしている、利用者のプロジェクト（重なると同じファイルが 2 つの欄に出て、ノートのチャットがどちらのものか分からなくなる） */
-  const noteUserAt = (real: string, except: number | undefined) => d.noteDirUsers(real, except).find((p) => p.kind === null);
+  const noteUserAt = (real: string, except: number | undefined) => d.noteDirUsers(real, except).find(isUserProject);
   const clashMessage = (p: Project, real: string, folder: string, what: string, fix: string) =>
     `${folder}（${real}）は、プロジェクト「${p.name}」${store.get(p.id) ? "" : "（Kickoff のゴミ箱にあります）"}の${what}と同じなので、共通のチャットと共通のノートを使えません。${fix}`;
   /** 2 つのフォルダが利用者のプロジェクトと重なれば、その理由（重ならなければ null） */
@@ -98,8 +96,8 @@ export function createCommonNotes(d: {
     const notes = work === null ? null : ensure(want.notes, "共通のノートのフォルダ");
     if (work === null || notes === null) return;
     const current = owned();
-    // 前の版の名前（共通のノート）から付け替える。名前は画面に出さないので、場所が使えなくても直してよい
-    if (current && current.name !== COMMON_NAME) store.update(current.id, { name: COMMON_NAME });
+    // 前の版の名前（共通のノート）から付け替える（チャットの画面などがプロジェクト名で引くので、画面の見出しと同じにしておく）。名前は画面に出さないので、場所が使えなくても直してよい
+    if (current && current.name !== COMMON_PROJECT_LABEL) store.update(current.id, { name: COMMON_PROJECT_LABEL });
     // 作らない・付け替えない（利用者のプロジェクトを優先し、起動は止めない）。ノートのフォルダを作業フォルダの中にはしない（設定の before と同じ理由）
     const inWork = isInside(work, notes) ? { message: `共通のノートのフォルダ（${notes}）が共通のチャットの作業フォルダの中なので、共通のチャットと共通のノートを使えません。設定の「共通のノートのフォルダ」で別のフォルダを選んでください`, project_id: null } : null;
     const clash = inWork ?? clashOf({ work, notes }, current?.id);
@@ -108,7 +106,7 @@ export function createCommonNotes(d: {
       return;
     }
     if (!current) {
-      const created = store.create({ name: COMMON_NAME, repo_path: work, provider: d.settings().default_provider, kind: "common" });
+      const created = store.create({ name: COMMON_PROJECT_LABEL, repo_path: work, provider: d.settings().default_provider, kind: "common" });
       store.update(created.id, { note_dir: notes });
     } else if (current.repo_path !== work || current.note_dir !== notes) {
       try {

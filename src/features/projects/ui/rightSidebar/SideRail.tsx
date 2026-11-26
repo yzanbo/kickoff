@@ -7,7 +7,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
 import { availableProjectViews, projectViewGroups } from "@/features/projects/ui/projectViews";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
-import { useIsCommonProject } from "@/features/projects/ui/projectColor";
+import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { railGroupsOf } from "./railGroups";
 import { showSideView, useSideView, type SideView } from "./sideView";

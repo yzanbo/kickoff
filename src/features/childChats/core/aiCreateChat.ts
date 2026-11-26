@@ -15,7 +15,7 @@ import {
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
-import { isUserProject } from "@shared/projects/kinds";
+import { COMMON_WORKDIR_LABEL, isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import type { AiApprovalCard, AiApprovalDecision } from "@/foundation/core/aiTools/tool";
@@ -148,7 +148,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       const project = store.projects.get(self.project_id);
       if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
       // 共通は Git で管理しないフォルダ（作業フォルダ .common-work）で動くので、ワークツリーは作らない（ノートの親フォルダが Git の中でも、そのリポジトリにブランチを作らない）
-      if (input.worktree_branch?.trim() && !isUserProject(project)) throw new Error("このチャットはどのプロジェクトにも属さない共通のチャットで、Git で管理しないフォルダで動くので、ワークツリー（worktree_branch）は作れません。worktree_branch を省けば、同じ作業フォルダで作れます");
+      if (input.worktree_branch?.trim() && isCommonProject(project)) throw new Error("このチャットはどのプロジェクトにも属さない共通のチャットで、Git で管理しないフォルダで動くので、ワークツリー（worktree_branch）は作れません。worktree_branch を省けば、同じ作業フォルダで作れます");
       // 作るプロジェクト（ほかのプロジェクトは共通のチャットからだけ。親のないチャットとして、そのプロジェクトの本体で動く）
       const target = projectForTool(store.projects, self, input.project);
       const other = target.id !== project.id;
@@ -189,7 +189,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
         ? `新しいワークツリー（ブランチ ${branch}。このチャットの作業場所のいまのコミットから作る）`
         : relation === "root"
           ? rootWorkplace(target, other)
-          : `このチャットと同じ作業場所（${!isUserProject(project) ? "共通の作業フォルダ" : self.worktree_path ? `ワークツリー ${self.branch ?? self.worktree_path}` : "本体"}）`;
+          : `このチャットと同じ作業場所（${isCommonProject(project) ? COMMON_WORKDIR_LABEL : self.worktree_path ? `ワークツリー ${self.branch ?? self.worktree_path}` : "本体"}）`;
       const request: AiCreateChatRequest = { relation, text, title: input.title?.trim() || null, inherit, group: group?.name ?? null, worktree_branch: branch, workplace, provider: otherAi, project: other ? target.name : null };
       await approveAiWrite(store.settings, scene, ask, { toolName: AI_CREATE_CHAT_TOOL, input: { ...request }, ...createChatApprovalText(request) });
       // 聞いている間に消えていないか確かめ直す
@@ -216,7 +216,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
         ...(otherAi ? { provider: otherAi } : {}),
       });
       createdThisTurn++;
-      return resultText(chat, relation, inherit ? (inherited ? "inherited" : "failed") : "fresh", made && branch ? { ...made, branch } : null, other ? target : isUserProject(target) ? "project" : "common");
+      return resultText(chat, relation, inherit ? (inherited ? "inherited" : "failed") : "fresh", made && branch ? { ...made, branch } : null, other ? target : isCommonProject(target) ? "common" : "project");
     },
   };
 }
@@ -224,7 +224,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
 /** 親のないチャットの作業場所の呼び名（承認カード） */
 function rootWorkplace(target: Project, other: boolean): string {
   if (other) return `プロジェクト「${target.name}」の本体`;
-  return isUserProject(target) ? "プロジェクトの本体" : "共通の作業フォルダ";
+  return isCommonProject(target) ? COMMON_WORKDIR_LABEL : "プロジェクトの本体";
 }
 
 /** 会話を引き継いだか（引き継いだ / 頼んだが引き継げなかった / 頼まなかった）ごとの、AI に伝える文 */

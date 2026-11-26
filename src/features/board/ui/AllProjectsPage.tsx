@@ -1,5 +1,5 @@
 import { Tag } from "lucide-react";
-import { isUserProject } from "@shared/projects/kinds";
+import { hasUserProjects } from "@shared/projects/kinds";
 import { StatusCard } from "@/foundation/ui/kit/StatusCard";
 import { AllProjectsKanban } from "./KanbanBoard";
 import { GitHubStatusCard, useGitHubStatus, useProviders } from "@/features/ai/ui";
@@ -48,7 +48,7 @@ export function AllProjectsPage() {
         </section>
       )}
       {/* 共通はタグによらずいつも出るので、案内は利用者のプロジェクトで決める（共通だけのときもプロジェクトの始め方を出す） */}
-      {!shown.some(isUserProject) && all.some(isUserProject) ? (
+      {!hasUserProjects(shown) && hasUserProjects(all) ? (
         // タグで絞り込んで、合うプロジェクトがないとき
         <EmptyState
           icon={Tag}
@@ -61,7 +61,7 @@ export function AllProjectsPage() {
         >
           タグ「{tagFilter.selected.map(tagLabel).join("、")}」が付いたプロジェクトはありません。
         </EmptyState>
-      ) : !shown.some(isUserProject) ? (
+      ) : !hasUserProjects(shown) ? (
         <NoProjectsWelcome archived={archived.length} />
       ) : (
         <AllProjectsKanban />

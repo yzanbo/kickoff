@@ -11,7 +11,7 @@
 
 - プロジェクトの色を出すのは印 `ProjectMark` だけ。札の地と枠の色は `ProjectMark.css`（サイドバーの見出しは `ProjectList.css`）。色は店の `Project.hue`（部品は `useProjectHue(id)`）。共通は灰色 `COMMON_TONE`。
 - 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A）。並びは `@shared/projects/order.ts`（スマホも。共通は先頭・絞っても残す・`reorderableIds` の外）。
-- 共通（`kind` あり）は API・店に残す。判定は `@shared/projects/kinds` の `isUserProject`（利用者のもの。操作・Git の所）と `isListedProject`（並べる。共通も）。HTTP の口は `requireUserProject` で 409（PATCH は共通でも `COMMON_PATCH_KEYS` を通す）、店の `update` は断らない。持ち主がフォルダを変えるときは `ProjectsApi.changeOwnedFolder`（作業中なら 409、チャットは `afterRepoMove` で移す）。
+- 共通（`kind` あり）は API・店に残す。判定と呼び名は `@shared/projects/kinds`（`isUserProject` は操作・Git の所。画面は `useIsCommonProject`）。HTTP の口は `requireUserProject` で 409（PATCH は共通でも `COMMON_PATCH_KEYS` を通す）、店の `update` は断らない。持ち主がフォルダを変えるときは `ProjectsApi.changeOwnedFolder`（作業中なら 409、チャットは `afterRepoMove` で移す）。
 - アーカイブする・戻すは必ず確かめる（`confirmArchiveProject` / `confirmRestoreProject`）。
 - 操作は右クリックの `useProjectMenu` に入れる（共通は `CommonMenu`）。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`。

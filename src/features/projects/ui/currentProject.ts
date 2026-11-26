@@ -1,7 +1,8 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { currentProjectsIndex, useProjects } from "@/features/projects/ui/stores/projects";
+import { isCommonProjectIn } from "@shared/projects/kinds";
+import { currentProjects, currentProjectsIndex, useProjects, useProjectsValue } from "@/features/projects/ui/stores/projects";
 import { fallbackTargetOf } from "./projectTargets";
 
 /** サイドバーで最後に選んでいたプロジェクト（⌘N の新しいチャットの作成先にも使う。まだなければ undefined） */
@@ -40,4 +41,12 @@ export function saveCurrentProject(id: number) {
 export function useExistingProject(id: number | null): number | undefined {
   const { missing } = useProjects();
   return id === null || missing(id) ? undefined : id;
+}
+
+/** 共通のプロジェクトか（部品の外から。一覧が届く前は違うものとみなす） */
+export const isCommonProjectId = (id: number): boolean => isCommonProjectIn(currentProjects(), id);
+
+/** 共通のプロジェクトか（印を吹き出しに、色を灰色に、出す画面・設定の節を絞る。一覧が届く前は違うものとして描く） */
+export function useIsCommonProject(id: number): boolean {
+  return useProjectsValue(() => isCommonProjectId(id));
 }
