@@ -8,9 +8,12 @@ import type { ProjectStore } from "@/features/projects/core/index";
 
 type Projects = Pick<ProjectStore, "get" | "list">;
 
+/** AI が渡すプロジェクトの指し方（名前か ID。指すプロジェクトは projectForTool・moveTargetProject で引く） */
+export const projectRefSchema = z.union([z.number().int(), z.string().min(1)]);
+
 /** AI が渡すプロジェクトの指し方（名前か ID。省けば呼んだチャットのプロジェクト） */
 export const projectRefInput = (what: string) =>
-  z.union([z.number().int(), z.string().min(1)]).optional().describe(`${what}プロジェクトの名前か ID（省くと、このチャットのプロジェクト）。ほかのプロジェクトを指せるのは共通のチャットからだけ`);
+  projectRefSchema.optional().describe(`${what}プロジェクトの名前か ID（省くと、このチャットのプロジェクト）。ほかのプロジェクトを指せるのは共通のチャットからだけ`);
 
 /** projectId のプロジェクトが共通か（共通のチャットか、の見分け。ないプロジェクトは false） */
 export function isCommonChatProject(projects: Pick<ProjectStore, "get">, projectId: number): boolean {

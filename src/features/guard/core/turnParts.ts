@@ -25,8 +25,8 @@ export interface GuardTurnDeps {
   deleteGuard: boolean;
   /** その AI の CLI の決まりでいつも書ける場所（Claude Code の計画とメモリ）を引く */
   providers: Record<ProviderId, Pick<AgentProvider, "writeExceptions">>;
-  /** すべてのプロジェクト（共通のチャットで、利用者のプロジェクトのフォルダへの書き込みを断る。なければ断らない（テスト）） */
-  projects?: () => Project[];
+  /** すべてのプロジェクト（共通のチャットで、利用者のプロジェクトのフォルダへの書き込みを断る） */
+  projects: () => Project[];
 }
 
 /** 共通のチャットが利用者のプロジェクトのフォルダ・ノートのフォルダに書こうとしたとき AI に返す文 */
@@ -71,11 +71,11 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
       const common = isCommonProject(project);
       // 計画モードと「AI で整える」の専用の保護も入れた、実際にかける制限
       const { sandbox: useSandbox, editScope } = turnRestrictions(chat, common);
-      // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス）
-      const deniedDirs = common ? [...(d.projects?.() ?? []).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : null;
+      // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス。共通でなければ空）
+      const deniedDirs = common ? [...d.projects().filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : [];
       // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない。
       // 共通のチャットは、一時フォルダなどに置いた利用者のプロジェクトも書かせない）
-      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs, deniedDirs: deniedDirs ?? [] }) : null;
+      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs, deniedDirs }) : null;
       const materials: GuardMaterials = {
         cwd,
         permissionMode: chat.permission_mode,
@@ -94,7 +94,7 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
               exceptionDirs: d.bashSandbox?.rules.tempDirs ?? [],
               workplaces: () => workplacesOf(project.repo_path),
               allowed: allowedIn(chat.id),
-              denied: deniedDirs ? { dirs: deniedDirs, reason: COMMON_DENIED } : null,
+              denied: common ? { dirs: deniedDirs, reason: COMMON_DENIED } : null,
             },
         // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
         deleteGuard: d.deleteGuard,

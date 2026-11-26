@@ -2,7 +2,7 @@
 // 移したあと最初の実行に添える移動の知らせ（contributor "workplaceMove"・turnContext の order 20）
 import { z } from "zod";
 import { AI_MOVE_WORKPLACE_TOOL, AI_WORKPLACE_TARGETS } from "@shared/workplaceMove/aiWorkplace";
-import type { TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
+import { projectRefSchema, type TurnContributor, type ChatStoreDeps } from "@/features/chat/core/index";
 import { carryApprovalText, createAiWorkplaceTools, type AiWorkplaceDeps } from "./aiWorkplace";
 import { workplaceMoveContext } from "./move";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -41,7 +41,7 @@ function workplaceTools(workplace: ReturnType<typeof createAiWorkplaceTools>) {
         branch: z.string().min(1).max(200).optional().describe("to が new_worktree のとき、新しく作るワークツリーのブランチの名前"),
         carry: z.boolean().optional().describe("コミットしていない変更も持っていく（new_worktree のときだけ。利用者に承認を聞く）"),
         continuation: z.string().min(1).optional().describe("移したあとに送る続きの指示（それだけで分かる文で。省くと移すだけ）"),
-        project: z.union([z.number().int(), z.string().min(1)]).optional().describe("ほかのプロジェクトか共通へ移すときの、移す先のプロジェクトの名前か ID（to は main。省くと、いまのプロジェクトの中で作業場所を移す）"),
+        project: projectRefSchema.optional().describe("ほかのプロジェクトか共通へ移すときの、移す先のプロジェクトの名前か ID（to は main。省くと、いまのプロジェクトの中で作業場所を移す）"),
       },
       run: (args, turn) =>
         workplace.move(args, async (request) => {

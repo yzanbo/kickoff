@@ -106,7 +106,7 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
           })),
           ...(other ? { groups: store.groups.list(project.id).map((g) => ({ id: g.id, name: g.name })) } : {}),
           ...(all.length > chats.length ? { omitted: all.length - chats.length } : {}),
-          note: `${project.id !== self.project_id ? `プロジェクト「${project.name}」` : "同じプロジェクト"}のアーカイブしていないチャット（子チャット・ノートのチャットも）を、最後に動いた時刻の新しい順に並べた一覧。会話は read_chat で読める。`,
+          note: `${other ? `プロジェクト「${project.name}」` : "同じプロジェクト"}のアーカイブしていないチャット（子チャット・ノートのチャットも）を、最後に動いた時刻の新しい順に並べた一覧。会話は read_chat で読める。`,
         },
         null,
         2,

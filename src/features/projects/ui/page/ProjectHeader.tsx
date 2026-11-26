@@ -49,11 +49,13 @@ export function ProjectHeader({
         <ProjectSwitcher project={project} tab={tab} />
       </h1>
       {/* プロジェクトの設定（名前・既定の設定などの編集）。左下のアプリの設定と同じ歯車 */}
-      {isCommonProject(project) ? (
-        <IconButton icon={Settings} label="共通の設定" title="共通の設定（AI・概要・参照資料・定型文などを編集）" className="project-edit-button" onClick={onEdit} />
-      ) : (
-        <IconButton icon={Settings} label="プロジェクトの設定" title="プロジェクトの設定（名前・既定の設定などを編集）" className="project-edit-button" onClick={onEdit} />
-      )}
+      <IconButton
+        icon={Settings}
+        label={isCommonProject(project) ? "共通の設定" : "プロジェクトの設定"}
+        title={isCommonProject(project) ? "共通の設定（AI・概要・参照資料・定型文などを編集）" : "プロジェクトの設定（名前・既定の設定などを編集）"}
+        className="project-edit-button"
+        onClick={onEdit}
+      />
       {/* しまった（アーカイブした）プロジェクト: サイドバーに出ないので、ここから戻せるようにする */}
       {project.archived_at && (
         <button

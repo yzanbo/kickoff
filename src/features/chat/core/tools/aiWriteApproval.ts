@@ -18,11 +18,11 @@ export function assertAiWriteAllowed(settings: Pick<ChatStoreDeps["settings"], "
  * 「常に許可」なら効いた設定を「聞かずに…」にする。先に全部確かめてから呼ぶ（聞いたあとで断らないように）。呼ぶ側は聞いている間に消えていないか確かめ直す
  */
 export async function approveAiWrite(settings: Pick<ChatStoreDeps["settings"], "get" | "update">, scene: AiWriteScene, ask: (card: AiApprovalCard) => Promise<AiApprovalDecision>, card: AiWriteCard): Promise<void> {
+  assertAiWriteAllowed(settings, scene);
   const policy = aiWritePolicy(settings.get(), scene);
-  if (policy.mode === "off") throw new Error(aiWriteOffText(policy.setting));
   if (policy.mode === "allow") return;
   const description = [card.description, aiWriteRememberText(policy.setting)].filter(Boolean).join("");
   const decision = await ask({ ...card, description, canRemember: true });
   if (decision.action === "deny") throw new Error(decision.message ? `利用者が断りました: ${decision.message}` : "利用者が断りました");
-  if (decision.action === "allow_always") settings.update(policy.setting === "ai_create_chat" ? { ai_create_chat: "allow" } : { ai_write_other_projects: "allow" });
+  if (decision.action === "allow_always") settings.update({ [policy.setting]: "allow" });
 }
