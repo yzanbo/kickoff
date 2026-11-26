@@ -4,7 +4,6 @@ import { expandHomeWith } from "@shared/foundation/path";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { desktopPlatform } from "@/foundation/desktop/platform/index";
 import { existingFolder, vscodeFileUrl } from "./openCommands";
-import { isWebUrl } from "@/foundation/desktop/urls";
 import { webLinkOf } from "@shared/foundation/linkTarget";
 
 /** アプリの外で開く（IPC の externalApps）。OS ごとの開き方は platform/ の DesktopPlatform */
@@ -24,12 +23,13 @@ export const externalAppHandlers: IpcHandlers["externalApps"] = {
   },
   // パネルのブラウザの ▾ で選ぶ
   browsers: () => desktopPlatform.installedBrowsers(),
-  // 外部のブラウザ（既定は Chrome）でページを開く。アプリが開けなければ、既定のブラウザで開く
+  // 外部のブラウザ（既定は Chrome）でページを開く。アプリが開けなければ、既定のブラウザで開く（openWebUrl と同じく読み直した形だけを渡す）
   openBrowser: async (_e, url, browser = "chrome") => {
     try {
       await desktopPlatform.openBrowser(browser, url);
     } catch (e) {
-      if (isWebUrl(url)) await shell.openExternal(url);
+      const target = webLinkOf(url);
+      if (target !== null) await shell.openExternal(target);
       else throw e;
     }
   },
