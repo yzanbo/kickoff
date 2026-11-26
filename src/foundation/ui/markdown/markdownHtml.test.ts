@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { markdownToHtml } from "./markdownHtml";
-import { pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { pipelineOf, renderBlock } from "./markdownProcessor";
 import { splitBlocks } from "./streaming/markdownBlocks";
 
 test("書式付きコピー: 見出し・表・コード・リストを HTML にし、文中の HTML は文字として書く", () => {
@@ -21,7 +21,7 @@ test("書式付きコピー: 表示と同じ読み方（日本語の強調・~ 1
   const html = markdownToHtml(text);
   // 表示（ファイルのチップ・数式なしの Markdown の部品）と同じ HTML
   const shown = splitBlocks(text)
-    .map((b) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), b, {})))
+    .map((b) => renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), b, {}).element))
     .join("\n");
   // 書き出し方の違い（自分で閉じる印・文字参照の形・真偽の属性・コピーに書かない HTML の要素の印）だけをそろえて比べる
   const normalize = (s: string) =>

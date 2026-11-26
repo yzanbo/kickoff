@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
-import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { createBlockScanner } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
 import { createMarkdownRevealLimit, cutText, MAX_SCAN, revealCut } from "./markdownReveal";
@@ -201,7 +201,7 @@ test("HTML のタグ: 書きかけのタグ・コメントは手前で止め、�
 
 test("HTML のタグ: 1 文字ずつ伸ばしても、描いた HTML に書きかけのタグが文字で出ず、書き終えたら確定の形と同じ", () => {
   const pipeline = pipelineOf(undefined, null);
-  const draw = (markdown: string) => renderToStaticMarkup(renderMarkdown(pipeline, markdown, {}));
+  const draw = (markdown: string) => renderToStaticMarkup(renderBlock(pipeline, markdown, {}).element);
   const text = '押すのは <kbd>⌘</kbd>+<kbd>K</kbd> で、<b>太字</b>と <abbr title="説明">略</abbr> と H<sub>2</sub>O。';
   const limit = createMarkdownRevealLimit();
   for (let shown = 1; shown <= text.length; shown++) {

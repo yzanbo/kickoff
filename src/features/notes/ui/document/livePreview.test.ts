@@ -75,7 +75,7 @@ test("livePreview: 印の内側が記号で外側が日本語の太字・取り�
     'hide="**"',
   ]);
   assert.deepEqual(cjkMarksOf("~~取消（x）~~です"), ['span:md-strike="~~取消（x）~~"', 'hide="~~"', 'hide="~~"']);
-  // 拡張がないと太字にならない（直す前の形）
+  // 日本語向けの拡張がないと太字にならない（拡張が効いていることの確かめ）
   assert.deepEqual(marksOf("**「強調」**は"), []);
 });
 

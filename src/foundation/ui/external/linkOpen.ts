@@ -1,8 +1,8 @@
 // 外部リンクを開く: 開く前に確認の画面（URL と警告）を出し、設定の開き先（Kickoff のブラウザ / 既定のブラウザ）で開く。
 // 「今後確認しない」はドメインごとにアプリ全体で覚える（設定の trusted_link_domains）。警告に当たるリンクは覚えていても毎回確かめる
-import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/foundation/linkWarnings";
+import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, type LinkWarning } from "@shared/foundation/linkWarnings";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { webLinkOf } from "@shared/foundation/linkTarget";
+import { webLinkOf, webUrlOf } from "@shared/foundation/linkTarget";
 import { applySettings, settingsStore } from "@/foundation/ui/settings/appSettings";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { open } from "@/foundation/ui/navigation/open";
@@ -11,9 +11,8 @@ import { openInDefaultBrowser } from "./native";
 const TITLE = "外部リンクを開く";
 
 /** 確認の画面の本文（行き先の URL と、当たった警告。国際化ドメイン名は実際の表記を添える） */
-function linkConfirmMessage(href: string, text: string): string {
+function linkConfirmMessage(href: string, warnings: readonly LinkWarning[]): string {
   const url = webUrlOf(href);
-  const warnings = linkWarnings(href, text);
   const lines = ["Kickoff の外のサイトを開きます:", href];
   for (const w of warnings) lines.push("", `⚠ ${LINK_WARNING_LABELS[w]}${w === "idn" && url ? `: ${url.hostname}` : ""}`);
   return lines.join("\n");
@@ -22,9 +21,10 @@ function linkConfirmMessage(href: string, text: string): string {
 /** 開くかを確かめる（確かめずに開いてよければ true。「今後確認しない」を選んだらドメインを覚える） */
 async function confirmOpen(href: string, text: string, settings: AppSettings): Promise<boolean> {
   const domain = linkDomainOf(href);
-  const warned = linkWarnings(href, text).length > 0;
+  const warnings = linkWarnings(href, text);
+  const warned = warnings.length > 0;
   if (!warned && domain !== null && settings.trusted_link_domains.includes(domain)) return true;
-  const message = linkConfirmMessage(href, text);
+  const message = linkConfirmMessage(href, warnings);
   if (warned || domain === null) return confirm({ title: TITLE, message, confirmLabel: "開く" }).then((r) => r !== null);
   const answer = await confirm({ title: TITLE, message, confirmLabel: "開く", checks: [{ label: `${domain} へのリンクは今後確認しない` }] }).then((r) => r && { checked: r.checked[0] });
   if (!answer) return false;

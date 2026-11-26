@@ -1,5 +1,5 @@
 import type { Params } from "electron";
-import { webUrlOf } from "@shared/foundation/linkWarnings";
+import { webUrlOf } from "@shared/foundation/linkTarget";
 
 type Context = Pick<Params, "isEditable" | "formControlType" | "selectionText" | "linkURL" | "mediaType" | "hasImageContents" | "srcURL">;
 

@@ -46,6 +46,23 @@ export const MERMAID_SECURE_KEYS = [
   "arrowMarkerAbsolute",
 ];
 
+/**
+ * 図を描く守りの設定（パソコンとスマホで同じ。配色・字体は描く側が足す）。
+ * 文字は HTML ではなく SVG で描き（htmlLabels: false。flowchart の swimlane の枠の見出し・triangle の形は flowchart.htmlLabels を直に読み、
+ * 書いていないと HTML のラベルと読むので、そちらも false。Mermaid は flowchart.htmlLabels に非推奨の警告を 1 度出すが、外すと HTML のラベルに戻る）、
+ * 図の中のリンクやスクリプトは動かさない（securityLevel: strict）。図に使える文字数・線の数の上限を超えたら図にせず、コードのまま出す
+ */
+export const MERMAID_SAFE_CONFIG = {
+  startOnLoad: false,
+  securityLevel: "strict",
+  suppressErrorRendering: true,
+  htmlLabels: false,
+  flowchart: { htmlLabels: false },
+  secure: MERMAID_SECURE_KEYS,
+  maxTextSize: 20_000,
+  maxEdges: 400,
+} as const;
+
 /** 形の指定（@{ … }） */
 const SHAPE_DATA = /@\{[^}]*\}?/g;
 /** 形の指定の中の img（data: の画像は外を読まないので通す） */

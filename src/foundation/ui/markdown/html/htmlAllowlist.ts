@@ -1,5 +1,6 @@
 // Markdown の中の HTML で描いてよいタグ・属性・値の一覧（読み取り htmlTokens.ts と、木にしたあとの確かめ htmlVerify.ts が同じ一覧を使う）。
 // 一覧にないものは描かない。属性の値は、ここで読み直した形だけを要素に入れる（書かれた文字列をそのまま入れない）
+import { stripInvisibleChars } from "@shared/foundation/invisibleChars";
 import { linkTargetOf, webLinkOf } from "@shared/foundation/linkTarget";
 
 /** 描いてよいタグ（小文字だけ。picture は中の img だけを描く。rp は中身ごと消す） */
@@ -82,16 +83,22 @@ export const SIZE_TAGS: ReadonlySet<string> = new Set(["small", "big", "sub", "s
 /** 字下げになる入れ子（10 段まで）。字下げは ul・ol・blockquote・dd・figure の余白で付く（li・dl には付かない） */
 export const INDENT_TAGS: ReadonlySet<string> = new Set(["ul", "ol", "blockquote", "dd", "figure"]);
 
+/**
+ * 段落をはさめる入れ物のうち、閉じを省けないもの（ブロック分けが開きから閉じまでを 1 つのブロックにまとめる。streaming/htmlBlockDepth.ts）。
+ * 閉じを省ける li・td などは、閉じがなくても数がずれないよう入れない（外の ul・table が数える）
+ */
+export const HTML_CONTAINER_TAGS: readonly string[] = [
+  ..."div blockquote details section article aside header footer nav main address center figure".split(" "),
+  ..."ul ol dl table".split(" "),
+];
+
 /** 上限（超えたブロックは Markdown として描かずに、書いたままの文字で出す） */
 export const HTML_LIMITS = { tags: 2000, depth: 32, indent: 10 } as const;
 
-/** 制御文字・文字の並びを変える印・見えない文字（title などの文字から消す） */
-const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁩﻿]/g;
-
-/** 文字（制御文字を消し、max 字まで） */
+/** 文字（制御文字・文字の並びを変える印・見えない文字を消し、max 字まで） */
 const cleanText = (max: number) => (raw: string | null) => {
   if (raw === null) return null;
-  const chars = Array.from(raw.replace(CONTROL_CHARS, ""));
+  const chars = Array.from(stripInvisibleChars(raw));
   return chars.length > max ? chars.slice(0, max).join("") : chars.join("");
 };
 

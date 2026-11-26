@@ -1,11 +1,7 @@
 import type { MermaidConfig } from "mermaid";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
-import { MERMAID_SECURE_KEYS } from "@shared/foundation/mermaidResources";
+import { MERMAID_SAFE_CONFIG } from "@shared/foundation/mermaidResources";
 import { blendRgb, parseColor } from "@shared/foundation/theme/color";
-
-/** 図に使える文字数・線の数の上限（超えたら図にせず、コードのまま出す） */
-const MAX_TEXT_SIZE = 20_000;
-const MAX_EDGES = 400;
 
 /** 色分けに使う色（tokens.css の --chart-* の色から。円グラフ・マインドマップ・タイムラインなど） */
 const PALETTE_VARS = [
@@ -37,8 +33,7 @@ export function diagramBackground(): string {
 }
 
 /**
- * 図を描く設定。Mermaid の素の配色（base）に、アプリの色（CSS の変数）を当ててなじませる。
- * 文字は HTML ではなく SVG で描き（htmlLabels: false）、図の中のリンクやスクリプトは動かさない（securityLevel: strict）
+ * 図を描く設定。守りの設定（MERMAID_SAFE_CONFIG。スマホと同じ）に、Mermaid の素の配色（base）とアプリの色（CSS の変数）を当ててなじませる
  */
 export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
   const style = getComputedStyle(document.documentElement);
@@ -58,13 +53,10 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
     Object.fromEntries(colors.map((color, i) => [`${prefix}${i + start}`, color]));
 
   return {
-    startOnLoad: false,
-    securityLevel: "strict",
-    suppressErrorRendering: true,
-    htmlLabels: false,
-    secure: [...MERMAID_SECURE_KEYS],
-    maxTextSize: MAX_TEXT_SIZE,
-    maxEdges: MAX_EDGES,
+    ...MERMAID_SAFE_CONFIG,
+    // Mermaid が設定を書き換えても共有の値が変わらないよう、写しを渡す
+    flowchart: { ...MERMAID_SAFE_CONFIG.flowchart },
+    secure: [...MERMAID_SAFE_CONFIG.secure],
     theme: "base",
     // Mermaid 12 の既定（neo）は影と立体の枠が付き、ダークでは浮くので、平らな見た目にする
     look: "classic",

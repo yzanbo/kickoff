@@ -77,7 +77,7 @@ export function pipelineOf(links: PluggableList[number] | undefined, math: MathP
 /**
  * 1 つのブロック（か全文）を、描く前の hast にする（Markdown の中の HTML は一覧を通したものだけを要素にし（`html/`）、URL は安全にしたもの。`sanitizeHast`）。
  * tail（出たばかりの文字の段）があれば、木の終わりの文字を薄く包んでから rehype に渡す
- * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。前の rehypeStreamTail と同じ順。どちらも HTML の確かめのあとに付ける）。
+ * （数式の要素は KaTeX が丸ごと置き換えるので、その前に包む。どちらも HTML の確かめのあとに付ける）。
  * 読むと危ない形（`isRiskyMarkdownBlock`。固まる・スタックがあふれる）・HTML のタグと入れ子の上限を超えたもの・読む途中で投げたときは null（書いたままの文字で出す。呼ぶ側）
  */
 export function markdownToHast(pipeline: MarkdownPipeline, text: string, tail?: readonly number[]): HastRoot | null {
@@ -112,10 +112,6 @@ export function renderBlock(pipeline: MarkdownPipeline, text: string, components
   const element = toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true }) as ReactElement;
   return { element, images: imageSourcesOf(tree) };
 }
-
-/** 1 つのブロック（か全文）の要素（`renderBlock`） */
-export const renderMarkdown = (pipeline: MarkdownPipeline, text: string, components: Components, tail?: readonly number[]): ReactElement =>
-  renderBlock(pipeline, text, components, tail).element;
 
 /** Markdown として読まずに、書いたままの文字で出すブロック（改行もそのまま。Markdown.css の .markdown-plain） */
 const plainBlock = (text: string): ReactElement => jsx("p", { className: "markdown-plain", children: text });

@@ -139,7 +139,7 @@ function buildLevel(children: readonly (RootContent | ElementContent)[], parentN
     if (isHtmlComment(node.value)) continue;
     const tokens = tokenizeHtml(node.value);
     const tags = tokens.filter((t) => t.type === "start" || t.type === "end").length;
-    // 一覧のタグを含まないもの（Promise<S>・<Button> など）は、これまでどおり書いたままの文字
+    // 一覧のタグを含まないもの（Promise<S>・<Button> など）は、書いたままの文字
     if (tags === 0) {
       onNode(text(node.value));
       continue;

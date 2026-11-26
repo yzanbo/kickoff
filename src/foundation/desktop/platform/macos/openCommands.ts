@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "@shared/foundation/ipc";
-import { isWebUrl } from "@/foundation/desktop/urls";
+import { webLinkOf } from "@shared/foundation/linkTarget";
 
 // macOS: 外部のターミナル・ブラウザで開く open の引数と、この Mac に入っているアプリ。
 // Electron に依らないので、テストできる（実行は index.ts の macosDesktopPlatform）
@@ -31,12 +31,12 @@ export function externalTerminalArgs(id: ExternalTerminalId, dir: string): strin
 }
 
 /**
- * 外部のブラウザで開く `open` の引数（url は http(s) のときだけ渡す。なければ空の新しいタブ（about:blank）を開く。
+ * 外部のブラウザで開く `open` の引数（url は http(s) のときだけ、リンクの判定（webLinkOf）で読み直した形を渡す。なければ空の新しいタブ（about:blank）を開く。
  * アプリを前に出すだけだと、パネルの ▾ の「外部で開く」を押してもタブが増えないため）
  */
 export function externalBrowserArgs(id: ExternalBrowserId, url?: string): string[] {
   const app = EXTERNAL_BROWSERS.find((b) => b.id === id)?.app ?? "Google Chrome";
-  return ["-a", app, isWebUrl(url) ? url : "about:blank"];
+  return ["-a", app, webLinkOf(url) ?? "about:blank"];
 }
 
 /** 一覧のうち、この Mac に入っているアプリ（/Applications か ~/Applications にあるもの。always はいつも入っているもの） */

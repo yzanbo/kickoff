@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { toHtml } from "hast-util-to-html";
-import { createPipeline, markdownToHast, pipelineOf } from "../markdownProcessor";
-import { markdownRemarkPlugins } from "../syntax/markdownPlugins";
+import { createPipeline, markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
+import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
+import { fakeFileLinks } from "@/foundation/ui/markdown/testing";
 import { decodeCharacterReferences, tokenizeHtml } from "./htmlTokens";
 
 const pipeline = pipelineOf(undefined, null);
@@ -44,7 +45,7 @@ test("そろわない開き・閉じは文字のまま。段落をまたがな�
   assert.equal(html("a<br/>b<br />c <b/>"), "<p>a<br>b<br>c &#x3C;b/></p>");
 });
 
-test("リンクの中のリンクは外し、Markdown の数式・チェックリスト・脚注・コードはこれまでどおり", () => {
+test("リンクの中のリンクは外し、Markdown の数式・チェックリスト・脚注・コードは Markdown の要素のまま", () => {
   assert.equal(html('<a href="https://a.example">x [y](https://b.example) z</a>'), '<p><a href="https://a.example/">x y z</a></p>');
   assert.equal(html("- [x] 済み\n\n```ts\n<b>x</b>\n```"), '<ul class="contains-task-list">\n<li class="task-list-item"><input type="checkbox" checked disabled> 済み</li>\n</ul>\n<pre><code class="language-ts">&#x3C;b>x&#x3C;/b>\n</code></pre>');
   assert.match(html("本文[^1]\n\n[^1]: <b>注</b>"), /<li id="user-content-fn-1">\n<p><b>注<\/b> <a href="#user-content-fnref-1"/);
@@ -68,15 +69,7 @@ test("読み取り: 小文字の一覧のタグだけをタグにし、属性の
 });
 
 test("ファイルのチップの印は Markdown の節にだけ付き、HTML に書いた data-file-path は描かない", () => {
-  // ファイルのチップの差し込みの代わり（インラインコードに印を付ける）
-  const fakeFileLinks = () => (tree: { children?: unknown[] }) => {
-    const walk = (node: { type?: string; data?: Record<string, unknown>; children?: unknown[] }) => {
-      if (node.type === "inlineCode") node.data = { hName: "a", hProperties: { href: "#", dataFilePath: "a.ts" } };
-      node.children?.forEach((c) => walk(c as typeof node));
-    };
-    walk(tree);
-  };
-  const withLinks = createPipeline(markdownRemarkPlugins([fakeFileLinks]), []);
+  const withLinks = createPipeline(markdownRemarkPlugins([[fakeFileLinks, "a.ts"]]), []);
   const out = (text: string) => toHtml(markdownToHast(withLinks, text) ?? { type: "root", children: [] }).replace(/ class="md-html"/g, "");
   assert.equal(out("<div>\n\n`a.ts` を見る\n\n</div>"), '<div>\n<p><a href="#" data-file-path="a.ts">a.ts</a> を見る</p>\n</div>');
   assert.equal(out('<span data-file-path="a.ts" data-file-line="3">a.ts</span>'), "<p><span>a.ts</span></p>");

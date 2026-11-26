@@ -1,6 +1,7 @@
 import { createContext, type MouseEvent } from "react";
-import { HTML_ID_PREFIX } from "./html/htmlAllowlist";
+import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { SEE_THROUGH_CLASS } from "@shared/foundation/math/katexSettings";
+import { HTML_ID_PREFIX } from "./html/htmlAllowlist";
 
 /**
  * Markdown の外部リンク（http・https。読み直した URL）を押したときに開く口（ここはドメインを知らない。中身は App・別ウィンドウが
@@ -25,6 +26,19 @@ export function scrollToFragment(anchor: Element, id: string): void {
   target?.scrollIntoView({ block: "start" });
 }
 
+/**
+ * 本文のリンクを押したとき（Markdown のリンクと GitHub の本文で同じ）。左・中クリックなら窓の既定の動き（窓の移動・新しいウィンドウ）を止め、
+ * 行き先の判定（linkTargetOf）を通った外のページは開く口（確認の画面）で、# は本文の中へスクロールする。
+ * anchor: 押したリンク（なければ何もしない）。textOf: 確認の画面に渡すリンクの文字（開くときだけ読む）
+ */
+export function pressLink(e: MouseEvent, anchor: Element | null, opener: MarkdownLinkOpener | null, textOf: () => string): void {
+  if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !anchor) return;
+  e.preventDefault();
+  const target = linkTargetOf(anchor.getAttribute("href"));
+  if (target?.kind === "web") opener?.(e, target.url, textOf());
+  else if (target?.kind === "fragment") scrollToFragment(anchor, target.id);
+}
+
 /** 画面に出ない数式の部分（読み上げ用の MathML・書いた式の annotation）と、透明な数式の文字のクラス */
 const UNSEEN_MATH_CLASSES = ["katex-mathml", SEE_THROUGH_CLASS];
 
@@ -46,3 +60,23 @@ export function linkTextOf(node: unknown): string {
   }
   return (n.children ?? []).map(linkTextOf).join("");
 }
+
+/** DOM の節の口（Node の一部。テストでは偽の木を渡す） */
+export interface LinkDomNode {
+  readonly nodeType: number;
+  readonly nodeValue: string | null;
+  readonly localName?: string;
+  readonly childNodes: ArrayLike<LinkDomNode>;
+  getAttribute?(name: string): string | null;
+}
+
+/** DOM の節を、linkTextOf が読む hast の形にする（文字・要素のタグの名前・alt・クラス・子だけ） */
+function hastOf(node: LinkDomNode): unknown {
+  if (node.nodeType === 3) return { type: "text", value: node.nodeValue ?? "" };
+  if (node.nodeType !== 1) return { type: "comment" };
+  const className = (node.getAttribute?.("class") ?? "").split(/\s+/).filter(Boolean);
+  return { type: "element", tagName: node.localName, properties: { alt: node.getAttribute?.("alt") ?? undefined, className }, children: Array.from(node.childNodes, hastOf) };
+}
+
+/** DOM に入れて描いた HTML（GitHub の本文など）のリンクの、画面に見える文字（linkTextOf と同じ決まり。画像の alt も数える） */
+export const domLinkTextOf = (anchor: LinkDomNode): string => linkTextOf(hastOf(anchor));

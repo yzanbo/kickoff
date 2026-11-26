@@ -39,7 +39,7 @@ export const KATEX_TEXT_MACROS: Readonly<Record<string, string>> = { ...COLOR_MA
  * katexLengths.ts のマクロで抑える（縦は 1 つ 3em・式ごとの合計 10em、横は ±10em）。式の外へ出た分は CSS で描かない（Markdown.css）。
  * maxExpand: マクロを展開する回数の上限（KaTeX の既定と同じ 1000）。\neq・\dfrac・\cdots なども 1 回と数えるので、
  * 行列・和・極限を並べた式は 40 個並べると 1000 を超える（500 では 20 個で超える）。1000 回でも、長い \def を展開し続ける式は 219ms で止まる（M2 Pro で測った）。
- * macros は KATEX_TEXT_MACROS と長さのマクロ（katexLengths.ts）を、描くたびに新しい写しで渡す（パソコンは katexOptions.ts の getter、スマホは katexPage.ts）。
+ * macros は KATEX_TEXT_MACROS と長さのマクロ（katexLengths.ts）を、描くたびに新しい写しで渡す（パソコンは katexOptions.ts の getter、スマホは mobile/src/lib/richPages.ts）。
  * KaTeX は \gdef で渡した macros の中身を書き換え、長さのマクロは式ごとに縦の大きさを数えるので、式どうしで定義・数が残らないように
  */
 export const KATEX_SETTINGS = {
@@ -50,7 +50,6 @@ export const KATEX_SETTINGS = {
   maxSize: 10,
   maxExpand: 1000,
 } as const;
-
 
 /** 透明・透明度のある色（KaTeX が色に通すのは色の名前と #rgb・#rgba・#rrggbb・#rrggbbaa だけ） */
 const SEE_THROUGH = /^\s*(?:transparent|#[0-9a-f]{4}|#[0-9a-f]{8})\s*$/i;
@@ -98,11 +97,40 @@ export function katexBoxEm(strutStyles: readonly string[]): number {
   return top + depth;
 }
 
+/** 描いた式の整えに使う DOM の口（Element の一部。テストでは偽の木を渡す） */
+export interface KatexElementLike {
+  readonly localName: string;
+  readonly classList: { add(name: string): void };
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  replaceChildren(): void;
+  closest(selector: string): unknown;
+  querySelectorAll(selector: string): Iterable<KatexElementLike>;
+}
+
+/**
+ * KaTeX が描いた DOM を整える（ノートのライブプレビューが renderToString の HTML を入れたあとに呼ぶ。返答の rehypeSafeMath と同じ手順）。
+ * 見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にし、高すぎる行の中の式に TALL_MATH_CLASS を付ける
+ */
+export function tidyRenderedMath(root: Pick<KatexElementLike, "querySelectorAll">): void {
+  for (const el of root.querySelectorAll("[style]")) {
+    if (!isSeeThroughStyle(el.getAttribute("style") ?? "")) continue;
+    el.classList.add(SEE_THROUGH_CLASS);
+    el.setAttribute("aria-hidden", "true");
+  }
+  for (const el of root.querySelectorAll("mphantom, [mathcolor]")) if (isHiddenMathml(el.localName, el.getAttribute("mathcolor"))) el.replaceChildren();
+  for (const el of root.querySelectorAll(".katex")) {
+    if (el.closest(".katex-display")) continue;
+    const styles = Array.from(el.querySelectorAll(".katex-strut"), (s) => s.getAttribute("style") ?? "");
+    if (katexBoxEm(styles) > INLINE_MATH_MAX_EM) el.classList.add(TALL_MATH_CLASS);
+  }
+}
+
 const re = (r: RegExp) => `new RegExp(${JSON.stringify(r.source)}, ${JSON.stringify(r.flags)})`;
 
 /**
- * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（パソコンの katexOptions.ts の tidyRenderedMath と同じ手順を文字で書く。
- * Hermes では関数を文字に戻せないので手で書き、上の katexBoxEm と同じ結果になることを katexSettings.test.ts が確かめる）。
+ * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（上の tidyRenderedMath と同じ手順を文字で書く。
+ * Hermes では関数を文字に戻せないので手で書き、tidyRenderedMath・返答の rehypeSafeMath と同じ結果になることを katexTidy.test.ts が確かめる）。
  * ページに kickoffTidyKatex(root)（katex.render のあとに呼ぶ）を置く。見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にし、
  * 高すぎる行の中の式に TALL_MATH_CLASS を付ける
  */

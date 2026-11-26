@@ -1,14 +1,15 @@
 // リンクの行き先の判定（Markdown のリンク・HTML の本文のリンク・外で開く IPC で同じものを使う）。
 // 書かれた文字列はそのまま使わず、URL として読み直した形だけを返す（確認の画面に出す URL と、開く URL を同じにするため）
+import { hasInvisibleChar } from "./invisibleChars";
 
 /** リンクにしてよい行き先: 外のページ（http・https。読み直した URL）か、同じ文書の中の場所（# の後ろ。ID の文字列） */
 export type LinkTarget = { kind: "web"; url: string } | { kind: "fragment"; id: string };
 
 /**
- * 改行・制御文字・空白（全角・ゼロ幅のものも）。ブラウザは URL を読むときに改行・タブを黙って捨てるので、
+ * 改行・制御文字・空白（全角のものも）・見えない文字（ゼロ幅・文字の並びを変える印）を含むか。ブラウザは URL を読むときに改行・タブを黙って捨てるので、
  * 見た目と違う行き先にならないよう、含むものは読み直さずに断る
  */
-const UNSAFE_CHARS = /[\s\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2064\ufeff]/;
+const hasUnsafeChar = (href: string) => /\s/.test(href) || hasInvisibleChar(href);
 
 /** # の後ろを ID として読む（% の形は戻す。戻せない形はそのまま） */
 function fragmentId(raw: string): string {
@@ -24,7 +25,7 @@ function fragmentId(raw: string): string {
  * //host は https として読む。基準の URL を渡さずに読むので、/\host・/api/… のような相対の形は、画面の URL に解決されずに null になる
  */
 export function linkTargetOf(href: unknown): LinkTarget | null {
-  if (typeof href !== "string" || href === "" || UNSAFE_CHARS.test(href)) return null;
+  if (typeof href !== "string" || href === "" || hasUnsafeChar(href)) return null;
   if (href.startsWith("#")) return href.length > 1 ? { kind: "fragment", id: fragmentId(href.slice(1)) } : null;
   let url: URL;
   try {
@@ -41,4 +42,18 @@ export function linkTargetOf(href: unknown): LinkTarget | null {
 export function webLinkOf(href: unknown): string | null {
   const target = linkTargetOf(href);
   return target?.kind === "web" ? target.url : null;
+}
+
+/**
+ * http・https の URL を URL の形で（ホストやパスを読む所。読めない・ほかのスキームは null）。
+ * 前後の空白は外して読む（ブラウザのアドレス・メニューの URL など、書いた人が付けた空白で読めなくしない）。
+ * リンクの行き先として開く・確認の画面に出すものは、改行・見えない文字も断る webLinkOf を使う
+ */
+export function webUrlOf(href: string): URL | null {
+  try {
+    const url = new URL(href.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
 }

@@ -1,7 +1,4 @@
-// URL の判定（外で開いてよいページ・出どころ）。Electron に依らないので、テストできる
-
-/** http(s) のページか（外部のブラウザ・既定のブラウザで開いてよいもの） */
-export const isWebUrl = (url: unknown): url is string => typeof url === "string" && /^https?:\/\//.test(url);
+// URL の判定（埋め込みブラウザで開いてよいページ・出どころ）。Electron に依らないので、テストできる。外で開いてよいページはリンクの判定（@shared/foundation/linkTarget の webLinkOf）
 
 /** 埋め込みブラウザ（<webview>）で開いてよいページか（http(s) と空のページ） */
 export const isEmbeddableUrl = (url: string) => /^(https?:|about:blank)/.test(url);

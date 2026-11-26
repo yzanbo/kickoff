@@ -7,7 +7,8 @@ import type KaTeX from "katex";
 import { mathRanges, mayContainMath } from "@shared/foundation/markdown/mathGuard";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
-import { KATEX_OPTIONS, tidyRenderedMath } from "@/foundation/ui/markdown/math/katexOptions";
+import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
+import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む

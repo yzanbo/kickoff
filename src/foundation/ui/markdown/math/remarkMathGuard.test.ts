@@ -7,7 +7,9 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
-import { remarkMathGuard } from "./remarkMathGuard";
+import { mathPluginsOf } from "./mathPlugins";
+
+const math = mathPluginsOf(remarkMath, rehypeKatex);
 
 /** Markdown の部品と同じ組み合わせで HTML にする */
 function render(markdown: string): string {
@@ -15,8 +17,8 @@ function render(markdown: string): string {
     createElement(
       ReactMarkdown,
       {
-        remarkPlugins: markdownRemarkPlugins([[remarkMath, { singleDollarTextMath: true }], remarkMathGuard]),
-        rehypePlugins: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]],
+        remarkPlugins: markdownRemarkPlugins(math.remark),
+        rehypePlugins: math.rehype,
       },
       convertTexDelimiters(markdown),
     ),

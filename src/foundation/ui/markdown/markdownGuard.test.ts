@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isRiskyMarkdownBlock } from "./markdownGuard";
-import { createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { createPipeline, pipelineOf, renderBlock } from "./markdownProcessor";
 
 const fence = (body: string, mark = "```") => `${mark}c\n${body}\n${mark}`;
 
@@ -54,7 +54,7 @@ test("isRiskyMarkdownBlock: 組まない ` で囲んだように見せた強調�
       const text = "`" + body + close;
       assert.equal(isRiskyMarkdownBlock(text), true, close);
       const start = performance.now();
-      renderToStaticMarkup(renderMarkdown(pipeline, text, {}));
+      renderToStaticMarkup(renderBlock(pipeline, text, {}).element);
       assert.ok(performance.now() - start < 500, `${body.slice(0, 4)} ${close}`);
     }
   }
@@ -82,7 +82,7 @@ test("isRiskyMarkdownBlock: コードブロックに見せかけた行の後ろ�
 test("renderMarkdown: 危ない形・読む途中で投げたブロックは、書いたままの文字で出す", () => {
   const pipeline = pipelineOf(undefined, null);
   const quotes = ">".repeat(3_000) + " a";
-  assert.equal(renderToStaticMarkup(renderMarkdown(pipeline, quotes, {})), `<p class="markdown-plain">${"&gt;".repeat(3_000)} a</p>`);
+  assert.equal(renderToStaticMarkup(renderBlock(pipeline, quotes, {}).element), `<p class="markdown-plain">${"&gt;".repeat(3_000)} a</p>`);
   const throwing = createPipeline(
     [
       () => () => {
@@ -91,6 +91,6 @@ test("renderMarkdown: 危ない形・読む途中で投げたブロックは、�
     ],
     [],
   );
-  assert.equal(renderToStaticMarkup(renderMarkdown(throwing, "**a**\nb", {})), '<p class="markdown-plain">**a**\nb</p>');
-  assert.equal(renderToStaticMarkup(renderMarkdown(pipeline, "**a**", {})), "<p><strong>a</strong></p>");
+  assert.equal(renderToStaticMarkup(renderBlock(throwing, "**a**\nb", {}).element), '<p class="markdown-plain">**a**\nb</p>');
+  assert.equal(renderToStaticMarkup(renderBlock(pipeline, "**a**", {}).element), "<p><strong>a</strong></p>");
 });

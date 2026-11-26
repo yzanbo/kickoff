@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { appNavigationAllowed, frameNavigationAllowed, isEmbeddableUrl, isWebUrl, sameOrigin } from "./urls";
+import { appNavigationAllowed, frameNavigationAllowed, isEmbeddableUrl, sameOrigin } from "./urls";
 
-test("外で開いてよいページ: http(s) だけ。埋め込みブラウザは空のページも", () => {
-  assert.equal(isWebUrl("https://example.com/a"), true);
-  assert.equal(isWebUrl("http://localhost:3000"), true);
-  assert.equal(isWebUrl("file:///etc/passwd"), false);
-  assert.equal(isWebUrl("javascript:alert(1)"), false);
-  assert.equal(isWebUrl(undefined), false);
+test("埋め込みブラウザで開いてよいページ: http(s) と空のページ", () => {
   assert.equal(isEmbeddableUrl("about:blank"), true);
   assert.equal(isEmbeddableUrl("https://example.com/"), true);
   assert.equal(isEmbeddableUrl("file:///etc/passwd"), false);

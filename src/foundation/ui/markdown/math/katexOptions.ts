@@ -38,7 +38,7 @@ function strutStyles(node: Element, out: string[] = []): string[] {
 }
 
 /**
- * rehype-katex のあとに、描いた式を整える rehype のプラグイン（スマホのページの TIDY_KATEX_SCRIPT と同じ手順）。
+ * rehype-katex のあとに、描いた式を整える rehype のプラグイン（ノートの tidyRenderedMath・スマホのページの TIDY_KATEX_SCRIPT と同じ手順。katexTidy.test.ts）。
  * - 見えない文字（透明な色の文字）は、見えないまま場所だけ取る形で残しつつ、選べないクラスと aria-hidden を付け、
  *   画面に出ない読み上げ用の MathML は中身を空にする（選んでコピーすると MathML の文字も入るため）
  * - 行の中の式の箱が INLINE_MATH_MAX_EM より高ければ TALL_MATH_CLASS を付ける（Markdown.css がその高さで切る。段落の式は CSS だけでスクロール）
@@ -58,19 +58,4 @@ export function rehypeSafeMath() {
       }
     });
   };
-}
-
-/** KaTeX が描いた DOM に、rehypeSafeMath と同じ整えをする（ノートのライブプレビュー。renderToString の HTML を入れたあと） */
-export function tidyRenderedMath(root: ParentNode): void {
-  for (const el of root.querySelectorAll("[style]")) {
-    if (!isSeeThroughStyle(el.getAttribute("style") ?? "")) continue;
-    el.classList.add(SEE_THROUGH_CLASS);
-    el.setAttribute("aria-hidden", "true");
-  }
-  for (const el of root.querySelectorAll("mphantom, [mathcolor]")) if (isHiddenMathml(el.localName, el.getAttribute("mathcolor"))) el.replaceChildren();
-  for (const el of root.querySelectorAll(".katex")) {
-    if (el.closest(".katex-display")) continue;
-    const styles = Array.from(el.querySelectorAll(".katex-strut"), (s) => s.getAttribute("style") ?? "");
-    if (katexBoxEm(styles) > INLINE_MATH_MAX_EM) el.classList.add(TALL_MATH_CLASS);
-  }
 }

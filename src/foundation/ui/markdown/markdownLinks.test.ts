@@ -6,13 +6,11 @@ import { Markdown } from "./Markdown";
 import type { Element as HastElement } from "hast";
 import { visit } from "unist-util-visit";
 import { linkWarnings } from "@shared/foundation/linkWarnings";
-import { linkTextOf, scrollToFragment } from "./markdownLinks";
+import { domLinkTextOf, linkTextOf, pressLink, scrollToFragment } from "./markdownLinks";
 import { markdownToHast, pipelineOf, type MarkdownPipeline } from "./markdownProcessor";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import type { PluggableList } from "unified";
-import { KATEX_OPTIONS, rehypeSafeMath } from "./math/katexOptions";
-import { remarkMathGuard } from "./math/remarkMathGuard";
+import { mathPluginsOf } from "./math/mathPlugins";
 
 const html = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
 
@@ -91,9 +89,39 @@ test("linkTextOf: リンクの中の画像の alt も文字に数え、alt の�
 
 test("linkTextOf: リンクの中の数式は見た目の部分だけを読み（読み上げ用の MathML・書いた式・透明な文字を除く）、行き先と違えば警告する", () => {
   // 返答と同じ組（useMathPlugins.ts の数式の部品）
-  const math = pipelineOf(undefined, { remark: [[remarkMath, { singleDollarTextMath: true }], remarkMathGuard] as PluggableList, rehype: [[rehypeKatex, KATEX_OPTIONS], rehypeSafeMath] as PluggableList });
+  const math = pipelineOf(undefined, mathPluginsOf(remarkMath, rehypeKatex));
   const text = linkTextOf(firstLink("[$\\text{apple.com}$](https://evil.example)", math));
   assert.equal(text, "apple.com");
   assert.deepEqual(linkWarnings("https://evil.example", text), ["text_mismatch"]);
   assert.equal(linkTextOf(firstLink("[$a\\phantom{b}c$](https://example.com)", math)), "ac");
+});
+
+test("pressLink: 左・中クリックだけ既定の動きを止め、外のページは読み直した URL とリンクの文字で開く口へ渡す", () => {
+  const press = (button: number, href: string | null, defaultPrevented = false) => {
+    const e = { button, defaultPrevented, preventDefault: vi.fn() };
+    const opener = vi.fn();
+    const anchor = href === null ? null : ({ getAttribute: () => href } as unknown as Element);
+    pressLink(e as never, anchor, opener, () => "文字");
+    return { prevented: e.preventDefault.mock.calls.length > 0, opened: opener.mock.calls.map((c: unknown[]) => c.slice(1)) };
+  };
+  assert.deepEqual(press(0, "HTTPS://Example.com"), { prevented: true, opened: [["https://example.com/", "文字"]] });
+  assert.deepEqual(press(1, "https://example.com/a"), { prevented: true, opened: [["https://example.com/a", "文字"]] });
+  // 右クリック・ほかが止めた押下・リンクの外は何もしない
+  assert.deepEqual(press(2, "https://example.com/"), { prevented: false, opened: [] });
+  assert.deepEqual(press(0, "https://example.com/", true), { prevented: false, opened: [] });
+  assert.deepEqual(press(0, null), { prevented: false, opened: [] });
+  // リンクにしない行き先は、窓の既定の動きだけ止めて開かない
+  assert.deepEqual(press(0, "javascript:alert(1)"), { prevented: true, opened: [] });
+});
+
+test("domLinkTextOf: DOM に入れた本文（GitHub）のリンクの文字も、画像の alt を数え、行き先と違えば警告する", () => {
+  const text = (value: string) => ({ nodeType: 3, nodeValue: value, childNodes: [] });
+  const element = (localName: string, attrs: Record<string, string>, ...childNodes: object[]) => ({ nodeType: 1, nodeValue: null, localName, childNodes, getAttribute: (name: string) => attrs[name] ?? null });
+  const imageLink = element("a", { href: "https://evil.example" }, element("img", { alt: "github.com", src: "https://example.com/i.png" }));
+  const shown = domLinkTextOf(imageLink as never);
+  assert.equal(shown.trim(), "github.com");
+  assert.deepEqual(linkWarnings("https://evil.example", shown), ["text_mismatch"]);
+  // 文字と、入れ子の要素の文字はつなげて読み、コメントは読まない
+  const mixed = element("a", {}, text("a"), element("code", {}, text("b")), { nodeType: 8, nodeValue: "x", childNodes: [] }, text("c"));
+  assert.equal(domLinkTextOf(mixed as never), "abc");
 });

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { pipelineOf, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
+import { pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 
 /*
  * 読み方の設定の組（markdownPlugins.ts）で描いた HTML を、例文ごとに確かめる。
  * 例文は日本語の返答で崩れていた書き方と、崩れていなかった書き方・英語の文（読み方を変えないもの）
  */
 
-const html = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, {}));
+const html = (text: string) => renderToStaticMarkup(renderBlock(pipelineOf(undefined, null), text, {}).element);
 
 function check(cases: [string, string][]) {
   for (const [input, expected] of cases) assert.equal(html(input), expected, JSON.stringify(input));
@@ -43,7 +43,7 @@ test("取り消し線は ~~ だけ: ~ 1 つは文字のまま（範囲の 5~10�
   ]);
 });
 
-test("強調: 崩れていなかった書き方・英語の文・_ の印は、これまでと同じに読む", () => {
+test("強調: CommonMark でも強調になる書き方・英語の文・_ の印は、CommonMark と同じに読む", () => {
   check([
     ["**強調**は", "<p><strong>強調</strong>は</p>"],
     ["「**強調**」は", "<p>「<strong>強調</strong>」は</p>"],
@@ -70,7 +70,7 @@ test("脚注: 見出しは読み上げ用（sr-only）の「脚注」、戻る�
   assert.doesNotMatch(out, /Footnotes|Back to reference/);
 });
 
-test("1 回の改行: 段落・箇条書きの項目・引用・脚注の中で改行にし、空行・空白 2 つ・\\・コード・表はこれまでと同じ", () => {
+test("1 回の改行: 段落・箇条書きの項目・引用・脚注の中で改行にし、空行・空白 2 つ・\\・コード・表は CommonMark・GFM と同じ", () => {
   check([
     ["行1\n行2", "<p>行1<br/>\n行2</p>"],
     ["- 項目の1行目\n  2行目", "<ul>\n<li>項目の1行目<br/>\n2行目</li>\n</ul>"],

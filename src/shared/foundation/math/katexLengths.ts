@@ -1,5 +1,5 @@
 // 数式で長さを取る命令（KaTeX 0.19.1 の \raisebox・\rule・\kern・\mkern・\hskip・\mskip・\hspace・\\[…]・\genfrac・\above）の大きさを、
-// ふつうの数式に足りる範囲に抑えるマクロ（パソコンは katexOptions.ts、スマホのページは katexPage.ts の同じ手順の文字）。KaTeX の maxSize は正の大きさしか丸めず
+// ふつうの数式に足りる範囲に抑えるマクロ（パソコンは katexOptions.ts、スマホのページは mobile/src/lib/richPages.ts が置く同じ手順の文字）。KaTeX の maxSize は正の大きさしか丸めず
 // （\raisebox{-30em}{Z} は 30em の深さの箱になり、行の中の式でも段落が縦に空く）、上の向きの 10em も文の行には大きすぎるため。
 // マクロは命令より先に引き当てられるので、引数を読んで大きさを確かめ、元の命令（noexpand の印を付けた字句。マクロとして引き直さない）に
 // 抑えた大きさを付けて戻す。大きさが範囲の中なら、読んだ字句をそのまま戻す（ふつうの式の見た目は変わらない）。

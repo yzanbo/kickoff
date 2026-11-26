@@ -14,6 +14,9 @@ test("外部のブラウザ: ページは http(s) だけ渡し、なければ空
   assert.deepEqual(externalBrowserArgs("brave", "https://example.com/"), ["-a", "Brave Browser", "https://example.com/"]);
   assert.deepEqual(externalBrowserArgs("safari", "file:///etc/passwd"), ["-a", "Safari", "about:blank"]);
   assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome", "about:blank"]);
+  // 読み直した形を渡し、改行・空白・見えない文字を含むものは渡さない（ブラウザは改行を捨てて別の行き先と読む）
+  assert.deepEqual(externalBrowserArgs("chrome", "HTTPS://Example.com"), ["-a", "Google Chrome", "https://example.com/"]);
+  for (const url of ["https://exa\nmple.com", "https://example.com/a b", "https://exa\u200bmple.com"]) assert.deepEqual(externalBrowserArgs("chrome", url), ["-a", "Google Chrome", "about:blank"], url);
   const present = new Set(["/Applications/Google Chrome.app", "/h/Applications/Arc.app"]);
   assert.deepEqual(installedBrowsers("/h", (p) => present.has(p)), ["chrome", "safari", "arc"]);
 });
