@@ -6,7 +6,16 @@
 import { isolatedFrameCsp } from "@shared/foundation/isolatedFrame";
 import { mathRanges } from "@shared/foundation/markdown/mathGuard";
 import { LENGTH_MACROS_SCRIPT } from "@shared/foundation/math/katexLengths";
-import { KATEX_SETTINGS, KATEX_TEXT_MACROS, KATEX_VERSION, SEE_THROUGH_CLASS, TIDY_KATEX_SCRIPT } from "@shared/foundation/math/katexSettings";
+import {
+  DISPLAY_MATH_MAX_EM,
+  INLINE_MATH_MAX_EM,
+  KATEX_SETTINGS,
+  KATEX_TEXT_MACROS,
+  KATEX_VERSION,
+  SEE_THROUGH_CLASS,
+  TALL_MATH_CLASS,
+  TIDY_KATEX_SCRIPT,
+} from "@shared/foundation/math/katexSettings";
 import { MERMAID_SECURE_KEYS, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
 import { SANITIZE_SVG_SCRIPT } from "@shared/foundation/mermaidSvg";
 import { VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
@@ -81,7 +90,8 @@ function pageHead(csp: string, extra: string): string {
     `<style>${visualThemeCss(MOBILE_VISUAL_THEME)}
 html, body { margin: 0; background: var(--vis-bg); color: var(--vis-text); font-family: var(--vis-font); font-size: 15px; line-height: 1.5; overflow-y: hidden; }
 body { padding: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.4em 0; }</style>`,
+.katex-display { overflow-x: auto; overflow-y: auto; max-height: ${DISPLAY_MATH_MAX_EM}em; margin: 0.4em 0; }
+.katex.${TALL_MATH_CLASS} { display: inline-block; max-height: ${INLINE_MATH_MAX_EM}em; overflow: hidden; vertical-align: middle; }</style>`,
     extra,
     `<script>${SIZE_SCRIPT}</script>`,
   ].join("\n");

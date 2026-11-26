@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { KATEX_SETTINGS, KATEX_TEXT_MACROS } from "@shared/foundation/math/katexSettings";
+import { DISPLAY_MATH_MAX_EM, INLINE_MATH_MAX_EM, KATEX_SETTINGS, KATEX_TEXT_MACROS, TALL_MATH_CLASS } from "@shared/foundation/math/katexSettings";
 import { VISUAL_FRAME_CSP } from "@shared/visuals/visualDocument";
 import { hasMath, mathPage, mermaidPage, visualPage } from "./richPages";
 
@@ -34,6 +34,9 @@ test("mathPage: KaTeX の設定・文字のマクロ・長さのマクロ・描�
   assert.match(page, /kickoffTidyKatex\(el\)/);
   assert.match(page, /\.katex-see-through \{ user-select: none;/);
   assert.match(page, /\.katex \.katex-base \{ clip-path: inset\(-0\.25em\); \}/);
+  // 式の箱の縦の上限はパソコンと同じ（段落の式はスクロール・高すぎる行の中の式は切る）
+  assert.ok(page.includes(`max-height: ${DISPLAY_MATH_MAX_EM}em;`));
+  assert.ok(page.includes(`.katex.${TALL_MATH_CLASS} { display: inline-block; max-height: ${INLINE_MATH_MAX_EM}em; overflow: hidden;`));
 });
 
 test("mathPage・mermaidPage の CSP: スクリプトは CDN から読めるが、画像は data: と blob: だけ（CDN の画像も読めない）・通信はしない", () => {

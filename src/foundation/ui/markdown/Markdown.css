@@ -251,10 +251,23 @@
     user-select: none;
   }
 
+  /*
+   * 式の箱の縦の上限（@shared/foundation/math/katexSettings.ts の DISPLAY_MATH_MAX_EM・INLINE_MATH_MAX_EM）。長さの命令でない形
+   * （\arraystretch・空の行の行列）でも段落が縦に空かないように、段落の式は上限を超えたら式の中でスクロールし、
+   * 行の中の式は高すぎるもの（katexOptions.ts の rehypeSafeMath が katex-tall を付ける）をその高さで切る
+   */
   .markdown .katex-display {
     margin: 0.6em 0;
     padding: 0.2em 0;
+    max-height: 40em;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
+  }
+
+  .markdown .katex.katex-tall {
+    display: inline-block;
+    max-height: 10em;
+    overflow: hidden;
+    vertical-align: middle;
   }
 }

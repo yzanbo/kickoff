@@ -8,7 +8,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { PluggableList } from "unified";
 import { createPipeline, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
-import { isHiddenMathml, isSeeThroughStyle } from "@shared/foundation/math/katexSettings";
+import { DISPLAY_MATH_MAX_EM, INLINE_MATH_MAX_EM, isHiddenMathml, isSeeThroughStyle, TALL_MATH_CLASS } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
 
 /** 見た目の HTML の部分（読み上げ用の MathML と、書いた式の annotation は画面に出ないので除く） */
@@ -155,5 +155,25 @@ test("返答の数式も、式の箱（.katex-base）の外へ出た分を描か
     const base = html.indexOf('class="katex-base"');
     const moved = html.search(/margin-right:-10em|vertical-align:-3em/);
     assert.ok(base >= 0 && moved > base, tex);
+  }
+});
+
+test("式の箱の縦の上限: 長さの命令でない形（\\arraystretch・空の行）で高すぎる行の中の式に印を付け、CSS がその高さで切る・段落の式はスクロール", () => {
+  const block = (tex: string) => renderToStaticMarkup(renderMarkdown(pipeline, ["$$", tex, "$$"].join("\n"), {}));
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => `a_{${i}} & b`).join(String.raw`\\`);
+  for (const tex of [String.raw`\def\arraystretch{50}\begin{matrix}a\\b\end{matrix}`, `\\begin{matrix}${String.raw`\\`.repeat(100)}\\end{matrix}`]) {
+    assert.match(render(tex), new RegExp(`class="katex ${TALL_MATH_CLASS}"`), tex);
+    // 段落の式には付けない（CSS の max-height とスクロールで収める）
+    assert.doesNotMatch(block(tex), new RegExp(TALL_MATH_CLASS), tex);
+  }
+  // ふつうの大きな行列（8 行）・分数の重なり・行の中の連立は切らない
+  for (const tex of [`\\begin{pmatrix}${rows(8)}\\end{pmatrix}`, String.raw`\dfrac{\dfrac{\dfrac{a}{b}}{c}}{d}`, `\\begin{cases}${rows(5)}\\end{cases}`]) {
+    assert.doesNotMatch(render(tex), new RegExp(TALL_MATH_CLASS), tex);
+  }
+  // CSS の上限は katexSettings.ts の値と同じ（返答とノート）
+  const notesCss = readFileSync(new URL("../../../../features/notes/ui/document/NoteEditor.unlayered.css", import.meta.url), "utf8");
+  for (const css of [markdownCss, notesCss]) {
+    assert.match(css, new RegExp(`(katex-display|cm-md-math-display) \\{[^}]*max-height: ${DISPLAY_MATH_MAX_EM}em;[^}]*overflow-y: auto;`));
+    assert.match(css, new RegExp(`\\.katex\\.${TALL_MATH_CLASS} \\{[^}]*max-height: ${INLINE_MATH_MAX_EM}em;[^}]*overflow: hidden;`));
   }
 });

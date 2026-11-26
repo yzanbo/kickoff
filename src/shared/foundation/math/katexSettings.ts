@@ -71,19 +71,61 @@ export function isSeeThroughStyle(style: string): boolean {
 /** 読み上げ用の MathML のうち、見えない部分（mphantom・透明な mathcolor）か */
 export const isHiddenMathml = (tagName: string, mathcolor: unknown): boolean => tagName === "mphantom" || (typeof mathcolor === "string" && SEE_THROUGH.test(mathcolor));
 
+/**
+ * 式の箱の縦の大きさの上限（em。式の文字の大きさ）。長さの命令（katexLengths.ts）でない形でも箱は大きくなる
+ * （\def\arraystretch{50} の行列・空の行を並べた行列は 120em）ので、描いたあとの箱そのものに上限を付ける。
+ * 行の中の式は INLINE_MATH_MAX_EM を超えたら TALL_MATH_CLASS を付けてその高さで切り（8 行の行列 9.6em は切れない）、
+ * 段落の式は DISPLAY_MATH_MAX_EM を超えたら式の中でスクロールする（分数を含む 10 行の連立 24.5em・10 行の行列 12em はそのまま）
+ */
+export const INLINE_MATH_MAX_EM = 10;
+export const DISPLAY_MATH_MAX_EM = 40;
+export const TALL_MATH_CLASS = "katex-tall";
+
+/** 支柱の style の高さと、基準の線からのずれ（負は深さ） */
+const STRUT_HEIGHT = /(?:^|;)\s*height:\s*([-\d.]+)em/;
+const STRUT_ALIGN = /vertical-align:\s*([-\d.]+)em/;
+
+/** 支柱（KaTeX の katex-strut。style の height と vertical-align）から、式の箱の高さ＋深さ（em）。行が分かれた式は支柱ごとの上と下の最大 */
+export function katexBoxEm(strutStyles: readonly string[]): number {
+  let top = 0;
+  let depth = 0;
+  for (const style of strutStyles) {
+    const height = Number(STRUT_HEIGHT.exec(style)?.[1] ?? 0);
+    const align = Number(STRUT_ALIGN.exec(style)?.[1] ?? 0);
+    top = Math.max(top, height + align);
+    depth = Math.max(depth, -align);
+  }
+  return top + depth;
+}
+
 const re = (r: RegExp) => `new RegExp(${JSON.stringify(r.source)}, ${JSON.stringify(r.flags)})`;
 
 /**
- * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（パソコンの katexOptions.ts の hideSeeThroughMath と同じ手順を文字で書く）。
- * ページに kickoffTidyKatex(root)（katex.render のあとに呼ぶ）を置く。見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にする
+ * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（パソコンの katexOptions.ts の tidyRenderedMath と同じ手順を文字で書く。
+ * Hermes では関数を文字に戻せないので手で書き、上の katexBoxEm と同じ結果になることを katexSettings.test.ts が確かめる）。
+ * ページに kickoffTidyKatex(root)（katex.render のあとに呼ぶ）を置く。見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にし、
+ * 高すぎる行の中の式に TALL_MATH_CLASS を付ける
  */
 export const TIDY_KATEX_SCRIPT = `const kickoffTidyKatex = (() => {
   const SEE_THROUGH = ${re(SEE_THROUGH)};
   const COLOR_PROPERTY = ${re(COLOR_PROPERTY)};
+  const STRUT_HEIGHT = ${re(STRUT_HEIGHT)};
+  const STRUT_ALIGN = ${re(STRUT_ALIGN)};
   const isSeeThroughStyle = (style) => style.split(";").some((decl) => {
     const colon = decl.indexOf(":");
     return colon >= 0 && COLOR_PROPERTY.test(decl.slice(0, colon).trim()) && SEE_THROUGH.test(decl.slice(colon + 1));
   });
+  const katexBoxEm = (styles) => {
+    let top = 0;
+    let depth = 0;
+    for (const style of styles) {
+      const height = Number(STRUT_HEIGHT.exec(style)?.[1] ?? 0);
+      const align = Number(STRUT_ALIGN.exec(style)?.[1] ?? 0);
+      top = Math.max(top, height + align);
+      depth = Math.max(depth, -align);
+    }
+    return top + depth;
+  };
   const isHiddenMathml = (tagName, mathcolor) => tagName === "mphantom" || (typeof mathcolor === "string" && SEE_THROUGH.test(mathcolor));
   return (root) => {
     for (const el of root.querySelectorAll("[style]")) {
@@ -92,5 +134,10 @@ export const TIDY_KATEX_SCRIPT = `const kickoffTidyKatex = (() => {
       el.setAttribute("aria-hidden", "true");
     }
     for (const el of root.querySelectorAll("mphantom, [mathcolor]")) if (isHiddenMathml(el.localName, el.getAttribute("mathcolor"))) el.replaceChildren();
+    for (const el of root.querySelectorAll(".katex")) {
+      if (el.closest(".katex-display")) continue;
+      const styles = Array.from(el.querySelectorAll(".katex-strut"), (s) => s.getAttribute("style") ?? "");
+      if (katexBoxEm(styles) > ${INLINE_MATH_MAX_EM}) el.classList.add(${JSON.stringify(TALL_MATH_CLASS)});
+    }
   };
 })();`;
