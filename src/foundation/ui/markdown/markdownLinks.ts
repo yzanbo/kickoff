@@ -60,3 +60,23 @@ export function linkTextOf(node: unknown): string {
   }
   return (n.children ?? []).map(linkTextOf).join("");
 }
+
+/** DOM の節の口（Node の一部。テストでは偽の木を渡す） */
+export interface LinkDomNode {
+  readonly nodeType: number;
+  readonly nodeValue: string | null;
+  readonly localName?: string;
+  readonly childNodes: ArrayLike<LinkDomNode>;
+  getAttribute?(name: string): string | null;
+}
+
+/** DOM の節を、linkTextOf が読む hast の形にする（文字・要素のタグの名前・alt・クラス・子だけ） */
+function hastOf(node: LinkDomNode): unknown {
+  if (node.nodeType === 3) return { type: "text", value: node.nodeValue ?? "" };
+  if (node.nodeType !== 1) return { type: "comment" };
+  const className = (node.getAttribute?.("class") ?? "").split(/\s+/).filter(Boolean);
+  return { type: "element", tagName: node.localName, properties: { alt: node.getAttribute?.("alt") ?? undefined, className }, children: Array.from(node.childNodes, hastOf) };
+}
+
+/** DOM に入れて描いた HTML（GitHub の本文など）のリンクの、画面に見える文字（linkTextOf と同じ決まり。画像の alt も数える） */
+export const domLinkTextOf = (anchor: LinkDomNode): string => linkTextOf(hastOf(anchor));

@@ -3,7 +3,7 @@ import DOMPurify from "dompurify";
 import { useContext, useMemo, type MouseEvent } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
-import { MarkdownLinkOpenerContext, pressLink } from "@/foundation/ui/markdown/markdownLinks";
+import { domLinkTextOf, MarkdownLinkOpenerContext, pressLink } from "@/foundation/ui/markdown/markdownLinks";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useGitHubDetailContext } from "./githubDetailContext";
 import { githubImageSource, type GitHubBodyPlace } from "./githubLinks";
@@ -71,11 +71,11 @@ export function GitHubHtml({ html, className, empty = "説明はありません�
   const { place } = useGitHubDetailContext();
   const opener = useContext(MarkdownLinkOpenerContext);
   const clean = useMemo(() => sanitizeGitHubHtml(html, place), [html, place]);
-  // 本文のリンクは、押したら（左・中クリック）窓の既定の動きを止め、外のページは Markdown のリンクと同じ口（確認の画面）で開く。# は本文の中へスクロール
+  // 本文のリンクは、押したら（左・中クリック）窓の既定の動きを止め、外のページは Markdown のリンクと同じ口（確認の画面。リンクの文字は画像の alt も数える）で開く。# は本文の中へスクロール
   const activate = (e: MouseEvent<HTMLDivElement>) => {
     const found = e.target instanceof Element ? e.target.closest("a[href]") : null;
     const anchor = found && e.currentTarget.contains(found) ? found : null;
-    pressLink(e, anchor, opener, () => anchor?.textContent ?? "");
+    pressLink(e, anchor, opener, () => (anchor ? domLinkTextOf(anchor) : ""));
   };
   if (!clean.trim()) return <p className={cx("github-html-empty muted small", className)}>{empty}</p>;
   return <div className={cx("markdown github-html", className)} onClick={activate} onAuxClick={activate} dangerouslySetInnerHTML={{ __html: clean }} />;

@@ -6,7 +6,7 @@ import { Markdown } from "./Markdown";
 import type { Element as HastElement } from "hast";
 import { visit } from "unist-util-visit";
 import { linkWarnings } from "@shared/foundation/linkWarnings";
-import { linkTextOf, pressLink, scrollToFragment } from "./markdownLinks";
+import { domLinkTextOf, linkTextOf, pressLink, scrollToFragment } from "./markdownLinks";
 import { markdownToHast, pipelineOf, type MarkdownPipeline } from "./markdownProcessor";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -112,4 +112,16 @@ test("pressLink: 左・中クリックだけ既定の動きを止め、外のペ
   assert.deepEqual(press(0, null), { prevented: false, opened: [] });
   // リンクにしない行き先は、窓の既定の動きだけ止めて開かない
   assert.deepEqual(press(0, "javascript:alert(1)"), { prevented: true, opened: [] });
+});
+
+test("domLinkTextOf: DOM に入れた本文（GitHub）のリンクの文字も、画像の alt を数え、行き先と違えば警告する", () => {
+  const text = (value: string) => ({ nodeType: 3, nodeValue: value, childNodes: [] });
+  const element = (localName: string, attrs: Record<string, string>, ...childNodes: object[]) => ({ nodeType: 1, nodeValue: null, localName, childNodes, getAttribute: (name: string) => attrs[name] ?? null });
+  const imageLink = element("a", { href: "https://evil.example" }, element("img", { alt: "github.com", src: "https://example.com/i.png" }));
+  const shown = domLinkTextOf(imageLink as never);
+  assert.equal(shown.trim(), "github.com");
+  assert.deepEqual(linkWarnings("https://evil.example", shown), ["text_mismatch"]);
+  // 文字と、入れ子の要素の文字はつなげて読み、コメントは読まない
+  const mixed = element("a", {}, text("a"), element("code", {}, text("b")), { nodeType: 8, nodeValue: "x", childNodes: [] }, text("c"));
+  assert.equal(domLinkTextOf(mixed as never), "abc");
 });

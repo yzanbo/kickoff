@@ -11,7 +11,7 @@
 - 開きと閉じが同じ親の中でそろったものだけ要素にする（補わない）。タグ 2,000 個・入れ子 32 段・字下げ 10 段を超えたブロックは文字のまま。
 - 木にしたあと一覧ともう一度照らす（`html/htmlVerify.ts`）。Kickoff の印（`md-html`・数式・薄く出す段）は確かめのあと。ファイルのチップの印は Markdown の節にだけ付ける。
 - HTML の a はリンクの判定（`linkTargetOf`）を通した行き先だけ、img は http・https だけ（Markdown の画像と同じ）。HTML の id と # の行き先は `user-html-` の頭（脚注の `user-content-` を横取りさせない）。一覧を広げる前に攻撃の例（`html/htmlAttacks.test.ts`）に足す。
-- 確認の画面に渡すリンクの文字（`linkTextOf`）は見える文字（画像は alt も、数式は見た目の部分だけ。MathML・annotation・透明な文字は除く）。
+- 確認の画面に渡すリンクの文字（`linkTextOf`。DOM の本文は `domLinkTextOf`）は見える文字（画像は alt も、数式は見た目の部分だけ。MathML・annotation・透明な文字は除く）。
 - 「host から画像を n 件表示」の src は描く木から数える（`imageSourcesOf`。正規表現で拾わない）。
 - たたむ部分（details）は `MarkdownDetails.tsx` が state で開け閉めし、閉じている間は中身を DOM に置かない（コピー・検索・画像の読み込みに入れない）。見出しがなければ「詳細」。
 - 数式は `math/katexOptions.ts` の設定 1 つ（返答とノート。値はスマホと共有の `@shared/foundation/math`）。色・小さくするサイズの命令は効かせず、`\scriptscriptstyle` は `\scriptstyle`（読めない文字を作らせない）。長さは縦 3em・横 10em、式の箱の高さにも上限（段落はスクロール・行の中は切る）、本文より小さくしない（`Markdown.css`）。描いたあとの整えの 3 か所は `math/katexTidy.test.ts` で比べる。
