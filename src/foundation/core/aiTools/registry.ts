@@ -29,7 +29,9 @@ export class AiToolRegistry {
     return AI_TOOL_SERVERS.flatMap((server) => {
       const opened = this.groups.flatMap((group) => {
         const defs = group.server === server ? group.open(turn) : null;
-        return defs ? [{ group, defs: defs.filter((def) => def.available?.(turn) ?? true) }] : [];
+        if (!defs) return [];
+        const { instructions } = group;
+        return [{ instructions: typeof instructions === "function" ? instructions(turn) : instructions, defs: defs.filter((def) => def.available?.(turn) ?? true) }];
       });
       if (opened.length === 0) return [];
       const head = heads[server];
@@ -37,7 +39,7 @@ export class AiToolRegistry {
       return [
         {
           name: server,
-          instructions: [...(head ? [head] : []), ...opened.flatMap((o) => o.group.instructions)].join("\n"),
+          instructions: [...(head ? [head] : []), ...opened.flatMap((o) => o.instructions)].join("\n"),
           tools: defs.map((def) => toolDefOf(def, turn)),
           autoAllow: defs.filter((def) => def.auto).map((def) => def.name),
         },

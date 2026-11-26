@@ -1,6 +1,7 @@
 // AI のツールが指せるプロジェクト。共通のチャット（共通のプロジェクトのチャット）からは、共通と、アーカイブしていない利用者のプロジェクトを指せる
 // （全プロジェクトのチャット・ノートを読むため）。プロジェクトのチャットからは自分のプロジェクトだけ（ほかを指したら断る。ほかの名前も教えない）
 import { z } from "zod";
+import type { AiTurn } from "@/foundation/core/aiTools/tool";
 import type { Chat } from "@shared/chat/types";
 import { isActiveUserProject, isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
@@ -20,6 +21,13 @@ export function isCommonChatProject(projects: Pick<ProjectStore, "get">, project
   const project = projects.get(projectId);
   return project !== undefined && isCommonProject(project);
 }
+
+/** isCommonChatTurn が 1 回の作業の値の入れ物に置くキー */
+const COMMON_CHAT_TURN_KEY = "chat:common_chat";
+
+/** この作業が共通のチャットのものか（ツールの組の open・instructions が組ごとに店を引かないよう、作業ごとに 1 回だけ引く） */
+export const isCommonChatTurn = (projects: Pick<ProjectStore, "get">, turn: Pick<AiTurn, "projectId" | "perTurn">): boolean =>
+  turn.perTurn(COMMON_CHAT_TURN_KEY, () => isCommonChatProject(projects, turn.projectId));
 
 /** 共通のチャットから指せる利用者のプロジェクト（アーカイブしていないもの。サイドバーの並び）。システムプロンプトで名前を伝えるのもこの範囲 */
 export const userProjectsForCommonChat = (projects: Pick<ProjectStore, "list">): Project[] => projects.list().filter(isActiveUserProject);

@@ -46,7 +46,7 @@ export { preCompactSent } from "./run/machine/marks";
 export { depthOf, descendantsOf, lineageOf } from "./family";
 export { openPlaceInput } from "./tools/open";
 export { toolChat } from "./tools/context";
-export { isCommonChatProject, isOtherProjectWrite, moveTargetProject, projectForTool, projectRefInput, projectRefSchema } from "./tools/projectScope";
+export { isCommonChatTurn, isOtherProjectWrite, moveTargetProject, projectForTool, projectRefInput, projectRefSchema } from "./tools/projectScope";
 export { approveAiWrite, assertAiWriteAllowed } from "./tools/aiWriteApproval";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";

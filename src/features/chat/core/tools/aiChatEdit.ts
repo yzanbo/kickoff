@@ -17,7 +17,7 @@ import type { ChatDetachPort } from "@/features/chat/core/ports";
 import { applyChatUpdate, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { toolChat } from "./context";
 import { approveAiWrite } from "./aiWriteApproval";
-import { isCommonChatProject, projectForTool, projectRefInput, readableProjects } from "./projectScope";
+import { isCommonChatProject, isCommonChatTurn, projectForTool, projectRefInput, readableProjects } from "./projectScope";
 
 /** 名前・固定・グループを変えるツールの使い方（MCP の instructions として AI に渡す） */
 const FAMILY_INSTRUCTIONS = [
@@ -224,17 +224,15 @@ export function createAiChatEditTools({ store, detach }: AiChatEditDeps, chatId:
   };
 }
 
-/** 共通のチャットにだけ、ほかのプロジェクトのチャットを変える使い方を足す組（ツールは家系の組の update_chat。open は空） */
-export function commonFamilyToolGroup(deps: Pick<AiChatEditDeps, "store">): AiToolGroup {
-  return { server: "kickoff_chat", order: 30, instructions: COMMON_FAMILY_INSTRUCTIONS, open: ({ projectId }) => (isCommonChatProject(deps.store.projects, projectId) ? [] : null) };
-}
-
-/** 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す） */
+/**
+ * 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す）。
+ * 共通のチャットには、ほかのプロジェクトのチャットを変える使い方も足す
+ */
 export function familyToolGroup(deps: AiChatEditDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 30,
-    instructions: FAMILY_INSTRUCTIONS,
+    instructions: (turn) => (isCommonChatTurn(deps.store.projects, turn) ? [...FAMILY_INSTRUCTIONS, ...COMMON_FAMILY_INSTRUCTIONS] : FAMILY_INSTRUCTIONS),
     open: ({ chatId }) => {
       const edit = createAiChatEditTools(deps, chatId);
       return [

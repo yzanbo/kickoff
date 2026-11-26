@@ -11,7 +11,7 @@ import type { ChatAttachments } from "@/features/chat/core/ports";
 import { familyOf } from "@/features/chat/core/family";
 import { conversationTurns, formatConversation } from "@/features/chat/core/conversation";
 import { toolChat } from "./context";
-import { isCommonChatProject, projectForTool, projectRefInput, readableProjects } from "./projectScope";
+import { isCommonChatProject, isCommonChatTurn, projectForTool, projectRefInput, readableProjects } from "./projectScope";
 
 /** 読むだけのツールの使い方（MCP の instructions として AI に渡す。続く get_usage の文は ai の組） */
 const READ_INSTRUCTIONS = [
@@ -151,22 +151,12 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
   return tools;
 }
 
-/** 共通のチャットにだけ、ほかのプロジェクトを読む使い方を足す組（ツールは出さず、使い方の文だけ。読む組の次） */
-export function commonReadToolGroup(deps: Pick<AiChatReadDeps, "store">): AiToolGroup {
-  return {
-    server: "kickoff_chat",
-    order: 50,
-    instructions: COMMON_READ_INSTRUCTIONS,
-    open: ({ projectId }) => (isCommonChatProject(deps.store.projects, projectId) ? [] : null),
-  };
-}
-
-/** 同じプロジェクトのチャットの一覧・会話を読むツールの組（order 50。聞かずに返す。共通のチャットからは project でほかのプロジェクトも） */
+/** 同じプロジェクトのチャットの一覧・会話を読むツールの組（order 50。聞かずに返す。共通のチャットからは project でほかのプロジェクトも。その使い方は共通のチャットにだけ足す） */
 export function readToolGroup(deps: AiChatReadDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 50,
-    instructions: READ_INSTRUCTIONS,
+    instructions: (turn) => (isCommonChatTurn(deps.store.projects, turn) ? [...READ_INSTRUCTIONS, ...COMMON_READ_INSTRUCTIONS] : READ_INSTRUCTIONS),
     open: ({ chatId }) => {
       const read = createAiChatReadTools(deps, chatId);
       return [

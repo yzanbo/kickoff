@@ -20,7 +20,7 @@ Electron に依存しないサーバー（HTTP・SQLite・外部コマンド・A
 - 外部コマンドは `runCommand`（`execFileAsync` を直に使わない）。git・gh は聞かれても待たない（`nonInteractiveEnv()`）。OS ごとの違いは `HostPlatform` に口を足す。
 - API・SSE・DB に出す相対パスの区切りはいつも「/」（`toApiPath`）。
 - SSE の種類は `@shared/<機能>/events.ts` に足す（端末に届けるなら `access: "device"`）。設定は `k.settings.get` が既定とまぜ（知らないキーは捨てる）、`update` は送ったキーだけ変える。
-- AI の操作ツールは `defineAiTool` で作り、組 `AiToolGroup` を `CoreFeature.aiTools` で出す。`autoAllow` は承認をツールの中で行う・読むだけのもの。権限モードによらず聞くものはツールの中で `turn.ask`。使い方とデータを信頼しないことは組の `instructions`。
+- AI の操作ツールは `defineAiTool` で作り、組 `AiToolGroup` を `CoreFeature.aiTools` で出す。`autoAllow` は承認をツールの中で行う・読むだけのもの。権限モードによらず聞くものはツールの中で `turn.ask`。使い方とデータを信頼しないことは組の `instructions`（作業によって足す文は `(turn) => …` で。ツールを出さず文だけの組を作らない）。
 
 ## 落とし穴
 - 終わるときの順: `stopPhase: "first"` → 流れ続けている外部コマンド → 残りの機能を作った順の逆 → `bus.flush` → HTTP → DB（`serve.ts`）。
