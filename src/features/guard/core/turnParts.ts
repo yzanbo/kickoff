@@ -3,7 +3,7 @@
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { isCommonProject, isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
-import { chatRestrictions } from "@shared/chat/restrictionNotice";
+import { turnRestrictions } from "@shared/chat/restrictionNotice";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { providerCan } from "@shared/ai/providers";
 import type { ProviderId } from "@shared/settings/types";
@@ -69,9 +69,8 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
     async contributeWithDirs({ chat, project, cwd, signal, requestApproval }, dirs) {
       // 共通のチャット（共通のノートのチャットも）は、コマンドのサンドボックスと編集先の制限をいつも入にする（プロジェクトのコードを直接書かせない。書けるのは作業フォルダと共通のノート）
       const common = isCommonProject(project);
-      const { sandboxEnabled, editScopeEnabled: editScope } = chatRestrictions(chat, common);
-      // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する（実行の chat/core/run/turn/execute.ts と同じ判定）
-      const useSandbox = sandboxEnabled || chat.permission_mode === "plan" || chat.untracked_only;
+      // 計画モードと「AI で整える」の専用の保護も入れた、実際にかける制限
+      const { sandbox: useSandbox, editScope } = turnRestrictions(chat, common);
       // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス）
       const deniedDirs = common ? [...(d.projects?.() ?? []).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : null;
       // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない。
@@ -105,7 +104,7 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
       return {
         sandbox,
         sandboxOff: !useSandbox,
-        ...(sandbox ? { promptSections: [{ order: 220, heading: null, lines: sandboxPromptLines(sandbox.unsandboxedCommands, editScope || chat.untracked_only) }] } : {}),
+        ...(sandbox ? { promptSections: [{ order: 220, heading: null, lines: sandboxPromptLines(sandbox.unsandboxedCommands, editScope) }] } : {}),
         gate: d.toolGate(materials, { requestApproval }, signal),
       };
     },

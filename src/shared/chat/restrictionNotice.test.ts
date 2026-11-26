@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { chatRestrictions, restrictionNotice } from "./restrictionNotice";
+import { chatRestrictions, restrictionNotice, turnRestrictions } from "./restrictionNotice";
 
 test("制限を外したときは新規の送信前と既存のチャットに知らせる", () => {
   assert.equal(restrictionNotice(true, true), "");
@@ -15,4 +15,14 @@ test("共通のチャットは、チャットでオフにしてもコマンド�
   assert.deepEqual(chatRestrictions(off, true), { sandboxEnabled: true, editScopeEnabled: true });
   assert.deepEqual(chatRestrictions(off, false), { sandboxEnabled: false, editScopeEnabled: false });
   assert.deepEqual(chatRestrictions({ sandbox_enabled: true, edit_scope_enabled: false }, false), { sandboxEnabled: true, editScopeEnabled: false });
+});
+
+test("turnRestrictions: 計画モードと［AI で整える］は砂場をかけ、［AI で整える］は書き込み先も絞る。共通はいつも両方", () => {
+  const off = { sandbox_enabled: false, edit_scope_enabled: false, permission_mode: "default" as const, untracked_only: false };
+  assert.deepEqual(turnRestrictions(off, false), { sandbox: false, editScope: false });
+  assert.deepEqual(turnRestrictions(off, true), { sandbox: true, editScope: true });
+  assert.deepEqual(turnRestrictions({ ...off, permission_mode: "plan" }, false), { sandbox: true, editScope: false });
+  assert.deepEqual(turnRestrictions({ ...off, untracked_only: true }, false), { sandbox: true, editScope: true });
+  assert.deepEqual(turnRestrictions({ ...off, sandbox_enabled: true }, false), { sandbox: true, editScope: false });
+  assert.deepEqual(turnRestrictions({ ...off, edit_scope_enabled: true }, false), { sandbox: false, editScope: true });
 });
