@@ -1,12 +1,29 @@
-// ブロック分け（markdownBlocks.ts の splitBlocks・createBlockSplitter）で、HTML の入れ物の開きから閉じまでを 1 つのブロックにまとめるための数え方。
-// Markdown の中の HTML は、同じ親の中で開きと閉じがそろったものだけを要素にする（html/htmlTree.ts）ので、
-// <details>\n\n本文\n\n</details> の開きと閉じが別のブロックに分かれると、どちらも文字のまま出てしまう
+// ブロック分け（markdownBlocks.ts の splitBlocks・createBlockSplitter）が見る HTML ブロックの決まり。
+// - 空行をまたぐ HTML ブロック（<script・<pre・<style・<textarea・<!--・<?・<!X・<![CDATA[）の始まりと終わり（中では分けない）
+// - HTML の入れ物の開きから閉じまでを 1 つのブロックにまとめる数え方。Markdown の中の HTML は、同じ親の中で開きと閉じがそろったものだけを
+//   要素にする（html/htmlTree.ts）ので、<details>\n\n本文\n\n</details> の開きと閉じが別のブロックに分かれると、どちらも文字のまま出てしまう
+import { HTML_CONTAINER_TAGS } from "@/foundation/ui/markdown/html/htmlAllowlist";
 
-/**
- * 段落をはさめる入れ物のうち、閉じを省けないもの（描く側が要素にするものと同じ小文字の名前だけ）。
- * 閉じを省ける li・td などは、閉じがなくても数がずれないよう数えない（外の ul・table が数える）
- */
-const CONTAINER_TAG = /<(\/?)(div|blockquote|details|section|article|aside|header|footer|nav|main|address|center|figure|ul|ol|dl|table)(?=[\s/>])[^<>]*>/g;
+/** 空行をまたぐ HTML ブロックの始まりと終わりの印 */
+const RAW_HTML_BLOCKS: [RegExp, RegExp][] = [
+  [/^ {0,3}<(script|pre|style|textarea)([\s>]|$)/i, /<\/(script|pre|style|textarea)>/i],
+  [/^ {0,3}<!--/, /-->/],
+  [/^ {0,3}<\?/, /\?>/],
+  [/^ {0,3}<![A-Za-z]/, />/],
+  [/^ {0,3}<!\[CDATA\[/, /\]\]>/],
+];
+
+/** 空行をまたぐ HTML ブロックが始まる行なら、その終わりの印（同じ行で終わるなら null）。始まらない行は undefined */
+export function rawHtmlBlockEnd(line: string): RegExp | null | undefined {
+  for (const [begin, end] of RAW_HTML_BLOCKS) {
+    const m = begin.exec(line);
+    if (m) return end.test(line.slice(m[0].length)) ? null : end;
+  }
+  return undefined;
+}
+
+/** 入れ物（HTML_CONTAINER_TAGS。描く側が要素にするものと同じ小文字の名前だけ）の開きと閉じ */
+const CONTAINER_TAG = new RegExp(`<(\\/?)(${HTML_CONTAINER_TAGS.join("|")})(?=[\\s/>])[^<>]*>`, "g");
 /**
  * CommonMark の HTML ブロックの始まり（6 番: 決まった名前のタグで始まる行・7 番: 1 つのタグだけの行）。リストの印・引用の > の後ろと、
  * 字下げの深い行も見る（多めに見る。数えるのは HTML ブロックの中の行だけで、文の中の <div> は同じ親の中でしか要素にならないので数えない）

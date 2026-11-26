@@ -6,7 +6,7 @@
  * 2 つは同じ読み進め方（`createLineReader`）で、行の決まりだけが違う（分ける側は HTML ブロック・字下げの続きも見る。そろえると書きかけの出し方が変わる）
  */
 
-import { countHtmlGroup, type HtmlGroupState } from "./htmlBlockDepth";
+import { countHtmlGroup, rawHtmlBlockEnd, type HtmlGroupState } from "./htmlBlockDepth";
 
 /** 開いたままのコードブロック */
 interface OpenFence {
@@ -150,7 +150,7 @@ export function createBlockScanner(): BlockScanner {
 /*
  * ブロックに分ける（書き終えたブロックは描いたものを使い回し、描き直すのは最後のブロックだけにする）。
  * 分けると描き方が変わる所では分けない（分けないのはいつも安全なので、迷う所は分けない側に倒す）:
- * - コードブロック・数式ブロック（$$ で始まる行から $$ だけの行まで）・空行をまたぐ HTML ブロック（<script・<pre・<style・<textarea・<!--・<?・<!X・<![CDATA[）の中
+ * - コードブロック・数式ブロック（$$ で始まる行から $$ だけの行まで）・空行をまたぐ HTML ブロック（`htmlBlockDepth.ts` の rawHtmlBlockEnd）の中
  * - HTML の入れ物（<details>・<div> など）の開きから閉じまで（`htmlBlockDepth.ts`。HTML ブロックの中のタグだけ・大きさの上限まで）
  * - 空行のあとの行が字下げで始まる（箇条書きの続き・字下げのコード）か、箇条書きのあるブロックで次の行も箇条書きの印（空行をはさんだ項目は 1 つのゆるいリスト）
  * - リンクの参照の定義・脚注の定義（[x]: …）が 1 つでもあれば、全体を 1 つのブロックにする（文全体で引き当てるため）
@@ -186,14 +186,6 @@ interface SplitState extends HtmlGroupState {
 const LIST_ITEM = /^ {0,3}([-+*]|\d{1,9}[.)])([ \t]|$)/;
 const REFERENCE_DEFINITION = /^ {0,3}\[[^\]]+\]:/;
 const MATH_OPEN = /^ {0,3}\$\$/;
-/** 空行をまたぐ HTML ブロックの始まりと終わりの印 */
-const HTML_BLOCKS: [RegExp, RegExp][] = [
-  [/^ {0,3}<(script|pre|style|textarea)([\s>]|$)/i, /<\/(script|pre|style|textarea)>/i],
-  [/^ {0,3}<!--/, /-->/],
-  [/^ {0,3}<\?/, /\?>/],
-  [/^ {0,3}<![A-Za-z]/, />/],
-  [/^ {0,3}<!\[CDATA\[/, /\]\]>/],
-];
 
 const initialSplit = (): SplitState => ({ fence: null, math: false, html: null, htmlDepth: 0, htmlOpenedAt: 0, inHtmlBlock: false, afterBlank: false, list: false, whole: false, starts: [0] });
 const copySplit = (st: SplitState): SplitState => ({ ...st, starts: st.starts.slice() });
@@ -240,13 +232,8 @@ function splitLine(st: SplitState, line: string, start: number) {
     if (!rest.includes("$$")) st.math = true;
     return;
   }
-  for (const [begin, end] of HTML_BLOCKS) {
-    const m = begin.exec(line);
-    if (m) {
-      if (!end.test(line.slice(m[0].length))) st.html = end;
-      return;
-    }
-  }
+  const htmlEnd = rawHtmlBlockEnd(line);
+  if (htmlEnd !== undefined) st.html = htmlEnd;
 }
 
 /** 末尾の空行を落とした終わりの位置 */

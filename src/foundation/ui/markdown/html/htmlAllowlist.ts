@@ -83,6 +83,15 @@ export const SIZE_TAGS: ReadonlySet<string> = new Set(["small", "big", "sub", "s
 /** 字下げになる入れ子（10 段まで）。字下げは ul・ol・blockquote・dd・figure の余白で付く（li・dl には付かない） */
 export const INDENT_TAGS: ReadonlySet<string> = new Set(["ul", "ol", "blockquote", "dd", "figure"]);
 
+/**
+ * 段落をはさめる入れ物のうち、閉じを省けないもの（ブロック分けが開きから閉じまでを 1 つのブロックにまとめる。streaming/htmlBlockDepth.ts）。
+ * 閉じを省ける li・td などは、閉じがなくても数がずれないよう入れない（外の ul・table が数える）
+ */
+export const HTML_CONTAINER_TAGS: readonly string[] = [
+  ..."div blockquote details section article aside header footer nav main address center figure".split(" "),
+  ..."ul ol dl table".split(" "),
+];
+
 /** 上限（超えたブロックは Markdown として描かずに、書いたままの文字で出す） */
 export const HTML_LIMITS = { tags: 2000, depth: 32, indent: 10 } as const;
 
