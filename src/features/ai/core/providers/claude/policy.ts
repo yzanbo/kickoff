@@ -44,6 +44,26 @@ function guardHook(params: ProviderTurnParams): HookCallbackMatcher {
 }
 
 /**
+ * スキル・スラッシュコマンドの本文に書いたシェルのコマンド（読み込むときに流れ、PreToolUse を通らない）にも守りの門を当てるフック（PreSkillShellCommand）。
+ * このフックで効く答えは断るだけ（allow は何も足さない）なので、断る守りと、聞く守りのカードで断られたときだけ断る。
+ * 会話記録のツールの呼び出しではない（tool_use_id はどの呼び出しも指さない）ので、カードに呼び出し ID は付けない
+ */
+function skillShellGuardHook(params: ProviderTurnParams): HookCallbackMatcher {
+  return {
+    timeout: APPROVAL_WAIT_S,
+    hooks: [
+      async (input, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
+        if (input.hook_event_name !== "PreSkillShellCommand") return {};
+        const call = gateCallOf(input.tool_name, input.tool_input);
+        const outcome = await params.gate.guard(call, { ...(input.agent_id ? { agentId: input.agent_id } : {}), signal });
+        if (outcome === null || outcome.allow) return {};
+        return { hookSpecificOutput: { hookEventName: "PreSkillShellCommand", permissionDecision: "deny", permissionDecisionReason: outcome.reason } };
+      },
+    ],
+  };
+}
+
+/**
  * 砂場で止まったときの文（門の sandboxDeniedNote）を、失敗で終わった Bash の結果のあとに AI へ添えるフック（PostToolUseFailure の additionalContext）。
  * 成功したコマンド（PostToolUse）は見ない: ソース・ログ・テストを読んだだけの出力に OS の文の形が入っていても、砂場が断ったとは限らないため。
  * Claude Code は失敗の終了コードを PostToolUseFailure で知らせる（0 以外でも失敗でないもの = grep・diff の 1 などは PostToolUse）
@@ -63,11 +83,15 @@ function sandboxDeniedHook(params: ProviderTurnParams): HookCallbackMatcher {
 }
 
 /**
- * チャットの実行に付けるフック: 守りのフック（PreToolUse 1 つ。守りの中身と並びは guard の門）と、Bash の砂場があれば、
- * 砂場で書き込みを断られたときに、どこを・なぜ・代わりの道を結果に書き添えるフック。Auto mode や許可ルールがあっても効く
+ * チャットの実行に付けるフック: 守りのフック（ツールの PreToolUse とスキルのシェルの PreSkillShellCommand に 1 つずつ。守りの中身と並びは guard の門）と、
+ * Bash の砂場があれば、砂場で書き込みを断られたときに、どこを・なぜ・代わりの道を結果に書き添えるフック。Auto mode や許可ルールがあっても効く
  */
 export function turnHooks(params: ProviderTurnParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
-  return { PreToolUse: [guardHook(params)], ...(params.sandbox ? { PostToolUseFailure: [sandboxDeniedHook(params)] } : {}) };
+  return {
+    PreToolUse: [guardHook(params)],
+    PreSkillShellCommand: [skillShellGuardHook(params)],
+    ...(params.sandbox ? { PostToolUseFailure: [sandboxDeniedHook(params)] } : {}),
+  };
 }
 
 /**

@@ -161,3 +161,30 @@ test("git のフックを飛ばす Bash は、ほかの守りがなくてもい�
   assert.match(JSON.stringify(await run("open -a Kickoff --env NODE_COMPILE_CACHE=/tmp/c")), /"permissionDecision":"deny".*NODE_COMPILE_CACHE/);
   assert.doesNotMatch(JSON.stringify(await run("echo $NODE_COMPILE_CACHE")), /deny/);
 });
+
+test("スキルのシェルの守り: スキルの本文のコマンドにも門を当て、断る守りは断り、聞く守りはカードで断られたときだけ断る（許すときは何も返さない・カードに呼び出し ID を付けない）", async () => {
+  const asked: ApprovalRequest[] = [];
+  let answer: "allow" | "deny" = "allow";
+  const dockerGuard = { check: async (cmd: string) => (cmd.includes("app-db-1") ? { title: "止めようとしています", description: "補い" } : null) };
+  const cb = async (req: ApprovalRequest): Promise<ApprovalReply> => (asked.push(req), answer === "allow" ? { action: "allow" } : { action: "deny", message: "だめ" });
+  const matchers = turnHooks(guarded({ dockerGuard }, cb)).PreSkillShellCommand ?? [];
+  assert.equal(matchers.length, 1);
+  assert.ok((matchers[0].timeout ?? 0) >= 24 * 60 * 60);
+  const [hook] = matchers[0].hooks;
+  const skill = (command: string) =>
+    ({ hook_event_name: "PreSkillShellCommand", tool_name: "Bash", tool_input: { command }, tool_use_id: "skill-1", command_name: "deploy", invoked_by: "claude", session_id: "s", transcript_path: "/tmp/t", cwd: "/w" }) as HookInput;
+  const run = (command: string) => hook(skill(command), undefined, { signal });
+  // 守りが何も言わないものは何も返さない
+  assert.deepEqual(await run("git status"), {});
+  // 断る守り（git のフックを飛ばす）は聞かずに断る
+  const denied = await run('git commit --no-verify -m "x"');
+  assert.match(JSON.stringify(denied), /"hookEventName":"PreSkillShellCommand".*"permissionDecision":"deny".*フック/);
+  assert.equal(asked.length, 0);
+  // 聞く守りはカードで聞き、許したら何も返さない（このフックの allow は何も足さない）
+  assert.deepEqual(await run("docker stop app-db-1"), {});
+  assert.deepEqual(asked[0], { kind: "permission", toolName: "Bash", input: { command: "docker stop app-db-1" }, title: "止めようとしています", description: "補い", canRemember: false });
+  answer = "deny";
+  assert.match(JSON.stringify(await run("docker stop app-db-1")), /"permissionDecision":"deny".*利用者が拒否しました.*だめ/);
+  // ほかのフックの知らせには答えない
+  assert.deepEqual(await hook(submit, undefined, { signal }), {});
+});

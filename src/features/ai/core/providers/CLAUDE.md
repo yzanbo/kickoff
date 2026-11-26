@@ -12,7 +12,7 @@ AI ごとの CLI・SDK のつなぎ方。共通の口は `types.ts`、共有の�
 
 ## 決まり
 - SDK・外の CLI の形を読むのは上の 1 ファイルだけ（構造の検査 `ai-*`）。版を上げたら写した形と見比べる。
-- 守り: Claude はフック（PreToolUse）、聞いてくる CLI は `guard` → `byMode`（`permissionMode.ts`）。Codex は承認を `on-request` にしてフックで当て、フックが有効にならなければ始めない（`HOOK_INACTIVE`）。ACP はモードを「毎回聞く」か `plan` にして権限の頼みで当てる（砂場の口はない）。
+- 守り: Claude はフック（ツールは PreToolUse、スキルの本文のシェルは PreSkillShellCommand。後者で効くのは断るだけ）、聞いてくる CLI は `guard` → `byMode`（`permissionMode.ts`）。Codex は承認を `on-request` にしてフックで当て、フックが有効にならなければ始めない（`HOOK_INACTIVE`）。ACP はモードを「毎回聞く」か `plan` にして権限の頼みで当てる（砂場の口はない）。
 - 設定は各 CLI と同じく読む（Claude は `settingSources`、Codex は config.toml を書き換えずスレッドの上書きで渡す）。モデル・深さは決めていなければ指定しない。
 - 鍵は引数・環境変数に載せない（ACP の MCP は `mcpCapabilities.http` のときだけ）。Codex の API キーは `CODEX_API_KEY`（ログインの口は使わない）。Gemini は API キーだけ。
 
