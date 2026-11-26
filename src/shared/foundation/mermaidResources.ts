@@ -16,6 +16,12 @@
 import { decodeCss } from "./mermaidSvg";
 
 /**
+ * Mermaid の版（パソコンは package.json の mermaid、スマホは CDN から読む版）。上の書き方の判定と下の MERMAID_SECURE_KEYS はこの版のコードで確かめたので、
+ * 版を上げるときは両方を確かめ直す
+ */
+export const MERMAID_VERSION = "12.2.0";
+
+/**
  * 図の中の %%{init}%%・前書き（---）の config で書き換えられない設定（Mermaid の secure に渡す）。Mermaid は入れ子の同じ名前（flowchart.htmlLabels など）も消す
  * （どちらの書き方も Mermaid の addDirective を通り、ここにある名前を消してから設定に重ねる）。
  * Mermaid の既定の 6 つに、HTML のラベル（<img> などで外を読む・foreignObject）・ラベルの無害化の設定（タグを足せる）と、

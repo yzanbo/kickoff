@@ -16,15 +16,15 @@ import {
   TALL_MATH_CLASS,
   TIDY_KATEX_SCRIPT,
 } from "@shared/foundation/math/katexSettings";
-import { MERMAID_SECURE_KEYS, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
+import { MERMAID_SECURE_KEYS, MERMAID_VERSION, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
 import { SANITIZE_SVG_SCRIPT } from "@shared/foundation/mermaidSvg";
 import { VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
 import { colors } from "../ui/colors";
 
-/** KaTeX と Mermaid を読む CDN と版（CDN の URL に入れる。KaTeX はパソコンと同じ版） */
+/** KaTeX と Mermaid を読む CDN と版（CDN の URL に入れる。どちらもパソコンと同じ版） */
 const CDN = "https://cdn.jsdelivr.net";
 const KATEX = `${CDN}/npm/katex@${KATEX_VERSION}/dist`;
-const MERMAID = `${CDN}/npm/mermaid@11/dist/mermaid.min.js`;
+const MERMAID = `${CDN}/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js`;
 
 /** 本体のスクリプト（ページに書いたものと CDN のもの） */
 const PAGE_SCRIPTS = ["'unsafe-inline'", "'unsafe-eval'", CDN];

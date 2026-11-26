@@ -59,6 +59,7 @@ test("mermaidPage: 書いた文を逃がして置き、描いた SVG を整え�
   const page = mermaidPage("flowchart LR\nA-->B<script>");
   assert.match(page, /<div id="src">flowchart LR\nA--&gt;B&lt;script&gt;<\/div>/);
   assert.match(page, /mermaidSanitizeSvgTree\(root,/);
+  assert.match(page, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/mermaid@12\.2\.0\/dist\/mermaid\.min\.js"><\/script>/);
   assert.match(page, /"htmlLabels":false/);
   assert.match(page, /"secure":\[[^\]]*"themeCSS"/);
 });

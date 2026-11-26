@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "vitest";
-import { mermaidReadsOutside } from "./mermaidResources";
+import { MERMAID_VERSION, mermaidReadsOutside } from "./mermaidResources";
 
 test("mermaidReadsOutside: 描く途中で外を読む書き方（画像の形・参加者の icon・CSS の url と @import）は当たる", () => {
   for (const code of [
@@ -59,4 +60,9 @@ test("mermaidReadsOutside: 前書き・%%{init}%%・CSS の文の \\ は、そ�
   ]) {
     assert.equal(mermaidReadsOutside(code), false, JSON.stringify(code));
   }
+});
+
+test("MERMAID_VERSION: パソコンが読む mermaid の版と同じ（スマホは CDN からこの版を読む）", () => {
+  const pkg = JSON.parse(readFileSync(new URL("../../../node_modules/mermaid/package.json", import.meta.url), "utf8")) as { version: string };
+  assert.equal(pkg.version, MERMAID_VERSION);
 });
