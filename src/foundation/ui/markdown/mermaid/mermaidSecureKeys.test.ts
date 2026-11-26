@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
-import { MERMAID_SECURE_KEYS } from "@shared/foundation/mermaidResources";
+import { MERMAID_SAFE_CONFIG, MERMAID_SECURE_KEYS } from "@shared/foundation/mermaidResources";
 
 test("MERMAID_SECURE_KEYS: 前書き（字下げ・CRLF・タブ）と %%{init}%%（閉じのないものも）の config から、配色・CSS・字体を変えられない", async () => {
   const { default: mermaid } = await import("mermaid");
@@ -20,5 +20,19 @@ test("MERMAID_SECURE_KEYS: 前書き（字下げ・CRLF・タブ）と %%{init}%
       [undefined, "base", "APP", undefined, "#123456", "APP", undefined, undefined],
       JSON.stringify(code),
     );
+  }
+});
+
+test("MERMAID_SAFE_CONFIG: flowchart の形が直に読む flowchart.htmlLabels も false にし、図の中の設定で HTML のラベルに戻せない", async () => {
+  const { default: mermaid } = await import("mermaid");
+  onTestFinished(() => mermaid.initialize({}));
+  // 上の階層の htmlLabels だけだと flowchart.htmlLabels は書かれず、swimlane の枠などは「書いていない」を HTML のラベルと読む
+  mermaid.initialize({ htmlLabels: false });
+  assert.equal(mermaid.mermaidAPI.getConfig().flowchart?.htmlLabels, undefined);
+  mermaid.initialize({ ...MERMAID_SAFE_CONFIG, flowchart: { ...MERMAID_SAFE_CONFIG.flowchart }, secure: [...MERMAID_SAFE_CONFIG.secure] });
+  for (const code of ["flowchart TD\nA-->B", '%%{init: {"htmlLabels": true, "flowchart": {"htmlLabels": true}}}%%\nflowchart TD\nA-->B']) {
+    await mermaid.parse(code);
+    const c = mermaid.mermaidAPI.getConfig();
+    assert.deepEqual([c.htmlLabels, c.flowchart?.htmlLabels], [false, false], code);
   }
 });
