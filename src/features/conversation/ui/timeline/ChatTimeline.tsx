@@ -29,7 +29,7 @@ import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
  * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（scroll の following。送ったら付いていくに戻る）。
  * 上にスクロールしている間は、一番下へ戻るボタンを出す（⌘↓ でも戻る）。答えを待っているとき・その間に作業が終わったときは、
- * ボタンに文を添えて目立たせ、下へ戻るよう誘う。既読にするタイミングが「ボタンで」なら、一番下まで来て未読のとき同じ場所に既読ボタンを出す。
+ * ボタンに文を添えて目立たせ、下へ戻るよう誘う。既読にするタイミングが「ボタンで」なら、一番下まで来たとき同じ場所に既読ボタン（既読なら既読の表示）を出す。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する。
  * スクロールの決まりは useTimelineScroll、上に貼り付ける指示は useStickyPrompt、作業中の文は useWorkingStatus、流れの終わりは TimelineEnd
  */
@@ -168,7 +168,7 @@ export function ChatTimeline({
       {s.away ? (
         <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />
       ) : (
-        read.readButton && <ReadPill dock={pillDock ?? null} onClick={read.markSeen} />
+        read.readPill && <ReadPill kind={read.readPill} dock={pillDock ?? null} onClick={read.markSeen} />
       )}
     </div>
   );

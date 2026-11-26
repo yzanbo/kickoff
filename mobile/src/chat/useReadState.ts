@@ -1,11 +1,11 @@
 // チャットの未読・既読（パソコンと同じ設定「既読にするタイミング」に従う）。作業が終わったら見ていても未読のまま残し、既読にするのは利用者が見たとき・押したときだけ。
 // 一番下まで見たら既読: 一番下が見えている間にスクロールし終えた・触ったとき（開いただけ・届いただけ・アプリに戻っただけでは既読にしない）。
-// ボタンで既読: 一番下まで来たら既読ボタンを出す。どちらも返信を送ると本体が未読を消す
+// ボタンで既読: 一番下まで来たら既読ボタンを出す（既読なら既読の表示）。どちらも返信を送ると本体が未読を消す
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { useFocusEffect } from "expo-router";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { createReadHolds, READ_TOGGLE_BUSY_NOTE, READ_TOGGLE_LABELS, readToggleOf, seenToSend, showsReadButton, type ReadTiming, type ReadToggle } from "@shared/chat/readTiming";
+import { createReadHolds, READ_TOGGLE_BUSY_NOTE, READ_TOGGLE_LABELS, readPillOf, readToggleOf, seenToSend, type ReadTiming, type ReadToggle } from "@shared/chat/readTiming";
 import { chatSettings } from "@shared/chat/settings";
 import { agentStateOf } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
@@ -75,8 +75,8 @@ export function useReadState(session: HostSession | null, chat: Chat | null, eve
   );
 
   return {
-    /** ボタンで既読にする設定で、一番下まで来て未読のとき */
-    readButton: state !== null && showsReadButton(timing, state, atBottom),
+    /** ボタンで既読にする設定で、一番下まで来たときに出すもの（未読なら既読ボタン・既読なら既読の表示） */
+    readPill: state === null ? null : readPillOf(timing, state, atBottom),
     markSeen: () => setRead("seen"),
     /** 見出しの長押し: 状態に合わせて「未読にする」か「既読にする」（作業中・回答待ちは変えられないと知らせる） */
     openMenu: () => {

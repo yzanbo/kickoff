@@ -93,6 +93,16 @@
     --pill-tone: var(--dot-unread);
   }
 
+  /* 既読の表示（ReadPill）。押せないので指の形にせず、乗せても濃くしない */
+
+  .scroll-bottom.guide.read-done {
+    cursor: default;
+  }
+
+  .scroll-bottom.guide.read-done:hover {
+    opacity: 0.85;
+  }
+
   /* 状態の文（長い文は省く） */
 
   .scroll-bottom-label {

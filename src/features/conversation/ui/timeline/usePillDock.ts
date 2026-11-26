@@ -2,14 +2,14 @@ import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * 流れの上に重ねるボタン（一番下へ戻るボタン・既読ボタン）の置き場所。
+ * 流れの上に重ねるボタン（一番下へ戻るボタン・既読ボタン・既読の表示）の置き場所。
  * チャット欄の上のピルの列に入る幅があれば、その右端（dock）に置いて 1 行にまとめる（流れの最後の行に重ならない）。
  * ピルが 1 つもない・狭くて入らないときは、流れの右下の隅に浮かせる（列を 1 行増やすと流れの高さが変わり、画面が動くため）。
  * 入るかは、ピルの幅の合計とボタンの幅で決める（置き場所によらず同じ幅なので、置き直しても行き来しない）。
  * ref をボタンに付け、place でボタンを包んで描く
  */
 export function usePillDock(dock: HTMLElement | null) {
-  const [button, setButton] = useState<HTMLButtonElement | null>(null);
+  const [button, setButton] = useState<HTMLElement | null>(null);
   const [docked, setDocked] = useState(false);
   useLayoutEffect(() => {
     const row = dock?.parentElement;

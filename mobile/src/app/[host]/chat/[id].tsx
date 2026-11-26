@@ -1,22 +1,21 @@
 // チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・AI が作業場所を移す予約・送信待ち・入力欄。見るだけの端末は読むだけ。
-// 見出し（チャット名）の長押しで「未読にする / 既読にする」、ボタンで既読にする設定では一番下に既読ボタン
+// 見出し（チャット名）の長押しで「未読にする / 既読にする」、ボタンで既読にする設定では一番下に既読ボタン（既読なら既読の表示）
 import { useMemo } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ApprovalCard } from "../../../chat/ApprovalCard";
 import { Composer } from "../../../chat/Composer";
 import { QueueCard } from "../../../chat/QueueCard";
+import { ReadPill } from "../../../chat/ReadPill";
 import { WorkplaceMoveCard } from "../../../chat/WorkplaceMoveCard";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { useReadState } from "../../../chat/useReadState";
-import { READ_TOGGLE_LABELS } from "@shared/chat/readTiming";
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { chatRestrictions, restrictionNotice } from "@shared/chat/restrictionNotice";
 import { isCommonProjectIn } from "@shared/projects/kinds";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
-import { Button } from "../../../ui/Button";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
 import { colors, ui } from "../../../ui/theme";
 
@@ -82,7 +81,7 @@ export default function ChatScreen() {
           ) : undefined
         }
       />
-      {read.readButton && <Button label={READ_TOGGLE_LABELS.seen} onPress={read.markSeen} style={{ marginHorizontal: 12, marginBottom: 8 }} />}
+      {read.readPill && <ReadPill kind={read.readPill} onPress={read.markSeen} />}
       {notice !== "" && <Text style={[ui.error, { paddingHorizontal: 12 }]}>{notice}</Text>}
       {canWrite && client ? (
         <Composer

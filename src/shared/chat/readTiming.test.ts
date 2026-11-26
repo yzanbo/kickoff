@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { createReadHolds, readToggleOf, seenToSend, showsReadButton } from "./readTiming";
+import { createReadHolds, readPillOf, readToggleOf, seenToSend } from "./readTiming";
 import { makeEvent } from "./testing";
 
 test("readToggleOf: 作業が終わったチャットだけを切り替え、作業中・回答待ちは切り替えない", () => {
@@ -12,15 +12,18 @@ test("readToggleOf: 作業が終わったチャットだけを切り替え、作
   assert.equal(readToggleOf("needs_input"), null);
 });
 
-test("showsReadButton: ボタンで既読にする設定で、一番下まで来て、作業が終わって未読のときだけ出す", () => {
-  assert.equal(showsReadButton("button", "unread", true), true);
-  assert.equal(showsReadButton("button", "failed", true), true);
-  // 上を読んでいる間は「一番下へ」のまま
-  assert.equal(showsReadButton("button", "unread", false), false);
-  // 既読・作業中・回答待ちは出さない
-  for (const state of ["read", "running", "needs_input"] as const) assert.equal(showsReadButton("button", state, true), false);
+test("readPillOf: ボタンで既読にする設定で、一番下まで来たら、未読なら既読ボタン・既読なら既読の表示", () => {
+  assert.equal(readPillOf("button", "unread", true), "unread");
+  assert.equal(readPillOf("button", "failed", true), "unread");
+  assert.equal(readPillOf("button", "read", true), "read");
+  // 一番下まで来ていなければ出さない
+  assert.equal(readPillOf("button", "unread", false), null);
+  assert.equal(readPillOf("button", "read", false), null);
+  // 作業中・回答待ちは未読・既読がないので出さない
+  for (const state of ["running", "needs_input"] as const) assert.equal(readPillOf("button", state, true), null);
   // 一番下まで見たら既読にする設定では出さない（自動で既読にする）
-  assert.equal(showsReadButton("at_bottom", "unread", true), false);
+  assert.equal(readPillOf("at_bottom", "unread", true), null);
+  assert.equal(readPillOf("at_bottom", "read", true), null);
 });
 
 /** 返答の文・作業の終わり・ツールの実行 */

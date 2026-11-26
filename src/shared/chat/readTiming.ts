@@ -37,8 +37,21 @@ export function readToggleOf(state: AgentState): ReadToggle | null {
   return null;
 }
 
-/** ボタンで既読にする設定で、一番下まで来たときに既読ボタンを出すか（作業が終わって未読のときだけ。パソコンとスマホで同じ） */
-export const showsReadButton = (timing: ReadTiming, state: AgentState, atBottom: boolean): boolean => timing === "button" && atBottom && readToggleOf(state) === "seen";
+/** 既読ボタンの場所に出すもの（unread = 押して既読にするボタン・read = 既読になっていると分かる表示） */
+export type ReadPillKind = "unread" | "read";
+
+/** 既読になっているときの表示の文 */
+export const READ_DONE_LABEL = "既読";
+
+/**
+ * ボタンで既読にする設定で、一番下まで来たときに既読ボタンの場所に出すもの（パソコンとスマホで同じ）。
+ * 未読なら既読ボタン、既読なら消さずに既読の表示（押したのが効いたと分かるように）。作業中・回答待ち・ほかの設定は null
+ */
+export function readPillOf(timing: ReadTiming, state: AgentState, atBottom: boolean): ReadPillKind | null {
+  const toggle = timing === "button" && atBottom ? readToggleOf(state) : null;
+  // 切り替える向きの反対がいまの状態（既読にできる = 未読）
+  return toggle === null ? null : toggle === "seen" ? "unread" : "read";
+}
 
 /**
  * 一番下まで見たら既読にする設定で、一番下が見えている間に自分で見たときに送る「見た」（送らないなら null）。
