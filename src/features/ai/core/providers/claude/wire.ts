@@ -28,7 +28,7 @@ export { forkSession, getSubagentMessages, query } from "@anthropic-ai/claude-ag
  * 確かめた Agent SDK の版（package.json の @anthropic-ai/claude-agent-sdk。同梱の Claude Code はその claudeCodeVersion）。
  * 対応する Claude Code の版はこの 1 行で決め、それより古い版のための分かれ道は持たない
  */
-export const TESTED_VERSION = "0.3.331";
+export const TESTED_VERSION = "0.3.332";
 
 /** 同梱の Claude Code の実行ファイルのパッケージ（OS と CPU ごと）の package.json */
 const platformPackage = (require: NodeJS.Require) => require.resolve(`@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/package.json`);
