@@ -11,6 +11,7 @@ import { githubImageSource, type GitHubBodyPlace } from "./githubLinks";
 
 /**
  * GitHub が作った本文の HTML を無害にする（スクリプト・フォーム・埋め込み・style は落とす。GitHub の側でも無害にしてあるが、重ねて守る。
+ * チェックリストのチェックボックス（input type=checkbox）だけは、押せない形にして残す（済みかどうかを見分けるため）。
  * 相対の URL は place のホストのページに直し、リポジトリの中のファイルの画像はコアの口から読む）。
  * DOMPurify のフックはこの呼び出しの間だけ足す（ほかの所の DOMPurify を巻き込まない）
  */
@@ -33,17 +34,34 @@ function sanitizeGitHubHtml(html: string, place: GitHubBodyPlace = { host: GITHU
       node.setAttribute("rel", "noreferrer");
     }
     if (node.tagName === "IMG") node.setAttribute("loading", "lazy");
+    if (node.tagName === "INPUT") keepTaskCheckbox(node);
   };
   DOMPurify.addHook("afterSanitizeAttributes", hook);
   try {
     return DOMPurify.sanitize(html, {
       USE_PROFILES: { html: true },
-      FORBID_TAGS: ["style", "form", "input", "button", "textarea", "select", "iframe", "object", "embed"],
+      FORBID_TAGS: ["style", "form", "button", "textarea", "select", "iframe", "object", "embed"],
       FORBID_ATTR: ["style"],
     });
   } finally {
     DOMPurify.removeHook("afterSanitizeAttributes", hook);
   }
+}
+
+/** チェックボックスに残す属性（済みかどうかと見た目だけ） */
+const CHECKBOX_ATTRIBUTES = new Set(["type", "checked", "class"]);
+
+/**
+ * input はチェックリストのチェックボックスだけを、押せない形（disabled）で残す。ほかの種類の input（文字の欄・送信など）は消す
+ * （偽の入力欄で打たせないため。name・value・form 系の属性も残さない）
+ */
+function keepTaskCheckbox(node: Element) {
+  if (node.getAttribute("type")?.toLowerCase() !== "checkbox") {
+    node.remove();
+    return;
+  }
+  for (const { name } of Array.from(node.attributes)) if (!CHECKBOX_ATTRIBUTES.has(name.toLowerCase())) node.removeAttribute(name);
+  node.setAttribute("disabled", "");
 }
 
 /**

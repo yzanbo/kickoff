@@ -30,11 +30,11 @@
 
 ## 落とし穴
 
-- `gh api` の文字の変数は `-f`、数は `-F`（`-F` は `@` で始まる値をファイルとして読む）。REST の書き込みの本文は一時ファイルから渡す（`send`）。304 は終わり値 1 なので状態の行で見分ける。
+- `gh api` の文字の変数は `-f`、数は `-F`（`-F` は `@` 始まりをファイルと読む）。REST の書き込みの本文は一時ファイルから（`send`）。304 は終わり値 1 なので状態の行で見分ける。
 - GitHub の項目・`ci_watch`・アーカイブを変えたら `prWatch.checkProject` で聞き直す。
-- 本文の HTML は `GitHubHtml` が DOMPurify で整える。画像は CSP の `img-src` のホストだけ（GitHub Enterprise はそのホストも足す）。非公開の画像はコアの口から読む。
-- 覚えた中身（`githubApi.githubCachedDetail`）は、頼みの番号でなく、まだ何も出していない同じものかで受ける。
-- 動いている実行がある間は短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。失敗を知らせるかは `src/features/notifications/CLAUDE.md`。
+- 本文の HTML は `GitHubHtml` が DOMPurify で整える（input は押せない checkbox だけ）。画像は CSP の `img-src` のホストだけ（GitHub Enterprise はそのホストも足す）。非公開の画像はコアから読む。
+- 覚えた中身（`githubApi.githubCachedDetail`）は、頼みの番号でなく、未表示の同じものかで受ける。
+- 実行中の CI があれば短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。失敗を知らせるかは `src/features/notifications/CLAUDE.md`。
 - PR の状態の名前は `PR_STATE_LABELS`（gh の大文字は `prStateOf`）、チェックの状態は `CiState` 1 つ（`@shared/github/ciTypes`。画面で文字列を分類しない）。
 - レビューの行は `reviewLines.ts` が差分の表の `DIFF_ROW_ATTRS` で読む。
 - テストは `setup()` の `ghFake`（`routes.github.test.ts`・`routes.ci.test.ts`）と `ciView.test.ts`。
