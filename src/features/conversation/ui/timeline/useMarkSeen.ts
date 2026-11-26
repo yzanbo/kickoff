@@ -1,7 +1,6 @@
 import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
-import { isUnreadEvent } from "@shared/chat/state";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { ReadTiming } from "@shared/chat/readTiming";
+import { seenToSend, type ReadTiming } from "@shared/chat/readTiming";
 import type { Chat } from "@shared/chat/types";
 import { chatsApi, readHolds } from "@/features/chat/ui";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
@@ -46,8 +45,6 @@ export function useMarkSeen({
   slackPx: number;
 }) {
   const focused = useWindowFocused();
-  const lastEventId = events.at(-1)?.id ?? 0;
-  const lastUnreadId = events.findLast(isUnreadEvent)?.id ?? 0;
   // 見たと送った「新しい結果」の id（同じ結果で何度も送らない）。チャットが替われば数え直す
   const sent = useRef({ chatId: chat.id, upTo: 0 });
 
@@ -57,14 +54,14 @@ export function useMarkSeen({
    */
   const check = useEffectEvent(() => {
     const el = timelineRef.current;
-    if (timing !== "at_bottom" || !visible || !focused || !el) return;
+    if (!visible || !focused || !el) return;
     // スクロールの知らせより先に動くことがある（開いた発言へ移った直後など）ので、いまの位置で確かめる
     if (el.scrollHeight - el.scrollTop - el.clientHeight >= slackPx) return;
     if (sent.current.chatId !== chat.id) sent.current = { chatId: chat.id, upTo: 0 };
-    if (readHolds.isHeld(chat)) return;
-    if (!chat.unread && lastUnreadId <= sent.current.upTo) return;
-    sent.current.upTo = lastUnreadId;
-    void chatsApi.markSeen(chat.id, lastEventId).catch(() => {});
+    const send = seenToSend({ timing, chat, events, held: readHolds.isHeld(chat), sentUpTo: sent.current.upTo });
+    if (!send) return;
+    sent.current.upTo = send.upTo;
+    void chatsApi.markSeen(chat.id, send.eventId).catch(() => {});
   });
 
   // 表示し直した = 開き直したら、手で未読にした覚えを外す（確かめより先に。同じ画面で一番下へ戻っただけでは外さない）
