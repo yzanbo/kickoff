@@ -17,9 +17,8 @@ const NEW = "__new__";
 
 /** 作業場所を移す先の選択肢（本体・いまあるワークツリー・新しいワークツリー。値は本体 ""・ワークツリーのフォルダ・NEW） */
 export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_path">, reserved: readonly string[] = []) {
+  // Git の作業場所を持たないプロジェクト（Git でない・共通）の一覧はコアが空で返すので、移す先は出ない
   const worktrees = useWorktrees(chat.project_id);
-  // 共通は Git で管理しないフォルダで動くので、移す先を出さない（作業フォルダがリポジトリの中でも、そのワークツリーは共通のものではない）
-  const common = useIsCommonProject(chat.project_id);
   const usable = (worktrees ?? []).filter((w) => !w.prunable);
   const values = [...usable.map((w) => (w.main ? "" : w.path)), NEW];
   const kindOf = (main: boolean) => WORKPLACE_SHORT_LABELS[main ? "main" : "worktree"];
@@ -39,7 +38,7 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
     if (!w) return null;
     return w.main ? { place: { kind: "main" } } : { place: { kind: "existing", path: w.path }, label: worktreeLabel(w) };
   };
-  return { available: !common && worktrees !== undefined && usable.length > 0, values, labels, disabled, current, resolve };
+  return { available: worktrees !== undefined && usable.length > 0, values, labels, disabled, current, resolve };
 }
 
 /**
@@ -53,6 +52,7 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
   // 片付けを予約したワークツリー（開いたときに読み直す）
   const [reserved, setReserved] = useState<string[]>([]);
   const choices = useWorkplaceChoices(chat, reserved);
+  // 共通のチャットは札ごと出さない（一覧は空でも、プロジェクトから移したチャットは前のブランチ名を持っていて WorktreeChip が描くため）
   const common = useIsCommonProject(chat.project_id);
   if (common) return null;
   if (!place.name || !choices.available) return <WorktreeChip chat={chat} />;

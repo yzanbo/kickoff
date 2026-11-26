@@ -1,5 +1,6 @@
 // ワークツリーの一覧: HEAD の見張り（ブランチを替えたら worktrees_changed で知らせる）と作業場所の色（覚えて変えない）
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import { PROJECT_HUES, workplaceDefaultHue } from "@shared/foundation/hues";
@@ -81,4 +82,15 @@ test("HEAD の見張り: 本体・ワークツリーのブランチ切り替え�
   git("worktree", "remove", wt);
   await changedSince(before);
   assert.equal((await list(ctx)).some((w) => w.path === wt), false);
+});
+
+test("共通の一覧は、作業フォルダが Git のリポジトリの中にあっても空（Git の作業場所を持たない）", async () => {
+  const ctx = setup({ features: ["worktrees"] });
+  const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
+  const work = path.join(repo, ".common-work");
+  fs.mkdirSync(work);
+  const common = ctx.store.projects.create({ name: "共通", repo_path: work, provider: "claude", kind: "common" });
+  const res = await ctx.api("GET /api/projects/:projectId/git/worktrees", { params: { projectId: common.id } });
+  assert.deepEqual(res.body, []);
+  assert.equal((await list(ctx)).length, 1);
 });
