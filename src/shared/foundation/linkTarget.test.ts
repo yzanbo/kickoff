@@ -22,8 +22,8 @@ test("linkTargetOf: 相対のパス・ほかのスキーム・読めない URL �
   assert.equal(linkTargetOf(1), null);
 });
 
-test("linkTargetOf: 改行・制御文字・空白（全角・ゼロ幅も）を含むものは断る", () => {
-  for (const href of ["https://exa\nmple.com", "https://example.com/\t", "java\nscript:alert(1)", "https://example.com/a b", "https://example.com/\u3000", "https://exa\u200bmple.com", "https://example.com/\u0000", " https://example.com", "#a b"]) {
+test("linkTargetOf: 改行・制御文字・空白（全角も）・見えない文字（ゼロ幅・分離の印も）を含むものは断る", () => {
+  for (const href of ["https://exa\nmple.com", "https://example.com/\t", "java\nscript:alert(1)", "https://example.com/a b", "https://example.com/\u3000", "https://exa\u200bmple.com", "https://example.com/\u0000", " https://example.com", "#a b", "https://example.com/\u2066a\u2069", "#\u2067x"]) {
     assert.equal(linkTargetOf(href), null, JSON.stringify(href));
   }
 });
