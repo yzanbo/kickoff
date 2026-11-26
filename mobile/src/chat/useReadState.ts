@@ -1,5 +1,5 @@
 // チャットの未読・既読（パソコンと同じ設定「既読にするタイミング」に従う）。作業が終わったら見ていても未読のまま残し、既読にするのは利用者が見たとき・押したときだけ。
-// 一番下まで見たら既読: 一番下が見えている間に開いた・スクロールし終えた・触ったとき（届いただけ・アプリに戻っただけでは既読にしない = パソコンの useMarkSeen と同じ）。
+// 一番下まで見たら既読: 一番下が見えている間にスクロールし終えた・触ったとき（開いただけ・届いただけ・アプリに戻っただけでは既読にしない）。
 // ボタンで既読: 一番下まで来たら既読ボタンを出す。どちらも返信を送ると本体が未読を消す
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
@@ -21,6 +21,8 @@ export function useReadState(session: HostSession | null, chat: Chat | null, eve
   // （一番下まで見たら既読にする設定で、同じ画面にいる間は既読に戻さない。返信して作業が始まると時刻が進み、効かなくなる）
   const sentUpTo = useRef(0);
   const heldAt = useRef<string | null>(null);
+  // 自分で動かし始めたスクロールか（一覧は中身が増えた・描き直したときにも自分でスクロールの終わりを知らせるので、指で動かしたものだけを数える）
+  const dragging = useRef(false);
   const latest = useRef({ session, chat, events, timing, atBottom });
   latest.current = { session, chat, events, timing, atBottom };
 
@@ -46,13 +48,12 @@ export function useReadState(session: HostSession | null, chat: Chat | null, eve
     void s.client.api("POST /api/chats/:chatId/seen", { params: { chatId: c.id }, body: last === undefined ? {} : { event_id: last } }).catch(() => {});
   }, []);
 
-  // 開いた（読めた）・この画面に戻ってきたとき: 手で未読にした覚えを外して確かめる
-  const loaded = chat !== null;
+  // 開いた・この画面に戻ってきたとき: 手で未読にした覚えを外す。開いただけでは既読にしない
+  // （スマホは開くと一番下から出るので、開いただけで既読にすると、終わった結果を見ないまま既読になる。最初に触ったときに既読にする）
   useFocusEffect(
     useCallback(() => {
       heldAt.current = null;
-      if (loaded) check();
-    }, [loaded, check]),
+    }, []),
   );
 
   const toggle = chat ? readToggleOf(agentStateOf(chat, hasApproval)) : null;
@@ -89,7 +90,21 @@ export function useReadState(session: HostSession | null, chat: Chat | null, eve
       const bottom = e.nativeEvent.contentOffset.y < BOTTOM_SLACK;
       if (bottom !== latest.current.atBottom) setAtBottom(bottom);
     },
-    /** 自分で操作した（スクロールし終えた・触った）: 一番下なら既読にする（位置が覚え直されてから確かめる） */
-    onActivity: () => setTimeout(check, 0),
+    /** 指でスクロールし始めた */
+    onDragStart: () => {
+      dragging.current = true;
+    },
+    /** 指を離した: 一番下なら既読にする（位置が覚え直されてから確かめる。勢いで動き続けるときは止まったときにもう一度） */
+    onDragEnd: () => {
+      if (dragging.current) setTimeout(check, 0);
+    },
+    /** 指で動かした勢いのスクロールが止まった */
+    onMomentumEnd: () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      setTimeout(check, 0);
+    },
+    /** 触った: 一番下なら既読にする */
+    onTouch: () => setTimeout(check, 0),
   };
 }

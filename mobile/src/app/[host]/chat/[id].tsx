@@ -57,9 +57,10 @@ export default function ChatScreen() {
         contentContainerStyle={{ padding: 12, gap: 10 }}
         onScroll={read.onScroll}
         scrollEventThrottle={100}
-        onScrollEndDrag={read.onActivity}
-        onMomentumScrollEnd={read.onActivity}
-        onTouchEnd={read.onActivity}
+        onScrollBeginDrag={read.onDragStart}
+        onScrollEndDrag={read.onDragEnd}
+        onMomentumScrollEnd={read.onMomentumEnd}
+        onTouchEnd={read.onTouch}
         renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => confirmPrompt(t, () => void client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t, when: "later" } })) : undefined} />}
         ListHeaderComponent={
           <View style={{ gap: 10 }}>
