@@ -1,6 +1,6 @@
 import { createContext, type MouseEvent } from "react";
 import { HTML_ID_PREFIX } from "./html/htmlAllowlist";
-import { SEE_THROUGH_CLASS } from "./math/katexOptions";
+import { SEE_THROUGH_CLASS } from "@shared/foundation/math/katexSettings";
 
 /**
  * Markdown の外部リンク（http・https。読み直した URL）を押したときに開く口（ここはドメインを知らない。中身は App・別ウィンドウが

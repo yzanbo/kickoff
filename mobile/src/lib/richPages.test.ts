@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { KATEX_SETTINGS, KATEX_TEXT_MACROS } from "@shared/foundation/math/katexSettings";
 import { VISUAL_FRAME_CSP } from "@shared/visuals/visualDocument";
 import { hasMath, mathPage, mermaidPage, visualPage } from "./richPages";
 
@@ -21,7 +22,18 @@ test("mathPage: 文は逃がしてそのまま、数式の場所だけを KaTeX 
   assert.ok(page.includes("&lt;b&gt;注意&lt;/b&gt;"));
   assert.match(page, /<span class="tex" data-display="" data-tex="\\pi r\^2">\$\\pi r\^2\$<\/span>/);
   assert.match(page, /data-display="1" data-tex="E=mc\^2"/);
-  assert.match(page, /cdn\.jsdelivr\.net\/npm\/katex/);
+  assert.match(page, /cdn\.jsdelivr\.net\/npm\/katex@0\.19\.1\/dist\/katex\.min\.(css|js)/);
+});
+
+test("mathPage: KaTeX の設定・文字のマクロ・長さのマクロ・描いたあとの整えはパソコンと同じものを入れる", () => {
+  const page = mathPage("$x$");
+  assert.ok(page.includes(`const KATEX_SETTINGS = ${JSON.stringify(KATEX_SETTINGS)};`));
+  assert.ok(page.includes(`const KATEX_TEXT_MACROS = ${JSON.stringify(KATEX_TEXT_MACROS)};`));
+  assert.match(page, /"trust":false/);
+  assert.match(page, /macros: \{ \.\.\.KATEX_TEXT_MACROS, \.\.\.kickoffLengthMacros\(\) \}/);
+  assert.match(page, /kickoffTidyKatex\(el\)/);
+  assert.match(page, /\.katex-see-through \{ user-select: none;/);
+  assert.match(page, /\.katex \.katex-base \{ clip-path: inset\(-0\.25em\); \}/);
 });
 
 test("mathPage・mermaidPage の CSP: スクリプトは CDN から読めるが、画像は data: と blob: だけ（CDN の画像も読めない）・通信はしない", () => {

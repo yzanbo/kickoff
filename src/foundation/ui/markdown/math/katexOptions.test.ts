@@ -8,7 +8,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { PluggableList } from "unified";
 import { createPipeline, renderMarkdown } from "@/foundation/ui/markdown/markdownProcessor";
-import { isHiddenMathml, isSeeThroughStyle, KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
+import { isHiddenMathml, isSeeThroughStyle } from "@shared/foundation/math/katexSettings";
+import { KATEX_OPTIONS, rehypeSafeMath } from "./katexOptions";
 
 /** 見た目の HTML の部分（読み上げ用の MathML と、書いた式の annotation は画面に出ないので除く） */
 const visible = (html: string) => html.slice(html.indexOf('<span class="katex-html"'));

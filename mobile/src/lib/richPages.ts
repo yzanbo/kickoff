@@ -5,14 +5,16 @@
 // 高さは React Native へ知らせる
 import { isolatedFrameCsp } from "@shared/foundation/isolatedFrame";
 import { mathRanges } from "@shared/foundation/markdown/mathGuard";
+import { LENGTH_MACROS_SCRIPT } from "@shared/foundation/math/katexLengths";
+import { KATEX_SETTINGS, KATEX_TEXT_MACROS, KATEX_VERSION, SEE_THROUGH_CLASS, TIDY_KATEX_SCRIPT } from "@shared/foundation/math/katexSettings";
 import { MERMAID_SECURE_KEYS, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
 import { SANITIZE_SVG_SCRIPT } from "@shared/foundation/mermaidSvg";
 import { VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
 import { colors } from "../ui/colors";
 
-/** KaTeX と Mermaid を読む CDN と版（CDN の URL に入れる） */
+/** KaTeX と Mermaid を読む CDN と版（CDN の URL に入れる。KaTeX はパソコンと同じ版） */
 const CDN = "https://cdn.jsdelivr.net";
-const KATEX = `${CDN}/npm/katex@0.16.22/dist`;
+const KATEX = `${CDN}/npm/katex@${KATEX_VERSION}/dist`;
 const MERMAID = `${CDN}/npm/mermaid@11/dist/mermaid.min.js`;
 
 /** 本体のスクリプト（ページに書いたものと CDN のもの） */
@@ -101,8 +103,22 @@ export function mathPage(text: string): string {
     at = m.to;
   }
   body += escapeHtml(text.slice(at));
+  // 設定・文字のマクロ・長さのマクロ・描いたあとの整え・式の箱の外を描かない CSS はパソコンと同じ（@shared/foundation/math。長さのマクロは式ごとに作り直す）
   const render = `<link rel="stylesheet" href="${KATEX}/katex.min.css"><script src="${KATEX}/katex.min.js"></script>
-<script>addEventListener("DOMContentLoaded", () => { if (!window.katex) return; for (const el of document.querySelectorAll(".tex")) { try { katex.render(el.dataset.tex, el, { displayMode: el.dataset.display === "1", throwOnError: false, errorColor: "inherit", strict: false }); } catch {} } });</script>`;
+<style>.${SEE_THROUGH_CLASS} { user-select: none; -webkit-user-select: none; } .katex .katex-base { clip-path: inset(-0.25em); }</style>
+<script>${LENGTH_MACROS_SCRIPT}
+${TIDY_KATEX_SCRIPT}
+const KATEX_SETTINGS = ${JSON.stringify(KATEX_SETTINGS)};
+const KATEX_TEXT_MACROS = ${JSON.stringify(KATEX_TEXT_MACROS)};
+addEventListener("DOMContentLoaded", () => {
+  if (!window.katex) return;
+  for (const el of document.querySelectorAll(".tex")) {
+    try {
+      katex.render(el.dataset.tex, el, { ...KATEX_SETTINGS, displayMode: el.dataset.display === "1", macros: { ...KATEX_TEXT_MACROS, ...kickoffLengthMacros() } });
+      kickoffTidyKatex(el);
+    } catch {}
+  }
+});</script>`;
   return `<!doctype html><html><head>${pageHead(MATH_PAGE_CSP, render)}</head><body>${body}</body></html>`;
 }
 

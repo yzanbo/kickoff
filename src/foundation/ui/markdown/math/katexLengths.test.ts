@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import vm from "node:vm";
 import { test } from "vitest";
 import katex from "katex";
 import { KATEX_OPTIONS } from "./katexOptions";
-import { sizeInEm } from "./katexLengths";
+import { LENGTH_MACROS_SCRIPT, sizeInEm } from "@shared/foundation/math/katexLengths";
+import { KATEX_SETTINGS, KATEX_TEXT_MACROS } from "@shared/foundation/math/katexSettings";
 
 /** 式の箱の高さと深さ（em。KaTeX が式ごとに置く支柱 katex-strut の height と vertical-align から。式の中の行ごとの支柱のうち最大） */
 function boxOf(tex: string, displayMode: boolean): { height: number; depth: number } {
@@ -90,5 +92,24 @@ test("ふつうの式（大きさを書いたものも）は、長さのマク�
 test("大きさの書き方の誤りは、長さのマクロがあっても KaTeX の誤りのまま（元の式を出す）", () => {
   for (const tex of [String.raw`\kern x`, String.raw`\raisebox{abc}{Z}`, String.raw`\rule{1zz}{1em}`]) {
     assert.match(katex.renderToString(tex, KATEX_OPTIONS), /katex-error/, tex);
+  }
+});
+
+test("LENGTH_MACROS_SCRIPT（スマホのページ）: パソコンの長さのマクロと同じ HTML に描く", () => {
+  const pageLengthMacros = vm.runInNewContext(`${LENGTH_MACROS_SCRIPT}\nkickoffLengthMacros`) as () => Record<string, object>;
+  for (const tex of [
+    String.raw`\raisebox{-30em}{Z}`,
+    String.raw`\raisebox{-3em}{\raisebox{-3em}{\raisebox{-3em}{\raisebox{-3em}{Z}}}}`,
+    String.raw`\rule[-30em]{50em}{30em}`,
+    String.raw`a\kern-50em b\hspace{-50em}c\mkern-900mu d\hskip 2em e`,
+    String.raw`\genfrac(){30em}{0}{a}{b}{a \above 30em b}`,
+    String.raw`\begin{aligned}a\\[-50em]b\\[6pt]c\end{aligned}`,
+    String.raw`\def\d{-30em}\raisebox{\d}{Z}\kern x`,
+    String.raw`\frac{a}{b}\rule{0pt}{2.5ex}`,
+  ]) {
+    for (const displayMode of [false, true]) {
+      const page = katex.renderToString(tex, { ...KATEX_SETTINGS, displayMode, macros: { ...KATEX_TEXT_MACROS, ...pageLengthMacros() } });
+      assert.equal(page, katex.renderToString(tex, { ...KATEX_OPTIONS, displayMode }), tex);
+    }
   }
 });
