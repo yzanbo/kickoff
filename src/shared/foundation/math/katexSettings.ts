@@ -39,7 +39,7 @@ export const KATEX_TEXT_MACROS: Readonly<Record<string, string>> = { ...COLOR_MA
  * katexLengths.ts のマクロで抑える（縦は 1 つ 3em・式ごとの合計 10em、横は ±10em）。式の外へ出た分は CSS で描かない（Markdown.css）。
  * maxExpand: マクロを展開する回数の上限（KaTeX の既定と同じ 1000）。\neq・\dfrac・\cdots なども 1 回と数えるので、
  * 行列・和・極限を並べた式は 40 個並べると 1000 を超える（500 では 20 個で超える）。1000 回でも、長い \def を展開し続ける式は 219ms で止まる（M2 Pro で測った）。
- * macros は KATEX_TEXT_MACROS と長さのマクロ（katexLengths.ts）を、描くたびに新しい写しで渡す（パソコンは katexOptions.ts の getter、スマホは katexPage.ts）。
+ * macros は KATEX_TEXT_MACROS と長さのマクロ（katexLengths.ts）を、描くたびに新しい写しで渡す（パソコンは katexOptions.ts の getter、スマホは mobile/src/lib/richPages.ts）。
  * KaTeX は \gdef で渡した macros の中身を書き換え、長さのマクロは式ごとに縦の大きさを数えるので、式どうしで定義・数が残らないように
  */
 export const KATEX_SETTINGS = {

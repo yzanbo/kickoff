@@ -11,11 +11,11 @@ import { tokenizeHtml } from "./htmlTokens";
 import { applyMarkdownHtml } from "./htmlVerify";
 
 /*
- * Markdown の中の HTML の攻撃の例（仕様書 0037 の 3.6・5・7）。描く前の木を歩いて、出てきた要素と属性が一覧（仕様書の表を、ここに別に写したもの）の中だけで、
- * 値が決まりどおりであることを確かめる。描いた HTML の文字も、念のため探す
+ * Markdown の中の HTML の攻撃の例。描く前の木を歩いて、出てきた要素と属性が一覧（htmlAllowlist.ts を読まずに、ここに別に写したもの。
+ * 一覧を誤って広げても、ここの写しと食い違って落ちるように）の中だけで、値が決まりどおりであることを確かめる。描いた HTML の文字も、念のため探す
  */
 
-/** 仕様書の「通すタグ」 */
+/** 通すタグ */
 const SPEC_TAGS = new Set(
   (
     "br wbr hr b i u strong em s strike del ins sub sup small big mark center font code tt kbd samp var q cite dfn abbr time details summary ruby rt " +
@@ -24,7 +24,7 @@ const SPEC_TAGS = new Set(
   ).split(" "),
 );
 
-/** 仕様書の「通す属性」（木の上の名前 → 付けられるタグ。null はすべて） */
+/** 通す属性（木の上の名前 → 付けられるタグ。null はすべて） */
 const SPEC_PROPS: Record<string, string[] | null> = {
   title: null,
   lang: null,
@@ -50,7 +50,7 @@ const MARKDOWN_TAGS = new Set("p a img strong em del code pre blockquote ul ol l
 
 const isInt = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 
-/** 属性の値が仕様書の決まりどおりか */
+/** 属性の値が決まりどおりか */
 function valueFits(prop: string, value: unknown): boolean {
   switch (prop) {
     case "title":

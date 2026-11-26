@@ -44,7 +44,7 @@ test("そろわない開き・閉じは文字のまま。段落をまたがな�
   assert.equal(html("a<br/>b<br />c <b/>"), "<p>a<br>b<br>c &#x3C;b/></p>");
 });
 
-test("リンクの中のリンクは外し、Markdown の数式・チェックリスト・脚注・コードはこれまでどおり", () => {
+test("リンクの中のリンクは外し、Markdown の数式・チェックリスト・脚注・コードは Markdown の要素のまま", () => {
   assert.equal(html('<a href="https://a.example">x [y](https://b.example) z</a>'), '<p><a href="https://a.example/">x y z</a></p>');
   assert.equal(html("- [x] 済み\n\n```ts\n<b>x</b>\n```"), '<ul class="contains-task-list">\n<li class="task-list-item"><input type="checkbox" checked disabled> 済み</li>\n</ul>\n<pre><code class="language-ts">&#x3C;b>x&#x3C;/b>\n</code></pre>');
   assert.match(html("本文[^1]\n\n[^1]: <b>注</b>"), /<li id="user-content-fn-1">\n<p><b>注<\/b> <a href="#user-content-fnref-1"/);
