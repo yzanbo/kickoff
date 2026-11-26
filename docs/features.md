@@ -214,7 +214,7 @@
 | CHT-012 | 極端に長い作業の変更カードを、頭を読み終えてから出す | conversation | T:timelineItems |
 | CHT-013 | 返答のコードブロックに文法の色を付ける | 土台:ui | T:highlightPool |
 | CHT-014 | 一番下へ戻るボタン（いまの様子つき） | conversation | M |
-| CHT-015 | 一番下まで見たら既読にする | conversation | M |
+| CHT-015 | 既読にする（一番下まで / ボタンで） | conversation | M |
 | CHT-016 | 思考の行（考えた時間と中身） | conversation | M |
 | CHT-017 | 作業の終わりの行（かかった時間・失敗） | conversation | M |
 | CHT-018 | 発言へなめらかに移って強調する | conversation | M |

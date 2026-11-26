@@ -1,4 +1,5 @@
-// チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・AI が作業場所を移す予約・送信待ち・入力欄。見るだけの端末は読むだけ
+// チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・AI が作業場所を移す予約・送信待ち・入力欄。見るだけの端末は読むだけ。
+// 見出し（チャット名）の長押しで「未読にする / 既読にする」、ボタンで既読にする設定では一番下に既読ボタン
 import { useMemo } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -8,11 +9,14 @@ import { QueueCard } from "../../../chat/QueueCard";
 import { WorkplaceMoveCard } from "../../../chat/WorkplaceMoveCard";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
+import { useReadState } from "../../../chat/useReadState";
+import { READ_TOGGLE_LABELS } from "@shared/chat/readTiming";
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { chatRestrictions, restrictionNotice } from "@shared/chat/restrictionNotice";
 import { isCommonProjectIn } from "@shared/projects/kinds";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
+import { Button } from "../../../ui/Button";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
 import { colors, ui } from "../../../ui/theme";
 
@@ -21,6 +25,7 @@ export default function ChatScreen() {
   const chatId = Number(id);
   const { session, connection, state, access } = useHostState(host);
   const { chat, events, live, approvals, hasEarlier, streaming, error, loadEarlier } = useChat(session, chatId);
+  const read = useReadState(session, chat, events, approvals.length > 0);
   const items = useMemo(() => timelineOf(events, chat?.provider).reverse(), [events, chat?.provider]);
   const canWrite = access === "full";
   const running = chat?.status === "running";
@@ -31,7 +36,18 @@ export default function ChatScreen() {
   const notice = restrictions ? restrictionNotice(restrictions.sandboxEnabled, restrictions.editScopeEnabled) : "";
   return (
     <KeyboardAvoidingView style={ui.screen} behavior="padding">
-      <Stack.Screen options={{ title: chat?.title ?? "チャット" }} />
+      <Stack.Screen
+        options={{
+          title: chat?.title ?? "チャット",
+          headerTitle: ({ children }) => (
+            <Pressable onLongPress={read.openMenu} accessibilityHint="長押しで未読にする・既読にする">
+              <Text style={ui.title} numberOfLines={1}>
+                {children}
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ConnectionBanner state={connection} />
       {error && <Text style={[ui.error, { padding: 12 }]}>{error}</Text>}
       <FlatList
@@ -39,6 +55,12 @@ export default function ChatScreen() {
         data={items}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
         contentContainerStyle={{ padding: 12, gap: 10 }}
+        onScroll={read.onScroll}
+        scrollEventThrottle={100}
+        onScrollBeginDrag={read.onDragStart}
+        onScrollEndDrag={read.onDragEnd}
+        onMomentumScrollEnd={read.onMomentumEnd}
+        onTouchEnd={read.onTouch}
         renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => confirmPrompt(t, () => void client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t, when: "later" } })) : undefined} />}
         ListHeaderComponent={
           <View style={{ gap: 10 }}>
@@ -60,6 +82,7 @@ export default function ChatScreen() {
           ) : undefined
         }
       />
+      {read.readButton && <Button label={READ_TOGGLE_LABELS.seen} onPress={read.markSeen} style={{ marginHorizontal: 12, marginBottom: 8 }} />}
       {notice !== "" && <Text style={[ui.error, { paddingHorizontal: 12 }]}>{notice}</Text>}
       {canWrite && client ? (
         <Composer

@@ -3,7 +3,7 @@
 1 つのチャットの画面・流れ・発言・ツールの行・作業中の様子・動き・承認・検索（パスは `ui/` から）。チャットの店は `src/features/chat/CLAUDE.md`。受け入れの一覧: `docs/features.md` の `CHT-`。
 
 ## 地図
-- `screen/`: `ChatScreen` → 殻 `ChatShell` → 会話の欄 `ChatColumn`・画面の口 `createScreenActions`。見出しと「表示」は `display/`、キーは `chatHotkeys.ts`
+- `screen/`: `ChatScreen` → 殻 `ChatShell` → 会話の欄 `ChatColumn`・画面の口 `createScreenActions`。見出しと「表示」は `display/`、キーは `chatHotkeys.ts`（⌘⇧U は `useReadControls`）
 - `timeline/`・`streaming/`: 項目 `ui/timelineItems.ts`・種類の表 `rowKinds.tsx`・窓 `useTimelineWindow`・付いていき `useFollowBottom`・書いている途中 `StreamingReply`
 - `messages/`（引用 `quotable.ts`）・`tools/`（`toolText`・`toolRowViewOf`・出力の店 `commandOutputs.ts`）
 - `working/`・`background/`・`todo/`・`activity/`・`approvals/`・`promptList/`・`find/`・`rewind/`（失敗の直す操作 `failedTurnOf`）
@@ -25,7 +25,7 @@
 - 付いていきは大きさの知らせで行う（`scrollHeight` を毎フレーム読まない）。上へ戻す操作は先に付いていきをやめる（`holdUp`）。
 - 途中の文を消すときは知らせずに世代を進め、記録の差し替えで `streamGen` を進める（確定と消えを 1 回の描き直しに）。
 - 書きかけで補う印・HTML のタグは表示と同じ判定（`cjkFlanking`・`htmlAllowlist`）。
-- 動いているかは最後に届いた時刻（`stall.ts`）。中断は裏のサブエージェント・コマンドも止まると確かめてから。
+- 動いているかは最後に届いた時刻（`stall.ts`）。中断は裏の作業も止まると確かめてから。
 - ToDo はセッションが替わると番号が振り直るので、それまでの分を締める。指示の一覧は `promptListOf` 1 回で作る。
 - 検索の印は描いている範囲だけに CSS Custom Highlight API で付ける（DOM を書き換えない）。正規表現はコアで流さない。
 - 区切りより前の行は `PastWorkplace`（そのときの作業場所から開く・書き直しを止める）。

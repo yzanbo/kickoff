@@ -13,12 +13,14 @@ import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
 import { useChatDisplayMenu } from "@/features/conversation/ui/display/useChatDisplayMenu";
 import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
+import { ReadPill } from "./ReadPill";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { activeFloor, TimelineRows } from "./Timeline";
 import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
 import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
+import { useReadControls } from "./useReadControls";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
 import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
@@ -27,7 +29,7 @@ import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
  * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（scroll の following。送ったら付いていくに戻る）。
  * 上にスクロールしている間は、一番下へ戻るボタンを出す（⌘↓ でも戻る）。答えを待っているとき・その間に作業が終わったときは、
- * ボタンに文を添えて目立たせ、下へ戻るよう誘う。
+ * ボタンに文を添えて目立たせ、下へ戻るよう誘う。既読にするタイミングが「ボタンで」なら、一番下まで来て未読のとき同じ場所に既読ボタンを出す。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する。
  * スクロールの決まりは useTimelineScroll、上に貼り付ける指示は useStickyPrompt、作業中の文は useWorkingStatus、流れの終わりは TimelineEnd
  */
@@ -93,14 +95,16 @@ export function ChatTimeline({
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
-  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  // 既読にするタイミング・⌘⇧U・既読ボタン
+  const read = useReadControls(root, chat, s.away);
+  useMarkSeen({ timelineRef: scroll.ref, chat, events, timing: read.timing, visible: visible && !log.focused, shown: visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
   const jumping = useCell(nav.jumping);
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
-  // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
-  const displayMenu = useChatDisplayMenu();
+  // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面のメニュー（未読にする / 既読にする・タブの列・見出しの行など。隠したものをここから戻せる）
+  const displayMenu = useChatDisplayMenu(chat.id);
 
   return (
     <div className="timeline-wrap" hidden={hidden}>
@@ -161,7 +165,11 @@ export function ChatTimeline({
           読み込み中…
         </div>
       )}
-      {s.away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />}
+      {s.away ? (
+        <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />
+      ) : (
+        read.readButton && <ReadPill dock={pillDock ?? null} onClick={read.markSeen} />
+      )}
     </div>
   );
 }

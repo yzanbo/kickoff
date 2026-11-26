@@ -1,10 +1,10 @@
-import { Archive, ArchiveRestore, Copy, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, Image as ImageIcon, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, NewChatItem, openAskChild, togglePinChat, type NewChatPlace, chatsApi } from "@/features/chat/ui";
+import { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, NewChatItem, openAskChild, ReadToggleItem, togglePinChat, type NewChatPlace, chatsApi } from "@/features/chat/ui";
 import { openNewProject } from "@/features/projects/ui";
 import { DetachSubmenu } from "@/features/childChats/ui";
 import { manageImageHosts } from "@/features/remoteImages/ui";
@@ -83,16 +83,8 @@ export function ChatMenuItems({
       <MenuItem onSelect={() => onRename(chat)}>
         <Pencil size={14} /> 名前を変更
       </MenuItem>
-      {/* 未読の印（サイドバーで太字になる。次に開くまで残る） */}
-      {chat.unread ? (
-        <MenuItem onSelect={() => act(() => chatsApi.markSeen(chat.id))}>
-          <MailOpen size={14} /> 既読にする
-        </MenuItem>
-      ) : (
-        <MenuItem onSelect={() => act(() => chatsApi.markUnseen(chat.id))}>
-          <Mail size={14} /> 未読にする
-        </MenuItem>
-      )}
+      {/* 未読の印（サイドバーで太字になる。次に開くまで残る。作業中・回答待ちは押せない） */}
+      <ReadToggleItem chat={chat} onError={onError} />
       {/* 固定はサイドバーの「固定」のまとまりに出す（アーカイブしたものは固定しない。言葉はまとまりの見出しと同じ「固定」） */}
       {!chat.archived_at && (
         <MenuItem onSelect={() => act(() => togglePinChat(chat))}>

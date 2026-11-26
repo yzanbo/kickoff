@@ -1,5 +1,6 @@
 // 1 つのチャットの様子（記録・チャット・作業中の様子・回答待ち・書いている途中の返答）。開いたら最後の分だけ読み、さかのぼるときは ?before=、
-// つなぎ直したら ?after= で抜けた分だけ取る（巻き戻しで消えていれば読み直す）。見ている間は本体に「見ている」を知らせる（そのチャットの通知は来ない）
+// つなぎ直したら ?after= で抜けた分だけ取る（巻き戻しで消えていれば読み直す）。見ている間は本体に「見ている」を知らせる（そのチャットの通知は来ない）。
+// 開いた・届いただけでは既読にしない（既読にするのは useReadState。作業が終わったら、見ていても未読にする）
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -51,7 +52,6 @@ export function useChat(session: HostSession | null, chatId: number) {
       setLive(detail.live);
       setApprovals(detail.approvals);
       setError(null);
-      if (detail.chat.unread) void session.client.api("POST /api/chats/:chatId/seen", { params: { chatId } }).catch(() => {});
     } catch (e) {
       streamingReplay.current = null;
       setError(e instanceof Error ? e.message : String(e));
@@ -78,11 +78,7 @@ export function useChat(session: HostSession | null, chatId: number) {
         streamingReplay.current?.push(effect);
         setStreaming((s) => applyStreaming(s, effect));
       }
-      if (e.type === "chat" && e.chat.id === chatId) {
-        setChat(e.chat);
-        // 見ている間に終わったら既読にする
-        if (e.chat.unread && AppState.currentState === "active") void session.client.api("POST /api/chats/:chatId/seen", { params: { chatId } }).catch(() => {});
-      }
+      if (e.type === "chat" && e.chat.id === chatId) setChat(e.chat);
       if (e.type === "chat_live" && e.chat_id === chatId) setLive(e.live);
       if (e.type === "approval" && e.approval.chat_id === chatId) setApprovals((a) => [...a.filter((x) => x.id !== e.approval.id), e.approval]);
       if (e.type === "approval_resolved" && e.chat_id === chatId) setApprovals((a) => a.filter((x) => x.id !== e.id));

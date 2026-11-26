@@ -70,6 +70,9 @@ export type { ChipsPortal } from "./screen/chipsPortal";
 export { useChatsLinkedTo } from "./store/linkedChats";
 export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";
+export { ChatReadToggleItem, ReadToggleItem } from "./parts/ReadToggleItem";
+export { readHolds } from "./state/readHolds";
+export { READ_TOGGLE_KEY, reportReadFailure, setChatRead } from "./state/readToggle";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate, subagentOpenIn: storage.settings.subagentOpenIn, childOpenIn: storage.settings.childOpenIn };

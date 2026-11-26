@@ -14,7 +14,7 @@
 - AI へ送る定型文と子から親への受け渡しの文は `prompts.ts`・`handoff.ts` に足して使う（手で組み立てない）。
 - システムプロンプトのプロジェクトの節（`core/prompt/system.ts`）は、共通（`isUserProject` でないもの）では作業フォルダを伝え、共通のチャット（ノートのチャットでないもの）には概要と利用者のプロジェクトの名前（アーカイブしていないもの）も伝える。共通にはワークツリーのチャットを作らない（`routes/chats.ts` の 409）。
 - AI のツールでほかのプロジェクトを指せるのは共通のチャットだけ（`core/tools/projectScope.ts`。`move_workplace` の行き先は除く）。読むのは聞かず、書く（`create_chat`・`update_chat`・`write_project_note`・`move_note`・自分を移す）のは効く設定 1 つ（`@shared/chat/aiWritePolicy`）に従って `core/tools/aiWriteApproval.ts` で聞く。
-- 既読は、画面が一番下まで見た記録の ID を渡し、自分で見たときだけ付ける。それより新しい結果があれば消さない。印の付け外しで並び順を変えない。
+- 既読は画面が一番下まで見た記録の ID を渡し（`read_timing` が button なら付けない）、新しい結果は消さない。手では `setChatRead`（`readToggleOf`。作業中・回答待ちは不可）。並び順は変えない。
 - アーカイブ・削除は `chatActions.ts` を通し、どこからでも確かめる（取り消しの通知で代えない）。名前は `useChatRename`＋`ChatTitleInput`（上限 `CHAT_TITLE_MAX`）。
 - ✕ は `closeChatWithChoice`（既定は `chat:close-action`）、Esc・タブの「閉じる」は聞かずに閉じる。
 

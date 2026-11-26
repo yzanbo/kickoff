@@ -5,6 +5,7 @@ import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatT
 import type { FileRewindResult } from "@shared/ai/types";
 import type { QueueState } from "./chatLive";
 import type { NewChatBody, QueueCommandsBody, QueueEditingBody, QueueSendBody, SendBody, SendResult } from "./send";
+import type { ReadTiming } from "./readTiming";
 import type { Chat, ChatOptionsPatch, ChatPatch, FeedItem, GitHubLink, SearchHit } from "./types";
 
 /** チャットの一覧の絞り込み（archived=1 でアーカイブ済みだけ。limit を省けばすべて。並びは最後に動いた順） */
@@ -39,8 +40,10 @@ export const chatContract = {
   "PATCH /api/chats/:chatId": route<ChatPatch, Chat>({ access: "device" }),
   /** 確認した（未読を消す。event_id より新しい返答が届いていれば消さない） */
   "POST /api/chats/:chatId/seen": route<{ event_id?: number }, Chat>({ access: "deviceRead" }),
-  /** 未読にする（次に開くまで残る） */
+  /** 未読にする（次に開くまで残る。作業中・回答待ちは 409） */
   "POST /api/chats/:chatId/unseen": route<never, Chat>({ access: "deviceRead" }),
+  /** スマホが読むチャットの設定（設定の全体は端末に開かないので、要る項目だけ。変えるのはパソコンの設定の画面） */
+  "GET /api/chat-settings": route<never, { read_timing: ReadTiming }>({ access: "device" }),
   /** 削除 = Kickoff のゴミ箱へ（子孫・記録・会話記録・添付ごと。作業中のものがあれば 409）。入れたゴミ箱の ID（@shared/trash の TrashedResult と同じ形） */
   "DELETE /api/chats/:chatId": route<never, { trash_id: string }>(),
 } as const satisfies Contract;
