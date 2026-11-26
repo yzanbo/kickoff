@@ -42,8 +42,8 @@ export function createCommonNotes(d: {
   settings(): AppSettings;
   /** ノートの親フォルダの既定（設定の notes_dir が null のとき） */
   defaultRoot: string;
-  /** そのフォルダをノートのフォルダにしているプロジェクト（_common を予約する前に note_folder が _common になったもの・note_dir で選んだもの） */
-  noteDirUsers: NoteDirs["usersOf"];
+  /** フォルダをノートのフォルダにしているプロジェクトを引く口（_common を予約する前に note_folder が _common になったもの・note_dir で選んだもの） */
+  noteDirOwners: NoteDirs["noteDirOwners"];
 }): CommonNotes {
   const store = d.projects.store;
   const rootOf = (s: FolderSettings) => expandHome(s.notes_dir ?? d.defaultRoot);
@@ -55,23 +55,32 @@ export function createCommonNotes(d: {
   const samePlace = (a: CommonPlace, b: CommonPlace) => a.work === b.work && a.notes === b.notes;
   // 共通はゴミ箱に入れさせないので、ゴミ箱は探さない
   const owned = () => store.list().find(isCommonProject);
-  /** そのフォルダ（実体）を本体にしている、共通でないプロジェクト（ゴミ箱のものも。repo_path は 1 つのプロジェクトにだけ登録できる） */
-  const clashAt = (real: string, except: number | undefined) =>
-    [...store.list(), ...store.trashed()].find((p) => p.id !== except && (p.repo_path === real || realPathOrSelf(p.repo_path) === real));
-  /** そのフォルダ（実体）をノートのフォルダにしている、利用者のプロジェクト（重なると同じファイルが 2 つの欄に出て、ノートのチャットがどちらのものか分からなくなる） */
-  const noteUserAt = (real: string, except: number | undefined) => d.noteDirUsers(real, except).find(isUserProject);
+  /**
+   * フォルダ（実体）を本体にしている、共通でないプロジェクトを引く口（ゴミ箱のものも。repo_path は 1 つのプロジェクトにだけ登録できる）。
+   * いくつものフォルダを引けるよう、一覧は 1 回だけ読み、本体の実体のパスは要るものだけを 1 回ずつ解く
+   */
+  const repoOwners = (except: number | undefined) => {
+    const others = [...store.list(), ...store.trashed()].filter((p) => p.id !== except);
+    const reals = new Map<number, string>();
+    const realOf = (p: Project) => reals.get(p.id) ?? reals.set(p.id, realPathOrSelf(p.repo_path)).get(p.id)!;
+    return (real: string) => others.find((p) => p.repo_path === real || realOf(p) === real);
+  };
+  const clashAt = (real: string, except: number | undefined) => repoOwners(except)(real);
   const clashMessage = (p: Project, real: string, folder: string, what: string, fix: string) =>
     `${folder}（${real}）は、プロジェクト「${p.name}」${store.get(p.id) ? "" : "（Kickoff のゴミ箱にあります）"}の${what}と同じなので、共通のチャットと共通のノートを使えません。${fix}`;
   /** 2 つのフォルダが利用者のプロジェクトと重なれば、その理由（重ならなければ null） */
   const clashOf = (place: CommonPlace, except: number | undefined): CommonNotesUnavailable | null => {
+    const clashIn = repoOwners(except);
+    // 重なると同じファイルが 2 つの欄に出て、ノートのチャットがどちらのものか分からなくなる
+    const noteUsersOf = d.noteDirOwners(except);
     const checks = [
       { real: place.work, folder: "共通のチャットの作業フォルダ", fix: "設定の「ノートの保存先」で別のフォルダを選んでください" },
       { real: place.notes, folder: "共通のノートのフォルダ", fix: "設定の「共通のノートのフォルダ」で別のフォルダを選んでください" },
     ];
     for (const { real, folder, fix } of checks) {
-      const clash = clashAt(real, except);
+      const clash = clashIn(real);
       if (clash) return { message: clashMessage(clash, real, folder, "フォルダ", fix), project_id: clash.id };
-      const noteUser = noteUserAt(real, except);
+      const noteUser = noteUsersOf(real).find(isUserProject);
       if (noteUser) return { message: clashMessage(noteUser, real, folder, "ノートのフォルダ", fix), project_id: noteUser.id };
     }
     return null;

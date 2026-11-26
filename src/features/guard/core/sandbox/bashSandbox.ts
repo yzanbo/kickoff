@@ -99,7 +99,8 @@ export async function bashSandboxFor(
   const denied = realDirs(deniedDirs).filter((dir) => !writable.some((w) => isInside(dir, w)));
   return {
     writableDirs: writable,
-    readOnlyDirs: realDirs([...readOnlyDirs, ...denied]),
+    // denied はもう実体のパスなので、解き直さずに重なりだけ除く（共通のチャットでは readOnlyDirs は deniedDirs にも入っている）
+    readOnlyDirs: [...new Set([...realDirs(readOnlyDirs), ...denied])],
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,
     commandTempDir: await commandTempDirFor(workdir, denied, deps.rules.tempDirs),
@@ -114,7 +115,8 @@ export const COMMAND_TEMP_FOLDER = ".kickoff-tmp";
  * 書かせないフォルダを渡すのは共通のチャットだけなので、プロジェクトのチャットはいつも null（一時フォルダをそのまま書ける）
  */
 async function commandTempDirFor(workdir: string, denied: string[], tempDirs: string[]): Promise<string | null> {
-  if (!denied.some((dir) => tempDirs.some((t) => isInside(realPathLoose(t), dir)))) return null;
+  // tempDirs はもとから実体のパス（AgentSandboxRules）
+  if (!denied.some((dir) => tempDirs.some((t) => isInside(t, dir)))) return null;
   const dir = path.join(realPathLoose(workdir), COMMAND_TEMP_FOLDER);
   await fs.mkdir(dir, { recursive: true });
   return dir;

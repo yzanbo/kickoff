@@ -8,7 +8,7 @@ import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { providerCan } from "@shared/ai/providers";
 import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/index";
-import { readOnlyReferences, type TurnContributor } from "@/features/chat/core/index";
+import { readOnlyReferences, turnProjects, type TurnContributor } from "@/features/chat/core/index";
 import { bashSandboxFor, sandboxPromptLines, type BashSandboxDeps } from "./sandbox/bashSandbox";
 import { TurnSandboxDiagnostics } from "./sandboxDiagnostics";
 import type { SandboxDiagnosticsPlatform } from "./sandboxDiagnosticsPlatform";
@@ -66,13 +66,13 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
         },
       };
     },
-    async contributeWithDirs({ chat, project, cwd, signal, requestApproval }, dirs) {
+    async contributeWithDirs({ chat, project, cwd, signal, requestApproval, perTurn }, dirs) {
       // 共通のチャット（共通のノートのチャットも）は、コマンドのサンドボックスと編集先の制限をいつも入にする（プロジェクトのコードを直接書かせない。書けるのは作業フォルダと共通のノート）
       const common = isCommonProject(project);
       // 計画モードと「AI で整える」の専用の保護も入れた、実際にかける制限
       const { sandbox: useSandbox, editScope } = turnRestrictions(chat, common);
       // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス。共通でなければ空）
-      const deniedDirs = common ? [...d.projects().filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : [];
+      const deniedDirs = common ? [...turnProjects(perTurn, d.projects).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : [];
       // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない。
       // 共通のチャットは、一時フォルダなどに置いた利用者のプロジェクトも書かせない）
       const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs, deniedDirs }) : null;

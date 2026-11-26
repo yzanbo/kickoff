@@ -38,7 +38,7 @@ import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { TurnEndTask } from "./turnEnd";
-export type { TurnContributor } from "./run/turn/contributor";
+export { turnProjects, type TurnContributor } from "./run/turn/contributor";
 export type { PromptSection } from "./prompt/sections";
 export { appendSections } from "./prompt/compose";
 export { readOnlyReferences } from "./turnFolders";

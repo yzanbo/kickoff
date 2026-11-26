@@ -10,20 +10,20 @@ import { readOnlyReferences, referenceDirectories } from "@/features/chat/core/t
 import type { RunnerDeps } from "@/features/chat/core/run/runner";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import { userProjectsForCommonChat } from "@/features/chat/core/tools/projectScope";
-import type { TurnContributor } from "./contributor";
+import { turnProjects, type TurnContributor } from "./contributor";
 
 export function chatTurnParts(deps: RunnerDeps, runtime: ChatRun): TurnContributor {
   return {
     name: "chat",
     order: 30,
-    contribute({ chat, project, cwd, kind }) {
+    contribute({ chat, project, cwd, kind, perTurn }) {
       // 次に送るものに一度だけ添える知らせ（利用者が作業場所を移す予約を取り消したときなど）。手で圧縮する実行には添えず、取り出したら外す
       const note = kind === "compact" ? null : runtime.pendingNote;
       if (kind !== "compact") runtime.pendingNote = null;
       const references = referenceSection(project);
-      // 共通のチャット（ノートのチャットはノートの横で話すので除く）には、利用者のプロジェクトの名前を伝える（送るたびに引き直す）
+      // 共通のチャット（ノートのチャットはノートの横で話すので除く）には、利用者のプロジェクトの名前を伝える（送るたびに引き直す。一覧は notes・guard と同じもの）
       const common = isCommonProject(project);
-      const commonChat = common && chat.note_path === null ? { projectNames: userProjectsForCommonChat(deps.store.projects).map((p) => p.name) } : null;
+      const commonChat = common && chat.note_path === null ? { projectNames: userProjectsForCommonChat(turnProjects(perTurn, () => deps.store.projects.list())).map((p) => p.name) } : null;
       return {
         // rm の代わりに Kickoff のゴミ箱へ入れる kickoff-trash を PATH に足す（どこで消しても、どのチャットが消したか分かるようにチャットの ID も）
         ...(deps.trashCommand ? { env: trashCommandEnv(deps.trashCommand, chat.id) } : {}),

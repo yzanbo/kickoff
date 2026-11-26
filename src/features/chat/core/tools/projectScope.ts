@@ -30,14 +30,14 @@ export const isCommonChatTurn = (projects: Pick<ProjectStore, "get">, turn: Pick
   turn.perTurn(COMMON_CHAT_TURN_KEY, () => isCommonChatProject(projects, turn.projectId));
 
 /** 共通のチャットから指せる利用者のプロジェクト（アーカイブしていないもの。サイドバーの並び）。システムプロンプトで名前を伝えるのもこの範囲 */
-export const userProjectsForCommonChat = (projects: Pick<ProjectStore, "list">): Project[] => projects.list().filter(isActiveUserProject);
+export const userProjectsForCommonChat = (all: readonly Project[]): Project[] => all.filter(isActiveUserProject);
 
 /** 呼んだチャットから指せるプロジェクト（共通のチャット: 共通と userProjectsForCommonChat。ほか: 自分のプロジェクトだけ） */
 export function readableProjects(projects: Projects, self: Chat): Project[] {
   const own = projects.get(self.project_id);
   if (!own) return [];
   if (!isCommonProject(own)) return [own];
-  return [own, ...userProjectsForCommonChat(projects)];
+  return [own, ...userProjectsForCommonChat(projects.list())];
 }
 
 /** 名前の比べ方（大文字・小文字・全角半角・前後の空白の違いは同じに見る） */

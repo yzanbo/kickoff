@@ -80,6 +80,11 @@ test("書かせないフォルダ（共通のチャットから見た利用者�
   assert.ok(sandbox.readOnlyDirs.includes(alpha));
   // 作業フォルダ・共通のノートを中に持つプロジェクトを書かせない側に入れると、そこまで書けなくなる（砂場の規則は後に書いたほうが勝つ）
   assert.ok(!sandbox.readOnlyDirs.includes(parent));
+  // 読むだけのフォルダは書かせないフォルダにも入る（共通のチャット）。重ねずに、読むだけのフォルダ → 書かせないフォルダの順
+  const notes = path.join(tmp, "notes", "alpha");
+  fs.mkdirSync(notes, { recursive: true });
+  const both = await bashSandboxFor({ rules: rules([tmp]), proxyPort: null, trashDir: null }, { workdir: work, writableDirs: [common], readOnlyDirs: [notes, notes], deniedDirs: [alpha, notes, parent] });
+  assert.deepEqual(both.readOnlyDirs, [notes, alpha]);
   // 渡さなければ、これまでどおり（プロジェクトのチャット）
   assert.deepEqual((await bashSandboxFor({ rules: rules([tmp]), proxyPort: null, trashDir: null }, { workdir: work, writableDirs: [common], readOnlyDirs: [] })).readOnlyDirs, []);
 });

@@ -30,7 +30,7 @@ test("AI への指示の文の記録: plain", async () => {
   const { store, runner, project } = setupCore(provider, {
     trashCommand: { path: path.join(tmp, "bin", "kickoff-trash"), dir: path.join(tmp, "trash") },
     bashSandbox: { rules: { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: ["npm run dev:*", "brew services start:*"] }, proxyPort: null, trashDir: null },
-    contributors: [visualTurnParts(), noteTurnParts({ dirOf: (p) => path.join(tmp, p.id === COMMON_ID ? "_common" : "ノート"), peekDirOf: (p) => path.join(tmp, "ノート", String(p.id)), projects: () => [], commonProject: () => makeProject(COMMON_ID, { kind: "common" }), publish: () => {} })],
+    contributors: [visualTurnParts(), noteTurnParts({ dirOf: (p) => path.join(tmp, p.id === COMMON_ID ? "_common" : "ノート"), peekDirsOf: (list) => list.map((p) => path.join(tmp, "ノート", String(p.id))), projects: () => [], commonProject: () => makeProject(COMMON_ID, { kind: "common" }), publish: () => {} })],
   });
   store.projects.update(project.id, {
     description: "概要の 1 行目\n2 行目",
