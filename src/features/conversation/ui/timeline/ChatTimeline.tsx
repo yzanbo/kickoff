@@ -1,6 +1,5 @@
 import "./Timeline.css";
 import { useLayoutEffect } from "react";
-import { READ_TOGGLE_LABELS } from "@shared/chat/readTiming";
 import type { Chat } from "@shared/chat/types";
 import { TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
@@ -14,6 +13,7 @@ import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
 import { useChatDisplayMenu } from "@/features/conversation/ui/display/useChatDisplayMenu";
 import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
+import { ReadPill } from "./ReadPill";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { activeFloor, TimelineRows } from "./Timeline";
 import { TimelineEnd } from "./TimelineEnd";
@@ -168,7 +168,7 @@ export function ChatTimeline({
       {s.away ? (
         <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />
       ) : (
-        read.readButton && <ScrollBottomPill tone="arrived" label={READ_TOGGLE_LABELS.seen} dock={pillDock ?? null} read onClick={read.markSeen} />
+        read.readButton && <ReadPill dock={pillDock ?? null} onClick={read.markSeen} />
       )}
     </div>
   );
