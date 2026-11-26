@@ -10,7 +10,7 @@ import { COMPACT_PROMPT_KINDS, COMPACT_PROMPT_SWITCH } from "./compactPromptKind
 import type { CompactPromptKind } from "@shared/chat/prompts";
 import { useCompactPrompt } from "./useCompactPrompt";
 
-type Scope = "common" | "project";
+type Scope = "all" | "project";
 
 /** 書いてある指示の範囲 1 つ分（文がなければ null。オフなら「（オフ）」を添える） */
 function partOf(name: string, prompt: { saved: string | null; enabled: boolean }): string | null {
@@ -19,8 +19,8 @@ function partOf(name: string, prompt: { saved: string | null; enabled: boolean }
 }
 
 /** 開閉の行に添える、書いてある指示の範囲（プロジェクトの分はプロジェクト名で。オフのものは「（オフ）」付き） */
-function summaryOf(common: { saved: string | null; enabled: boolean }, project: { saved: string | null; enabled: boolean }, projectName: string): string {
-  const parts = [partOf("すべて", common), partOf(projectName, project)].filter((p): p is string => p !== null);
+function summaryOf(all: { saved: string | null; enabled: boolean }, project: { saved: string | null; enabled: boolean }, projectName: string): string {
+  const parts = [partOf("すべて", all), partOf(projectName, project)].filter((p): p is string => p !== null);
   return parts.length > 0 ? parts.join(" ＋ ") : "なし";
 }
 
@@ -32,18 +32,18 @@ function summaryOf(common: { saved: string | null; enabled: boolean }, project: 
 export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKind; projectId: number }) {
   const { label, placeholder, when } = COMPACT_PROMPT_KINDS[kind];
   const fold = useFold("composer", `${kind}-compact`, { defaultOpen: false });
-  const common = useCompactPrompt(kind, null);
+  const all = useCompactPrompt(kind, null);
   const project = useCompactPrompt(kind, projectId);
   const projectName = useProjects().projectsById.get(projectId)?.name ?? "このプロジェクト";
   // 初めは、指示のあるほう（どちらにもなければすべてのプロジェクト）
-  const [scope, setScope] = useState<Scope>(() => (project.saved !== null && common.saved === null ? "project" : "common"));
-  const current = scope === "common" ? common : project;
+  const [scope, setScope] = useState<Scope>(() => (project.saved !== null && all.saved === null ? "project" : "all"));
+  const current = scope === "all" ? all : project;
 
   return (
     <div className="context-pre-compact">
       <button type="button" className="context-pre-compact-toggle" aria-expanded={fold.open} onClick={fold.toggle}>
         <span className="context-pre-compact-label">{label}</span>
-        <span className="context-pre-compact-summary">{summaryOf(common, project, projectName)}</span>
+        <span className="context-pre-compact-summary">{summaryOf(all, project, projectName)}</span>
         <Chevron open={fold.open} />
       </button>
       {fold.open && (
@@ -56,14 +56,14 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
               value={scope}
               onChange={setScope}
               options={[
-                { value: "common", label: "すべて", tip: "すべてのプロジェクト（共通のチャットも）で送る指示（設定の「圧縮前・圧縮後指示」と同じ）" },
+                { value: "all", label: "すべて", tip: "すべてのプロジェクト（共通のチャットも）で送る指示（設定の「圧縮前・圧縮後指示」と同じ）" },
                 { value: "project", label: projectName, tip: `「${projectName}」だけで、すべてのプロジェクトの指示のあとにつなげて送る指示` },
               ]}
             />
             <Segmented<"on" | "off">
               size="sm"
               className="context-pre-compact-switch"
-              label={scope === "common" ? `すべてのプロジェクトの${label}を送る` : `「${projectName}」の${label}を送る`}
+              label={scope === "all" ? `すべてのプロジェクトの${label}を送る` : `「${projectName}」の${label}を送る`}
               value={current.enabled ? "on" : "off"}
               options={COMPACT_PROMPT_SWITCH}
               onChange={(v) => current.setEnabled(v === "on")}
@@ -73,7 +73,7 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
             rows={3}
             value={current.draft}
             maxLength={COMPACT_PROMPT_MAX}
-            aria-label={scope === "common" ? `すべてのプロジェクトの${label}` : `「${projectName}」の${label}`}
+            aria-label={scope === "all" ? `すべてのプロジェクトの${label}` : `「${projectName}」の${label}`}
             placeholder={placeholder}
             onChange={(e) => current.setDraft(e.target.value)}
           />
