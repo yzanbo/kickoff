@@ -6,7 +6,7 @@ import { Markdown } from "./Markdown";
 import type { Element as HastElement } from "hast";
 import { visit } from "unist-util-visit";
 import { linkWarnings } from "@shared/foundation/linkWarnings";
-import { linkTextOf, scrollToFragment } from "./markdownLinks";
+import { linkTextOf, pressLink, scrollToFragment } from "./markdownLinks";
 import { markdownToHast, pipelineOf, type MarkdownPipeline } from "./markdownProcessor";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -94,4 +94,22 @@ test("linkTextOf: リンクの中の数式は見た目の部分だけを読み�
   assert.equal(text, "apple.com");
   assert.deepEqual(linkWarnings("https://evil.example", text), ["text_mismatch"]);
   assert.equal(linkTextOf(firstLink("[$a\\phantom{b}c$](https://example.com)", math)), "ac");
+});
+
+test("pressLink: 左・中クリックだけ既定の動きを止め、外のページは読み直した URL とリンクの文字で開く口へ渡す", () => {
+  const press = (button: number, href: string | null, defaultPrevented = false) => {
+    const e = { button, defaultPrevented, preventDefault: vi.fn() };
+    const opener = vi.fn();
+    const anchor = href === null ? null : ({ getAttribute: () => href } as unknown as Element);
+    pressLink(e as never, anchor, opener, () => "文字");
+    return { prevented: e.preventDefault.mock.calls.length > 0, opened: opener.mock.calls.map((c: unknown[]) => c.slice(1)) };
+  };
+  assert.deepEqual(press(0, "HTTPS://Example.com"), { prevented: true, opened: [["https://example.com/", "文字"]] });
+  assert.deepEqual(press(1, "https://example.com/a"), { prevented: true, opened: [["https://example.com/a", "文字"]] });
+  // 右クリック・ほかが止めた押下・リンクの外は何もしない
+  assert.deepEqual(press(2, "https://example.com/"), { prevented: false, opened: [] });
+  assert.deepEqual(press(0, "https://example.com/", true), { prevented: false, opened: [] });
+  assert.deepEqual(press(0, null), { prevented: false, opened: [] });
+  // リンクにしない行き先は、窓の既定の動きだけ止めて開かない
+  assert.deepEqual(press(0, "javascript:alert(1)"), { prevented: true, opened: [] });
 });

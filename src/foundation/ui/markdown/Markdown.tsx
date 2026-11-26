@@ -7,7 +7,7 @@ import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
 import { createBlockCache, pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
-import { linkTextOf, MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
+import { linkTextOf, MarkdownLinkOpenerContext, pressLink } from "@/foundation/ui/markdown/markdownLinks";
 import { details, summary } from "@/foundation/ui/markdown/MarkdownDetails";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
@@ -32,12 +32,7 @@ const link: Components["a"] = function MarkdownLink({ node, href, children, id, 
   const path = node?.properties.dataFilePath;
   const target = linkTargetOf(href);
   // 押した（左・中クリック）ら、窓の既定の動き（窓の移動・新しいウィンドウ）を止めて、こちらで開く
-  const activate = (e: MouseEvent<HTMLAnchorElement>) => {
-    if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !target) return;
-    e.preventDefault();
-    if (target.kind === "web") opener?.(e, target.url, linkTextOf(node));
-    else scrollToFragment(e.currentTarget, target.id);
-  };
+  const activate = (e: MouseEvent<HTMLAnchorElement>) => pressLink(e, e.currentTarget, opener, () => linkTextOf(node));
   const plain =
     target === null ? (
       <>{children}</>
