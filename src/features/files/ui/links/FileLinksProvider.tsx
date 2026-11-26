@@ -35,7 +35,8 @@ export function FileLinksProvider({ source, children }: { source: ChatFileSource
   const latest = useLatest(links);
   const root = index?.root;
   const side = links?.side ?? false;
-  const common = value?.common ?? false;
+  // ファイルのタブがあるか（共通のチャットは openInEditor が null）
+  const fileTab = value ? value.openInEditor !== null : true;
   const markdown = useMemo<MarkdownFileLinks | undefined>(
     () =>
       root === undefined
@@ -48,14 +49,14 @@ export function FileLinksProvider({ source, children }: { source: ChatFileSource
               if (latest.current) openByClick(latest.current, e, { path, ...(line ? { line } : {}) });
             },
             menu: (e, path, line) => latest.current?.showMenu(e, { path, ...(line ? { line } : {}) }),
-            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${CLICK_PLACE[fileLinkPlaceOf({ side, common })]}で開く（${common ? "右クリックでパスのコピーなど" : "⌘クリックでファイルタブ・右クリックでほかの開き方"}）`,
+            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${CLICK_PLACE[fileLinkPlaceOf({ side, fileTab })]}で開く（${fileTab ? "⌘クリックでファイルタブ・右クリックでほかの開き方" : "右クリックでパスのコピーなど"}）`,
           },
-    [root, side, common, store, latest],
+    [root, side, fileTab, store, latest],
   );
   return (
     <ChatFileLinksContext.Provider value={links}>
       <MarkdownFileLinksContext.Provider value={markdown}>{children}</MarkdownFileLinksContext.Provider>
-      {links && menu.menu && <FileMenu at={menu.menu.at} file={menu.menu.value} links={links} places={fileMenuPlaces({ side, common })} onClose={menu.close} />}
+      {links && menu.menu && <FileMenu at={menu.menu.at} file={menu.menu.value} links={links} places={fileMenuPlaces({ side, fileTab })} onClose={menu.close} />}
     </ChatFileLinksContext.Provider>
   );
 }

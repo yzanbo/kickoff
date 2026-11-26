@@ -14,8 +14,6 @@ import { fileLinkPlaceOf } from "./linkPlace";
 /** リンクの元（チャットの口の ChatFileSource の中身）: 作業場所のファイルの一覧（ここにあるものだけをチップにする。root は作業場所のフォルダ）と開き方。右クリックのメニューは FileLinksProvider が足す */
 export interface FileLinkSource extends ChatFileSource, Pick<ChatFileLinks, "open" | "openInEditor" | "openChanges"> {
   index: FileIndex;
-  /** 共通のチャットか（右クリックのメニューの開き方の項目を fileMenuPlaces で決める） */
-  common: boolean;
 }
 
 /**
@@ -65,7 +63,7 @@ export function fileLinksFor({
   common: boolean;
 }): FileLinkSource {
   const place = { projectId, ...(worktree ? { worktree } : {}) };
-  const at = fileLinkPlaceOf({ side, common });
+  const at = fileLinkPlaceOf({ side, fileTab: !common });
   const openInTab = (ref: FileRef) => open({ kind: "file", projectId, ...ref, worktree });
   // 別ウィンドウの中のリンクも別ウィンドウで開く（PopoutFiles の popoutFileLinks）
   const openInWindow = (ref: FileRef) => openPopout({ kind: "file", chatId, ...place, ...ref }, ref.path);
@@ -83,7 +81,7 @@ export function fileLinksFor({
   return {
     index: buildFileIndex(files.files, root, files.truncated),
     side,
-    common,
+    // ファイルのタブがない（共通）印も兼ねる（開き方の項目・説明は FileLinksProvider がこれで決める。別ウィンドウ・開けないリンクに直しても null のまま）
     openInEditor: common ? null : openInTab,
     openChanges,
     open: (ref: FileRef) => (at === "side" ? openFileRef(ref, place, { file: openFile, changes: openChanges }) : openOffSide(ref)),
