@@ -13,6 +13,7 @@ import { isHtmlComment } from "./html/htmlTree";
 import { applyMarkdownHtml } from "./html/htmlVerify";
 import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
 import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
+import { fakeFileLinks } from "./testing";
 
 /*
  * 等しいことのテスト: react-markdown そのもので全文を描いた結果と、
@@ -27,15 +28,6 @@ const components: Components = {
   a: ({ node, href, children }) => createElement("a", { href, "data-file": String(node?.properties.dataFilePath ?? "") }, children),
   pre: ({ node: _node, ...props }) => createElement("div", { className: "code-block" }, createElement("pre", props)),
   table: ({ node: _node, ...props }) => createElement("div", { className: "markdown-table" }, createElement("table", props)),
-};
-
-/** ファイルのチップの差し込みの代わり（インラインコードに印を付ける。ブロックをまたがない） */
-const fakeFileLinks = () => (tree: { children?: unknown[] }) => {
-  const walk = (node: { type?: string; data?: Record<string, unknown>; children?: unknown[] }) => {
-    if (node.type === "inlineCode") node.data = { hName: "a", hProperties: { href: "#", dataFilePath: "x" } };
-    node.children?.forEach((c) => walk(c as typeof node));
-  };
-  walk(tree);
 };
 
 /** 数式の部品（返答と同じ組） */

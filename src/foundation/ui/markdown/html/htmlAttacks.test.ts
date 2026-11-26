@@ -4,9 +4,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Element, Nodes, Root } from "hast";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
-import { Markdown } from "../Markdown";
+import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { VFile } from "vfile";
-import { markdownToHast, pipelineOf } from "../markdownProcessor";
+import { markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
 import { tokenizeHtml } from "./htmlTokens";
 import { applyMarkdownHtml } from "./htmlVerify";
 
