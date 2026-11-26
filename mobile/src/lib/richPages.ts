@@ -16,7 +16,7 @@ import {
   TALL_MATH_CLASS,
   TIDY_KATEX_SCRIPT,
 } from "@shared/foundation/math/katexSettings";
-import { MERMAID_SECURE_KEYS, MERMAID_VERSION, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
+import { MERMAID_SAFE_CONFIG, MERMAID_VERSION, mermaidReadsOutside } from "@shared/foundation/mermaidResources";
 import { SANITIZE_SVG_SCRIPT } from "@shared/foundation/mermaidSvg";
 import { VISUAL_MESSAGES, visualDocument, visualThemeCss, type VisualThemeValues } from "@shared/visuals/visualDocument";
 import { colors } from "../ui/colors";
@@ -33,17 +33,11 @@ const MATH_PAGE_CSP = isolatedFrameCsp({ script: PAGE_SCRIPTS, style: ["'unsafe-
 /** Mermaid のページの CSP（図が書く CSS・画像・フォントは外を読めない。スタイルは Mermaid が SVG に書くものだけ） */
 const MERMAID_PAGE_CSP = isolatedFrameCsp({ script: PAGE_SCRIPTS, style: ["'unsafe-inline'"], img: ["data:", "blob:"], font: ["data:"] });
 
-/** Mermaid の設定（パソコンと同じく、図の中の前書き・%%{init}%% から HTML のラベル・配色・CSS・字体を変えさせない） */
+/** Mermaid の設定（守りの設定はパソコンと同じ。図の中の前書き・%%{init}%% から HTML のラベル・配色・CSS・字体を変えさせない） */
 const MERMAID_CONFIG = {
-  startOnLoad: false,
+  ...MERMAID_SAFE_CONFIG,
   theme: "dark",
-  securityLevel: "strict",
-  suppressErrorRendering: true,
-  htmlLabels: false,
   flowchart: { htmlLabels: false },
-  secure: MERMAID_SECURE_KEYS,
-  maxTextSize: 20_000,
-  maxEdges: 400,
 };
 
 /** スマホの配色の図の変数（アプリはダークだけ） */
