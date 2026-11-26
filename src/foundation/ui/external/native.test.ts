@@ -29,9 +29,14 @@ test("openExternal: 行き先の種類ごとに外のアプリの口を呼ぶ。
   assert.equal(await openExternal({ kind: "path", path: "/a" }), false);
 });
 
-test("openInDefaultBrowser: 開き元を渡さない新しいウィンドウで開く（メインが既定のブラウザに渡す）", () => {
+test("openInDefaultBrowser: Mac のアプリではメインの openWebUrl で開き、そうでなければ開き元を渡さない新しいタブ", () => {
   const opened: unknown[][] = [];
-  vi.stubGlobal("window", { open: (...args: unknown[]) => void opened.push(args) });
+  vi.stubGlobal("window", { kickoff: { externalApps: { openWebUrl: async (url: string) => void opened.push(["ipc", url]) } }, open: (...args: unknown[]) => void opened.push(args) });
   openInDefaultBrowser("https://github.com/o/r/pull/1");
-  assert.deepEqual(opened, [["https://github.com/o/r/pull/1", "_blank", "noopener,noreferrer"]]);
+  vi.stubGlobal("window", { open: (...args: unknown[]) => void opened.push(args) });
+  openInDefaultBrowser("https://github.com/o/r/pull/2");
+  assert.deepEqual(opened, [
+    ["ipc", "https://github.com/o/r/pull/1"],
+    ["https://github.com/o/r/pull/2", "_blank", "noopener,noreferrer"],
+  ]);
 });

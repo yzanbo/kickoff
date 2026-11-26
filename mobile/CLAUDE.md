@@ -11,6 +11,7 @@ Android から Tailscale 経由で本体（Mac の Kickoff）のチャットを�
 - 別の npm のまとまり（`package.json`・`node_modules` も別。React の版・依存が違うので混ぜない）。本体からは import しない。
 - 読んでよいのは `src/shared`（`@shared/*`）と `src/app/shared`（`@/app/shared/*`）だけ（`tsconfig.json` の `paths`・`metro.config.js` の `watchFolders`。構造の検査）。
 - パソコンと同じ決まりは `@shared` の関数を使い、写さない（書いている途中の返答・作業場所の区切り・数式・図）。
+- 数式・Mermaid のページ（`src/lib/richPages.ts`）は CDN から本体のスクリプトだけを読み、画像は data: と blob: だけ。Mermaid はパソコンと同じ版・判定・設定・SVG の整え（`@shared/foundation/mermaidResources`・`mermaidSvg`）を通す。数式もパソコンと同じ版・設定・マクロ・整え（`@shared/foundation/math`）。
 - 見るだけの端末は、送る・答える・作る操作を出さない（本体も断る）。本体は本体の ID で分ける。
 - 一覧の並びと作成先の札はパソコンと同じ `@shared/projects/order`（共通の節がいつも先頭で、空でも出す）。いちばん上の「新しいチャット」は共通に作る。共通のターミナルは本体がホームフォルダで開く。
 

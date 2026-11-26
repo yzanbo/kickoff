@@ -11,6 +11,7 @@ import { ansiSpans, markSpans } from "@/foundation/ui/ansi/ansi";
 import { AnsiText } from "@/foundation/ui/ansi/AnsiText";
 import { CheckStateIcon } from "@/features/github/ui/CheckStateIcon";
 import { ciLogLine, stepsWithLogs, stepToOpen } from "./ciView";
+import { ExternalAnchor } from "@/foundation/ui/external/ExternalAnchor";
 
 /**
  * ジョブ 1 つ（見出しを押して開閉）。開いている間だけログを読み、ステップごとに畳んで出す。
@@ -52,9 +53,9 @@ export function CiJobSection({
 
 function IconLink({ url, label }: { url: string; label: string }) {
   return (
-    <a className="ci-job-link" href={url} target="_blank" rel="noreferrer" aria-label={label} data-tip={label}>
+    <ExternalAnchor className="ci-job-link" href={url} aria-label={label} data-tip={label}>
       <ExternalLink size={13} aria-hidden />
-    </a>
+    </ExternalAnchor>
   );
 }
 
@@ -75,9 +76,7 @@ function CiJobLogBody({ projectId, runId, job, focus }: { projectId: number; run
           {job.url && (
             <>
               {" "}
-              <a href={job.url} target="_blank" rel="noreferrer">
-                GitHub で動いている様子を見る
-              </a>
+              <ExternalAnchor href={job.url}>GitHub で動いている様子を見る</ExternalAnchor>
             </>
           )}
         </p>

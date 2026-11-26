@@ -26,18 +26,43 @@
     font-size: var(--chat-fs-14);
   }
 
+  /* 見出しは決まった大きさ（em だと、Markdown の中の HTML で重ねたときに小さくなり続ける。MarkdownHtml.css） */
+  .markdown h4 {
+    font-size: var(--chat-fs-14);
+  }
+
+  .markdown h5 {
+    font-size: var(--chat-fs-13);
+  }
+
+  .markdown h6 {
+    font-size: var(--chat-fs-12);
+  }
+
   .markdown p,
   .markdown ul,
   .markdown ol {
     margin: 0.55em 0;
   }
 
+  /* Markdown として読まずに、書いたままの文字で出すブロック（markdownProcessor.ts の plainBlock。読むと危ない形・読めなかったもの） */
+  .markdown .markdown-plain {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
   .markdown code {
     padding: 1px 5px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 0.9em;
+    /* 重ねても 10px より小さくしない（Markdown の中の HTML の小さくするタグの中など） */
+    font-size: max(0.9em, 10px);
     background: var(--bg-hover);
+  }
+
+  /* 脚注の番号（remark-rehype の sup。Markdown の中の HTML の sup も同じ）。重ねても 10px より小さくしない（ブラウザの既定は下限のない smaller） */
+  .markdown sup {
+    font-size: max(0.75em, 10px);
   }
 
   .markdown pre,
@@ -173,22 +198,76 @@
     background: var(--bg-active);
   }
 
+  /* 脚注の欄（remark-rehype の section.footnotes）。本文と分かるよう、上に細い線を引いて少し小さい字にする */
+
+  .markdown .footnotes {
+    margin-top: 1em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--border);
+    font-size: var(--chat-fs-13);
+  }
+
+  /* 画面には出さず、読み上げにだけ残す文（脚注の見出し「脚注」。remark-rehype が sr-only を付ける） */
+
+  .markdown .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border: 0;
+    clip-path: inset(50%);
+  }
+
   /* 返答の中の画像は欄の幅に収める */
 
   .markdown img {
     max-width: 100%;
+    /* 高さは幅に合わせる（HTML の img の width だけを通す） */
+    height: auto;
   }
 
-  /* 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる */
+  /*
+   * 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる。
+   * HTML の小さくするタグ（small・sub・sup・rt）の中でも会話の本文（14px）より小さくしない（KaTeX の CSS（vendor の層）の 1.21em より、この ui の層が勝つ）
+   */
 
   .markdown .katex {
-    font-size: 1.1em;
+    font-size: max(1.1em, var(--chat-fs-14));
   }
 
+  /*
+   * 式の箱（KaTeX の .katex-base。高さは中の支柱が決める）の外へ出た分は描かない（負の \kern・\hspace は KaTeX の maxSize で丸まらず、
+   * 式の外の文字・画面に重ねられるため。katexOptions.ts）。斜体の張り出し・アクセントが欠けないよう、少しだけ広げて切る
+   */
+  .markdown .katex .katex-base {
+    clip-path: inset(-0.25em);
+  }
+
+  /* 見えない文字（\phantom・\color{transparent}。katexOptions.ts の rehypeSafeMath）は、場所だけ取り、選べない・コピーに入らない */
+  .markdown .katex-see-through {
+    user-select: none;
+  }
+
+  /*
+   * 式の箱の縦の上限（@shared/foundation/math/katexSettings.ts の DISPLAY_MATH_MAX_EM・INLINE_MATH_MAX_EM）。長さの命令でない形
+   * （\arraystretch・空の行の行列）でも段落が縦に空かないように、段落の式は上限を超えたら式の中でスクロールし、
+   * 行の中の式は高すぎるもの（katexOptions.ts の rehypeSafeMath が katex-tall を付ける）をその高さで切る
+   */
   .markdown .katex-display {
     margin: 0.6em 0;
     padding: 0.2em 0;
+    max-height: 40em;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
+  }
+
+  .markdown .katex.katex-tall {
+    display: inline-block;
+    max-height: 10em;
+    overflow: hidden;
+    vertical-align: middle;
   }
 }

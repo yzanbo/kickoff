@@ -1,21 +1,17 @@
 // AI が描いた図（SVG・HTML）を閉じた枠（sandbox の iframe・スマホの WebView）に入れる 1 枚のページを組み立てる。
 // 画面とスマホで同じページにする。ページの中から外へは、決めた CDN のほかに通信できず（CSP）、Kickoff の画面・API・保存にも触れない。
 // 外へ知らせるのは postMessage の決まった形だけ（高さ・失敗・利用者が押したときの発言）
+import { isolatedFrameCsp } from "@shared/foundation/isolatedFrame";
 import { VISUAL_CDN_ORIGINS, VISUAL_THEME_VARS } from "./aiVisual";
 
 /** 図のページの CSP（スクリプトとスタイルは中に書いたものと決めた CDN だけ・画像とフォントは data: と CDN・通信はしない） */
-export const VISUAL_FRAME_CSP = [
-  "default-src 'none'",
-  `script-src 'unsafe-inline' 'unsafe-eval' ${VISUAL_CDN_ORIGINS.join(" ")}`,
-  `style-src 'unsafe-inline' ${VISUAL_CDN_ORIGINS.join(" ")}`,
-  `img-src data: blob: ${VISUAL_CDN_ORIGINS.join(" ")}`,
-  `font-src data: ${VISUAL_CDN_ORIGINS.join(" ")}`,
-  "media-src data: blob:",
-  "connect-src 'none'",
-  "frame-src 'none'",
-  "form-action 'none'",
-  "base-uri 'none'",
-].join("; ");
+export const VISUAL_FRAME_CSP = isolatedFrameCsp({
+  script: ["'unsafe-inline'", "'unsafe-eval'", ...VISUAL_CDN_ORIGINS],
+  style: ["'unsafe-inline'", ...VISUAL_CDN_ORIGINS],
+  img: ["data:", "blob:", ...VISUAL_CDN_ORIGINS],
+  font: ["data:", ...VISUAL_CDN_ORIGINS],
+  media: ["data:", "blob:"],
+});
 
 /** 図のページと外の画面のやり取りの種類（postMessage の type） */
 export const VISUAL_MESSAGES = {

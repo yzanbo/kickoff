@@ -82,3 +82,32 @@ test("createBlockSplitter: 最後のブロックで閉じていないコード�
   assert.equal(splitter.split("前\n\n説明\n```mermaid\ngraph\n```").openFence, null);
   assert.equal(createBlockSplitter().split("前\n\n```ts\nconst a").openFence, 0);
 });
+
+test("splitBlocks: HTML の入れ物の開きから閉じまでは、空行があっても分けない（書きかけの返答も同じ）", () => {
+  const text = "前\n\n<details>\n<summary>題</summary>\n\n本文\n\n<div align=\"center\">\n\n中\n\n</div>\n\n</details>\n\n後ろ";
+  assert.deepEqual(splitBlocks(text), ["前", text.slice(3, text.indexOf("\n\n後ろ")), "後ろ"]);
+  // 閉じがまだ（書きかけ）なら最後まで 1 つ。閉じたら次の空行で分ける
+  const splitter = createBlockSplitter();
+  assert.deepEqual(splitter.split("前\n\n<div>\n\na\n\nb").blocks, ["前", "<div>\n\na\n\nb"]);
+  assert.deepEqual(splitter.split("前\n\n<div>\n\na\n\nb\n\n</div>\n\nc").blocks, ["前", "<div>\n\na\n\nb\n\n</div>", "c"]);
+  // 文の中のコードの中・自分で閉じる形・大文字のタグ・閉じを省ける li は数えない
+  assert.deepEqual(splitBlocks("`<div>`\n\na"), ["`<div>`", "a"]);
+  assert.deepEqual(splitBlocks("<div/>\n\na"), ["<div/>", "a"]);
+  assert.deepEqual(splitBlocks("<DIV>\n\na"), ["<DIV>", "a"]);
+  assert.deepEqual(splitBlocks("<ul><li>x</ul>\n\na"), ["<ul><li>x</ul>", "a"]);
+});
+
+test("splitBlocks: HTML ブロックの中のタグだけを数え（文の中の <div> は数えない）、閉じないまま 32,000 字を超えたらまとめない", () => {
+  assert.deepEqual(splitBlocks("文の中に <div> と書いた\n\n段落\n\n後"), ["文の中に <div> と書いた", "段落", "後"]);
+  // HTML ブロックの始まり（決まった名前のタグ・1 つのタグだけの行・リストの印の後ろ）から空行までの行は数える
+  assert.deepEqual(splitBlocks("<p>\n<div>\n\n中\n\n</div>\n\n後"), ["<p>\n<div>\n\n中\n\n</div>", "後"]);
+  assert.deepEqual(splitBlocks("<span>\n<div>\n\n中\n\n</div>\n\n後"), ["<span>\n<div>\n\n中\n\n</div>", "後"]);
+  assert.deepEqual(splitBlocks("前\n\n- <details>\n\n- 中\n\n- </details>\n\n後"), ["前", "- <details>\n\n- 中\n\n- </details>", "後"]);
+  // 閉じないまま大きくなったら、そこから先は空行で分ける（書きかけの返答も同じ）
+  const paragraphs = Array.from({ length: 6_000 }, (_, i) => `段落 ${i}`).join("\n\n");
+  const blocks = splitBlocks(`<div>\n\n${paragraphs}`);
+  assert.ok(blocks.length > 1_000, String(blocks.length));
+  assert.ok(blocks[0].length > 32_000 && blocks[0].length < 33_000, String(blocks[0].length));
+  const splitter = createBlockSplitter();
+  assert.deepEqual(splitter.split(`<div>\n\n${paragraphs}`).blocks, blocks);
+});

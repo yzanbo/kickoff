@@ -49,7 +49,9 @@ export function HtmlFrame({ html, base, title, className, onLink, interactive, f
       // 選んだ文の上のボタンを消す（親の画面のスクロールとして見せる）
       if (handlers.current.interactive) el.dispatchEvent(new Event("scroll"));
     });
-    doc.addEventListener("click", (e) => {
+    // 左クリックと中クリック（auxclick）で同じ扱い（中クリックで窓の既定の動き＝新しいウィンドウの要求を出さない）
+    const onAnchor = (e: MouseEvent) => {
+      if (e.button !== 0 && e.button !== 1) return;
       // iframe の中の要素は別の世界のものなので instanceof で見分けない
       const anchor = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null | undefined;
       if (!anchor) return;
@@ -57,7 +59,9 @@ export function HtmlFrame({ html, base, title, className, onLink, interactive, f
       const raw = anchor.getAttribute("href") ?? "";
       if (raw.startsWith("#")) doc.getElementById(decodeURIComponent(raw.slice(1)))?.scrollIntoView({ block: "start" });
       else handlers.current.onLink?.(anchor.href);
-    });
+    };
+    doc.addEventListener("click", onAnchor);
+    doc.addEventListener("auxclick", onAnchor);
     if (!handlers.current.interactive) return;
     // 押下（開いているメニューが外側のクリックとして閉じ、マウスを乗せたときの説明も消える）と、選び終えた mouseup を iframe の要素から伝え直す
     const forward = (e: MouseEvent) => {

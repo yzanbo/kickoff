@@ -12,6 +12,7 @@
 
 - ページは信頼しない外部のもの。本体と切り離したセッション（`persist:kickoff-browser`。メインでも強制）で開き、`hardenWebviews` は窓を作る前に登録する。入力欄の文は検索・チャットに渡さない。
 - 操作は頼んできた画面の中の webview に限る（`isOurWebview`）。
+- webview の中の新しいウィンドウは `openPopupsExternally` が既定のブラウザで開く（http(s) だけ。アプリの窓は開かないので、webview の分はここで持つ）。
 - AI が使うタブは作業ごとに初めの 1 回だけ表に出す（`core/browserReveal.ts`）。キーボードのピントは動かさない。
 
 ## 落とし穴

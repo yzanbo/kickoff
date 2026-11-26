@@ -3,6 +3,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
+import { MERMAID_FRAME_PATH } from "@shared/foundation/mermaidFrame";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/foundation/api/version";
 import { MCP_PATH } from "@/foundation/core/aiTools/host";
 import { systemClock } from "@/foundation/core/clock";
@@ -11,6 +12,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { authMiddleware, loginRoute, type BrowserLogin } from "./auth";
 import { errorResponse } from "./errorResponse";
+import { mermaidFramePage } from "./framePage";
 import { deviceAccess } from "./deviceAccess";
 import { provideProjectScopes } from "./lookups";
 import { mount, type Mountable } from "./mount";
@@ -94,6 +96,8 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workp
   // 認証の外の口（まだトークンを持たない端末のペアリング）とページ（図の枠など。中身を画面が postMessage で渡すので秘密を持たない）
   mount(app, routes, "public");
   for (const f of features) for (const [path, page] of Object.entries(f.pages ?? {})) app.get(path, page);
+  // 土台のページ: Markdown の Mermaid の図を描く閉じた枠（画面の文書の外で描く。@shared/foundation/mermaidFrame.ts）
+  app.get(MERMAID_FRAME_PATH, mermaidFramePage);
 
   // ブラウザからこの Mac の画面として入る（npm run daemon が出す一度だけの番号。本体のトークンの Cookie を置いて画面へ）
   loginRoute(app, opts.token, opts.browserLogin);

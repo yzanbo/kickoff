@@ -36,9 +36,13 @@ export const installedTerminals = (): Promise<ExternalTerminalId[]> | undefined 
 export const installedBrowsers = (): Promise<ExternalBrowserId[]> | undefined => window.kickoff?.externalApps.browsers();
 
 /**
- * 既定のブラウザでページを開く（確かめは出さない。アプリが作った GitHub などの URL 用。本文のリンクは linkOpen.ts の openWebLink）。
- * 新しいウィンドウを開こうとすると、メインプロセスが http(s) のページだけを既定のブラウザで開く（foundation/desktop/app/externalLinks.ts）
+ * 既定のブラウザで http(s) のページを開く（確かめは出さない。アプリが作った GitHub などの URL 用。本文のリンクは linkOpen.ts の openWebLink）。
+ * Mac のアプリではメインの IPC（openWebUrl。メインが URL を読み直し、http(s) でなければ断る）で開く。新しいウィンドウの要求ではメインは何も開かない。
+ * Mac のアプリでなければ（ブラウザで開いた画面）、ブラウザの新しいタブ
  */
 export function openInDefaultBrowser(url: string): void {
-  window.open(url, "_blank", "noopener,noreferrer");
+  const apps = window.kickoff?.externalApps;
+  // 開けないのは http(s) でない URL だけ（呼び手はアプリが作った URL なので知らせない）
+  if (apps) void apps.openWebUrl(url).catch(() => {});
+  else window.open(url, "_blank", "noopener,noreferrer");
 }

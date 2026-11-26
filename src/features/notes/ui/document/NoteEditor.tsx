@@ -11,6 +11,7 @@ import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
+import { cjkFriendlyEmphasis } from "./cjkEmphasis";
 import { livePreview } from "./livePreviewExtension";
 import { liveRich } from "./liveRich";
 import type { NoteLines } from "./noteAttachment";
@@ -64,7 +65,7 @@ const htmlHighlight = HighlightStyle.define([
  * ノートの編集（CodeMirror 6）。HTML のノートは HTML のソースをそのまま書く（色分けと、タグを閉じる補助。ページの見た目は NoteView が別に描く）。
  * Markdown のノートの Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
  * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
- * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、ノートを開いたときに初めて読み込む（default export）
+ * 太字・取り消し線は返答の表示と同じ日本語向けの決まりで読む（cjkEmphasis.ts）。行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、ノートを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
 export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
@@ -79,7 +80,7 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     dynamicDeps: [live, kind],
     extensions: () => [
       baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),
-      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
+      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: [cjkFriendlyEmphasis] }),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "ノート（HTML のソース）" : "ノート" }),
       // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）

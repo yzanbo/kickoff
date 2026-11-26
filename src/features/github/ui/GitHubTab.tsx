@@ -24,6 +24,7 @@ import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";
 import { parseGitHubSelected } from "./openGitHubItem";
 import { openInDefaultBrowser } from "@/foundation/ui/external/native";
+import { ExternalAnchor } from "@/foundation/ui/external/ExternalAnchor";
 
 /** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など。CI のタブも同じ） */
 export const DETAIL_MIN_WIDTH = 440;
@@ -73,9 +74,9 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
         <>
           {/* リポジトリの名前は GitHub のリポジトリのページへ、右の印はいまの絞り込みの一覧を GitHub で開く（外のブラウザ） */}
           <div className="github-list-repo small">
-            <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
+            <ExternalAnchor className="github-repo-link" href={githubRepoUrl(host, repo)} data-tip="GitHub でリポジトリを開く">
               {repo}
-            </a>
+            </ExternalAnchor>
             <IconButton icon={ExternalLink} iconSize={13} label="この一覧を GitHub で開く" onClick={() => openInDefaultBrowser(githubListUrl(host, repo, filter))} />
             {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
             {!narrow && (

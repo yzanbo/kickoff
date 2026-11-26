@@ -5,6 +5,7 @@ import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { desktopPlatform } from "@/foundation/desktop/platform/index";
 import { existingFolder, vscodeFileUrl } from "./openCommands";
 import { isWebUrl } from "@/foundation/desktop/urls";
+import { webLinkOf } from "@shared/foundation/linkTarget";
 
 /** アプリの外で開く（IPC の externalApps）。OS ごとの開き方は platform/ の DesktopPlatform */
 export const externalAppHandlers: IpcHandlers["externalApps"] = {
@@ -31,5 +32,11 @@ export const externalAppHandlers: IpcHandlers["externalApps"] = {
       if (isWebUrl(url)) await shell.openExternal(url);
       else throw e;
     }
+  },
+  // 既定のブラウザで開く（引数の zod でも確かめるが、開く直前にもう一度読み直し、その形だけを渡す）
+  openWebUrl: async (_e, url) => {
+    const target = webLinkOf(url);
+    if (target === null) throw new Error("http(s) の URL ではありません");
+    await shell.openExternal(target);
   },
 };

@@ -137,3 +137,10 @@ test("boot.js は CSP の内側（meta の CSP のあと）で、入口のスク
   const boot = indexHtml.indexOf('<script src="/boot.js"></script>');
   assert.ok(csp >= 0 && boot > csp && boot < indexHtml.indexOf('<script type="module"'));
 });
+
+test("CSP: <base> は自分の出どころだけ・フォームの送信先なし・埋め込みの object なし", () => {
+  const csp = indexHtml.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)?.[1] ?? "";
+  const directives = csp.split(";").map((d) => d.trim());
+  // HTML の文書の iframe（srcdoc）は CSP を受け継ぐ。そこで入れる <base> はコアのファイルの口（画面と同じ出どころ。projectAssetBase・noteAssetBase）なので 'self' で通る
+  for (const d of ["base-uri 'self'", "form-action 'none'", "object-src 'none'"]) assert.ok(directives.includes(d), d);
+});

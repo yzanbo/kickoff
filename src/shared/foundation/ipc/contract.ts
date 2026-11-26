@@ -94,6 +94,11 @@ export const FOUNDATION_IPC = {
     browsers: invoke<[], ExternalBrowserId[]>(),
     /** 外部のブラウザ（省くと Chrome）でページを開く（url がない・http(s) でなければ空の新しいタブ） */
     openBrowser: invoke<[url?: string, browser?: ExternalBrowserId]>(),
+    /**
+     * 既定のブラウザで http(s) のページを開く（メインは URL を読み直し、http(s) でなければ断る）。外のページを開く口はこれだけ
+     * （新しいウィンドウの要求では開かない）。画面は本文のリンクなら確認を通してから（openWebLink）、アプリが作った URL ならそのまま呼ぶ
+     */
+    openWebUrl: invoke<[url: string]>(),
   },
   /**
    * 内蔵ターミナル（パネルのタブ）。シェルはコアで動き、画面はコアの API（POST /api/terminals・WebSocket）で直接つなぐ。

@@ -17,6 +17,7 @@ import { BrowserPageMenu, useBrowserPageMenu } from "./BrowserPageMenu";
 import { useBrowserTextMenu } from "./useBrowserTextMenu";
 import { isDesktopApp } from "./native";
 import { useWebviewEvents } from "./useWebviewEvents";
+import { ExternalAnchor } from "@/foundation/ui/external/ExternalAnchor";
 
 interface Props {
   url: string;
@@ -98,9 +99,9 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
       <div className="browser-unavailable">
         <Globe size={22} />
         <p>ブラウザの表示はデスクトップアプリでのみ使えます。</p>
-        <a className="btn" href={current} target="_blank" rel="noreferrer">
+        <ExternalAnchor className="btn" href={current}>
           <ExternalLink size={14} /> 新しいタブで開く
-        </a>
+        </ExternalAnchor>
       </div>
     );
   }

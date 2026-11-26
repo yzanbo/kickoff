@@ -1,5 +1,6 @@
 import type { MermaidConfig } from "mermaid";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
+import { MERMAID_SECURE_KEYS } from "@shared/foundation/mermaidResources";
 import { blendRgb, parseColor } from "@shared/foundation/theme/color";
 
 /** 図に使える文字数・線の数の上限（超えたら図にせず、コードのまま出す） */
@@ -61,6 +62,7 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
     securityLevel: "strict",
     suppressErrorRendering: true,
     htmlLabels: false,
+    secure: [...MERMAID_SECURE_KEYS],
     maxTextSize: MAX_TEXT_SIZE,
     maxEdges: MAX_EDGES,
     theme: "base",

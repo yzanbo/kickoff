@@ -16,9 +16,15 @@ const EXPRESSION = /^[A-Za-z0-9.,()]+(?: ?[-+*/] ?[A-Za-z0-9.,()]+)+$/;
 /** 文の言葉らしいもの: 英字 4 文字以上の単語・かな漢字が 2 文字以上続く・% */
 const PROSE = /[A-Za-z]{4,}|[\p{scx=Han}\p{scx=Hiragana}\p{scx=Katakana}]{2}|%/u;
 
-/** TeX の命令（\frac・\alpha）と、その後ろの {…} の中身の文（\text{面積}）を除いた文（文の言葉らしいかを見るため） */
+/**
+ * 引数の {…} が文の言葉でない命令: 文字の書体（\text{面積}・\mathrm{kg}）・色（\textcolor{blue}）・環境の名前（\begin{pmatrix}）。
+ * 中身に英単語が入っていても、数式の一部として書かれたもの
+ */
+const ARGUMENT_COMMANDS = /\\(?:text|textbf|textit|textrm|texttt|textsf|mathrm|mathbf|mathit|mathsf|mathtt|mathcal|mathbb|mathfrak|boldsymbol|operatorname|mbox|color|textcolor|colorbox|fcolorbox|begin|end)\{[^}]*\}/g;
+
+/** TeX の命令（\frac・\alpha）と、ARGUMENT_COMMANDS の {…} の中身を除いた文（文の言葉らしいかを見るため） */
 function withoutCommands(tex: string): string {
-  return tex.replace(/\\(?:text|mathrm|operatorname|mbox)\{[^}]*\}/g, " ").replace(/\\[A-Za-z]+/g, " ");
+  return tex.replace(ARGUMENT_COMMANDS, " ").replace(/\\[A-Za-z]+/g, " ");
 }
 
 /**

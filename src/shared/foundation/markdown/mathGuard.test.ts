@@ -14,6 +14,12 @@ test("looksLikeMath: 数だけ・文の言葉・前後の空白・長すぎる�
   }
   // TeX の命令の名前（frac・alpha）や \text{} の中は、文の言葉と数えない
   assert.ok(looksLikeMath("\\text{面} = \\pi r^2"));
+  // 書体・色・環境の名前の {…} の中の英単語も、文の言葉と数えない
+  assert.ok(looksLikeMath("\\textcolor{blue}{y}"));
+  assert.ok(looksLikeMath("\\begin{pmatrix}a\\\\b\\end{pmatrix}"));
+  assert.ok(looksLikeMath("v = \\mathbf{velocity}"));
+  // 命令の外の英単語は今までどおり文の言葉
+  assert.ok(!looksLikeMath("\\alpha is good"));
 });
 
 test("isSingleDollarMath: 値段・シェルの変数と取り違えない", () => {

@@ -4,7 +4,7 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 
 ## 口の一覧
 - `parts.ts`（`DesktopPart`。土台は `foundationPart.ts`、機能は各機能の `desktop/index.ts`。app が `mergeParts` で並べる）
-- `app/`: 窓 `window.ts`（`createAppWindow`・`showMainWindow`）・別ウィンドウ `popouts.ts`（`POPOUT_KINDS`）・終了 `shutdown.ts`・コアのプロセス `coreProcess.ts`（様子は `coreState.ts`）・子の Electron `childApps.ts`・外のアプリ `externalApps.ts`・眠らせない `keepAwakeRules.ts`・鍵 `secretCipher.ts`・マイク `mediaPermission.ts`・起動の記録 `startupLog.ts`・`bootRecorder.ts`・詰まり `stalls.ts`・通知 `notifications.ts`・Dock のアイコン `dockIcon.ts`・`hangWatch.ts`
+- `app/`: 窓 `window.ts`（`createAppWindow`・`showMainWindow`）・別ウィンドウ `popouts.ts`（`POPOUT_KINDS`）・終了 `shutdown.ts`・コアのプロセス `coreProcess.ts`（様子は `coreState.ts`）・子の Electron `childApps.ts`・外のアプリ `externalApps.ts`・窓の守り `windowGuard.ts`・眠らせない `keepAwakeRules.ts`・鍵 `secretCipher.ts`・許可 `mediaPermission.ts`・起動の記録 `startupLog.ts`・`bootRecorder.ts`・詰まり `stalls.ts`・通知 `notifications.ts`・Dock のアイコン `dockIcon.ts`・`hangWatch.ts`
 - `ipc/`: 登録 `register.ts`・引数の zod `args.ts`。表は土台の `FOUNDATION_IPC` と機能の `@shared/<機能>/ipc.ts`（並べるのは `@/app/shared/ipc.ts`）
 - `platform/`（`hostPlatform`・`desktopPlatform`）・`terminal/`・URL の判定 `urls.ts`
 
@@ -12,6 +12,8 @@ Electron のメインプロセスと preload の土台。窓・OS の口・仲�
 - IPC は登録 `register.ts` を通す（送り手と引数の zod をそこで確かめる）。チャンネル名は手書きしない。足すときは表 → 引数の形（機能は `desktop/ipcArgs.ts`。末尾の `Same` で表と比べる）→ 処理の順。
 - `src/shared/foundation/ipc` と機能の `ipc.ts` は zod を読まない（preload の砂場に束ねる）。値は種類だけを持つ（型の引数は必ず書く）。
 - 画面から届いたパスは信じない（解決してから比べる）。
+- 外のページは IPC の `externalApps.openWebUrl`（URL を読み直し、http(s) だけ）でだけ開く。アプリの窓の新しいウィンドウの要求は断るだけ（`denyNewWindows`）。
+- アプリの窓はアプリの出どころ（開発版は dev サーバー）の外へ移らせない（`guardAppNavigation`）。枠がアプリの出どころへ移れるのは、画面の文書が作った枠の最初の読み込みだけ（読んだ枠は移れず、枠の中の枠は srcdoc・空のページだけ。`urls.ts`）。許可（`mediaPermission.ts`）もアプリの出どころにだけ出す。
 - メインはログインシェルの PATH・localStorage・SQL を読まない（窓の地の色はテーマを画面から受ける）。通知の要否と文・シェルはコア。
 - 画面が読み込み直される・落ちる・閉じるときに、持ち物（Dock のアイコン・内蔵ターミナルなど）を片付けるには `createRendererLifetimeWatcher` を使う。
 - OS ごとの処理は `platform/` の口に集める（DB ワーカーのシェルの口はワーカーの入口が選ぶ。OS を足すときは両方）。Electron に依らない判定は別のファイルに分けてテストする。

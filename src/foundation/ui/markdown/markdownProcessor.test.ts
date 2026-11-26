@@ -3,13 +3,16 @@ import { test } from "vitest";
 import { createElement, Fragment, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
-import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/foundation/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { remarkMathGuard } from "@/foundation/ui/markdown/math/remarkMathGuard";
-import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import type { Root as HastRoot } from "hast";
+import { isHtmlComment } from "./html/htmlTree";
+import { applyMarkdownHtml } from "./html/htmlVerify";
+import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { markdownRemarkPlugins, REMARK_REHYPE_OPTIONS } from "./syntax/markdownPlugins";
 
 /*
  * 等しいことのテスト: react-markdown そのもので全文を描いた結果と、
@@ -40,22 +43,16 @@ const math = {
   rehype: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]] as PluggableList,
 };
 
-/** HTML のコメントだけの raw を消す（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じにそろえる） */
-const dropHtmlComments = () => (tree: { children?: unknown[] }) => {
-  const walk = (node: { type?: string; value?: string; children?: unknown[] }) => {
-    if (!node.children) return;
-    node.children = node.children.filter((c) => {
-      const child = c as typeof node;
-      return !(child.type === "raw" && isHtmlComment(child.value ?? ""));
-    });
-    node.children.forEach((c) => walk(c as typeof node));
-  };
-  walk(tree);
+/** Markdown の中の HTML を一覧を通して要素にする（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じ段を足す。数式より前） */
+const markdownHtml = () => (tree: HastRoot) => {
+  applyMarkdownHtml(tree);
 };
 
-/** react-markdown で全文を描く（HTML のコメントは、作り置きの処理と同じく消す） */
+/** react-markdown で全文を描く（設定の組の remark-rehype の決まりも渡す。HTML は、作り置きの処理と同じく一覧を通したものだけを要素にする） */
 function whole(text: string, remarkPlugins: PluggableList, rehypePlugins: PluggableList): string {
-  return renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins, rehypePlugins: [...rehypePlugins, dropHtmlComments], components }, text));
+  return renderToStaticMarkup(
+    createElement(ReactMarkdown, { remarkPlugins, remarkRehypeOptions: REMARK_REHYPE_OPTIONS, rehypePlugins: [markdownHtml, ...rehypePlugins], components }, text),
+  );
 }
 
 /** ブロックに分けて描く（ブロックの間には、全文で描いたときと同じく改行の文字を置く） */
@@ -70,11 +67,14 @@ const SAMPLES = [
   "- [ ] まだ\n- [x] 済み\n\n- a\n  - 入れ子\n\n    字下げの段落\n\n段落\n\n    字下げのコード\n\n    続き",
   "https://example.com と <https://example.org> と www.example.net\n\n[リンク](https://example.com \"題\") と [危ない](javascript:alert(1)) と ![画像](x.png)",
   "<div>HTML の\n\nブロック</div>\n\n<!--\nコメント\n\n続き\n-->\n\n<pre>\na\n\nb</pre>\n\n後ろ",
+  "文の中に <div> と書いた\n\n段落\n\n</div>\n\n<p>\n<details>\n\n中\n\n</details>\n\n<span>\n<div>\n\n中\n\n</div>",
   "図の前\n\n<!-- visual: v-s1xidvm4 -->\n\n文の中 <!-- 目印 --> の続き\n\n<!-- a --> 同じ行の文\n\n<!-- 閉じていない",
   "参照のリンク [これ][r] と脚注[^1]。\n\n別の段落\n\n[r]: https://example.com\n[^1]: 脚注の本文",
   "````md\n```\n中\n\n```\n````\n\n~~~\nチルダ\n\n~~~\n\n```mermaid\ngraph TD\n  A-->B\n```\n\n閉じていない\n\n```py\nprint(1)\n\n",
   "見出し\n===\n\n下線の見出し\n---\n\n* 星\n\n+ 足す\n\n1) かっこ\n2) かっこ",
   "&amp; &copy; \\* エスケープ \\`\n\n行末の空白で改行  \n次の行\n\n<br>\n\n最後",
+  "**「強調」**は（https://example.com）を開く。所要時間は5~10秒\n\n- **ノート（.md）**と~~取消（x）~~です\n\n| a |\n|---|\n| **【済】**です |",
+  "<div align=\"center\">\n\n**中の Markdown**\n\n<img src=\"https://example.com/a.png\" width=\"120\">\n\n</div>\n\n文 <kbd>⌘</kbd> と <sub>下</sub><sup>上</sup> と <b>閉じない\n\n<table>\n<tr>\n<td colspan=\"2\">\n\n- 項目\n\n</td>\n</tr>\n</table>\n\n| 表 |\n|---|\n| 一<br>二 |",
 ];
 
 const MATH_SAMPLES = [
@@ -87,18 +87,18 @@ test("ブロックに分けて作り置きの処理で描いた結果は、react
   for (const text of SAMPLES) {
     assert.equal(
       blocks(text, (b) => renderMarkdown(plain, b, components)),
-      whole(text, [remarkGfm], []),
+      whole(text, markdownRemarkPlugins(), []),
       JSON.stringify(text),
     );
   }
 });
 
 test("ファイルのチップの差し込み・数式（KaTeX）があっても同じ", () => {
-  const withLinks = createPipeline([remarkGfm, fakeFileLinks], []);
+  const withLinks = createPipeline(markdownRemarkPlugins([fakeFileLinks]), []);
   for (const text of SAMPLES) {
     assert.equal(
       blocks(text, (b) => renderMarkdown(withLinks, b, components)),
-      whole(text, [remarkGfm, fakeFileLinks], []),
+      whole(text, markdownRemarkPlugins([fakeFileLinks]), []),
       JSON.stringify(text),
     );
   }
@@ -107,20 +107,20 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
     const text = convertTexDelimiters(source);
     assert.equal(
       blocks(text, (b) => renderMarkdown(withMath, b, components)),
-      whole(text, [remarkGfm, ...math.remark], math.rehype),
+      whole(text, markdownRemarkPlugins(math.remark), math.rehype),
       JSON.stringify(text),
     );
   }
 });
 
-test("生の HTML: コメントだけのものは出さず、ほかはこれまでどおり文字で出す（動かさない）", () => {
+test("生の HTML: コメントだけのものは出さず、一覧のタグは要素に、ほかは文字で出す（動かさない）", () => {
   const render = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, components));
   assert.equal(render("前\n\n<!-- visual: v-s1xidvm4 -->\n\n後ろ"), "<p>前</p>\n\n<p>後ろ</p>");
   assert.equal(render("文の中 <!-- 目印 --> の続き"), "<p>文の中  の続き</p>");
   assert.equal(render("<!--\n複数行の\n\nコメント\n--> <!-- 続けて -->"), "");
-  // コメント以外の生の HTML・コメントと文が混ざったもの・閉じていないコメントは文字のまま
-  assert.match(render("<div onclick=\"x()\">中</div>"), /&lt;div onclick=&quot;x\(\)&quot;&gt;中&lt;\/div&gt;/);
-  assert.match(render("文 <b>太</b>"), /<p>文 &lt;b&gt;太&lt;\/b&gt;<\/p>/);
+  // 一覧のタグは要素にし、一覧にない属性（on…）は消す。コメントと文が混ざったもの・閉じていないコメントは文字のまま
+  assert.equal(render('<div onclick="x()">中</div>'), '<div class="md-html">中</div>');
+  assert.equal(render("文 <b>太</b>"), '<p>文 <b class="md-html">太</b></p>');
   assert.match(render("<!-- a --> 同じ行の文"), /&lt;!-- a --&gt; 同じ行の文/);
   assert.match(render("<!-- 閉じていない"), /&lt;!-- 閉じていない/);
   assert.ok(isHtmlComment("  <!-- a -->\n<!-- b -->  "));
@@ -139,6 +139,18 @@ test("renderMarkdown: tail があれば終わりの文字を薄く包む（コ�
   const html = renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), "前の文字\n\n```\ncode\n```\n\n後ろ", components, [2, 0, 0]));
   assert.match(html, /<p><span class="stream-fade-1">後ろ<\/span><\/p>/);
   assert.match(html, /<code>code\n<\/code>/);
+});
+
+test("renderMarkdown: 1 回の改行を改行（br）にしても、薄く出す段は同じ文字を包む（改行の文字が br の後ろに残る）", () => {
+  const faded = (html: string) => [...html.matchAll(/<span class="stream-fade-\d">([^<]*)<\/span>/g)].map((m) => m[1]).join("");
+  const plain = createPipeline([], []);
+  const withBreaks = pipelineOf(undefined, null);
+  for (const [text, n] of [["前の行\n後ろの行", 5], ["前の行\n後ろの行", 8], ["a\nb\nc", 3], ["**太\n字**の\n続き", 6]] as const) {
+    const before = faded(renderToStaticMarkup(renderMarkdown(plain, text, components, [n, 0, 0])));
+    const after = renderToStaticMarkup(renderMarkdown(withBreaks, text, components, [n, 0, 0]));
+    assert.match(after, /<br\/>/);
+    assert.equal(faded(after), before, text);
+  }
 });
 
 test("createBlockCache: 同じ処理の組と文なら同じ要素を返し、数と字数の上限で古いものから捨てる", () => {

@@ -18,5 +18,6 @@
 - `contain: strict` は大きさが外で決まる箱だけ。`content-visibility: auto` は内側の要素に当て、`contain-intrinsic-size` は余白と枠を引いた高さ。
 - 色の地のボタンは乗せると同じ色で少し暗く。ダイアログの幅は `--dialog-w`、組のボタンは `.split-button`、並べ替えの線は `dragAttrs`（`--drop-*`）、開閉で動く欄は `.slide-pane`（動きは `--panel-motion-*`）。Git・PR・CI の色は属性（`types/state-colors.css`）。
 - `getComputedStyle` で読む変数は、名を変えたら読む側も直す。
+- state の層に置くのは状態の印と、Markdown の中の HTML の要素にほかの CSS を当てない決まり（`markdown/MarkdownHtml.css`）だけ。
 - ドラッグ領域の中で操作するものは `no-drag`（計算後のスタイルで確かめる）。
 - テスト: `scripts/check-structure.mjs` の CSS の検査（最初のクラスの持ち主）・`node scripts/ui-audit-buttons.mjs`。

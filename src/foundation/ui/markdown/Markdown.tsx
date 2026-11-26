@@ -1,16 +1,19 @@
 import "./Markdown.css";
-import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
+import "./MarkdownHtml.css";
+import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
-import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "@/foundation/ui/markdown/markdownProcessor";
+import { createBlockCache, pipelineOf, renderBlock } from "@/foundation/ui/markdown/markdownProcessor";
 import { MarkdownFileLinksContext } from "@/foundation/ui/markdown/markdownFileLinks";
 import { MarkdownImageSourcesContext, MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
-import { MarkdownLinkOpenerContext } from "@/foundation/ui/markdown/markdownLinks";
-import { imageSourcesIn } from "@shared/foundation/markdown/images";
+import { linkTextOf, MarkdownLinkOpenerContext, scrollToFragment } from "@/foundation/ui/markdown/markdownLinks";
+import { details, summary } from "@/foundation/ui/markdown/MarkdownDetails";
+import { linkTargetOf } from "@shared/foundation/linkTarget";
 import { MermaidDiagram, MermaidPlaceholder } from "@/foundation/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/foundation/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
+import { RenderBoundary, RenderFailed } from "@/foundation/ui/kit/RenderBoundary";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 import { useHighlight } from "@/foundation/ui/code/useHighlight";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
@@ -20,34 +23,34 @@ import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
 
 /**
  * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。
- * 外部リンク（http・https）は、開く口（MarkdownLinkOpenerContext）があればそれで開く（確認の画面・開き先の設定）
+ * ほかは行き先の判定（`@shared/foundation/linkTarget`）を通ったものだけをリンクにする: 外のページ（http・https。読み直した URL）は、
+ * 開く口（MarkdownLinkOpenerContext。確認の画面・開き先の設定）で開く（中クリックも同じ）。# は窓を開かず、同じ返答の中の行き先へスクロールする。
+ * ほか（相対のパス・mailto: など）はリンクにせず文字だけ（書かれた文字列を href に入れない。窓の URL に解決されてコアの URL などへ行かないように）
  */
-const link: Components["a"] = function MarkdownLink({ node, href, children }) {
+const link: Components["a"] = function MarkdownLink({ node, href, children, id, "aria-label": label, "aria-describedby": describedBy }) {
   const opener = useContext(MarkdownLinkOpenerContext);
   const path = node?.properties.dataFilePath;
-  const web = opener !== null && typeof href === "string" && /^https?:\/\//i.test(href);
-  const plain = (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      onClick={
-        web
-          ? (e) => {
-              if (e.button !== 0 || e.defaultPrevented) return;
-              e.preventDefault();
-              opener(e, href, hastText(node));
-            }
-          : undefined
-      }
-    >
-      {children}
-    </a>
-  );
+  const target = linkTargetOf(href);
+  // 押した（左・中クリック）ら、窓の既定の動き（窓の移動・新しいウィンドウ）を止めて、こちらで開く
+  const activate = (e: MouseEvent<HTMLAnchorElement>) => {
+    if ((e.button !== 0 && e.button !== 1) || e.defaultPrevented || !target) return;
+    e.preventDefault();
+    if (target.kind === "web") opener?.(e, target.url, linkTextOf(node));
+    else scrollToFragment(e.currentTarget, target.id);
+  };
+  const plain =
+    target === null ? (
+      <>{children}</>
+    ) : (
+      // id・説明は脚注の番号と戻る印のもの（remark-rehype が付ける。戻る印の行き先は番号の id）
+      <a href={target.kind === "web" ? target.url : href} id={id} aria-label={label} aria-describedby={describedBy} rel="noreferrer" onClick={activate} onAuxClick={activate}>
+        {children}
+      </a>
+    );
   if (typeof path !== "string") return plain;
   const text = node?.properties.dataFileText;
   return (
-    <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined} text={typeof text === "string" ? text : undefined} fallback={href ? plain : children}>
+    <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined} text={typeof text === "string" ? text : undefined} fallback={plain}>
       {children}
     </FileLink>
   );
@@ -55,13 +58,6 @@ const link: Components["a"] = function MarkdownLink({ node, href, children }) {
 
 const noSubscribe = () => () => {};
 
-/** hast の要素の中の文字（リンクの文字。確認の画面で「文字と行き先が違う」を見分ける） */
-function hastText(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
-  const n = node as { type?: string; value?: unknown; children?: unknown[] };
-  if (n.type === "text" && typeof n.value === "string") return n.value;
-  return (n.children ?? []).map(hastText).join("");
-}
 const NO_SOURCES: readonly string[] = [];
 
 /**
@@ -170,7 +166,7 @@ const image: Components["img"] = function MarkdownImage({ node: _node, ...props 
 };
 
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
-const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image };
+const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image, details, summary };
 
 /** 描いたブロックの覚え（書きかけの返答から確定した返答に替わったとき・流れの窓で行を外して戻したときに解析し直さない） */
 const blockCache = createBlockCache();
@@ -182,7 +178,7 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
   a === b || (a !== undefined && b !== undefined && a.length === b.length && a.every((n, i) => n === b[i]));
 
 /**
- * AI の発言などの Markdown 表示（HTML は描画しない）。本文と設定（streaming・tail）が同じなら描き直さない
+ * AI の発言などの Markdown 表示（中の HTML は、安全と確かめた一覧のタグと属性だけを描き、ほかは文字のまま。`html/`）。本文と設定（streaming・tail）が同じなら描き直さない
  * （親が描き直るたびに全文を解析し直さないため。ファイルのリンクなど context の値が変わったときは描き直る）。```mermaid は図にする。
  * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
@@ -191,13 +187,23 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
  * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`）
  */
 // 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
-export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
+export const Markdown = memo(MarkdownGuarded, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
+
+/**
+ * 描く処理が投げたら、このメッセージ（文）だけを「表示できませんでした」と元の文に替える（返答・ファイルのプレビュー・GitHub の本文などで共通。
+ * ブロックの読み取りの失敗は markdownProcessor.ts がブロックごとに文字で出すので、ここで受けるのは部品の中の失敗）
+ */
+function MarkdownGuarded(props: MarkdownProps) {
+  return (
+    <RenderBoundary resetKey={props.children} fallback={<RenderFailed text={props.children} />}>
+      <MarkdownBody {...props} />
+    </RenderBoundary>
+  );
+}
 
 function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);
   const images = useContext(MarkdownImagesContext);
-  // 画像の描き方を差し込まれているときだけ、文に書かれた画像の src を拾って配る（「host から画像を n 件表示」の数）
-  const sources = images ? imageSourcesIn(children) : NO_SOURCES;
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
@@ -211,17 +217,21 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
     tail,
   );
   const last = blocks.length - 1;
+  // 書き終えたブロックは覚えから引く（同じ要素なので React も描き直さない）。薄く出す段のあるブロックは毎回描く
+  const rendered = blocks.map((b, i) => (tails[i] ? renderBlock(pipeline, b, COMPONENTS, tails[i]) : blockCache.render(pipeline, b, COMPONENTS)));
+  // 画像の描き方を差し込まれているときだけ、描く木の画像の src を配る（「host から画像を n 件表示」の数。HTML の img も入る）
+  const sources = images ? rendered.flatMap((r) => r.images) : NO_SOURCES;
   return (
     <div className="markdown">
       <MarkdownImageSourcesContext.Provider value={sources}>
         <StreamingFlag.Provider value={streaming}>
           {/* ブロックの間には、全文を 1 度に描いたときと同じく改行の文字を置く（HTML を文字で出す所の間の空白・選んでコピーした文を変えない） */}
-          {blocks.map((b, i) => (
+          {rendered.map((block, i) => (
             <Fragment key={i}>
               {i > 0 && "\n"}
               {/* 形をそろえて包む（最後のブロックが前のブロックになっても作り直さない） */}
               <OpenFence.Provider value={i === last ? openFence : null}>
-                <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+                {block.element}
               </OpenFence.Provider>
             </Fragment>
           ))}
@@ -230,12 +240,3 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
     </div>
   );
 }
-
-/** 1 つのブロック。文・処理の組・薄く出す段が同じなら描き直さない。薄く出す段がなければ、描いた要素を覚えから引く */
-// 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
-const MarkdownBlock = memo(
-  function MarkdownBlock({ pipeline, text, tail }: { pipeline: MarkdownPipeline; text: string; tail: readonly number[] | undefined }) {
-    return tail ? renderMarkdown(pipeline, text, COMPONENTS, tail) : blockCache.render(pipeline, text, COMPONENTS);
-  },
-  (a, b) => a.pipeline === b.pipeline && a.text === b.text && sameTail(a.tail, b.tail),
-);

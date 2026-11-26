@@ -6,6 +6,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { CheckStateIcon } from "@/features/github/ui/CheckStateIcon";
 import { runName } from "./ciView";
+import { ExternalAnchor } from "@/foundation/ui/external/ExternalAnchor";
 
 /** 実行の一覧の 1 行（状態・題・ワークフロー #番号・ブランチ・きっかけ・PR・起こした人・時刻） */
 export const CiRunRow = memo(function CiRunRow({ run, selected, watched, onOpen }: { run: CiRun; selected: boolean; watched: boolean; onOpen: (run: CiRun) => void }) {
@@ -50,9 +51,9 @@ export function CiExternalRow({ check }: { check: CiExternalCheck }) {
         </span>
       </span>
       {check.url && (
-        <a className="ci-external-link" href={check.url} target="_blank" rel="noreferrer" aria-label="詳細を開く" data-tip="詳細を開く（外のブラウザ）">
+        <ExternalAnchor className="ci-external-link" href={check.url} aria-label="詳細を開く" data-tip="詳細を開く（外のブラウザ）">
           <ExternalLink size={13} aria-hidden />
-        </a>
+        </ExternalAnchor>
       )}
     </div>
   );

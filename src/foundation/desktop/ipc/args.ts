@@ -2,6 +2,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { Same } from "@shared/foundation/contract";
 import { HOME_FOLDER } from "@shared/foundation/path";
+import { webLinkOf } from "@shared/foundation/linkTarget";
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, FOUNDATION_IPC } from "@shared/foundation/ipc";
 import { THEME_CHOICES } from "@shared/foundation/theme/backgrounds";
 import type { ArgSchemasFor, ArgsOfTable, ZodArgsOf } from "./register";
@@ -20,6 +21,8 @@ const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
 const badgeCount = z.number().int().nonnegative();
 const badgeColor = z.string().nullable();
+/** 外で開く URL の長さの上限（ブラウザが扱える長さより十分大きく、桁違いに長いものだけを断る） */
+const MAX_URL_LENGTH = 32_000;
 
 export const foundationArgs = {
   dialog: {
@@ -45,6 +48,7 @@ export const foundationArgs = {
     openTerminal: z.tuple([absoluteOrHome, terminalId.optional()]),
     browsers: none,
     openBrowser: z.tuple([z.string().optional(), browserId.optional()]),
+    openWebUrl: z.tuple([z.string().max(MAX_URL_LENGTH).refine((url) => webLinkOf(url) !== null, { message: "http(s) の URL ではありません" })]),
   },
   terminal: {
     owner: none,

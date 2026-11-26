@@ -13,9 +13,13 @@ test("マイクの許可: アプリ自身の画面からの音声だけ許し、
   assert.equal(permissionAllowed({ permission: "media", requestingUrl: "", appUrl, mediaTypes: ["audio"] }), false);
 });
 
-test("マイクの許可: media 以外（通知など）はこれまでどおり許す", () => {
+test("許可: media 以外（通知・クリップボードなど）はアプリの画面からなら許し、ほかの出どころからは断る", () => {
   assert.equal(permissionAllowed({ permission: "notifications", requestingUrl: appUrl, appUrl }), true);
   assert.equal(permissionCheckAllowed({ permission: "clipboard-sanitized-write", requestingOrigin: appUrl, appUrl }), true);
+  assert.equal(permissionAllowed({ permission: "clipboard-read", requestingUrl: "https://evil.example/", appUrl }), false);
+  assert.equal(permissionAllowed({ permission: "notifications", requestingUrl: "", appUrl }), false);
+  assert.equal(permissionCheckAllowed({ permission: "clipboard-read", requestingOrigin: "https://evil.example", appUrl }), false);
+  assert.equal(permissionCheckAllowed({ permission: "notifications", requestingOrigin: "null", appUrl }), false);
 });
 
 test("許可の確かめ: アプリ自身の画面からのマイクは許し、カメラ・ほかの出どころは断る", () => {

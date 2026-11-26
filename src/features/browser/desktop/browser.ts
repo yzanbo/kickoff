@@ -1,5 +1,5 @@
-import { app, session, type Session, type WebContents } from "electron";
-import { openLinksExternally } from "@/foundation/desktop/app/externalLinks";
+import { app, session, shell, type Session, type WebContents } from "electron";
+import { webLinkOf } from "@shared/foundation/linkTarget";
 import { isEmbeddableUrl } from "@/foundation/desktop/urls";
 import { sendEvent } from "@/foundation/desktop/ipc/register";
 import { isBrowserFindKey } from "./keys";
@@ -37,7 +37,18 @@ export function hardenWebviews() {
         if (!input.isAutoRepeat) sendEvent(contents, "browser", "onFindRequested", guest.id);
       });
     });
-    // 埋め込みブラウザ内の新しいウィンドウは、外部のブラウザで開く
-    if (contents.getType() === "webview") openLinksExternally(contents);
+    if (contents.getType() === "webview") openPopupsExternally(contents);
+  });
+}
+
+/**
+ * 埋め込みブラウザの中の新しいウィンドウ（target="_blank" のリンク・window.open）は、窓を作らずに既定のブラウザで開く（URL を読み直し、http(s) だけ）。
+ * アプリの窓は新しいウィンドウの要求では何も開かない（foundation の denyNewWindows）ので、webview の分はここで持つ
+ */
+function openPopupsExternally(contents: WebContents) {
+  contents.setWindowOpenHandler(({ url }) => {
+    const target = webLinkOf(url);
+    if (target !== null) void shell.openExternal(target);
+    return { action: "deny" };
   });
 }
