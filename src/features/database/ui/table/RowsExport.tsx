@@ -1,7 +1,7 @@
 // 読み込んだ行の「書き出す」（CSV / TSV / JSON のファイル）と「コピー」（同じ形でクリップボードへ）。SQL のタブの結果とテーブルのタブの下の帯で共通
 import { Copy, Download } from "lucide-react";
 import type { DbColumnInfo, DbValue } from "@shared/database/types";
-import { downloadText } from "./download";
+import { downloadText } from "@/foundation/ui/lib/download";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useCopied } from "@/foundation/ui/kit/useCopied";

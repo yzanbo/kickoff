@@ -3,7 +3,8 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { MenuSeparator } from "@/foundation/ui/kit/menuParts";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { copyImage, downloadFile } from "./imageFile";
+import { downloadUrl } from "@/foundation/ui/lib/download";
+import { copyImage } from "./imageFile";
 
 /** 画像のメニューを開くときの任意の項目（onView: 「大きく表示」で開く。extra: 下の組に足す項目 = 添付の画像なら Finder で表示・パスをコピー） */
 interface ImageMenuOptions {
@@ -34,7 +35,7 @@ export function useImageMenu(): {
         {/* 押した直後に書き込む（待つと、押した操作によるコピーと見なされないことがある） */}
         <MenuItem onSelect={() => void copyImage(shown.value.src).catch(reportFailure("画像をコピーできませんでした"))}>画像をコピー</MenuItem>
         {shown.value.onView && <MenuItem onSelect={shown.value.onView}>大きく表示</MenuItem>}
-        <MenuItem onSelect={() => downloadFile(shown.value.src, shown.value.name)}>画像を保存</MenuItem>
+        <MenuItem onSelect={() => downloadUrl(shown.value.src, shown.value.name)}>画像を保存</MenuItem>
         {shown.value.extra && (
           <>
             <MenuSeparator />

@@ -10,7 +10,7 @@ import { AttachmentCard } from "./AttachmentCard";
 import { ATTACHMENT_CARDS, type ChipAttachment, type FileChip } from "./attachmentCards";
 import { CaptureAttachmentChip } from "./CaptureAttachmentChip";
 import { useAttachmentViewer, type AttachmentViewerImage } from "./useAttachmentViewer";
-import { useFileMenu } from "./useFileMenu";
+import { useFileMenu, type SavedFile } from "./useFileMenu";
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
 
@@ -62,14 +62,13 @@ function FileAttachmentChip({
   onRemove?: () => void;
 }) {
   const isImage = isPreviewable(attachment.mime);
-  const id = attachment.id;
-  // 保存した添付の URL（選んだばかりでまだ送っていない添付にはない）
-  const href = id ? attachmentUrl({ id, mime: attachment.mime }) : undefined;
-  const src = previewUrl ?? href;
+  // 保存した添付（ダウンロードと右クリックの先。選んだばかりでまだ保存していない添付は null）
+  const saved: SavedFile | null = attachment.id ? { id: attachment.id, href: attachmentUrl({ id: attachment.id, mime: attachment.mime }), name: attachment.name } : null;
+  const src = previewUrl ?? saved?.href;
   // 大きく見る画像: 同じ発言の画像（押した画像から前後へ）。並びにない（選んだばかりの添付など）なら、この 1 枚だけ
   const siblingImages = siblings ? viewerImagesOf(siblings) : [];
   const at = siblingImages.findIndex((image) => image.src === src);
-  const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name, uploadId: id }] : []);
+  const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name, uploadId: saved?.id }] : []);
   const fileMenu = useFileMenu();
   const index = Math.max(0, at);
   const text = ATTACHMENT_CARDS.file(attachment, { clock: formatDayTime, uploading });
@@ -84,8 +83,8 @@ function FileAttachmentChip({
       open={
         isImage && src
           ? { kind: "button", className: "attachment-open", tip: "大きく表示", label: `${attachment.name} を大きく表示`, onClick: () => viewer.open(index), onContextMenu: (e) => viewer.menu(e, index) }
-          : id && href && !onRemove
-            ? { kind: "download", href, download: attachment.name, onContextMenu: (e) => fileMenu.open(e, { id, href, name: attachment.name }) }
+          : saved && !onRemove
+            ? { kind: "download", href: saved.href, download: saved.name, onContextMenu: (e) => fileMenu.open(e, saved) }
             : undefined
       }
       onRemove={onRemove}

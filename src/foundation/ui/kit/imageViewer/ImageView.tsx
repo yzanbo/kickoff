@@ -4,7 +4,8 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { copyImage, downloadFile } from "./imageFile";
+import { downloadUrl } from "@/foundation/ui/lib/download";
+import { copyImage } from "./imageFile";
 import { useImageMenu } from "./useImageMenu";
 import { useImageZoom } from "./useImageZoom";
 import { ViewerHead } from "./ViewerHead";
@@ -74,7 +75,7 @@ export function ImageView({
         </span>
         <span className="image-viewer-tools">
           <CopyButton copy={() => copyImage(image.src)} label="画像をコピー" iconSize={16} />
-          <IconButton icon={Download} label="画像を保存" title="画像を保存（ダウンロード）" iconSize={16} onClick={() => downloadFile(image.src, image.name)} />
+          <IconButton icon={Download} label="画像を保存" title="画像を保存（ダウンロード）" iconSize={16} onClick={() => downloadUrl(image.src, image.name)} />
         </span>
         {actions}
       </ViewerHead>

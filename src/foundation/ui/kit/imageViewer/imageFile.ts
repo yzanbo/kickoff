@@ -22,11 +22,3 @@ async function pngOf(src: string): Promise<Blob> {
     canvas.toBlob((png) => (png ? resolve(png) : reject(new Error("画像を PNG に変換できませんでした"))), "image/png"),
   );
 }
-
-/** 画像・ファイルをアプリの中で保存する（送った添付のダウンロードと同じく <a download>。外のブラウザには Kickoff のログインがないので開かない） */
-export function downloadFile(src: string, name: string) {
-  const link = document.createElement("a");
-  link.href = src;
-  link.download = name;
-  link.click();
-}
