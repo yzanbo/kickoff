@@ -98,11 +98,40 @@ export function katexBoxEm(strutStyles: readonly string[]): number {
   return top + depth;
 }
 
+/** 描いた式の整えに使う DOM の口（Element の一部。テストでは偽の木を渡す） */
+export interface KatexElementLike {
+  readonly localName: string;
+  readonly classList: { add(name: string): void };
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  replaceChildren(): void;
+  closest(selector: string): unknown;
+  querySelectorAll(selector: string): Iterable<KatexElementLike>;
+}
+
+/**
+ * KaTeX が描いた DOM を整える（ノートのライブプレビューが renderToString の HTML を入れたあとに呼ぶ。返答の rehypeSafeMath と同じ手順）。
+ * 見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にし、高すぎる行の中の式に TALL_MATH_CLASS を付ける
+ */
+export function tidyRenderedMath(root: Pick<KatexElementLike, "querySelectorAll">): void {
+  for (const el of root.querySelectorAll("[style]")) {
+    if (!isSeeThroughStyle(el.getAttribute("style") ?? "")) continue;
+    el.classList.add(SEE_THROUGH_CLASS);
+    el.setAttribute("aria-hidden", "true");
+  }
+  for (const el of root.querySelectorAll("mphantom, [mathcolor]")) if (isHiddenMathml(el.localName, el.getAttribute("mathcolor"))) el.replaceChildren();
+  for (const el of root.querySelectorAll(".katex")) {
+    if (el.closest(".katex-display")) continue;
+    const styles = Array.from(el.querySelectorAll(".katex-strut"), (s) => s.getAttribute("style") ?? "");
+    if (katexBoxEm(styles) > INLINE_MATH_MAX_EM) el.classList.add(TALL_MATH_CLASS);
+  }
+}
+
 const re = (r: RegExp) => `new RegExp(${JSON.stringify(r.source)}, ${JSON.stringify(r.flags)})`;
 
 /**
- * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（パソコンの katexOptions.ts の tidyRenderedMath と同じ手順を文字で書く。
- * Hermes では関数を文字に戻せないので手で書き、上の katexBoxEm と同じ結果になることを katexSettings.test.ts が確かめる）。
+ * スマホの WebView のページで、描いた式に同じ整えをするスクリプト（上の tidyRenderedMath と同じ手順を文字で書く。
+ * Hermes では関数を文字に戻せないので手で書き、tidyRenderedMath・返答の rehypeSafeMath と同じ結果になることを katexTidy.test.ts が確かめる）。
  * ページに kickoffTidyKatex(root)（katex.render のあとに呼ぶ）を置く。見えない文字は選べない・読み上げない形にし、読み上げ用の MathML の見えない部分は空にし、
  * 高すぎる行の中の式に TALL_MATH_CLASS を付ける
  */
