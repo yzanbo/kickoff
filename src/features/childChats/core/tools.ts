@@ -5,7 +5,7 @@ import { defineAiTool, type AiToolDef, type AiToolGroup } from "@/foundation/cor
 import { AI_CHAT_RELATIONS } from "@shared/chat/aiCreateChat";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { PROVIDER_IDS } from "@shared/settings/types";
-import { isCommonChatProject, projectRefInput, type TurnContributor, type ChatStoreDeps } from "@/features/chat/core/index";
+import { isCommonChatTurn, projectRefInput, type TurnContributor, type ChatStoreDeps } from "@/features/chat/core/index";
 import { canCreateChat, createAiCreateChatTools, type AiCreateChatDeps, type AiCreateChatTools } from "./aiCreateChat";
 import { chatContextNote, chatContextOf } from "./context";
 
@@ -49,30 +49,18 @@ function createChatTool(createChat: AiCreateChatTools): AiToolDef {
 }
 
 /**
- * チャット（子・兄弟・親のないチャット）を作るツールの組（設定で止めていない・AI が作った世代の上限に達していないときだけ出す）
+ * チャット（子・兄弟・親のないチャット）を作るツールの組（設定で止めていない・AI が作った世代の上限に達していないときだけ出す）。
+ * 共通のチャットには、ほかのプロジェクトにチャットを作る使い方も足す
  */
 export function createChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 20,
-    instructions: CREATE_INSTRUCTIONS,
+    instructions: (turn) => (isCommonChatTurn(deps.store.projects, turn) ? [...CREATE_INSTRUCTIONS, ...COMMON_CREATE_INSTRUCTIONS] : CREATE_INSTRUCTIONS),
     open: ({ chatId }) => {
       const chat = deps.store.chats.get(chatId);
       if (!chat || !canCreateChat(deps.store, chat)) return null;
       return [createChatTool(createAiCreateChatTools(deps, chatId))];
-    },
-  };
-}
-
-/** 共通のチャットにだけ、ほかのプロジェクトにチャットを作る使い方を足す組（ツールは create_chat の組。チャットを作れるときだけ出す。open は空） */
-export function commonCreateChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
-  return {
-    server: "kickoff_chat",
-    order: 20,
-    instructions: COMMON_CREATE_INSTRUCTIONS,
-    open: ({ chatId, projectId }) => {
-      const chat = deps.store.chats.get(chatId);
-      return chat && isCommonChatProject(deps.store.projects, projectId) && canCreateChat(deps.store, chat) ? [] : null;
     },
   };
 }

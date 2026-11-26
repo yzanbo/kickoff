@@ -11,6 +11,7 @@ import { changeOwnedProjectFolder, type NoteFolderName, type ProjectHooks, type 
 import { createProjectStore, type ProjectStore } from "./db/projects";
 
 export type { ProjectStore } from "./db/projects";
+export { hasGitWorkplace } from "./gitWorkplace";
 export { compactPrompt } from "./schemas";
 
 export interface ProjectsDeps {

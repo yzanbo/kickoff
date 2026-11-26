@@ -52,6 +52,16 @@ test("レジストリ: open が null の組は出さず、出す組のないサ�
   assert.deepEqual(new AiToolRegistry([off]).serversFor(turnOf()), []);
 });
 
+test("レジストリ: 使い方が関数の組は、出したときだけ作業ごとに呼んで文を作る", () => {
+  const calls: number[] = [];
+  const perTurnText: AiToolGroup = { ...group("kickoff_chat", 10, ["a"]), instructions: (turn) => (calls.push(turn.chatId), ["a の使い方", ...(turn.chatId === 2 ? ["2 だけの文"] : [])]) };
+  const hidden: AiToolGroup = { ...perTurnText, order: 20, open: () => null };
+  const registry = new AiToolRegistry([perTurnText, hidden, group("kickoff_chat", 30, ["b"])]);
+  assert.equal(registry.serversFor(turnOf(1))[0].instructions, "a の使い方\nb の使い方");
+  assert.equal(registry.serversFor(turnOf(2))[0].instructions, "a の使い方\n2 だけの文\nb の使い方");
+  assert.deepEqual(calls, [1, 2], "出さない組の使い方は作らない");
+});
+
 test("レジストリ: 組は作業ごとに open するので、作業ごとの数えは分かれる。ツールには作業の文脈が渡る", async () => {
   const counting: AiToolGroup = {
     server: "kickoff_chat",

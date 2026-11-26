@@ -20,6 +20,7 @@ import { ProviderSwitchChip } from "@/features/providerSwitch/ui";
 import { useHeldEdit, HeldEditComposer } from "@/features/compact/ui";
 import { useIsCommonProject } from "@/features/projects/ui";
 import { RestrictionNotice } from "./RestrictionNotice";
+import { chatRestrictions } from "@shared/chat/restrictionNotice";
 
 /** 「質問として送る」の説明 */
 const ASK_SEND_TITLE =
@@ -118,7 +119,7 @@ export function ChatComposerArea({
   // 制限の知らせとピルの列（外に描く先があればそこへ）
   const aboveComposer = (
     <>
-      <RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled || common} />
+      <RestrictionNotice {...chatRestrictions(chat, common)} />
       {chips}
     </>
   );

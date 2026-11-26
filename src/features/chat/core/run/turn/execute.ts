@@ -9,6 +9,8 @@ import type { CompactTrigger } from "@shared/ai/turnEvents";
 import { compactPromptFor } from "@shared/chat/prompts";
 import { PROVIDER_AUTH_MODE_LABELS } from "@shared/settings/types";
 import { providerCan } from "@shared/ai/providers";
+import { turnRestrictions } from "@shared/chat/restrictionNotice";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
 import { resolveWorkdir } from "@/features/chat/core/turnFolders";
@@ -75,8 +77,8 @@ export async function executeTurn(deps: RunnerDeps, runtime: ChatRun, request: T
     // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）と、圧縮したら（手で・自動のどちらも）預かった指示より先に送る圧縮後指示
     const preCompactText = compact ? null : compactPromptFor("pre", store.settings.get(), project);
     const postCompactText = compactPromptFor("post", store.settings.get(), project);
-    // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する（砂場なしにできない AI は動かさない）
-    const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
+    // 砂場をかけるか（計画モード・［AI で整える］・共通のチャットは、チャットの値によらずかける）。砂場なしにできない AI は動かさない
+    const useSandbox = turnRestrictions(chat, isCommonProject(project)).sandbox;
     if (!useSandbox && !providerCan(chat.provider, "sandbox_off")) throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える（中断済みの signal には abort の知らせが来ない）

@@ -18,7 +18,7 @@ import { openDiffToolGroup } from "@/features/git/core/tools";
 import { snippetToolGroup } from "@/features/snippets/core/tools";
 import type { BusEvent } from "@shared/foundation/contract";
 import { usageToolGroup } from "@/features/ai/core/tools";
-import { commonCreateChatToolGroup, createChatToolGroup } from "@/features/childChats/core/tools";
+import { createChatToolGroup } from "@/features/childChats/core/tools";
 import { worktreeToolGroup } from "@/features/worktrees/core/tools";
 import { workplaceToolGroup } from "@/features/workplaceMove/core/tools";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -111,7 +111,6 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       terminalToolGroup({ store, terminals }),
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
-      commonCreateChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
       worktreeToolGroup(finisher),
       workplaceToolGroup({ store, reservations: unused("reservations"), isBusy: (id) => runner.isBusy(id), terminals: () => null }),
       visualToolGroup(store),

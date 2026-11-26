@@ -5,8 +5,6 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { workdirOf } from "./workdir";
 
-/** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */
-
 /** 記録の日時（2026-11-04 13:05） */
 function stamp(iso: string): string {
   const d = new Date(iso);
@@ -37,6 +35,9 @@ export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]
     );
   }
   let edited = new Set<string>();
+  // 結果を待っている編集のツールの呼び出し（ID → 変えるファイル）。成功の結果が届いたものだけを変えたファイルに数える
+  // （守り・承認で断られた・失敗した・結果が届かずに終わった呼び出しは、ファイルを変えていない。Codex の変更も同じ形で届く）
+  let pending = new Map<string, string>();
   for (const e of events) {
     if (e.type === "user") {
       const d = e.data;
@@ -55,13 +56,18 @@ export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]
     } else if (e.type === "tool_use" && isEditTool(e.data.name)) {
       const input = e.data.input as { file_path?: string; notebook_path?: string } | undefined;
       const file = input?.file_path ?? input?.notebook_path;
-      if (file) edited.add(relative(file, root));
+      if (file) pending.set(e.data.id, relative(file, root));
+    } else if (e.type === "tool_result") {
+      const file = pending.get(e.data.tool_use_id);
+      if (file !== undefined && !e.data.is_error) edited.add(file);
+      pending.delete(e.data.tool_use_id);
     } else if (e.type === "result") {
       const r = e.data;
       if (edited.size > 0) lines.push("", `（この作業で変えたファイル: ${[...edited].join("、")}）`);
       if (r.status === "failed") lines.push("", `（作業は失敗しました: ${String(r.text ?? "").slice(0, 300)}）`);
       if (r.status === "cancelled") lines.push("", "（作業は途中で止めました）");
       edited = new Set();
+      pending = new Map();
     }
   }
   return `${lines.join("\n")}\n`;

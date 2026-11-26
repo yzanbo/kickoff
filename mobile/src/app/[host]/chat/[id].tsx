@@ -9,7 +9,8 @@ import { WorkplaceMoveCard } from "../../../chat/WorkplaceMoveCard";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { PROVIDER_LABELS } from "@shared/settings/types";
-import { restrictionNotice } from "@shared/chat/restrictionNotice";
+import { chatRestrictions, restrictionNotice } from "@shared/chat/restrictionNotice";
+import { isCommonProjectIn } from "@shared/projects/kinds";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
@@ -18,12 +19,16 @@ import { colors, ui } from "../../../ui/theme";
 export default function ChatScreen() {
   const { host, id } = useLocalSearchParams<{ host: string; id: string }>();
   const chatId = Number(id);
-  const { session, connection, access } = useHostState(host);
+  const { session, connection, state, access } = useHostState(host);
   const { chat, events, live, approvals, hasEarlier, streaming, error, loadEarlier } = useChat(session, chatId);
   const items = useMemo(() => timelineOf(events, chat?.provider).reverse(), [events, chat?.provider]);
   const canWrite = access === "full";
   const running = chat?.status === "running";
   const client = session?.client;
+  // 共通のチャットは、チャットでオフにしても制限が効くので知らせない（パソコンの入力欄と同じ判定）
+  const common = chat ? isCommonProjectIn(state.projects, chat.project_id) : false;
+  const restrictions = chat ? chatRestrictions(chat, common) : null;
+  const notice = restrictions ? restrictionNotice(restrictions.sandboxEnabled, restrictions.editScopeEnabled) : "";
   return (
     <KeyboardAvoidingView style={ui.screen} behavior="padding">
       <Stack.Screen options={{ title: chat?.title ?? "チャット" }} />
@@ -55,7 +60,7 @@ export default function ChatScreen() {
           ) : undefined
         }
       />
-      {chat && restrictionNotice(chat.sandbox_enabled, chat.edit_scope_enabled) !== "" && <Text style={[ui.error, { paddingHorizontal: 12 }]}>{restrictionNotice(chat.sandbox_enabled, chat.edit_scope_enabled)}</Text>}
+      {notice !== "" && <Text style={[ui.error, { paddingHorizontal: 12 }]}>{notice}</Text>}
       {canWrite && client ? (
         <Composer
           running={running}

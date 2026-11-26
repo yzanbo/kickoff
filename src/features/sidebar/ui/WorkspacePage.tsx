@@ -5,7 +5,7 @@ import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { ChatGroup } from "@shared/groups/types";
 import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
-import { COMMON_TONE } from "@/features/projects/ui";
+import { projectTone } from "@/features/projects/ui";
 import { groupsApi } from "@/features/groups/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
@@ -112,16 +112,17 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 共通は、チャットがなければ案内（CommonChatsEmpty）の「新しいチャット」だけを出す（一覧の「最初のチャットを始める」と二重にしない）
   const commonEmpty = isCommonProject(project) && list.counts.chats === 0;
   const mainEmpty = commonEmpty ? () => null : list.layout.mainEmpty;
+  const tone = projectTone(project);
   const heads = workspaceHeads({ projectId: project.id, chats, ...list.layout, mainEmpty, draftCounts: list.counts.drafts, colors, sections, drops });
 
   return (
     <section
-      className={cx("workspace-page", isCommonProject(project) && COMMON_TONE, drops.projectDrop.over === project.id && (drops.projectDrop.blockedAt(project.id) ? "chat-drop-blocked" : "chat-drop-over"))}
+      className={cx("workspace-page", tone.className, drops.projectDrop.over === project.id && (drops.projectDrop.blockedAt(project.id) ? "chat-drop-blocked" : "chat-drop-over"))}
       data-project-id={project.id}
       {...drops.projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
       inert={hidden}
-      style={{ "--hue": `${project.hue}` } as React.CSSProperties}
+      style={tone.style}
     >
       <WorkspaceHead
         project={project}

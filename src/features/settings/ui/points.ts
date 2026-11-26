@@ -39,8 +39,13 @@ export const settingsItems = definePoint<SettingsItemDef>("settingsItems", { key
 /** その scope の節（order の順） */
 export const settingsSectionsOf = (scope: SettingsSectionDef["scope"]): SettingsSectionDef[] => settingsSections.items().filter((s) => s.scope === scope);
 
+/**
+ * 共通の設定・画面にも出す項目か（共通では common の印を付けた項目だけ、ほかは全部）。プロジェクトの設定の節と、プロジェクトの画面の表（projects の projectViews）が同じ決まりで絞る
+ */
+export const shownInCommon = (item: { common?: boolean }, common: boolean): boolean => !common || item.common === true;
+
 /** プロジェクトの設定の節（order の順。common: 共通の設定か。共通は common を付けた節だけ） */
-export const projectSettingsSections = (common: boolean): SettingsSectionDef[] => settingsSectionsOf("project").filter((s) => !common || s.common === true);
+export const projectSettingsSections = (common: boolean): SettingsSectionDef[] => settingsSectionsOf("project").filter((s) => shownInCommon(s, common));
 
 /** その節の欄（order の順） */
 export const settingsItemsOf = (section: string): SettingsItemDef[] => settingsItems.items().filter((i) => i.section === section);

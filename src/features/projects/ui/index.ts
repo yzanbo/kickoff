@@ -10,7 +10,7 @@ export { InspectionList } from "./InspectionList";
 export { noteOverlapLines } from "./folderOverlaps";
 export { ACTIVE_CHATS_LABEL } from "./ProjectMenu";
 export { ProjectMark } from "./ProjectMark";
-export { useIsCommonProject, useProjectHue } from "./projectColor";
+export { useProjectHue } from "./projectColor";
 export { projectViewTab } from "./chatSideView";
 export { canShowProjectView, projectViewOf, projectViews } from "./projectViews";
 export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats";
@@ -21,7 +21,7 @@ export { projectChats, projectGroups, type ProjectChat, type ProjectChats, type 
 export { newProjectNoteField, type NewProjectNoteFieldProps } from "./new/NoteDirField";
 export { useEditedProject } from "./settings/editedProject";
 export { projectGit, type ProjectGit } from "./projectGit";
-export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";
+export { isCommonProjectId, projectInView, useFallbackProject, useExistingProject, useIsCommonProject } from "./currentProject";
 export { firstTargetOf } from "./projectTargets";
 export { ProjectPicker } from "./ProjectPicker";
 
@@ -37,7 +37,7 @@ export { TagFilterNotice } from "./TagFilterNotice";
 export { loadCurrentProject, saveCurrentProject } from "./currentProject";
 export { ProjectSwitcher } from "./page/ProjectSwitcher";
 export { useChatPlacement } from "./page/chatPlacement";
-export { COMMON_TONE, hueStyle, initialOf, projectHue } from "./projectColor";
+export { initialOf, projectHue, projectTone } from "./projectColor";
 export { changeProject, confirmRestoreProject } from "./projectOrder";
 export { tagLabel, useProjectTagFilter } from "./projectTagFilter";
 export { deleteTag, renameTag } from "./tagActions";

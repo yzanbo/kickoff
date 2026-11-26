@@ -16,7 +16,6 @@ export function ProjectPicker({ value, onPick }: { value: number; onPick: (proje
   // 開いた札をもう一度押したら閉じる（外側のクリックとして閉じたあとに開き直さない）
   const id = useId();
   const name = projectName(value);
-  const { values, labels } = chatTargetChoices(projects, value);
   return (
     <>
       <button type="button" className="project-picker" data-project-picker={id} aria-haspopup="menu" aria-expanded={menu.isOpen} onClick={(e) => menu.toggle(e)}>
@@ -29,8 +28,8 @@ export function ProjectPicker({ value, onPick }: { value: number; onPick: (proje
         <ChoiceMenu
           at={menu.menu.at}
           title="作成先"
-          values={values}
-          labels={labels}
+          // 選択肢はメニューを開いている間だけ作る（札は親が描き直すたびに描かれる）
+          {...chatTargetChoices(projects, value)}
           value={String(value)}
           ignore={`[data-project-picker="${id}"]`}
           onPick={(next) => {

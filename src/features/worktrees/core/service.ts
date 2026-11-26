@@ -6,8 +6,8 @@ import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { gitRefs } from "@/features/git/core/index";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
+import { hasGitWorkplace } from "@/features/projects/core/index";
 import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
-import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { branchSuggestPrompt, parseBranchSuggestions } from "./branchSuggest";
 import { attachWorktreeHues } from "./colors";
@@ -35,11 +35,12 @@ export class WorktreeService {
   }
 
   /**
-   * 画面の一覧。Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）。
+   * 画面の一覧。Git の作業場所を持たないプロジェクト（Git で管理していないフォルダ・共通）は、ワークツリーのないもの（空）として返す
+   * （Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける。画面は一覧が空なら作業場所を選ばせない）。
    * HEAD の見張りを一覧に合わせる（ブランチを替えた・ワークツリーを足した消したら worktrees_changed で知らせ、画面が取り直す）
    */
   async list(project: Project): Promise<GitWorktree[]> {
-    if (!(await isGitWorkTree(project.repo_path))) return [];
+    if (!(await hasGitWorkplace(project))) return [];
     const list = await listWorktrees(project.repo_path);
     await this.deps.headWatch.watch(project.id, project.repo_path, list);
     return this.present(project.id, list);
@@ -67,7 +68,7 @@ export class WorktreeService {
   async suggestBranches(project: Project, summary: string): Promise<BranchSuggestions> {
     const provider = this.deps.providers[project.provider];
     if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、ブランチ名の提案に対応していません");
-    const taken = (await isGitWorkTree(project.repo_path)) ? (await gitRefs(project.repo_path)).branches.map((b) => b.name) : [];
+    const taken = (await hasGitWorkplace(project)) ? (await gitRefs(project.repo_path)).branches.map((b) => b.name) : [];
     const answer = await provider.ask(branchSuggestPrompt(summary, taken), { model: "light" }).catch(asInvalid);
     const branches = parseBranchSuggestions(answer, taken);
     if (branches.length === 0) throw new Invalid("ブランチ名の案を作れませんでした。やりたいことを少し詳しく書いて、もう一度試してください");

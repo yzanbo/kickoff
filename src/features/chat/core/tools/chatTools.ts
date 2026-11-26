@@ -7,8 +7,8 @@ import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatAttachments, ChatDetachPort } from "@/features/chat/core/ports";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ChatRemover } from "./aiChatRemove";
-import { commonFamilyToolGroup, familyToolGroup } from "./aiChatEdit";
-import { commonReadToolGroup, readToolGroup } from "./read";
+import { familyToolGroup } from "./aiChatEdit";
+import { readToolGroup } from "./read";
 import { removeToolGroup } from "./remove";
 import { chatOpenToolGroups } from "./chatOpenTools";
 
@@ -22,16 +22,12 @@ export const CHAT_TOOLS_HEAD = "Kickoff（このチャットを動かしてい�
 export function chatToolGroups(deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">; approvals: ApprovalCenter; bus?: Bus; attachments?: ChatAttachments; detach?: ChatDetachPort; chatRemover?: ChatRemover }): AiToolGroup[] {
   const { store } = deps;
   return [
-    // 同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（孫チャット・子チャットを作らせない設定のときも出す）
+    // 同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（孫チャット・子チャットを作らせない設定のときも出す。共通のチャットはほかのプロジェクトのチャットも）
     familyToolGroup({ store, detach: deps.detach }),
-    // 共通のチャットにだけ、ほかのプロジェクトのチャットを変える使い方を足す
-    commonFamilyToolGroup({ store }),
     // 同じ家系のチャットを画面に開く・下書きを入れる（画面に頼む口（バス）があるときだけ）
     ...chatOpenToolGroups({ store, publish: deps.bus ? (e) => deps.bus!.publish(e) : null }),
-    // 同じプロジェクトのチャットの一覧・会話を読む（使用枠の get_usage は ai の組）
+    // 同じプロジェクトのチャットの一覧・会話を読む（共通のチャットはほかのプロジェクトのものも。使用枠の get_usage は ai の組）
     readToolGroup({ store, approvals: deps.approvals, attachments: deps.attachments }),
-    // 共通のチャットにだけ、ほかのプロジェクトのチャットを読む使い方を足す
-    commonReadToolGroup({ store }),
     // チャットをアーカイブする・消す（同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
     removeToolGroup(() => deps.chatRemover),
   ];

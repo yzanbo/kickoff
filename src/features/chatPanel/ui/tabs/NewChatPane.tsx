@@ -46,7 +46,7 @@ function NewChatForm({ draft: saved, visible, onCreated, onProjectChange }: Omit
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const project = projectsById.get(projectId);
-  // 共通は Git で管理しないフォルダで動くので、作業場所（ワークツリー）を選ばせず、作業中のチャットがあっても聞かずに送る（共通のチャットはみな同じ作業フォルダ）
+  // 共通は作業中のチャットがあっても聞かずに送る（共通のチャットはみな同じ作業フォルダ）。作業場所の札は、共通のワークツリーの一覧をコアが空で返すので出ない
   const common = useIsCommonProject(projectId);
   // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない）
   const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
@@ -132,13 +132,14 @@ function NewChatForm({ draft: saved, visible, onCreated, onProjectChange }: Omit
     <AgentSplit scope={draftScope(draftKey)} handleRef={side}>
     <DraftChatPage
       provider={provider}
+      projectId={projectId}
       badges={
         <>
           {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。どれも押すと選び直せる（作成先は共通と各プロジェクト）。
               作成先の札は送る前に作成先を選び直す口なので、見出しの「プロジェクト」を隠していても出す（見出しの項目は初めプロジェクトを隠している） */}
           {project && <ProjectPicker value={project.id} onPick={onProjectChange} />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => changeGroup(next, groupNameIn(groups, next))} />}
-          {shows("worktree") && !common && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
+          {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
         </>
       }
       hero={

@@ -13,7 +13,8 @@ import { headSha } from "@/foundation/core/workplace/reads";
 import { forgetWorktrees, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { UploadStore } from "@/features/attachments/core/index";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
-import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
+import type { AiApprovalDecision } from "@/foundation/core/aiTools/tool";
+import type { AiCreateChatRequest } from "./aiCreateChat";
 import { canCreateChat } from "./aiCreateChat";
 import { depthOf } from "@/features/chat/core/index";
 import { createChildChats } from "./index";
@@ -47,7 +48,7 @@ function createChatOf(ctx: Ctx) {
   const servers = ctx.tools.lastTools();
   if (!ctx.tools.names(servers).includes("create_chat")) return null;
   return {
-    create(input: Record<string, unknown>, approve: (request: AiCreateChatRequest) => Promise<AiCreateChatDecision>) {
+    create(input: Record<string, unknown>, approve: (request: AiCreateChatRequest) => Promise<AiApprovalDecision>) {
       ctx.tools.answer(async (asked) => {
         const decision = await approve(asked as unknown as AiCreateChatRequest);
         return decision.action === "deny" ? { action: "deny", ...(decision.message ? { message: decision.message } : {}) } : decision;
@@ -65,11 +66,11 @@ async function finishedTurn(ctx: Ctx, text = "親の依頼", extra: { parentChat
 }
 
 /** 聞いた中身を覚え、決めた答えを返す承認 */
-function approver(decision: AiCreateChatDecision) {
+function approver(decision: AiApprovalDecision) {
   const asked: AiCreateChatRequest[] = [];
   return { asked, approve: async (request: AiCreateChatRequest) => (asked.push(request), decision) };
 }
-const allow = async (): Promise<AiCreateChatDecision> => ({ action: "allow" });
+const allow = async (): Promise<AiApprovalDecision> => ({ action: "allow" });
 
 /** 作ったチャット（結果の印から）。動き終わるまで待つ */
 async function created(ctx: Ctx, result: string): Promise<Chat> {

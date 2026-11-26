@@ -183,7 +183,7 @@ test("書き込み先の守り: OS の一時フォルダは Bash の砂場と同
   await until(() => store.chats.get(chat.id)?.status === "completed");
   const scope = gateMaterials[0].writeScope;
   assert.ok(scope);
-  const facts = { workdir: project.repo_path, writableDirs: scope.writableDirs, memoryParents: [], workplaces: scope.workplaces };
+  const facts = { workdir: project.repo_path, writableDirs: scope.writableDirs, exceptionDirs: scope.exceptionDirs ?? [], memoryParents: [], workplaces: scope.workplaces };
   assert.equal((await judgeFileWrite(path.join(tmp, "perf", "check.ts"), facts)).kind, "pass");
   assert.equal((await judgeFileWrite(path.join(tempDir({ real: true }), "a.ts"), facts)).kind, "ask");
 });

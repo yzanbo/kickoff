@@ -11,7 +11,7 @@ import type { ChatAttachments } from "@/features/chat/core/ports";
 import { familyOf } from "@/features/chat/core/family";
 import { conversationTurns, formatConversation } from "@/features/chat/core/conversation";
 import { toolChat } from "./context";
-import { isCommonChatProject, projectForTool, projectRefInput, readableProjects } from "./projectScope";
+import { isCommonChatProject, isCommonChatTurn, projectForTool, projectRefInput, readableProjects } from "./projectScope";
 
 /** 読むだけのツールの使い方（MCP の instructions として AI に渡す。続く get_usage の文は ai の組） */
 const READ_INSTRUCTIONS = [
@@ -63,7 +63,7 @@ function chatStateText(chat: Chat, waiting: boolean): string {
 
 /** chatId のチャットの AI に渡す、読むだけのツールの中身。チャットは呼ぶたびに引き直す */
 export function createAiChatReadTools({ store, approvals, attachments: files }: AiChatReadDeps, chatId: number): AiChatReadTools {
-  const { self: requireSelf } = toolChat(store.chats, chatId);
+  const { self: requireSelf, chatIn } = toolChat(store.chats, chatId);
   /** 家系の中なら関係の呼び名、外なら「ほかの家系」、ほかのプロジェクト（共通のチャットから読むとき）なら「ほかのプロジェクト」 */
   const relations = (self: Chat) => {
     const { members, relationOf } = familyOf(store.chats, self);
@@ -73,11 +73,12 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
   /** 読む相手のチャット（呼んだチャットから指せるプロジェクトのものだけ。project を渡したらそのプロジェクトのものだけ） */
   const readableChat = (self: Chat, id: number, project: string | number | undefined): Chat => {
     const within = project === undefined ? readableProjects(store.projects, self) : [projectForTool(store.projects, self, project)];
-    const target = store.chats.get(id);
-    if (!target || !within.some((p) => p.id === target.project_id)) {
-      throw new Error(`チャット ID ${id} は、${project === undefined ? "このプロジェクト" : `プロジェクト「${within[0].name}」`}にありません。読めるのは${isCommonChatProject(store.projects, self.project_id) ? "共通とアーカイブしていないプロジェクト" : "同じプロジェクト"}のチャットだけです。list_project_chats で ID を確かめてください`);
-    }
-    return target;
+    return chatIn(
+      id,
+      within,
+      () =>
+        `チャット ID ${id} は、${project === undefined ? "このプロジェクト" : `プロジェクト「${within[0].name}」`}にありません。読めるのは${isCommonChatProject(store.projects, self.project_id) ? "共通とアーカイブしていないプロジェクト" : "同じプロジェクト"}のチャットだけです。list_project_chats で ID を確かめてください`,
+    );
   };
   const tools: AiChatReadTools = {
     listProjectChats(input = {}) {
@@ -106,7 +107,7 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
           })),
           ...(other ? { groups: store.groups.list(project.id).map((g) => ({ id: g.id, name: g.name })) } : {}),
           ...(all.length > chats.length ? { omitted: all.length - chats.length } : {}),
-          note: `${project.id !== self.project_id ? `プロジェクト「${project.name}」` : "同じプロジェクト"}のアーカイブしていないチャット（子チャット・ノートのチャットも）を、最後に動いた時刻の新しい順に並べた一覧。会話は read_chat で読める。`,
+          note: `${other ? `プロジェクト「${project.name}」` : "同じプロジェクト"}のアーカイブしていないチャット（子チャット・ノートのチャットも）を、最後に動いた時刻の新しい順に並べた一覧。会話は read_chat で読める。`,
         },
         null,
         2,
@@ -151,22 +152,12 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
   return tools;
 }
 
-/** 共通のチャットにだけ、ほかのプロジェクトを読む使い方を足す組（ツールは出さず、使い方の文だけ。読む組の次） */
-export function commonReadToolGroup(deps: Pick<AiChatReadDeps, "store">): AiToolGroup {
-  return {
-    server: "kickoff_chat",
-    order: 50,
-    instructions: COMMON_READ_INSTRUCTIONS,
-    open: ({ projectId }) => (isCommonChatProject(deps.store.projects, projectId) ? [] : null),
-  };
-}
-
-/** 同じプロジェクトのチャットの一覧・会話を読むツールの組（order 50。聞かずに返す。共通のチャットからは project でほかのプロジェクトも） */
+/** 同じプロジェクトのチャットの一覧・会話を読むツールの組（order 50。聞かずに返す。共通のチャットからは project でほかのプロジェクトも。その使い方は共通のチャットにだけ足す） */
 export function readToolGroup(deps: AiChatReadDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 50,
-    instructions: READ_INSTRUCTIONS,
+    instructions: (turn) => (isCommonChatTurn(deps.store.projects, turn) ? [...READ_INSTRUCTIONS, ...COMMON_READ_INSTRUCTIONS] : READ_INSTRUCTIONS),
     open: ({ chatId }) => {
       const read = createAiChatReadTools(deps, chatId);
       return [

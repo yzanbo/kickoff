@@ -14,10 +14,10 @@ export interface ChatFileRef {
 export interface ChatFileLinks {
   /** 作業場所のフォルダ（この中のパスだけをリンクにする） */
   root: string;
-  /** 押したとき: 右の欄があれば右の欄（行の番号があればファイルのタブ、コミットしていない変更があれば変更のタブ）、なければファイルタブ */
+  /** 押したとき: 右の欄があれば右の欄（行の番号があればファイルのタブ、コミットしていない変更があれば変更のタブ）、なければファイルタブ（共通のチャットは別ウィンドウ） */
   open: (ref: ChatFileRef) => void;
-  /** ファイルタブで開く（⌘クリック・右クリックのメニュー・右の欄の「ファイルタブで開く」） */
-  openInEditor: (ref: ChatFileRef) => void;
+  /** ファイルタブで開く（⌘クリック・右クリックのメニュー・右の欄の「ファイルタブで開く」）。null = ファイルタブがない（共通のチャット。⌘クリックも open と同じ） */
+  openInEditor: ((ref: ChatFileRef) => void) | null;
   /** 右の欄の変更のタブを開く（focus のファイルの位置へ。右の欄がなければファイルタブ） */
   openChanges: (focus?: string) => void;
   /** 右の欄に開くか */
@@ -78,8 +78,8 @@ export const ChatFileLinksContext = createContext<ChatFileLinks | undefined>(und
 /** チャットの中のファイルのリンク（チャットの外・登録がなければ undefined = リンクにしない） */
 export const useChatFileLinks = (): ChatFileLinks | undefined => useContext(ChatFileLinksContext);
 
-/** 押したとき: ⌘ を押しながらならファイルタブ、そうでなければ open（右の欄） */
+/** 押したとき: ⌘ を押しながらならファイルタブ（なければ open）、そうでなければ open（右の欄） */
 export function openByClick(links: ChatFileLinks, e: MouseEvent, ref: ChatFileRef) {
-  if (e.metaKey) links.openInEditor(ref);
+  if (e.metaKey && links.openInEditor) links.openInEditor(ref);
   else links.open(ref);
 }

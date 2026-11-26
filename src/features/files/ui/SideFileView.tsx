@@ -24,7 +24,7 @@ interface Props {
 
 /**
  * チャットの画面の右の欄の「ファイル」: 作業場所のファイルの中身（ファイルタブと同じ FileView。編集・保存もできる）。行の番号があればその行を目立たせる。
- * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「ファイルタブで開く」。
+ * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「ファイルタブで開く」（共通のチャットはファイルタブがないので出さない）。
  * 中身の行の右クリックは「メインのチャット」に足すメニュー（useCodeQuoteMenu）
  */
 export function SideFileView(props: Props) {
@@ -41,6 +41,8 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const links = useChatFileLinks();
   const changed = git.changeOf(path) !== null;
   const ref = { path, ...(line ? { line } : {}) };
+  // 共通のチャットにはファイルタブがない（links.openInEditor が null）
+  const openInEditor = links ? links.openInEditor : () => open({ kind: "file", projectId, ...ref, worktree });
   const repoPath = projectsById.get(projectId)?.repo_path ?? "";
   const codeMenu = useCodeQuoteMenu({ projectId, dir: worktree ?? (repoPath || undefined) });
   return (
@@ -52,14 +54,11 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
           </button>
         )}
         <span className="spacer" />
-        <button
-          type="button"
-          className="btn"
-          data-size="sm"
-          onClick={() => (links ? links.openInEditor(ref) : open({ kind: "file", projectId, ...ref, worktree }))}
-        >
-          <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く
-        </button>
+        {openInEditor && (
+          <button type="button" className="btn" data-size="sm" onClick={() => openInEditor(ref)}>
+            <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く
+          </button>
+        )}
         <PopOutTabButton />
       </div>
       <FileView

@@ -1,6 +1,6 @@
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { Chat } from "@shared/chat/types";
-import { isCommonProject, type ProjectKind } from "@shared/projects/kinds";
+import { COMMON_WORKDIR_LABEL, isCommonProject, type ProjectKind } from "@shared/projects/kinds";
 import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatTitle } from "./chatTitle";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -143,7 +143,7 @@ export async function confirmMoveChatToProject(
   const ok = await confirm({
     title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
     message: [
-      common ? "これからの作業は、共通の作業フォルダで行います。" : "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。",
+      common ? `これからの作業は、${COMMON_WORKDIR_LABEL}で行います。` : "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。",
       "作業したファイルは元のフォルダに残ります。会話はそのまま続けられます。",
       lost && !group ? `いまの${lost}は外れます。` : "",
       lost && group ? `いまの${lost}は外れ、グループ「${group.name}」に入れます。` : "",

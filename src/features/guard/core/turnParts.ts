@@ -3,11 +3,12 @@
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { isCommonProject, isUserProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
+import { turnRestrictions } from "@shared/chat/restrictionNotice";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { providerCan } from "@shared/ai/providers";
 import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/index";
-import { readOnlyReferences, type TurnContributor } from "@/features/chat/core/index";
+import { readOnlyReferences, turnProjects, type TurnContributor } from "@/features/chat/core/index";
 import { bashSandboxFor, sandboxPromptLines, type BashSandboxDeps } from "./sandbox/bashSandbox";
 import { TurnSandboxDiagnostics } from "./sandboxDiagnostics";
 import type { SandboxDiagnosticsPlatform } from "./sandboxDiagnosticsPlatform";
@@ -24,8 +25,8 @@ export interface GuardTurnDeps {
   deleteGuard: boolean;
   /** その AI の CLI の決まりでいつも書ける場所（Claude Code の計画とメモリ）を引く */
   providers: Record<ProviderId, Pick<AgentProvider, "writeExceptions">>;
-  /** すべてのプロジェクト（共通のチャットで、利用者のプロジェクトのフォルダへの書き込みを断る。なければ断らない（テスト）） */
-  projects?: () => Project[];
+  /** すべてのプロジェクト（共通のチャットで、利用者のプロジェクトのフォルダへの書き込みを断る） */
+  projects: () => Project[];
 }
 
 /** 共通のチャットが利用者のプロジェクトのフォルダ・ノートのフォルダに書こうとしたとき AI に返す文 */
@@ -65,14 +66,16 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
         },
       };
     },
-    async contributeWithDirs({ chat, project, cwd, signal, requestApproval }, dirs) {
-      // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
-      const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
-      // 共通のチャット（共通のノートのチャットも）は、編集先の制限をいつも入にする（プロジェクトのコードを直接書かせない。書けるのは作業フォルダと共通のノート）
+    async contributeWithDirs({ chat, project, cwd, signal, requestApproval, perTurn }, dirs) {
+      // 共通のチャット（共通のノートのチャットも）は、コマンドのサンドボックスと編集先の制限をいつも入にする（プロジェクトのコードを直接書かせない。書けるのは作業フォルダと共通のノート）
       const common = isCommonProject(project);
-      const editScope = chat.edit_scope_enabled || common;
-      // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
-      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs }) : null;
+      // 計画モードと「AI で整える」の専用の保護も入れた、実際にかける制限
+      const { sandbox: useSandbox, editScope } = turnRestrictions(chat, common);
+      // 共通のチャットが書かないフォルダ（利用者のプロジェクトの本体・読むだけで足したフォルダ。実体のパス。共通でなければ空）
+      const deniedDirs = common ? [...turnProjects(perTurn, d.projects).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf) : [];
+      // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない。
+      // 共通のチャットは、一時フォルダなどに置いた利用者のプロジェクトも書かせない）
+      const sandbox = useSandbox && d.bashSandbox ? await bashSandboxFor(d.bashSandbox, { workdir: cwd, writableDirs: dirs.writableDirs, readOnlyDirs: dirs.readOnlyDirs, deniedDirs }) : null;
       const materials: GuardMaterials = {
         cwd,
         permissionMode: chat.permission_mode,
@@ -83,14 +86,15 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
         untrackedOnly: chat.untracked_only,
         // ファイルを書き換えるツールの先は、作業場所・ノートのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
         // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
-        // 共通のチャットでは、利用者のプロジェクトの本体と、読むだけで足したフォルダ（ほかのプロジェクトのノートのフォルダ・添付・参照資料）は聞かずに断る
+        // 共通のチャットでは、利用者のプロジェクトの本体と、読むだけで足したフォルダ（ほかのプロジェクトのノートのフォルダ・添付・参照資料）は聞かずに断る（一時フォルダの中でも）
         writeScope: chat.untracked_only || !editScope
           ? null
           : {
-              writableDirs: [...dirs.writableDirs.map(realPathOrSelf), ...(d.bashSandbox?.rules.tempDirs ?? [])],
+              writableDirs: dirs.writableDirs.map(realPathOrSelf),
+              exceptionDirs: d.bashSandbox?.rules.tempDirs ?? [],
               workplaces: () => workplacesOf(project.repo_path),
               allowed: allowedIn(chat.id),
-              denied: common ? { dirs: [...(d.projects?.() ?? []).filter(isUserProject).map((p) => p.repo_path), ...dirs.readOnlyDirs].map(realPathOrSelf), reason: COMMON_DENIED } : null,
+              denied: common ? { dirs: deniedDirs, reason: COMMON_DENIED } : null,
             },
         // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
         deleteGuard: d.deleteGuard,
@@ -99,8 +103,8 @@ export function guardTurnParts(d: GuardTurnDeps): TurnContributor & { forget(cha
       };
       return {
         sandbox,
-        sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
-        ...(sandbox ? { promptSections: [{ order: 220, heading: null, lines: sandboxPromptLines(sandbox.unsandboxedCommands, editScope || chat.untracked_only) }] } : {}),
+        sandboxOff: !useSandbox,
+        ...(sandbox ? { promptSections: [{ order: 220, heading: null, lines: sandboxPromptLines(sandbox.unsandboxedCommands, editScope) }] } : {}),
         gate: d.toolGate(materials, { requestApproval }, signal),
       };
     },

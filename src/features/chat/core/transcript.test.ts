@@ -35,6 +35,28 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
   assert.match(copied, /- 作成: .+\n\n## 自分（.+）\n\nボタンを直して\n$/);
 });
 
+test("チャットの記録: 変えたファイルには、成功した編集だけを数える（守り・承認で断られた・失敗した・結果が届かなかった呼び出しは入れない）", () => {
+  const md = chatTranscript(chat, project, [
+    makeEvent(1, "user", { text: "直して" }),
+    makeEvent(2, "tool_use", { id: "ok", name: "Edit", input: { file_path: "/r/a.ts" } }),
+    makeEvent(3, "tool_use", { id: "denied", name: "Write", input: { file_path: "/other/b.ts" } }),
+    makeEvent(4, "tool_result", { tool_use_id: "denied", content: "共通のチャットからは…書き換えられません", is_error: true }),
+    makeEvent(5, "tool_result", { tool_use_id: "ok", content: "The file /r/a.ts has been updated." }),
+    // Codex の変更（当てられなかった）も同じ形で届く
+    makeEvent(6, "tool_use", { id: "patch#0", name: "Edit", input: { file_path: "/r/c.ts" } }),
+    makeEvent(7, "tool_result", { tool_use_id: "patch#0", content: "変更を当てられませんでした（declined）", is_error: true }),
+    makeEvent(8, "tool_use", { id: "cut", name: "Edit", input: { file_path: "/r/d.ts" } }),
+    makeEvent(9, "result", { status: "cancelled" }),
+    makeEvent(10, "user", { text: "もう一度" }),
+    // 前の作業で結果が届かなかった呼び出しの ID は、次の作業に持ち越さない
+    makeEvent(11, "tool_result", { tool_use_id: "cut", content: "ok" }),
+    makeEvent(12, "result", { status: "completed" }),
+  ]);
+  assert.match(md, /（この作業で変えたファイル: a\.ts）/);
+  assert.doesNotMatch(md, /b\.ts|c\.ts|d\.ts/);
+  assert.equal(md.match(/この作業で変えたファイル/g)?.length, 1);
+});
+
 test("チャットの記録: AI からの質問に答えた内容を、質問ごとに入れる（スキップは入れない）", () => {
   const md = chatTranscript(chat, project, [
     makeEvent(1, "approval_resolved", {

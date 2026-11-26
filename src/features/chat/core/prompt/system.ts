@@ -1,5 +1,5 @@
 import { TRASH_COMMAND } from "@/features/trash/core/index";
-import { isUserProject } from "@shared/projects/kinds";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { PromptSection } from "./sections";
@@ -24,7 +24,7 @@ const PROJECT_FOLDER_WORDS = [
  */
 export function projectSection(project: Project, workdir = project.repo_path, editScopeEnabled?: boolean, commonChat: CommonChatInfo | null = null): PromptSection {
   // 共通（共通のチャット・共通のノートのチャット）は、利用者から見てどのプロジェクトにも属さないので「プロジェクトフォルダ」と呼ばない
-  if (!isUserProject(project)) return commonChat ? commonChatSection(project, workdir, commonChat) : commonNoteChatSection(workdir);
+  if (isCommonProject(project)) return commonChat ? commonChatSection(project, workdir, commonChat) : commonNoteChatSection(workdir);
   const lines = [
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
     ``,

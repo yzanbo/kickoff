@@ -74,7 +74,8 @@ export function terminalRoutes({ projectParam, store, terminals, bus }: Terminal
       body: createSchema,
       run: async ({ projectId: project, body, caller }) => {
         if (isCommonProject(project) && body.worktree_path !== null) throw new Conflict("共通は Git で管理しないので、ワークツリーでターミナルを開けません");
-        const cwd = isCommonProject(project) ? expandHome(terminalFolderOf(project)) : await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
+        // ワークツリーを指さなければ、パソコンの下の欄と同じ行き先（プロジェクトは本体、共通はホーム。本体は絶対パスなので展開しても変わらない）
+        const cwd = body.worktree_path ? await resolveWorkdir(project.repo_path, body.worktree_path) : expandHome(terminalFolderOf(project));
         const key = `api:${randomUUID()}`;
         const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;
         // 作るだけ（出力は、あとでつなぐ WebSocket に届く。それまでの分は snapshot に入る）

@@ -1,14 +1,14 @@
 import { SquarePen } from "lucide-react";
-import { isCommonProject, isListedProject } from "@shared/projects/kinds";
+import { isCommonProject } from "@shared/projects/kinds";
+import { commonFirst } from "@shared/projects/order";
 import type { PaletteItem } from "@/features/palette/ui";
 import { ProjectMark } from "./ProjectMark";
 import { useProjects } from "./stores/projects";
 
 
 export function useProjectItems(enabled: boolean, query: string): readonly PaletteItem[] {
-  // 一覧に並べるプロジェクト（しまったものも出す）。共通はサイドバーと同じく先頭に
-  const listed = useProjects().projects.filter(isListedProject);
-  const projects = [...listed.filter(isCommonProject), ...listed.filter((p) => !isCommonProject(p))];
+  // すべてのプロジェクト（しまったものも出す）。共通はサイドバーと同じく先頭に
+  const projects = commonFirst(useProjects().projects);
   const typed = query.trim() !== "";
   if (!enabled) return NONE;
   const items: PaletteItem[] = [];

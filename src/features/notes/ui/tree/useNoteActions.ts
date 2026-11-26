@@ -16,7 +16,7 @@ import { movedNoteTab } from "@/features/notes/ui/notePanel";
 import { mapTabs } from "@/features/panel/ui";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { foldersAfterTransfer } from "./noteMoveModel";
-import { isHiddenProject } from "@/features/notes/ui/commonNotes";
+import { isCommonProjectId } from "@/features/projects/ui";
 
 /** 新しく作るノート・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。ノートは頭に作った日の日付を付ける（datedNoteName） */
 const UNTITLED_NOTE = "無題のノート";
@@ -33,7 +33,7 @@ export type NoteRenameResult = "done" | "taken";
  */
 /** ゴミ箱に入れる前の確かめの、戻せる期間と場所（共通のノートはプロジェクトの「ゴミ箱」タブがないので、欄の「…」から開く） */
 function trashNotice(projectId: number): string {
-  const where = isHiddenProject(projectId) ? "共通のノートの欄の「…」の「ゴミ箱を開く」" : "プロジェクトの「ゴミ箱」";
+  const where = isCommonProjectId(projectId) ? "共通のノートの欄の「…」の「ゴミ箱を開く」" : "プロジェクトの「ゴミ箱」";
   return `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間は${where}から戻せます。`;
 }
 

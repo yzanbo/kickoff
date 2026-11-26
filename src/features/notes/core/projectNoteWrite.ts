@@ -7,7 +7,7 @@ import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { AI_WRITE_PROJECT_NOTE_TOOL } from "@shared/notes/tools";
-import { approveAiWrite, isCommonChatProject, projectForTool, toolChat } from "@/features/chat/core/index";
+import { approveAiWrite, isCommonChatTurn, projectForTool, projectRefSchema, toolChat } from "@/features/chat/core/index";
 import type { NoteService } from "./service";
 import { notePathIn, type NoteToolDeps } from "./tools";
 
@@ -25,21 +25,21 @@ export function writeProjectNoteToolGroup(d: Pick<NoteToolDeps, "store" | "dirOf
     instructions: [
       "write_project_note は、利用者のプロジェクト（アーカイブしていないもの）のノート（ノートのフォルダの .md・.html）を書く（共通のチャットだけ。共通のノートは Write / Edit で直接書く）。path はそのプロジェクトのノートのフォルダからの相対パス。いまあるノートを書き換えるときは、先に Read で読み、全体を content にして overwrite: true を渡す（一部だけの書き換えはできない）。ほかのプロジェクトへの書き込みなので、利用者の設定によっては承認を聞く。利用者に頼まれたときだけ使う。",
     ],
-    open: ({ chatId, projectId }) =>
-      isCommonChatProject(d.store.projects, projectId)
+    open: (turn) =>
+      isCommonChatTurn(d.store.projects, turn)
         ? [
             defineAiTool({
               server: "kickoff_chat",
               name: "write_project_note",
               description: "利用者のプロジェクトのノート（.md・.html）を作る・書き換える（共通のチャットだけ。利用者の設定によっては承認を聞く）",
               input: {
-                project: z.union([z.number().int(), z.string().min(1)]).describe("書くノートのプロジェクトの名前か ID"),
+                project: projectRefSchema.describe("書くノートのプロジェクトの名前か ID"),
                 path: z.string().min(1).describe("そのプロジェクトのノートのフォルダからの相対パス（「仕様/メモ.md」。途中のフォルダはなければ作る）"),
                 content: z.string().describe("ノートの中身の全体"),
                 overwrite: z.boolean().optional().describe("いまあるノートを書き換える（省くと、いまあれば断る）"),
               },
               async run(input, turn) {
-                const self = toolChat(d.store.chats, chatId).self();
+                const self = toolChat(d.store.chats, turn.chatId).self();
                 const project = projectForTool(d.store.projects, self, input.project);
                 if (project.id === self.project_id) throw new Error("共通のノートは write_project_note ではなく、Write / Edit で直接書いてください（このツールは利用者のプロジェクトのノートを書くもの）");
                 const dir = d.dirOf(project);

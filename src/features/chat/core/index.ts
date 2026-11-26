@@ -38,7 +38,7 @@ import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { TurnEndTask } from "./turnEnd";
-export type { TurnContributor } from "./run/turn/contributor";
+export { turnProjects, type TurnContributor } from "./run/turn/contributor";
 export type { PromptSection } from "./prompt/sections";
 export { appendSections } from "./prompt/compose";
 export { readOnlyReferences } from "./turnFolders";
@@ -46,7 +46,7 @@ export { preCompactSent } from "./run/machine/marks";
 export { depthOf, descendantsOf, lineageOf } from "./family";
 export { openPlaceInput } from "./tools/open";
 export { toolChat } from "./tools/context";
-export { isCommonChatProject, isOtherProjectWrite, moveTargetProject, projectForTool, projectRefInput } from "./tools/projectScope";
+export { isCommonChatTurn, isOtherProjectWrite, moveTargetProject, projectForTool, projectRefInput, projectRefSchema } from "./tools/projectScope";
 export { approveAiWrite, assertAiWriteAllowed } from "./tools/aiWriteApproval";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";

@@ -1,4 +1,5 @@
-import { AI_CREATE_CHAT_MODE_LABELS, AI_CREATE_CHAT_MODES, type AiCreateChatMode } from "@shared/settings/types";
+import { AI_CREATE_CHAT_MODE_LABELS, AI_WRITE_MODES, type AiWriteMode } from "@shared/settings/types";
+import { AI_WRITE_SETTING_LABELS } from "@shared/chat/aiWritePolicy";
 import { applySettings, useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 
@@ -10,12 +11,12 @@ export function AiCreateChatField() {
   const value = useAppSettings().data?.ai_create_chat;
   if (!value) return null;
   return (
-    <ChoiceField<AiCreateChatMode>
-      label="AI がチャットを作るとき"
+    <ChoiceField<AiWriteMode>
+      label={AI_WRITE_SETTING_LABELS.ai_create_chat}
       help="チャットの AI が、頼まれて子チャット・兄弟チャット・親のないチャット（ワークツリーでも）を作り、依頼を送るときの扱いです（選んだらすぐ反映。権限モード・Auto mode によらず効きます）。作れるのはそのチャットのプロジェクトの中だけで（共通のチャットがほかのプロジェクトに作るときは、下の「共通のチャットがほかのプロジェクトに書くとき」に従います。作らせないにすると、そちらでも作りません）、子チャットは孫チャットまで、AI が作ったチャットから作れるのは 2 世代目まで、1 回の作業で 5 つまでです。毎回聞くときは承認カードを出し、「常に許可」で「聞かずに作る」に変わります。作らせないにすると、AI にこのツールを渡しません。"
       value={value}
       onChange={(next) => applySettings({ ai_create_chat: next })}
-      options={AI_CREATE_CHAT_MODES.map((mode) => ({ value: mode, label: AI_CREATE_CHAT_MODE_LABELS[mode] }))}
+      options={AI_WRITE_MODES.map((mode) => ({ value: mode, label: AI_CREATE_CHAT_MODE_LABELS[mode] }))}
     />
   );
 }

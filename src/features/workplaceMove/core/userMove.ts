@@ -7,10 +7,10 @@ import type { Project } from "@shared/projects/types";
 import { isCommonProject } from "@shared/projects/kinds";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "@/foundation/core/workplace/carry";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
-import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { findWorktree, newWorktreeProblem, removeWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { workdirOf } from "@/features/chat/core/index";
+import { hasGitWorkplace } from "@/features/projects/core/index";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./move";
 import type { RunningTerminal, RunningTerminalsPort } from "./target";
 
@@ -26,11 +26,11 @@ export interface WorkplaceUserMoveDeps {
 /** 共通のチャットを移せない理由（作業フォルダが Git のリポジトリの中にあっても、そのリポジトリのワークツリーは共通のものではない） */
 const COMMON_BLOCKED = "共通のチャットは Git で管理しないフォルダで動くので、作業場所（ワークツリー）を移せません。ワークツリーで作業したいときは、プロジェクトへ移してください";
 
-/** 移せない理由（共通のチャット・実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
+/** 移せない理由（共通のチャット・実行環境を整えるチャット・Git の作業場所を持たないプロジェクト。移せれば null。持つかは hasGitWorkplace で、ワークツリーの一覧と同じ答え） */
 export async function workplaceMoveBlocked(chat: Chat, project: Project): Promise<string | null> {
   if (isCommonProject(project)) return COMMON_BLOCKED;
   if (chat.untracked_only) return "実行環境を整えるチャットは、そのワークツリーのためのものなので作業場所を移せません";
-  if (!(await isGitWorkTree(project.repo_path))) return "Git で管理していないプロジェクトにはワークツリーがないので、作業場所を移せません";
+  if (!(await hasGitWorkplace(project))) return "Git で管理していないプロジェクトにはワークツリーがないので、作業場所を移せません";
   return null;
 }
 

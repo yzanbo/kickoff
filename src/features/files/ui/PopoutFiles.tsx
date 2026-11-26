@@ -11,7 +11,7 @@ import { useProjects } from "@/features/projects/ui";
 
 /**
  * 別ウィンドウのファイル（作業場所の変更・中身）の開き方: 変更・中身は別ウィンドウで開き、「ファイルタブで開く」はメインのウィンドウで開く
- * （このウィンドウには、ファイルタブがないため）
+ * （このウィンドウには、ファイルタブがないため。共通のチャットはメインのウィンドウにもないので出さない）
  */
 export function usePopoutFileLinks(base: FileLinkSource | undefined, place: { chatId: number; projectId: number; worktree?: string }): FileLinkSource | undefined {
   const { chatId, projectId, worktree } = place;
@@ -27,7 +27,7 @@ export function popoutFileLinks(base: FileLinkSource, { chatId, projectId, workt
     ...base,
     side: false,
     openChanges,
-    openInEditor: (ref) => openTarget({ kind: "file", projectId, ...ref, ...(worktree ? { worktree } : {}) }, { surface: "page" }),
+    openInEditor: base.openInEditor && ((ref) => openTarget({ kind: "file", projectId, ...ref, ...(worktree ? { worktree } : {}) }, { surface: "page" })),
     open: (ref) => openFileRef(ref, at, { file: openFile, changes: openChanges }),
   };
 }

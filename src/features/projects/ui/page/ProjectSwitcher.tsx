@@ -1,10 +1,11 @@
 import "./ProjectSwitcher.css";
 import { Check, ChevronDown, Trash2 } from "lucide-react";
-import { isUserProject } from "@shared/projects/kinds";
+import { hasUserProjects } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import { sidebarOrder } from "@shared/projects/order";
 import { archivedProjects } from "@/features/projects/ui/projectOrder";
-import { COMMON_TONE, hueStyle, useIsCommonProject, useProjectHue } from "@/features/projects/ui/projectColor";
+import { useProjectTone } from "@/features/projects/ui/projectColor";
+import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate, type ProjectViewId } from "@/foundation/ui/navigation/router";
 import type { Placement } from "@/foundation/ui/lib/floating";
@@ -27,10 +28,9 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
   const { projects } = useProjects();
   const menu = useContextMenu();
   const trashed = useTrashedProjects(menu.isOpen).data?.length ?? 0;
-  const common = useIsCommonProject(project?.id ?? 0);
-  const className = project ? (common ? `project-switch ${COMMON_TONE}` : "project-switch") : "project-switch all-projects";
-  const projectHueValue = useProjectHue(project?.id ?? 0);
-  const hue = project ? hueStyle(projectHueValue) : undefined;
+  const tone = useProjectTone(project?.id ?? 0);
+  const className = project ? cx("project-switch", tone.className) : "project-switch all-projects";
+  const hue = project ? tone.style : undefined;
   const identity = (
     <>
       <ProjectMark project={project} size="md" />
@@ -38,7 +38,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
     </>
   );
   // 共通だけのときも、プロジェクトがないのと同じに押せなくする
-  if (!projects.some(isUserProject)) {
+  if (!hasUserProjects(projects)) {
     return (
       <span className={className} style={hue}>
         {identity}

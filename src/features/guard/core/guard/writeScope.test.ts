@@ -24,7 +24,8 @@ function layout() {
   ];
   const facts = (workdir: string, over: Partial<WriteScopeFacts> = {}): WriteScopeFacts => ({
     workdir,
-    writableDirs: [note, path.join(claude, "plans")],
+    writableDirs: [note],
+    exceptionDirs: [path.join(claude, "plans")],
     memoryParents: [path.join(claude, "projects")],
     workplaces: async () => workplaces,
     ...over,
@@ -102,4 +103,31 @@ test("書き込み先の守り: 断るフォルダ（共通のチャットから
   assert.equal((await judgeFileWrite(path.join(note, "a.md"), f)).kind, "pass");
   // 断るフォルダの外は、これまでどおり聞く
   assert.equal((await judgeFileWrite("/opt/elsewhere/a.txt", facts(work, { workplaces: async () => [], denied: { dirs: [other], reason: "x" } }))).kind, "ask");
+});
+
+test("書き込み先の守り: 共通のチャットは一時フォルダ（決まりの例外）の中の利用者のプロジェクトも断る。作業フォルダ・共通のノートは断るフォルダの中でも書ける", async () => {
+  const { root, facts } = layout();
+  // 一時フォルダに見立てたフォルダの中に、利用者のプロジェクト・共通の作業フォルダ・共通のノートを置く（見本データの /private/tmp/kickoff-fixture と同じ形）
+  const tmp = path.join(root, "tmp");
+  const alpha = path.join(tmp, "repos", "alpha");
+  const work = path.join(tmp, ".common-work");
+  const common = path.join(tmp, "_common");
+  for (const dir of [alpha, work, common]) fs.mkdirSync(dir, { recursive: true });
+  const denied = { dirs: [alpha, tmp], reason: "共通のチャットからは書けません" };
+  const f = facts(work, { writableDirs: [common], exceptionDirs: [tmp], workplaces: async () => [], denied });
+  const verdict = await judgeFileWrite(path.join(alpha, "src/a.ts"), f);
+  assert.ok(verdict.kind === "deny" && verdict.reason.includes("共通のチャットからは書けません"));
+  assert.equal((await judgeFileWrite(path.join(work, "a.txt"), f)).kind, "pass");
+  assert.equal((await judgeFileWrite(path.join(common, "a.md"), f)).kind, "pass");
+  // 断るフォルダの外の一時フォルダは、これまでどおり聞かずに書ける
+  const onlyAlpha = facts(work, { writableDirs: [common], exceptionDirs: [tmp], workplaces: async () => [], denied: { dirs: [alpha], reason: "x" } });
+  assert.equal((await judgeFileWrite(path.join(tmp, "scratch.txt"), onlyAlpha)).kind, "pass");
+});
+
+test("書き込み先の守り: プロジェクトのチャット（断るフォルダなし）は、一時フォルダの中なら同じリポジトリのほかの作業場所でもこれまでどおり書ける", async () => {
+  const { main, wt, facts } = layout();
+  // 本体ごと一時フォルダに見立てる（決まりの例外は作業場所の判定より先に通す）
+  const f = facts(wt, { exceptionDirs: [path.dirname(main)] });
+  assert.equal((await judgeFileWrite(path.join(main, "a.ts"), f)).kind, "pass");
+  assert.equal((await judgeFileWrite(path.join(main, "a.ts"), facts(wt))).kind, "deny");
 });

@@ -1,6 +1,7 @@
 // AI のツールが指せるプロジェクト。共通のチャット（共通のプロジェクトのチャット）からは、共通と、アーカイブしていない利用者のプロジェクトを指せる
 // （全プロジェクトのチャット・ノートを読むため）。プロジェクトのチャットからは自分のプロジェクトだけ（ほかを指したら断る。ほかの名前も教えない）
 import { z } from "zod";
+import type { AiTurn } from "@/foundation/core/aiTools/tool";
 import type { Chat } from "@shared/chat/types";
 import { isActiveUserProject, isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
@@ -8,9 +9,12 @@ import type { ProjectStore } from "@/features/projects/core/index";
 
 type Projects = Pick<ProjectStore, "get" | "list">;
 
+/** AI が渡すプロジェクトの指し方（名前か ID。指すプロジェクトは projectForTool・moveTargetProject で引く） */
+export const projectRefSchema = z.union([z.number().int(), z.string().min(1)]);
+
 /** AI が渡すプロジェクトの指し方（名前か ID。省けば呼んだチャットのプロジェクト） */
 export const projectRefInput = (what: string) =>
-  z.union([z.number().int(), z.string().min(1)]).optional().describe(`${what}プロジェクトの名前か ID（省くと、このチャットのプロジェクト）。ほかのプロジェクトを指せるのは共通のチャットからだけ`);
+  projectRefSchema.optional().describe(`${what}プロジェクトの名前か ID（省くと、このチャットのプロジェクト）。ほかのプロジェクトを指せるのは共通のチャットからだけ`);
 
 /** projectId のプロジェクトが共通か（共通のチャットか、の見分け。ないプロジェクトは false） */
 export function isCommonChatProject(projects: Pick<ProjectStore, "get">, projectId: number): boolean {
@@ -18,12 +22,22 @@ export function isCommonChatProject(projects: Pick<ProjectStore, "get">, project
   return project !== undefined && isCommonProject(project);
 }
 
-/** 呼んだチャットから指せるプロジェクト（共通のチャット: 共通と、アーカイブしていない利用者のプロジェクト（サイドバーの並び）。ほか: 自分のプロジェクトだけ） */
+/** isCommonChatTurn が 1 回の作業の値の入れ物に置くキー */
+const COMMON_CHAT_TURN_KEY = "chat:common_chat";
+
+/** この作業が共通のチャットのものか（ツールの組の open・instructions が組ごとに店を引かないよう、作業ごとに 1 回だけ引く） */
+export const isCommonChatTurn = (projects: Pick<ProjectStore, "get">, turn: Pick<AiTurn, "projectId" | "perTurn">): boolean =>
+  turn.perTurn(COMMON_CHAT_TURN_KEY, () => isCommonChatProject(projects, turn.projectId));
+
+/** 共通のチャットから指せる利用者のプロジェクト（アーカイブしていないもの。サイドバーの並び）。システムプロンプトで名前を伝えるのもこの範囲 */
+export const userProjectsForCommonChat = (all: readonly Project[]): Project[] => all.filter(isActiveUserProject);
+
+/** 呼んだチャットから指せるプロジェクト（共通のチャット: 共通と userProjectsForCommonChat。ほか: 自分のプロジェクトだけ） */
 export function readableProjects(projects: Projects, self: Chat): Project[] {
   const own = projects.get(self.project_id);
   if (!own) return [];
   if (!isCommonProject(own)) return [own];
-  return [own, ...projects.list().filter(isActiveUserProject)];
+  return [own, ...userProjectsForCommonChat(projects.list())];
 }
 
 /** 名前の比べ方（大文字・小文字・全角半角・前後の空白の違いは同じに見る） */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
-import { availableProjectViews, projectViewGroups, projectViews, resolveProjectView, type ProjectViewDef } from "./projectViews";
+import { allProjectViewGroups, availableProjectViews, projectViewGroups, projectViews, resolveProjectView, type ProjectViewDef } from "./projectViews";
 
 const Page = () => null;
 const view = (id: string, order: number, group: ProjectViewDef["group"], more: Partial<ProjectViewDef> = {}): ProjectViewDef => ({
@@ -53,6 +53,9 @@ test("プロジェクトの画面の表: 共通は common を付けた画面だ�
   // 共通で出さない画面の URL はボード
   assert.equal(resolveProjectView("files", true, true)?.id, "board");
   assert.equal(resolveProjectView("notes", true, true)?.id, "notes");
+  // 並べ替えの全体は共通でも絞らない（ふつうのプロジェクトの真ん中の画面のまとまり）
+  assert.deepEqual(allProjectViewGroups(), projectViewGroups(availableProjectViews("center", false)));
+  assert.deepEqual(allProjectViewGroups().flatMap((g) => g.tabs.map((t) => t.tab)), ["board", "chats", "files", "search", "notes", "db"]);
 });
 
 test("プロジェクトの画面の表: URL の画面は、知らない名前・アプリの外の desktopOnly・分けない置き方のチャットをボードにする", () => {

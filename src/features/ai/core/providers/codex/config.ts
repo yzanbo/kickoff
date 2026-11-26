@@ -1,5 +1,7 @@
+import path from "node:path";
 import type { EffortLevel } from "@shared/settings/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
+import { isInside } from "@/foundation/core/system/paths";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { launchEnv } from "@/features/ai/core/providers/shared/process";
 import { HOOK_TOKEN_ENV, HOOK_URL_ENV, hookConfig } from "./hooks";
@@ -38,17 +40,34 @@ export function mcpServerOverrides(tools: ToolEndpoint[], permissionMode: Provid
   return Object.fromEntries(entries);
 }
 
-/** 書けるフォルダ（Bash の砂場の一覧。作業場所は Codex が自分で入れる） */
-const writableRootsOf = (params: ProviderTurnParams): string[] => params.sandbox?.writableDirs ?? [];
+/**
+ * 書けるフォルダ（Bash の砂場の一覧。作業場所は Codex が自分で入れる）。一時フォルダを外すとき（tempDirOf）は、書かせないフォルダを中に持つもの
+ * （砂場の一覧に入っている /private/tmp・$TMPDIR の実体）も渡さない（excludeSlashTmp は /tmp の既定の書ける場所を外すだけで、書けるフォルダに名前で渡せば書ける）
+ */
+function writableRootsOf(params: ProviderTurnParams): string[] {
+  const dirs = params.sandbox?.writableDirs ?? [];
+  if (tempDirOf(params) === null) return dirs;
+  const denied = params.sandbox?.readOnlyDirs ?? [];
+  return dirs.filter((dir) => !denied.some((d) => isInside(dir, d)));
+}
+
+/**
+ * 一時フォルダ（/tmp と app-server の $TMPDIR）を書ける場所から外すか。Codex の砂場（workspaceWrite）には書けるフォルダの中を書かせない口がないので、
+ * 一時フォルダの中に書かせないフォルダ（共通のチャットから見た、一時フォルダに置いた利用者のプロジェクト）があるときは一時フォルダごと外す。
+ * 外すとコマンドの一時ファイル（zsh のヒアドキュメント・mktemp -t など）が書けなくなるので、置き場 commandTempDir を TMPDIR・TMPPREFIX で渡す（shellEnvSet）。
+ * いつも外すとふつうの置き場所のプロジェクトでも一時フォルダを使うコマンド（引数なしの mktemp は TMPDIR を見ない）が止まるので、要るときだけにする
+ */
+const tempDirOf = (params: ProviderTurnParams): string | null => params.sandbox?.commandTempDir ?? null;
 
 /**
  * Bash とファイルの変更の砂場（Codex の Seatbelt）。計画モードは読むだけ、ほかは作業場所と書けるフォルダ。ネットワークは絞らない（Kickoff の決まり）。
- * Kickoff の砂場の「書かせないフォルダ」（添付・参照資料）は Codex に読めるフォルダとして渡さないので、もともと書けない
+ * Kickoff の砂場の「書かせないフォルダ」（添付・参照資料）は Codex に読めるフォルダとして渡さないので、もともと書けない（一時フォルダの中にあれば tempDirOf）
  */
 export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
   if (params.permissionMode === "plan") return { type: "readOnly", networkAccess: true };
   if (params.sandboxOff) return { type: "dangerFullAccess" };
-  return { type: "workspaceWrite", writableRoots: writableRootsOf(params), networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false };
+  const excludeTemp = tempDirOf(params) !== null;
+  return { type: "workspaceWrite", writableRoots: writableRootsOf(params), networkAccess: true, excludeTmpdirEnvVar: excludeTemp, excludeSlashTmp: excludeTemp };
 }
 
 /**
@@ -57,8 +76,13 @@ export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
  */
 const DELIVERED_SECRET_VARS = ["GH_TOKEN", "GH_ENTERPRISE_TOKEN"];
 
-function shellEnvSet(env: Record<string, string> | undefined): Record<string, string> {
-  return Object.fromEntries(DELIVERED_SECRET_VARS.flatMap((name) => (env?.[name] ? [[name, env[name]]] : [])));
+function shellEnvSet(params: ProviderTurnParams): Record<string, string> {
+  const tempDir = tempDirOf(params);
+  return {
+    ...Object.fromEntries(DELIVERED_SECRET_VARS.flatMap((name) => (params.env?.[name] ? [[name, params.env[name]]] : []))),
+    // 一時フォルダを書ける場所から外したときのコマンドの一時ファイルの置き場（TMPPREFIX は zsh のヒアドキュメント。既定は /tmp/zsh で TMPDIR を見ない）
+    ...(tempDir !== null ? { TMPDIR: tempDir, TMPPREFIX: path.join(tempDir, "zsh") } : {}),
+  };
 }
 
 /**
@@ -77,6 +101,7 @@ const HIDDEN_FROM_COMMANDS = [HOOK_URL_ENV, HOOK_TOKEN_ENV];
  */
 export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
   const apiKey = params.auth?.mode === "api_key";
+  const envSet = shellEnvSet(params);
   return {
     model: params.model,
     cwd: params.cwd,
@@ -93,8 +118,9 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
       projects: { [params.cwd]: { trust_level: "trusted" } },
       "sandbox_workspace_write.writable_roots": writableRootsOf(params),
       "sandbox_workspace_write.network_access": true,
+      ...(tempDirOf(params) !== null ? { "sandbox_workspace_write.exclude_slash_tmp": true, "sandbox_workspace_write.exclude_tmpdir_env_var": true } : {}),
       ...(apiKey ? { "shell_environment_policy.ignore_default_excludes": false } : {}),
-      ...(Object.keys(shellEnvSet(params.env)).length > 0 ? { "shell_environment_policy.set": shellEnvSet(params.env) } : {}),
+      ...(Object.keys(envSet).length > 0 ? { "shell_environment_policy.set": envSet } : {}),
     },
   };
 }

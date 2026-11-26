@@ -1,7 +1,7 @@
 import "./ProjectChip.css";
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { COMMON_TONE, hueStyle, useIsCommonProject, useProjectHue } from "./projectColor";
+import { useProjectTone } from "./projectColor";
 import { href } from "@/foundation/ui/navigation/router";
 import { ProjectMark } from "./ProjectMark";
 
@@ -24,9 +24,9 @@ export function ProjectChip({
   title?: string;
   children?: ReactNode;
 }) {
-  const common = useIsCommonProject(id);
+  const tone = useProjectTone(id);
   const chip = (
-    <span className={cx("project-chip", common && COMMON_TONE, className)} style={hueStyle(useProjectHue(id))} title={title ?? `プロジェクト: ${name}`}>
+    <span className={cx("project-chip", tone.className, className)} style={tone.style} title={title ?? `プロジェクト: ${name}`}>
       <ProjectMark project={{ id, name }} />
       {children ?? name}
     </span>

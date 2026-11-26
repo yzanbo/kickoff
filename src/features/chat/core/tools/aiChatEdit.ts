@@ -11,13 +11,14 @@ import { defineAiTool, type AiApprovalCard, type AiApprovalDecision, type AiTool
 import { AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { errorMessage } from "@shared/foundation/errors";
 import { CHAT_TITLE_MAX, chatName, type Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { familyOf } from "@/features/chat/core/family";
 import type { ChatDetachPort } from "@/features/chat/core/ports";
 import { applyChatUpdate, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { toolChat } from "./context";
 import { approveAiWrite } from "./aiWriteApproval";
-import { isCommonChatProject, projectForTool, projectRefInput, readableProjects } from "./projectScope";
+import { isCommonChatProject, isCommonChatTurn, projectForTool, projectRefInput, readableProjects } from "./projectScope";
 
 /** 名前・固定・グループを変えるツールの使い方（MCP の instructions として AI に渡す） */
 const FAMILY_INSTRUCTIONS = [
@@ -50,6 +51,12 @@ const UPDATE_CHAT_INPUT = {
 };
 type UpdateChatInput = z.infer<z.ZodObject<typeof UPDATE_CHAT_INPUT>>;
 
+/** 共通のチャットから変える、ほかのプロジェクトのチャットとそのプロジェクト */
+interface OtherTarget {
+  target: Chat;
+  project: Project;
+}
+
 /** 家系のツールに使うもの（親から外すのは childChats の口。作業中のチャットは childChats が断る） */
 interface AiChatEditDeps {
   store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">;
@@ -59,12 +66,8 @@ interface AiChatEditDeps {
 /** 名前・固定・グループを変えるツールの中身（AI に返す文。変えられなければ理由の文で throw） */
 export interface AiChatEditTools {
   listFamily(): string;
-  /** 同じプロジェクトのチャットを変える（聞かない） */
-  update(input: UpdateChatInput): string;
-  /** input がほかのプロジェクトのチャットを指すか（共通のチャットからだけ true） */
-  isOtherProject(input: UpdateChatInput): boolean;
-  /** 共通のチャットから、ほかのプロジェクトのチャットの名前・固定・グループを変える（設定に従って ask で聞く） */
-  updateInOtherProject(input: UpdateChatInput, ask: (card: AiApprovalCard) => Promise<AiApprovalDecision>): Promise<string>;
+  /** 同じプロジェクトのチャットは聞かずに変え、共通のチャットからほかのプロジェクトのチャットを指したら設定に従って ask で聞いてから変える */
+  update(input: UpdateChatInput, ask: (card: AiApprovalCard) => Promise<AiApprovalDecision>): Promise<string>;
 }
 
 /** 決まりが断ったら、AI に返す理由の文で投げ直す */
@@ -105,51 +108,99 @@ export function createAiChatEditTools({ store, detach }: AiChatEditDeps, chatId:
     const group = chat.group_id === null ? undefined : store.groups.get(chat.group_id);
     return group ? { id: group.id, name: group.name } : null;
   };
-  /** input が指す、ほかのプロジェクトのチャットとそのプロジェクト（呼んだチャットから指せないものは理由の文で throw） */
-  const otherTarget = (self: Chat, input: UpdateChatInput) => {
+  const notInProject = (input: UpdateChatInput, project: Project | undefined) =>
+    new Error(`チャット ID ${input.chat_id} は${project ? `プロジェクト「${project.name}」` : "指せるプロジェクト"}にありません。list_project_chats に project を渡して ID を確かめてください`);
+  /**
+   * input が指す、ほかのプロジェクトのチャットとそのプロジェクト（共通のチャットからだけ。同じプロジェクトのチャットを指すなら null）。
+   * given は input.project が指すプロジェクト（update が 1 回だけ引いたもの。プロジェクトのチャットでは projectForTool が自分のプロジェクトしか返さない）。
+   * 指せないものは理由の文で throw
+   */
+  const otherTarget = (self: Chat, input: UpdateChatInput, given: Project | undefined): OtherTarget | null => {
     const target = store.chats.get(input.chat_id);
-    const project = input.project !== undefined ? projectForTool(store.projects, self, input.project) : target ? store.projects.get(target.project_id) : undefined;
-    if (!target || !project || target.project_id !== project.id || !readableProjects(store.projects, self).some((p) => p.id === project.id)) {
-      throw new Error(`チャット ID ${input.chat_id} は${project ? `プロジェクト「${project.name}」` : "指せるプロジェクト"}にありません。list_project_chats に project を渡して ID を確かめてください`);
+    if (given) {
+      if (given.id === self.project_id) return null;
+      if (!target || target.project_id !== given.id) throw notInProject(input, given);
+      return { target, project: given };
     }
+    if (!target || target.project_id === self.project_id || !isCommonChatProject(store.projects, self.project_id)) return null;
+    const project = store.projects.get(target.project_id);
+    if (!project || !readableProjects(store.projects, self).some((p) => p.id === project.id)) throw notInProject(input, project);
     return { target, project };
   };
+  /** 共通のチャットから、ほかのプロジェクトのチャットの名前・固定・グループを変える（設定に従って ask で聞く） */
+  const updateInOtherProject = async (input: UpdateChatInput, { target, project }: OtherTarget, ask: (card: AiApprovalCard) => Promise<AiApprovalDecision>): Promise<string> => {
+    if (input.parent_id !== undefined) throw new Error("ほかのプロジェクトのチャットは親から外せません（parent_id は同じ家系のチャットだけ）");
+    if (input.title === undefined && input.pinned === undefined && input.group_id === undefined) throw new Error("変える項目がありません。title・pinned・group_id のどれかを渡してください（省いた項目は変えません）");
+    // 先にすべて確かめてから聞く（決まりは PATCH /api/chats/:id と同じ update.ts。グループはそのチャットのプロジェクトのものだけ）
+    const planOn = (chat: Chat) => refusedForAi(() => planChatUpdate({ store, requireIdle: () => {} }, chat, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { strictChildGroup: true }), input);
+    const plan = planOn(target);
+    const label = `プロジェクト「${project.name}」のチャット「${chatName(target.title, "ai")}」（ID ${target.id}）`;
+    // 変えること（カードの「〜する」と、返事の「〜した」）
+    const steps: [string, string][] = [];
+    if (plan.title !== undefined) steps.push([`名前を「${plan.title}」に変える`, `名前を「${plan.title}」に変えた`]);
+    if (plan.pinned !== undefined) steps.push(plan.pinned ? ["固定する", "固定した"] : ["固定を外す", "固定を外した"]);
+    if (plan.group) steps.push(plan.group.group ? [`グループ「${plan.group.group.name}」に入れる`, `グループ「${plan.group.group.name}」に入れた`] : ["グループから外す", "グループから外した"]);
+    const planned = steps.map(([will]) => will);
+    if (planned.length === 0) return `${label}は、もともと頼まれた値だったので変えていません。`;
+    await approveAiWrite(store.settings, "other_project_write", ask, {
+      toolName: AI_UPDATE_CHAT_TOOL,
+      input: { ...input, project: project.name },
+      title: `ほかのプロジェクトのチャットを変えようとしています: ${label}`,
+      description: `共通のチャットの AI が、次のように変えようとしています: ${planned.join("・")}。`,
+    });
+    // 聞いている間に消えていないか確かめ直し、もう一度決まりに当ててから変える
+    const fresh = store.chats.get(target.id);
+    if (!fresh || fresh.project_id !== project.id) throw new Error("変えるチャットが見つかりません（消されたか、ほかのプロジェクトへ移った可能性があります）");
+    applyChatUpdate(store.chats, planOn(fresh));
+    return `${label}を変えました: ${steps.map(([, done]) => done).join("・")}。`;
+  };
+  /** 同じプロジェクトのチャットを変える（聞かない。家系の外は名前だけ） */
+  const updateInProject = (self: Chat, input: UpdateChatInput): string => {
+    const { members, relationOf } = familyOf(store.chats, self);
+    if (input.title === undefined && input.pinned === undefined && input.group_id === undefined && input.parent_id === undefined) {
+      throw new Error("変える項目がありません。title・pinned・group_id・parent_id のどれかを渡してください（省いた項目は変えません）");
+    }
+    const target = members.find((c) => c.id === input.chat_id);
+    if (!target) return renameOutsideFamily(store, self, input);
+    // 親から外す（parent_id）。グループは親のないチャットにするときだけ一緒に渡せる
+    const detaching = input.parent_id !== undefined;
+    if (detaching && target.parent_chat_id === null) throw new Error("親のないチャットです（parent_id で外せるのは子チャットだけです）");
+    if (detaching && input.parent_id !== null && input.group_id !== undefined && input.group_id !== null) {
+      throw new Error("グループに入れられるのは親のないチャットだけです（先祖の子に上げるときは group_id を渡さないでください）");
+    }
+    // 先にすべて確かめてから変える（途中で断って一部だけ変わらないように。決まりは PATCH /api/chats/:id と同じ update.ts。親から外して親のないチャットにするときはグループも渡せる）
+    const plan = refusedForAi(
+      () => planChatUpdate({ store, requireIdle: () => {} }, target, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { becomesRoot: detaching && input.parent_id === null, strictChildGroup: true }),
+      input,
+    );
+    const group = plan.group?.group ?? (input.group_id === undefined || input.group_id === null ? null : (store.groups.get(input.group_id) ?? null));
+
+    const changes: string[] = [];
+    // 親から外すのを先にする（先祖でない ID・作業中などで断るときは、ほかの項目も変えないように）
+    if (detaching) {
+      const parentId = input.parent_id ?? null;
+      const before = target.parent_chat_id === null ? null : store.chats.get(target.parent_chat_id);
+      try {
+        if (!detach) throw new Error("子チャットの機能がありません");
+        detach.detach(target, { parentId, groupId: parentId === null ? (input.group_id ?? null) : null });
+      } catch (e) {
+        throw new Error(`親から外せませんでした: ${errorMessage(e)}`, { cause: e });
+      }
+      const to = parentId === null ? null : store.chats.get(parentId);
+      changes.push(to ? `「${chatName(before?.title ?? "", "ai")}」から「${chatName(to.title, "ai")}」の子に上げた` : `「${chatName(before?.title ?? "", "ai")}」から外して親のないチャットにした${group ? `（グループ「${group.name}」）` : ""}`);
+    }
+    // グループは親から外すときに一緒に入れたので、ここでは変えない
+    const { changes: made } = applyChatUpdate(store.chats, detaching ? { ...plan, group: undefined } : plan);
+    for (const kind of ["title", "pinned", "group"] as const) {
+      const change = made.find((c) => c.kind === kind);
+      if (change?.kind === "title") changes.push(`名前を「${chatName(change.from, "ai")}」から「${change.to}」に変えた`);
+      if (change?.kind === "pinned") changes.push(change.to ? "固定した" : "固定を外した");
+      if (change?.kind === "group") changes.push(change.group ? `グループ「${change.group.name}」に入れた` : "グループから外した");
+    }
+    const label = `チャット「${chatName(plan.title ?? target.title, "ai")}」（ID ${target.id}・${relationOf(target)}）`;
+    return changes.length > 0 ? `${label}を変えました: ${changes.join("・")}。` : `${label}は、もともと頼まれた値だったので変えていません。`;
+  };
   return {
-    isOtherProject(input) {
-      const self = requireSelf();
-      if (!isCommonChatProject(store.projects, self.project_id)) return false;
-      if (input.project !== undefined) return projectForTool(store.projects, self, input.project).id !== self.project_id;
-      const target = store.chats.get(input.chat_id);
-      return target !== undefined && target.project_id !== self.project_id;
-    },
-    async updateInOtherProject(input, ask) {
-      const self = requireSelf();
-      const { target, project } = otherTarget(self, input);
-      if (input.parent_id !== undefined) throw new Error("ほかのプロジェクトのチャットは親から外せません（parent_id は同じ家系のチャットだけ）");
-      if (input.title === undefined && input.pinned === undefined && input.group_id === undefined) throw new Error("変える項目がありません。title・pinned・group_id のどれかを渡してください（省いた項目は変えません）");
-      // 先にすべて確かめてから聞く（決まりは PATCH /api/chats/:id と同じ update.ts。グループはそのチャットのプロジェクトのものだけ）
-      const plan = refusedForAi(() => planChatUpdate({ store, requireIdle: () => {} }, target, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { strictChildGroup: true }), input);
-      const label = `プロジェクト「${project.name}」のチャット「${chatName(target.title, "ai")}」（ID ${target.id}）`;
-      // 変えること（カードの「〜する」と、返事の「〜した」）
-      const steps: [string, string][] = [];
-      if (plan.title !== undefined) steps.push([`名前を「${plan.title}」に変える`, `名前を「${plan.title}」に変えた`]);
-      if (plan.pinned !== undefined) steps.push(plan.pinned ? ["固定する", "固定した"] : ["固定を外す", "固定を外した"]);
-      if (plan.group) steps.push(plan.group.group ? [`グループ「${plan.group.group.name}」に入れる`, `グループ「${plan.group.group.name}」に入れた`] : ["グループから外す", "グループから外した"]);
-      const planned = steps.map(([will]) => will);
-      if (planned.length === 0) return `${label}は、もともと頼まれた値だったので変えていません。`;
-      await approveAiWrite(store.settings, "other_project_write", ask, {
-        toolName: AI_UPDATE_CHAT_TOOL,
-        input: { ...input, project: project.name },
-        title: `ほかのプロジェクトのチャットを変えようとしています: ${label}`,
-        description: `共通のチャットの AI が、次のように変えようとしています: ${planned.join("・")}。`,
-      });
-      // 聞いている間に消えていないか確かめ直し、もう一度決まりに当ててから変える
-      const fresh = store.chats.get(target.id);
-      if (!fresh || fresh.project_id !== project.id) throw new Error("変えるチャットが見つかりません（消されたか、ほかのプロジェクトへ移った可能性があります）");
-      const again = refusedForAi(() => planChatUpdate({ store, requireIdle: () => {} }, fresh, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { strictChildGroup: true }), input);
-      applyChatUpdate(store.chats, again);
-      return `${label}を変えました: ${steps.map(([, done]) => done).join("・")}。`;
-    },
     listFamily() {
       const self = requireSelf();
       const { members, relationOf } = familyOf(store.chats, self);
@@ -173,68 +224,25 @@ export function createAiChatEditTools({ store, detach }: AiChatEditDeps, chatId:
         2,
       );
     },
-    update(input) {
+    async update(input, ask) {
       const self = requireSelf();
-      // project はこのプロジェクトを指すときだけ（プロジェクトのチャットからほかを指せば projectForTool が断る）
-      if (input.project !== undefined) projectForTool(store.projects, self, input.project);
-      const { members, relationOf } = familyOf(store.chats, self);
-      if (input.title === undefined && input.pinned === undefined && input.group_id === undefined && input.parent_id === undefined) {
-        throw new Error("変える項目がありません。title・pinned・group_id・parent_id のどれかを渡してください（省いた項目は変えません）");
-      }
-      const target = members.find((c) => c.id === input.chat_id);
-      if (!target) return renameOutsideFamily(store, self, input);
-      // 親から外す（parent_id）。グループは親のないチャットにするときだけ一緒に渡せる
-      const detaching = input.parent_id !== undefined;
-      if (detaching && target.parent_chat_id === null) throw new Error("親のないチャットです（parent_id で外せるのは子チャットだけです）");
-      if (detaching && input.parent_id !== null && input.group_id !== undefined && input.group_id !== null) {
-        throw new Error("グループに入れられるのは親のないチャットだけです（先祖の子に上げるときは group_id を渡さないでください）");
-      }
-      // 先にすべて確かめてから変える（途中で断って一部だけ変わらないように。決まりは PATCH /api/chats/:id と同じ update.ts。親から外して親のないチャットにするときはグループも渡せる）
-      const plan = refusedForAi(
-        () => planChatUpdate({ store, requireIdle: () => {} }, target, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { becomesRoot: detaching && input.parent_id === null, strictChildGroup: true }),
-        input,
-      );
-      const group = plan.group?.group ?? (input.group_id === undefined || input.group_id === null ? null : (store.groups.get(input.group_id) ?? null));
-
-      const changes: string[] = [];
-      // 親から外すのを先にする（先祖でない ID・作業中などで断るときは、ほかの項目も変えないように）
-      if (detaching) {
-        const parentId = input.parent_id ?? null;
-        const before = target.parent_chat_id === null ? null : store.chats.get(target.parent_chat_id);
-        try {
-          if (!detach) throw new Error("子チャットの機能がありません");
-          detach.detach(target, { parentId, groupId: parentId === null ? (input.group_id ?? null) : null });
-        } catch (e) {
-          throw new Error(`親から外せませんでした: ${errorMessage(e)}`, { cause: e });
-        }
-        const to = parentId === null ? null : store.chats.get(parentId);
-        changes.push(to ? `「${chatName(before?.title ?? "", "ai")}」から「${chatName(to.title, "ai")}」の子に上げた` : `「${chatName(before?.title ?? "", "ai")}」から外して親のないチャットにした${group ? `（グループ「${group.name}」）` : ""}`);
-      }
-      // グループは親から外すときに一緒に入れたので、ここでは変えない
-      const { changes: made } = applyChatUpdate(store.chats, detaching ? { ...plan, group: undefined } : plan);
-      for (const kind of ["title", "pinned", "group"] as const) {
-        const change = made.find((c) => c.kind === kind);
-        if (change?.kind === "title") changes.push(`名前を「${chatName(change.from, "ai")}」から「${change.to}」に変えた`);
-        if (change?.kind === "pinned") changes.push(change.to ? "固定した" : "固定を外した");
-        if (change?.kind === "group") changes.push(change.group ? `グループ「${change.group.name}」に入れた` : "グループから外した");
-      }
-      const label = `チャット「${chatName(plan.title ?? target.title, "ai")}」（ID ${target.id}・${relationOf(target)}）`;
-      return changes.length > 0 ? `${label}を変えました: ${changes.join("・")}。` : `${label}は、もともと頼まれた値だったので変えていません。`;
+      // project は先に 1 回だけ引く（プロジェクトのチャットからほかを指せば projectForTool が断る）
+      const given = input.project === undefined ? undefined : projectForTool(store.projects, self, input.project);
+      const other = otherTarget(self, input, given);
+      return other ? updateInOtherProject(input, other, ask) : updateInProject(self, input);
     },
   };
 }
 
-/** 共通のチャットにだけ、ほかのプロジェクトのチャットを変える使い方を足す組（ツールは家系の組の update_chat。open は空） */
-export function commonFamilyToolGroup(deps: Pick<AiChatEditDeps, "store">): AiToolGroup {
-  return { server: "kickoff_chat", order: 30, instructions: COMMON_FAMILY_INSTRUCTIONS, open: ({ projectId }) => (isCommonChatProject(deps.store.projects, projectId) ? [] : null) };
-}
-
-/** 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す） */
+/**
+ * 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す）。
+ * 共通のチャットには、ほかのプロジェクトのチャットを変える使い方も足す
+ */
 export function familyToolGroup(deps: AiChatEditDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 30,
-    instructions: FAMILY_INSTRUCTIONS,
+    instructions: (turn) => (isCommonChatTurn(deps.store.projects, turn) ? [...FAMILY_INSTRUCTIONS, ...COMMON_FAMILY_INSTRUCTIONS] : FAMILY_INSTRUCTIONS),
     open: ({ chatId }) => {
       const edit = createAiChatEditTools(deps, chatId);
       return [
@@ -251,7 +259,7 @@ export function familyToolGroup(deps: AiChatEditDeps): AiToolGroup {
           description:
             "同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（家系の外でも同じプロジェクトなら名前だけ変えられる。聞かずに変える。省いた項目は変えない。親から外すのは利用者に頼まれたときだけ）",
           input: UPDATE_CHAT_INPUT,
-          run: (args, turn) => (edit.isOtherProject(args) ? edit.updateInOtherProject(args, (card) => turn.ask(card)) : edit.update(args)),
+          run: (args, turn) => edit.update(args, (card) => turn.ask(card)),
         }),
       ];
     },

@@ -2,7 +2,7 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { makeChat, makeEvent } from "@shared/chat/testing";
 import { makeProject } from "@shared/projects/testing";
-import type { TurnContext, TurnContributor, TurnParts } from "./contributor";
+import { turnProjects, type TurnContext, type TurnContributor, type TurnParts } from "./contributor";
 import { emptyMarks } from "@/features/chat/core/run/machine/marks";
 import { collectTurnParts } from "./params";
 
@@ -104,4 +104,15 @@ test("フォルダを読んで足すもの（contributeWithDirs）は、全部�
   const got = await collectTurnParts([guard, part("chat", 30, { readOnlyDirs: ["/refs"], readableDirs: ["/refs"] }), part("notes", 50, { writableDirs: ["/notes"], readableDirs: ["/notes"] })], ctx);
   assert.deepEqual(dirs, { readableDirs: ["/refs", "/notes"], readOnlyDirs: ["/refs"], writableDirs: ["/notes"] });
   assert.equal(got.sandboxOff, true);
+});
+
+test("turnProjects: 同じ実行の中では、どの contributor から引いても一覧を 1 回だけ読んで同じものを返す", () => {
+  const kept = new Map<string, unknown>();
+  const perTurn = <T,>(key: string, init: () => T): T => (kept.has(key) ? (kept.get(key) as T) : (kept.set(key, init()), kept.get(key) as T));
+  let reads = 0;
+  const list = () => (reads++, [makeProject(1), makeProject(2)]);
+  const first = turnProjects(perTurn, list);
+  assert.equal(turnProjects(perTurn, list), first);
+  assert.deepEqual(first.map((p) => p.id), [1, 2]);
+  assert.equal(reads, 1);
 });

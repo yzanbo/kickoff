@@ -1,12 +1,12 @@
 import { MessageCircle, Plus } from "lucide-react";
 import { isCommonProject } from "@shared/projects/kinds";
-import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { Fragment, useEffect, useRef, type DragEvent, type MouseEvent } from "react";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ProjectReorder } from "./useProjectNav";
 import { useProjectChatDrops } from "./projectChatDrop";
 import { useCommandKeyList } from "@/foundation/ui/commands";
-import { COMMON_TONE, initialOf } from "@/features/projects/ui";
+import { initialOf, projectTone } from "@/features/projects/ui";
 import type { StateCounts } from "@/features/chat/ui";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui";
 
@@ -73,6 +73,7 @@ export function WorkspaceDots({
       {projects.map((p, i) => {
         const counts = countsOf(p.id);
         const common = isCommonProject(p);
+        const tone = projectTone(p);
         const draggable = !isArchived(p.id) && !common;
         const summary = stateCountsSummary(counts);
         // 共通の丸と後ろの丸の間、固定したプロジェクトの丸と残りの丸の間に区切りを入れる
@@ -84,8 +85,8 @@ export function WorkspaceDots({
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", common && `common ${COMMON_TONE}`, isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
-            style={{ "--hue": `${p.hue}` } as CSSProperties}
+            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", common && "common", tone.className, isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
+            style={tone.style}
             {...reorder.attrsFor(p.id, axis)}
             title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${dotKeys[i] ? `（${dotKeys[i]}）` : ""}（${hints}）`}
             onClick={() => onGo(i)}

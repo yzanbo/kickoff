@@ -12,6 +12,8 @@ import { ChatFontSizeButton } from "@/features/conversation/ui/display/ChatFontS
 import { TextWidthToggle, useWideText } from "@/features/conversation/ui/display/TextWidthToggle";
 import { useAppSettings } from "@/foundation/ui/settings/appSettings";
 import { RestrictionNotice } from "./RestrictionNotice";
+import { chatRestrictions } from "@shared/chat/restrictionNotice";
+import { useIsCommonProject } from "@/features/projects/ui";
 import { TabVisibleContext } from "@/features/panel/ui";
 
 /**
@@ -20,7 +22,7 @@ import { TabVisibleContext } from "@/features/panel/ui";
  * 見出しと流れの何もないところの右クリックで「チャットの画面」のメニュー。
  * 道具は会話がなくても効くもの（会話の横幅・会話の文字の大きさ）だけを出す（会話 / 動き・指示の帯・検索・ターン数・右の欄の開閉は、会話ができてから）
  */
-export function DraftChatPage({ provider, className, badges, hero, children }: { provider: ProviderId; className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
+export function DraftChatPage({ provider, projectId, className, badges, hero, children }: { provider: ProviderId; projectId: number; className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
   const page = useRef<HTMLDivElement>(null);
   const visible = useContext(TabVisibleContext);
   const draftKey = `draft:${useId()}`;
@@ -31,6 +33,8 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
   const rowHidden = useChatHeaderRowHidden();
   const menu = useChatDisplayMenu();
   const settings = useAppSettings().data;
+  // 共通に作るチャットは、既定をオフにしても制限が効くので知らせない
+  const common = useIsCommonProject(projectId);
   return (
     <div
       ref={page}
@@ -55,7 +59,7 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
       <div className="timeline" onContextMenu={menu.onBlank}>
         {hero}
       </div>
-      <div className="chat-composer">{settings ? <RestrictionNotice draft sandboxEnabled={settings.sandbox_enabled_by_default} editScopeEnabled={settings.edit_scope_enabled_by_default} /> : <p className="composer-notice small">制限の設定を読み込み中です。</p>}{children}</div>
+      <div className="chat-composer">{settings ? <RestrictionNotice draft {...chatRestrictions({ sandbox_enabled: settings.sandbox_enabled_by_default, edit_scope_enabled: settings.edit_scope_enabled_by_default }, common)} /> : <p className="composer-notice small">制限の設定を読み込み中です。</p>}{children}</div>
       {menu.element}
     </div>
   );

@@ -6,7 +6,7 @@ import { noteKindOf } from "@shared/notes/kinds";
 import { isActiveUserProject } from "@shared/projects/kinds";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Project } from "@shared/projects/types";
-import type { PromptSection, TurnContributor } from "@/features/chat/core/index";
+import { turnProjects, type PromptSection, type TurnContributor } from "@/features/chat/core/index";
 
 /** フォルダがなければ作って返す（作れなければ null） */
 function ensureDir(dir: string): string | null {
@@ -80,8 +80,8 @@ function commonChatNoteSection(dir: string): PromptSection {
  */
 export function noteTurnParts(d: {
   dirOf(project: Project): string;
-  /** フォルダ名を決めず・作らずに引くノートのフォルダ（ほかのプロジェクトのノートを読ませるとき） */
-  peekDirOf(project: Project): string;
+  /** フォルダ名を決めず・作らずに引くノートのフォルダ（ほかのプロジェクトのノートを読ませるとき。並びは projects と同じ） */
+  peekDirsOf(projects: readonly Project[]): string[];
   /** すべてのプロジェクト（サイドバーの並び） */
   projects(): Project[];
   commonProject(): Project | null;
@@ -90,7 +90,7 @@ export function noteTurnParts(d: {
   return {
     name: "notes",
     order: 60,
-    contribute({ chat, project }) {
+    contribute({ chat, project, perTurn }) {
       const dir = ensureDir(d.dirOf(project));
       if (!dir) return null;
       // 共通のノートのフォルダも足す（共通のノート自身のチャットではノートフォルダがそれなので二重にしない。使えないときは足さない）
@@ -99,7 +99,7 @@ export function noteTurnParts(d: {
       const dirs = commonDir ? [dir, commonDir] : [dir];
       // 共通のチャット（共通のノートのチャットも）は、アーカイブしていない利用者のプロジェクトのノートも読める（書く場所には入れない。Bash の砂場でも書かせない）。
       // まだないフォルダは足さない（読むためにほかのプロジェクトのフォルダを作らない）
-      const others = common?.id === project.id ? d.projects().filter(isActiveUserProject).map(d.peekDirOf).filter((p) => existsSync(p)) : [];
+      const others = common?.id === project.id ? d.peekDirsOf(turnProjects(perTurn, d.projects).filter(isActiveUserProject)).filter((p) => existsSync(p)) : [];
       return {
         readableDirs: [...dirs, ...others],
         readOnlyDirs: others,

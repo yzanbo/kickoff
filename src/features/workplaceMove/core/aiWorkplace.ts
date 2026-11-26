@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { AI_MOVE_WORKPLACE_TOOL, type AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
 import type { Chat } from "@shared/chat/types";
-import { isCommonProject } from "@shared/projects/kinds";
+import { COMMON_PROJECT_LABEL, COMMON_WORKDIR_LABEL, isCommonProject } from "@shared/projects/kinds";
 import type { AiApprovalCard, AiApprovalDecision } from "@/foundation/core/aiTools/tool";
 import { approveAiWrite, isOtherProjectWrite, moveTargetProject, workdirOf, type ChatStoreDeps } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
@@ -71,7 +71,7 @@ async function reserveProjectMove(deps: AiWorkplaceDeps, chat: Chat, input: AiWo
   if (chat.parent_chat_id !== null) throw new Error("子チャットはほかのプロジェクトへ移せません（いちばん上の親チャットを移すと、子チャットも一緒に移ります）");
   if (chat.untracked_only) throw new Error("実行環境を整えるチャットは、そのワークツリーのためのものなので移せません");
   if (deps.reservations.finishing(chat.id)) throw new Error("このワークツリーは片付けを予約しているので、ほかのプロジェクトへは移せません（片付けが済んでから移してください）");
-  const label = isCommonProject(target) ? "共通" : `プロジェクト「${target.name}」`;
+  const label = isCommonProject(target) ? COMMON_PROJECT_LABEL : `プロジェクト「${target.name}」`;
   const continuation = input.continuation?.trim() || null;
   if (isOtherProjectWrite(store.projects, chat, target)) {
     await approveAiWrite(store.settings, "other_project_write", ask, {
@@ -85,7 +85,7 @@ async function reserveProjectMove(deps: AiWorkplaceDeps, chat: Chat, input: AiWo
   deps.reservations.reserve(chat.id, { body: { worktree_path: null }, projectId: target.id, label, continuation });
   return [
     `${replaced ? "前の予約を置き換えて、" : ""}予約しました。この作業が最後まで終わったら、Kickoff がこのチャット（子チャットも）を${label}へ移し${continuation ? "、続きの指示を送ります" : "ます（続きの指示はないので、移すだけです）"}。止めた・失敗したときは移しません。`,
-    `移った先の作業フォルダは${isCommonProject(target) ? "共通の作業フォルダ" : "そのプロジェクトの本体"}です。作業したファイルは元のフォルダに残り、グループ・ワークツリーは外れます。`,
+    `移った先の作業フォルダは${isCommonProject(target) ? COMMON_WORKDIR_LABEL : "そのプロジェクトの本体"}です。作業したファイルは元のフォルダに残り、グループ・ワークツリーは外れます。`,
     "利用者は作業中の様子で予約を見て取り消せます。予約したら、結果を返答で伝えて作業を終えてください。",
   ].join("\n");
 }

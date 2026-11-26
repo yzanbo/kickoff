@@ -8,6 +8,7 @@ import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
 import { inDesktopApp } from "@/foundation/ui/lib/desktopApp";
+import { isCommonProjectId } from "@/features/projects/ui";
 
 declare module "@/foundation/ui/navigation/open" {
   interface OpenTargetMap {
@@ -29,8 +30,10 @@ function openWorkFile(request: Extract<OpenViewRequest, { kind: "file" | "diff" 
   const root = rootChatOf(from, (id) => knownChat(id));
   const target = { projectId: request.project_id, ...(request.worktree ? { worktree: request.worktree } : {}) };
   const name = (request.path ?? "変更").split("/").pop();
+  const fileWindow = (file: Extract<OpenViewRequest, { kind: "file" }>) =>
+    openPopout({ kind: "file", chatId: root.id, ...target, path: file.path, ...(file.line ? { line: file.line } : {}) }, `${name} — ファイル`);
   if (request.place === "window" && canPopout()) {
-    if (request.kind === "file") return openPopout({ kind: "file", chatId: root.id, ...target, path: request.path, ...(request.line ? { line: request.line } : {}) }, `${name} — ファイル`);
+    if (request.kind === "file") return fileWindow(request);
     return openPopout({ kind: "changes", chatId: root.id, ...target, ...(request.path ? { focus: request.path } : {}) }, "変更");
   }
   const opened = openInRootSide(from.id, (rootId, side) => {
@@ -40,8 +43,10 @@ function openWorkFile(request: Extract<OpenViewRequest, { kind: "file" | "diff" 
         : changesTab({ chatId: rootId, ...target, ...(request.path ? { focus: request.path } : {}) });
     openTab(side, tab, reopenOf(tab));
   });
-  // 右の欄を置けない（親が分からない）ときはファイルタブ
-  if (!opened && request.kind === "file") open({ kind: "file", projectId: request.project_id, path: request.path, line: request.line ?? undefined, worktree: request.worktree });
+  // 右の欄を置けない（親が分からない）ときはファイルタブ。共通の画面にはファイルタブがないので、共通のチャットはそのファイルだけの別ウィンドウ
+  if (opened || request.kind !== "file") return;
+  if (isCommonProjectId(request.project_id)) return canPopout() ? fileWindow(request) : undefined;
+  open({ kind: "file", projectId: request.project_id, path: request.path, line: request.line ?? undefined, worktree: request.worktree });
 }
 
 /** AI の頼み（open_view）を、画面のいまの開き方で開く */

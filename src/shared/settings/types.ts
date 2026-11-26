@@ -42,21 +42,22 @@ export const PERMISSION_LABELS: Record<PermissionMode, string> = {
   plan: "計画のみ",
 };
 
-/** チャットの AI がチャット（子・兄弟・親のないチャット）を作るツール（kickoff_chat の create_chat）の扱い: 毎回聞く / 聞かずに作る / 作らせない（ツールを渡さない） */
-export const AI_CREATE_CHAT_MODES = ["ask", "allow", "off"] as const;
-export type AiCreateChatMode = (typeof AI_CREATE_CHAT_MODES)[number];
+/**
+ * AI が Kickoff に書くツールの扱い（設定 ai_create_chat・ai_write_other_projects で同じ値）: ask = 毎回聞く / allow = 聞かずに書く / off = 書かせない。
+ * 文言は設定ごとに AI_CREATE_CHAT_MODE_LABELS・AI_WRITE_OTHER_PROJECTS_MODE_LABELS
+ */
+export const AI_WRITE_MODES = ["ask", "allow", "off"] as const;
+export type AiWriteMode = (typeof AI_WRITE_MODES)[number];
 
-export const AI_CREATE_CHAT_MODE_LABELS: Record<AiCreateChatMode, string> = {
+/** チャットの AI がチャット（子・兄弟・親のないチャット）を作るツール（kickoff_chat の create_chat）の扱い（作らせないならツールを渡さない） */
+export const AI_CREATE_CHAT_MODE_LABELS: Record<AiWriteMode, string> = {
   ask: "毎回聞く",
   allow: "聞かずに作る",
   off: "作らせない",
 };
 
-/** 共通のチャットの AI がほかのプロジェクトに書くとき（チャットを作って頼む・チャットの名前 / 固定 / グループを変える・ノートを書く / 移す・自分を移す）の扱い: 毎回聞く / 聞かずに書く / 書かせない */
-export const AI_WRITE_OTHER_PROJECTS_MODES = ["ask", "allow", "off"] as const;
-export type AiWriteOtherProjectsMode = (typeof AI_WRITE_OTHER_PROJECTS_MODES)[number];
-
-export const AI_WRITE_OTHER_PROJECTS_MODE_LABELS: Record<AiWriteOtherProjectsMode, string> = {
+/** 共通のチャットの AI がほかのプロジェクトに書くとき（チャットを作って頼む・チャットの名前 / 固定 / グループを変える・ノートを書く / 移す・自分を移す）の扱い */
+export const AI_WRITE_OTHER_PROJECTS_MODE_LABELS: Record<AiWriteMode, string> = {
   ask: "毎回聞く",
   allow: "聞かずに書く",
   off: "書かせない",

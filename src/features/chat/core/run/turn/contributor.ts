@@ -29,6 +29,12 @@ export interface TurnRequest {
 /** 1 回の作業の値の入れ物（contributor と AI のツールが同じものを使う。AiTurn.perTurn と同じ） */
 export type PerTurn = <T>(key: string, init: () => T) => T;
 
+/** turnProjects が 1 回の作業の値の入れ物に置くキー */
+const TURN_PROJECTS_KEY = "chat:projects";
+
+/** この実行のプロジェクトの一覧（chat・notes・guard の contributor が同じ一覧を見る。1 回の実行で 1 回だけ読む） */
+export const turnProjects = (perTurn: PerTurn, list: () => Project[]): Project[] => perTurn(TURN_PROJECTS_KEY, list);
+
 /** 1 回の実行の文脈（contribute に渡す） */
 export interface TurnContext {
   chat: Chat;

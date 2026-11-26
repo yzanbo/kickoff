@@ -68,7 +68,7 @@ export function AiDefaultsSettings() {
       </div>
       <div className="ai-defaults-heading">
         <h3>新しいチャットの制限</h3>
-        <p>Claude Code・Codex の新しいチャットに適用します。既存のチャットは、ここで再びオンにしても変わりません。</p>
+        <p>Claude Code・Codex の新しいチャットに適用します。既存のチャットは、ここで再びオンにしても変わりません。共通のチャットでは、どちらもいつも効きます。</p>
       </div>
       <div className="form ai-defaults-card-form">
         <CheckField

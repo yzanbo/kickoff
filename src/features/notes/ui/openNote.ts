@@ -9,9 +9,9 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { storage } from "./storage";
 import { readSetting } from "@/foundation/ui/storage";
 import { chatSidePanel, knownChat, openInRootSide } from "@/features/chat/ui";
-import { isSideViewShown, trySideOpen } from "@/features/projects/ui";
+import { isCommonProjectId, isSideViewShown, trySideOpen } from "@/features/projects/ui";
 import { noteTab, openTab, sidePanelsHandedOut, type DraftScope } from "@/features/panel/ui";
-import { isHiddenProject, screenProjectFor } from "./commonNotes";
+import { screenProjectFor } from "./commonNotes";
 import { ALL_NOTES_PANEL_KEY, notePanelKey, openNoteInPanel, sideNoteScope } from "./notePanel";
 import { ALL_NOTES_FOLD_PLACE, allNotesFoldKey } from "./allNotes/allNotesModel";
 import { requestNoteReveal } from "./noteReveal";
@@ -61,7 +61,7 @@ function viewing(): "allNotes" | "project" | "none" {
 
 /** このウィンドウのノートのタブ（右サイドバーがノートを見せていればそこ・全ノートの画面ならその中）で開く。line はそのノートで移る行 */
 export function showInNoteTab(projectId: number, path: string, { line, replace }: { line?: number; replace?: boolean } = {}) {
-  const hidden = isHiddenProject(projectId);
+  const hidden = isCommonProjectId(projectId);
   const place = noteShowPlace(viewing(), hidden);
   if (place === "allNotes") return showInAllNotes(projectId, path, hidden, { line, replace });
   if (place === "host") return showHiddenProjectNote(projectId, path, { line, replace });

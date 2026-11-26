@@ -3,6 +3,7 @@
 // 分かれてつながりが切れないよう、作業中のチャットがあればファイルを動かす前に断り、チャットを移せなければファイルとチャットを元に戻す
 import type { Chat } from "@shared/chat/types";
 import type { NoteRef } from "@shared/notes/types";
+import { isCommonProject } from "@shared/projects/kinds";
 import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
@@ -29,7 +30,7 @@ function targetOf(d: NoteTransferDeps, id: number): Project {
   const target = d.store.projects.get(id);
   if (!target) throw new NotFound("移す先のプロジェクトが見つかりません");
   if (target.archived_at) throw new Conflict(`アーカイブしたプロジェクト「${target.name}」へは、ノートを動かせません`);
-  if (target.kind === "common" && d.common.project()?.id !== target.id) throw new Conflict(`共通のノートを使えないため、ノートを動かせません（${d.common.unavailable()?.message ?? "共通のノートをまだ用意していません"}）`);
+  if (isCommonProject(target) && d.common.project()?.id !== target.id) throw new Conflict(`共通のノートを使えないため、ノートを動かせません（${d.common.unavailable()?.message ?? "共通のノートをまだ用意していません"}）`);
   return target;
 }
 

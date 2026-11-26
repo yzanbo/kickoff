@@ -9,10 +9,10 @@ import { storage } from "@/features/projects/ui/storage";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { availableProjectViews, projectViewGroups, type ProjectViewBadge, type ProjectViewBadgeProps, type ProjectViewDef } from "@/features/projects/ui/projectViews";
+import { allProjectViewGroups, availableProjectViews, projectViewGroups, type ProjectViewBadge, type ProjectViewBadgeProps, type ProjectViewDef } from "@/features/projects/ui/projectViews";
 import { useChatPlacement } from "./chatPlacement";
 import { useProjectTabOrder } from "./useProjectTabOrder";
-import { useIsCommonProject } from "@/features/projects/ui/projectColor";
+import { useIsCommonProject } from "@/features/projects/ui/currentProject";
 import { useMemo } from "react";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
@@ -110,7 +110,7 @@ export function ProjectTabs({
   // 共通は出す画面を絞り、並べ替えたら全体の並びに戻して覚える（ふつうのプロジェクトのタブの並びを崩さない）
   const common = useIsCommonProject(projectId);
   const views = useMemo(() => availableProjectViews("center", common), [common]);
-  const all = useMemo(() => (common ? projectViewGroups(availableProjectViews("center", false)) : undefined), [common]);
+  const all = useMemo(() => (common ? allProjectViewGroups() : undefined), [common]);
   const order = useProjectTabOrder(useMemo(() => projectViewGroups(views), [views]), vertical, all);
   // 数を出す画面（チャットをボードと分けない置き方では、出さないチャットのタブの数をボードが受け持つ = チャットを開く所に付ける）
   const badgeOf = (def: ProjectViewDef) => (def.useBadge ? def : separate ? undefined : views.find((v) => v.onlyWhenSeparate?.into === def.id && v.useBadge));

@@ -119,7 +119,8 @@ export interface AiToolGroup {
   readonly server: AiToolServer;
   /** 使い方の文とツールを並べる順（小さいほど先） */
   readonly order: number;
-  readonly instructions: readonly string[];
+  /** 使い方の文（作業によって足す文があるなら作業ごとに作る関数。open がツールを出したときだけ呼ぶ） */
+  readonly instructions: readonly string[] | ((turn: AiTurn) => readonly string[]);
   /** この作業で出すツール（出さないなら null） */
   open(turn: AiTurn): AiToolDef[] | null;
 }

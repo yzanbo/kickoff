@@ -63,7 +63,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   const dirs = createNoteDirs({ projects, notesDir: () => k.settings.get().notes_dir, defaultDir: env.defaultDir });
   const notes = new NoteService({ dirs, projects, publish, trashBin: trash });
   // 共通のノート（見えないプロジェクト）: 起動したときに用意し、フォルダの設定を変えたら付け替える
-  const common = createCommonNotes({ projects: deps.projects, settings: () => k.settings.get(), defaultRoot: env.defaultDir, noteDirUsers: dirs.usersOf });
+  const common = createCommonNotes({ projects: deps.projects, settings: () => k.settings.get(), defaultRoot: env.defaultDir, noteDirOwners: dirs.noteDirOwners });
   deps.settings.onUpdate(common.settingsHook);
   // ノートのフォルダの場所が変わったら、開いている文書が新しい場所を読み直すよう知らせる
   const stopDirChanges = followNoteDirChanges({ subscribe: (fn) => bus.subscribe(fn), list: () => projects.list(), dirOf: dirs.dirOf, publish });
@@ -77,7 +77,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   deps.attachments.addImageDir(dirs.dirOf);
   deps.attachments.useNoteDir(dirs.dirOf);
   // チャットの実行に、ノートのフォルダと共通のノートのフォルダ（なければ決めて作る）・「ノート」の節・ノートのチャットの知らせを足す
-  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, peekDirOf: dirs.dirOf, projects: () => projects.list(), commonProject: common.project, publish }));
+  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, peekDirsOf: dirs.dirsOf, projects: () => projects.list(), commonProject: common.project, publish }));
   // 欄の間で動かす（ノートのチャットごと）。同じプロジェクトの中ならふつうの移動
   const transfer = createNoteTransfer({ notes, store: chat.store, isBusy: (chatId) => chat.runner.isBusy(chatId), moveChat: deps.workplaceMove.move, common });
   const toolDeps = { store: chat.store, dirOf: dirs.dirOf, transfer, common, publish };

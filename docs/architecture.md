@@ -246,7 +246,7 @@ scripts/  docs/           道具と文書
 | 共通のチャットがほかのプロジェクトに書くとき | `ai_write_other_projects`・`aiWritePolicy` | 毎回聞く・聞かずに書く・書かせない。書く場所で効く設定は 1 つ |
 | 共通のノート | `common_notes_dir` | どのプロジェクトにも属さないノート。フォルダ（既定は `_common`）は共通の作業フォルダと別 |
 | 全ノート | Route `allNotes`・`AllNotesPage` | 共通のノートとプロジェクトごとのノートを欄に並べた画面（URL は `#/notes`） |
-| 見えないプロジェクト | `isUserProject`・`isListedProject`・`projects.kind` | Kickoff が用意するプロジェクト（いまは共通だけ）。利用者のもの（`isUserProject`）でないので操作させず、一覧には並べる（`isListedProject`） |
+| 見えないプロジェクト | `isUserProject`・`isCommonProject`・`projects.kind` | Kickoff が用意するプロジェクト（いまは共通だけ）。利用者のもの（`isUserProject`）でないので操作させず、一覧には先頭に並べる（`commonFirst`） |
 | ゴミ箱 | `TrashItem`・`registerKind` | 種類は各機能が登録 |
 | DB 接続 | `DbConnection` | パスワードは `secrets` |
 | Docker のサービス | `DockerServiceInfo` | |

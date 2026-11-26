@@ -48,8 +48,8 @@ test("ノート: 共通のチャットはアーカイブしていない利用者
   const projects = [common, makeProject(2), makeProject(3, { archived_at: "2026-01-01T00:00:00.000Z" }), makeProject(4)];
   const dirOf = (p: { id: number }) => path.join(root, p.id === 1 ? "_common" : `n${p.id}`);
   for (const id of [2, 3]) fs.mkdirSync(dirOf({ id }), { recursive: true });
-  const parts = noteTurnParts({ dirOf, peekDirOf: dirOf, projects: () => projects, commonProject: () => common, publish: () => {} });
-  const contextOf = (project: (typeof projects)[number]) => ({ chat: { note_path: null, project_id: project.id }, project }) as unknown as Parameters<TurnContributor["contribute"]>[0];
+  const parts = noteTurnParts({ dirOf, peekDirsOf: (list) => list.map(dirOf), projects: () => projects, commonProject: () => common, publish: () => {} });
+  const contextOf = (project: (typeof projects)[number]) => ({ chat: { note_path: null, project_id: project.id }, project, perTurn: <T,>(_key: string, init: () => T) => init() }) as unknown as Parameters<TurnContributor["contribute"]>[0];
   const inCommon = (await parts.contribute(contextOf(common)))!;
   assert.deepEqual(inCommon.writableDirs, [dirOf(common)]);
   assert.deepEqual(inCommon.readOnlyDirs, [dirOf({ id: 2 })]);

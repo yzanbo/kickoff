@@ -2,7 +2,7 @@ import "./ProjectAiSection.css";
 import { Check } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";
-import { isCommonProject } from "@shared/projects/kinds";
+import { isCommonProject, projectOwnerLabel } from "@shared/projects/kinds";
 import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";
@@ -25,7 +25,7 @@ export function ProjectAiSection() {
   const { error, guard } = useAction();
   const choose = (id: ProviderId) => guard(() => projectsApi.updateProject(project.id, { provider: id }));
   // 共通の設定では、共通のチャットの既定として説明する
-  const owner = isCommonProject(project) ? "共通" : "このプロジェクト";
+  const owner = projectOwnerLabel(isCommonProject(project));
 
   return (
     <section className="section">
