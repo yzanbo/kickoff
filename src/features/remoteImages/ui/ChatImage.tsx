@@ -11,6 +11,7 @@ import { useQuery } from "@/foundation/ui/query";
 import { useAllowedHosts } from "./imageHosts";
 import { hostGroupOf, type ImageHostGroup } from "./imageGroups";
 import { loadRemoteImage } from "./remoteImageCache";
+import { imageErrorText } from "./imageError";
 import { ImageHostButton, ImageUrlsButton } from "./ImageHostButton";
 
 /**
@@ -94,7 +95,7 @@ function LoadedImage({ load, loadKey, alt, label, own = false }: { load: () => P
   if (image.error) {
     return (
       <span className="chat-image-error">
-        <span>画像を読み込めませんでした（{errorMessage(image.error)}）</span>
+        <span>{imageErrorText(errorMessage(image.error))}</span>
         <span className="chat-image-error-url">{label}</span>
       </span>
     );
