@@ -1,5 +1,6 @@
 // Markdown の中の HTML で描いてよいタグ・属性・値の一覧（読み取り htmlTokens.ts と、木にしたあとの確かめ htmlVerify.ts が同じ一覧を使う）。
 // 一覧にないものは描かない。属性の値は、ここで読み直した形だけを要素に入れる（書かれた文字列をそのまま入れない）
+import { stripInvisibleChars } from "@shared/foundation/invisibleChars";
 import { linkTargetOf, webLinkOf } from "@shared/foundation/linkTarget";
 
 /** 描いてよいタグ（小文字だけ。picture は中の img だけを描く。rp は中身ごと消す） */
@@ -85,13 +86,10 @@ export const INDENT_TAGS: ReadonlySet<string> = new Set(["ul", "ol", "blockquote
 /** 上限（超えたブロックは Markdown として描かずに、書いたままの文字で出す） */
 export const HTML_LIMITS = { tags: 2000, depth: 32, indent: 10 } as const;
 
-/** 制御文字・文字の並びを変える印・見えない文字（title などの文字から消す） */
-const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁩﻿]/g;
-
-/** 文字（制御文字を消し、max 字まで） */
+/** 文字（制御文字・文字の並びを変える印・見えない文字を消し、max 字まで） */
 const cleanText = (max: number) => (raw: string | null) => {
   if (raw === null) return null;
-  const chars = Array.from(raw.replace(CONTROL_CHARS, ""));
+  const chars = Array.from(stripInvisibleChars(raw));
   return chars.length > max ? chars.slice(0, max).join("") : chars.join("");
 };
 
