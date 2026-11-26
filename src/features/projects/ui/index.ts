@@ -37,7 +37,7 @@ export { TagFilterNotice } from "./TagFilterNotice";
 export { loadCurrentProject, saveCurrentProject } from "./currentProject";
 export { ProjectSwitcher } from "./page/ProjectSwitcher";
 export { useChatPlacement } from "./page/chatPlacement";
-export { COMMON_TONE, hueStyle, initialOf, projectHue } from "./projectColor";
+export { initialOf, projectHue, projectTone } from "./projectColor";
 export { changeProject, confirmRestoreProject } from "./projectOrder";
 export { tagLabel, useProjectTagFilter } from "./projectTagFilter";
 export { deleteTag, renameTag } from "./tagActions";
