@@ -1,4 +1,5 @@
 // 外部リンクを開く前の確認で添える警告。AI を使わず、URL とリンクの文字だけで機械的に決める
+import { webUrlOf } from "./linkTarget";
 import { TOP_LEVEL_DOMAINS } from "./topLevelDomains";
 
 /** 警告の種類: リンクの文字のホストと行き先が違う / URL にユーザー名・パスワード / 紛らわしい国際化ドメイン名 / ホストが IP アドレス */
@@ -11,16 +12,6 @@ export const LINK_WARNING_LABELS: Record<LinkWarning, string> = {
   idn: "誤解を招く可能性のある国際化ドメイン名です。ドメインは右のように表示されます",
   ip: "サイト名ではなく IP アドレスを開きます",
 };
-
-/** 外部リンク（http・https）の URL。読めない・ほかのスキームは null */
-export function webUrlOf(href: string): URL | null {
-  try {
-    const url = new URL(href.trim());
-    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
-  } catch {
-    return null;
-  }
-}
 
 /** 「今後確認しない」で覚える単位（ホスト名の小文字。ポートは含めない） */
 export function linkDomainOf(href: string): string | null {

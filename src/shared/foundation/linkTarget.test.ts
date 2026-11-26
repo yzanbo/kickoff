@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { linkTargetOf, webLinkOf } from "./linkTarget";
+import { linkTargetOf, webLinkOf, webUrlOf } from "./linkTarget";
 
 test("linkTargetOf: http・https は読み直した URL（確認の画面に出す形と開く形が同じ）", () => {
   assert.deepEqual(linkTargetOf("https://example.com/a?b=1#c"), { kind: "web", url: "https://example.com/a?b=1#c" });
@@ -38,4 +38,10 @@ test("webLinkOf: 外のページの URL だけ", () => {
   assert.equal(webLinkOf("//github.com/o/r"), "https://github.com/o/r");
   assert.equal(webLinkOf("#a"), null);
   assert.equal(webLinkOf("/api/x"), null);
+});
+
+test("webUrlOf: http・https の URL を URL の形で（前後の空白は外す。ほかのスキーム・読めないものは null）", () => {
+  assert.equal(webUrlOf("https://example.com/a")?.href, "https://example.com/a");
+  assert.equal(webUrlOf("  http://Example.com  ")?.hostname, "example.com");
+  for (const href of ["file:///etc/passwd", "javascript:alert(1)", "about:blank", "example.com", ""]) assert.equal(webUrlOf(href), null, href);
 });

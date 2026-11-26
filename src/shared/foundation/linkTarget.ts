@@ -43,3 +43,17 @@ export function webLinkOf(href: unknown): string | null {
   const target = linkTargetOf(href);
   return target?.kind === "web" ? target.url : null;
 }
+
+/**
+ * http・https の URL を URL の形で（ホストやパスを読む所。読めない・ほかのスキームは null）。
+ * 前後の空白は外して読む（ブラウザのアドレス・メニューの URL など、書いた人が付けた空白で読めなくしない）。
+ * リンクの行き先として開く・確認の画面に出すものは、改行・見えない文字も断る webLinkOf を使う
+ */
+export function webUrlOf(href: string): URL | null {
+  try {
+    const url = new URL(href.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
