@@ -7,7 +7,7 @@ export { appendToDraft, startComposerDrafts } from "./appendToDraft";
 export { appendDraft, chatComposerDraft, memoryDraft, settingDraft, type ComposerDraft } from "./composerDraft";
 export { focusComposer, focusDraft, useComposerInsert } from "./composerFields";
 export { claimVoiceHandoff, composerPills, composerSlots, loadComposerSlots, type ComposerBandProps, type ComposerPillProps, type ComposerPlace, type ComposerVoiceHooks, type ComposerVoiceModeInput, type FieldBridge, type FieldVoice, type FieldVoiceMode } from "./composerSlots";
-export { MessageField, useMessageField } from "./MessageField";
+export { MessageField, useMessageField, type MessageFieldState } from "./MessageField";
 export { PLAIN_SUBMIT } from "./messageFieldModel";
 export { useDraftFiles } from "./useDraftFiles";
 export { useEditHold } from "./useEditHold";

@@ -5,48 +5,24 @@
     gap: 6px;
   }
 
-  /* 理由の欄: 書いた分だけ伸びる複数行の欄と添付を、入力欄と同じ枠で囲む（拒否の欄だと分かるよう、ピントのある間は枠を危険の色に） */
+  /* 理由の欄（ReplyField）を入力欄と同じ枠で囲む（拒否の欄だと分かるよう、ピントのある間は枠を危険の色に）。
+     ReplyField.css より後に読まれるとは限らないので、.reply-field と重ねて強める */
 
-  .approval-deny-field {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
+  .reply-field.approval-deny-field {
     padding: 6px 8px 6px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-elev);
   }
 
-  .approval-deny-field:focus-within {
+  .reply-field.approval-deny-field:focus-within {
     border-color: color-mix(in srgb, var(--ng) 60%, var(--border));
   }
 
-  .approval-deny-field.file-over {
-    outline: 1px dashed var(--accent);
-    outline-offset: 2px;
-  }
+  /* 理由は数行書くことが多いので、初めから 2 行分の高さにする */
 
-  .approval-deny-input {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-  }
-
-  .approval-deny-input textarea {
-    flex: 1;
+  .approval-deny-field .reply-field-input textarea {
     min-height: 44px;
-    padding: 3px 0;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    outline: none;
-    max-height: 40vh;
-    field-sizing: content;
-    resize: none;
-  }
-
-  .approval-deny-attachments {
-    padding: 0;
   }
 
   /* 案内は左、ボタンは右に寄せる（狭いときは案内を上の行に回す） */

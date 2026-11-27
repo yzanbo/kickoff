@@ -1,10 +1,6 @@
 /* ==== 拒否の理由の発言（DenyReasonMessage） ==== */
 @layer feature {
-  /* 理由の文は書いたままの改行で折り返す（札・添付とは分けて、吹き出しの改行の扱いに頼らない） */
-
-  .deny-reason .bubble.user {
-    white-space: normal;
-  }
+  /* 理由の文は書いたままの改行で折り返す（吹き出しと札は AnswerBubble） */
 
   .deny-reason-text {
     white-space: pre-wrap;

@@ -1,8 +1,8 @@
 import "./ApprovalDenyForm.css";
 import { useState } from "react";
 import type { Attachment } from "@shared/chat/types";
-import { cx } from "@/foundation/ui/lib/cx";
-import { AttachButton, MessageField, PendingFileChips, PLAIN_SUBMIT, useDraftFiles, useMessageField } from "@/features/composer/ui";
+import { PLAIN_SUBMIT, useDraftFiles, useMessageField } from "@/features/composer/ui";
+import { ReplyField } from "./ReplyField";
 import { denyFormModel } from "./denyFormModel";
 
 /**
@@ -21,26 +21,15 @@ export function ApprovalDenyForm({ sending, onBack, onDeny }: { sending: boolean
   const field = useMessageField({ value: message, onChange: setMessage, onSubmit: deny, onCancel: onBack, focusEnd: true });
   return (
     <div className="approval-deny">
-      <div className={cx("approval-deny-field", files.dragging && "file-over")} {...files.dropProps}>
-        {files.files.length > 0 && (
-          <div className="composer-attachments approval-deny-attachments">
-            <PendingFileChips files={files.files} onRemove={files.removeFile} />
-          </div>
-        )}
-        <div className="approval-deny-input">
-          <MessageField
-            field={field}
-            rows={2}
-            placeholder="拒否の理由や、代わりにしてほしいこと（任意）"
-            aria-label="拒否の理由"
-            title="Enter で拒否・Shift+Enter で改行・Esc で戻る。画像は貼り付け・ドラッグ・📎 で添付できます。マイクか ⌘⇧Space で音声入力"
-            onPaste={files.onPaste}
-          />
-          <AttachButton onFiles={files.addFiles} />
-          {field.voice.button}
-        </div>
-      </div>
-      {field.voice.error}
+      <ReplyField
+        field={field}
+        files={files}
+        className="approval-deny-field"
+        rows={2}
+        placeholder="拒否の理由や、代わりにしてほしいこと（任意）"
+        aria-label="拒否の理由"
+        title="Enter で拒否・Shift+Enter で改行・Esc で戻る。画像は貼り付け・ドラッグ・📎 で添付できます。マイクか ⌘⇧Space で音声入力"
+      />
       <div className="approval-deny-actions">
         <span className="approval-deny-hint muted small">Enter で拒否・Shift+Enter で改行・Esc で戻る</span>
         <button type="button" className="btn" disabled={sending} onClick={onBack}>

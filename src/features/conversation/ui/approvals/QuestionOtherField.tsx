@@ -1,8 +1,8 @@
 import "./QuestionOtherField.css";
 import { useEffect, useEffectEvent } from "react";
 import type { OtherFiles } from "./questionAnswers";
-import { cx } from "@/foundation/ui/lib/cx";
-import { AttachButton, MessageField, PendingFileChips, useDraftFiles, useMessageField } from "@/features/composer/ui";
+import { useDraftFiles, useMessageField } from "@/features/composer/ui";
+import { ReplyField } from "./ReplyField";
 
 /**
  * AI からの質問の「その他」の欄: チャット欄と同じく、書いた分だけ伸びる複数行の欄（Enter で回答・Shift+Enter で改行）と、
@@ -35,30 +35,18 @@ export function QuestionOtherField({
   // 音声入力: 起こした文をキャレットの位置に入れ、「その他」を選ぶ（録音中の Enter は入れてそのまま回答・⌘⇧Space で開始・停止・Esc でやめる）
   const field = useMessageField({ value, onChange, onSubmit: () => onSubmit(), onVoiceInsert: onFocus });
   return (
-    <div className={cx("question-other-field", files.dragging && "file-over")} {...files.dropProps}>
-      {files.files.length > 0 && (
-        <div className="composer-attachments question-other-attachments">
-          <PendingFileChips files={files.files} onRemove={files.removeFile} />
-        </div>
-      )}
-      <div className="question-other-input">
-        <MessageField
-          field={field}
-          rows={1}
-          placeholder="その他の回答"
-          aria-label="その他の回答"
-          title="Enter で回答・Shift+Enter で改行。画像は貼り付け・ドラッグ・📎 で添付できます。マイクか ⌘⇧Space で音声入力"
-          onFocus={onFocus}
-          onPaste={(e) => {
-            onFocus();
-            files.onPaste(e);
-          }}
-        />
-        {/* 押したら「その他」を選ぶ（選ばないと添付が回答に入らない） */}
-        <AttachButton onOpen={onFocus} onFiles={files.addFiles} />
-        {field.voice.button}
-      </div>
-      {field.voice.error}
+    <div className="question-other-field">
+      <ReplyField
+        field={field}
+        files={files}
+        // 貼り付け・📎 でも「その他」を選ぶ（選ばないと添付が回答に入らない）
+        onAttach={onFocus}
+        rows={1}
+        placeholder="その他の回答"
+        aria-label="その他の回答"
+        title="Enter で回答・Shift+Enter で改行。画像は貼り付け・ドラッグ・📎 で添付できます。マイクか ⌘⇧Space で音声入力"
+        onFocus={onFocus}
+      />
     </div>
   );
 }
