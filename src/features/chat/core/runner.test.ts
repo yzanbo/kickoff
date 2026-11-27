@@ -211,6 +211,32 @@ test("質問の「その他」に添付して答えたら、記録には選ん�
   });
 });
 
+test("承認を拒否したら、記録には書いたままの理由と添付を残す（AI には添付のパスを書き添えた理由を渡す）。中断の拒否は理由を残さない", async () => {
+  const received: unknown[] = [];
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    received.push(await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal));
+    return { status: "completed", sessionId: "s" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  const [pending] = approvals.list({ chatId: chat.id });
+  const attachment = { kind: "file" as const, id: "a1", name: "画面.png", mime: "image/png", size: 10 };
+  approvals.resolve(pending.id, { action: "deny", message: "残して\n\n添付ファイル: /path/画面.png", plain: "残して", attachments: [attachment] });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.equal((received[0] as { message: string }).message, "残して\n\n添付ファイル: /path/画面.png");
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual(resolved?.data, { approval_id: pending.id, action: "deny", kind: "permission", message: "残して", attachments: [attachment] });
+
+  // 中断で拒否になったとき（ApprovalCenter が付ける「実行が中断されました」）は、利用者の理由ではないので残さない
+  const next = await runner.start({ projectId: project.id, prompt: "q2" });
+  await until(() => approvals.list({ chatId: next.id }).length === 1);
+  runner.cancel(next.id);
+  await until(() => store.events.list(next.id).some((e) => e.type === "approval_resolved"));
+  const aborted = store.events.list(next.id).find((e) => e.type === "approval_resolved")?.data;
+  assert.equal(aborted?.action, "deny");
+  assert.equal(aborted && "message" in aborted, false);
+});
+
 test("質問の選択肢に図（preview）があれば、選んだ選択肢の図も記録に残す（画面の「質問への回答」で開いて見る）", async () => {
   const questions = [
     { question: "形は？", header: "", multiSelect: false, options: [{ label: "四角", description: "", preview: "┌─┐\n└─┘" }, { label: "丸", description: "" }] },

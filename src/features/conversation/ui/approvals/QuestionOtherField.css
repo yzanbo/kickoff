@@ -1,40 +1,11 @@
 /* ==== 「その他」の答えの欄（QuestionOtherField） ==== */
 @layer feature {
-  /* 「その他」の欄: 書いた分だけ伸びる複数行の欄（チャット欄と同じく Enter で回答・Shift+Enter で改行）と添付 */
+  /* 「その他」の欄は選択肢の行の残りの幅に広げる（欄の中身は ReplyField） */
 
   .question-other-field {
     display: grid;
     flex: 1;
     gap: 4px;
     min-width: 0;
-    border-radius: var(--radius-sm);
-  }
-
-  .question-other-field.file-over {
-    outline: 1px dashed var(--accent);
-    outline-offset: 2px;
-  }
-
-  .question-other-input {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-  }
-
-  .question-other-input textarea {
-    flex: 1;
-    min-height: 24px;
-    padding: 3px 0;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    outline: none;
-    max-height: 40vh;
-    field-sizing: content;
-    resize: none;
-  }
-
-  .question-other-attachments {
-    padding: 0;
   }
 }

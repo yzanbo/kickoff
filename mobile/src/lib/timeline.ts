@@ -7,6 +7,7 @@ import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf,
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerAtEvent, providerBoundaries, providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import { createToolText } from "@shared/chat/toolText";
+import { denyReasonText, hasDenyReason } from "@shared/chat/denyReason";
 import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 import { hasMath } from "./richPages";
 
@@ -17,7 +18,8 @@ export type TimelineItem =
   /** AI が描いた図（いちばん新しい中身。書いている途中・失敗なら visual が null で text に様子） */
   | { kind: "visual"; id: number; visual: ChatVisual | null; text: string }
   | { kind: "tool"; id: number; name: string; summary: string; state: "running" | "ok" | "error" }
-  | { kind: "answer"; id: number; text: string }
+  /** 自分が答えた内容（label: 吹き出しの上の札。「質問への回答」か「拒否の理由」） */
+  | { kind: "answer"; id: number; label: string; text: string }
   | { kind: "end"; id: number; status: string; text: string | null }
   | { kind: "notice"; id: number; text: string };
 
@@ -91,7 +93,10 @@ export function timelineOf(events: readonly ChatEvent[], currentProvider?: Provi
           const text = Object.entries(e.data.answers)
             .map(([q, a]) => `${q}: ${Array.isArray(a) ? a.join("、") : a}`)
             .join("\n");
-          items.push({ kind: "answer", id: e.id, text });
+          items.push({ kind: "answer", id: e.id, label: "質問への回答", text });
+        } else if (hasDenyReason(e.data)) {
+          // 承認を拒否したときに書いた理由も、自分の言葉として出す（理由なしの拒否は出さない）
+          items.push({ kind: "answer", id: e.id, label: "拒否の理由", text: denyReasonText(e.data) });
         }
         break;
       case "result":

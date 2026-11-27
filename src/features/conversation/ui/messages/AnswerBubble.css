@@ -1,0 +1,19 @@
+/* ==== 承認・質問のカードで答えた内容の吹き出し（AnswerBubble。「質問への回答」・「拒否の理由」） ==== */
+@layer feature {
+  /* 札・答えの並びは中の要素で組むので、吹き出しの改行の扱い（pre-wrap）を戻す（答えの文は中の要素が pre-wrap にする） */
+
+  .answer-bubble .bubble.user {
+    white-space: normal;
+  }
+
+  /* 自分の吹き出しの上の札（「質問への回答」・「拒否の理由」・「圧縮前指示」。自分で書いた指示と見分ける） */
+
+  .message-kind-label {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: var(--chat-fs-11);
+    color: var(--muted);
+  }
+}

@@ -1,5 +1,6 @@
 // チャットのやり取りの記録（Markdown。別のチャットに添付ファイルとして渡して AI が Read で読む・右クリックの「全部のやり取りをコピー」。Node 依存なし）
 import { isEditTool } from "@shared/ai/claudeTools";
+import { denyReasonText, hasDenyReason } from "@shared/chat/denyReason";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
@@ -51,6 +52,9 @@ export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]
         return `- ${q} → ${Array.isArray(a) ? a.join("、") : a}${files}`;
       });
       lines.push("", `## 自分（質問への回答・${stamp(e.created_at)}）`, "", ...items);
+    } else if (e.type === "approval_resolved" && hasDenyReason(e.data)) {
+      // 承認を拒否したときに書いた理由（書いたままの理由と添付の名前）
+      lines.push("", `## 自分（拒否の理由・${stamp(e.created_at)}）`, "", denyReasonText(e.data).trim());
     } else if (e.type === "text" && !e.data.parent && e.data.text.trim()) {
       lines.push("", "## AI", "", e.data.text.trim());
     } else if (e.type === "tool_use" && isEditTool(e.data.name)) {

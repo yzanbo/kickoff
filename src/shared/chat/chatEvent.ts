@@ -34,9 +34,11 @@ export type ChatEventData =
   | { type: "approval"; approval_id: string; kind: ApprovalKind; tool_name: string; title?: string }
   /**
    * 承認・質問への回答。kind: 何への回答か。AI からの質問に答えたとき（action が answer）は、選んだままの回答と「その他」に添えた添付も残す
-   * （画面は自分の発言と同じ吹き出しで「質問への回答」として出す）
+   * （画面は自分の発言と同じ吹き出しで「質問への回答」として出す）。拒否したとき（action が deny）は、利用者が書いた理由と添付を残す
+   * （画面は自分の発言と同じ吹き出しで「拒否の理由」として出す。理由を書かずに拒否した・中断で拒否になったときは message も attachments もない）
    */
-  | { type: "approval_resolved"; approval_id: string; kind: ApprovalKind; action: Exclude<ApprovalDecision["action"], "answer"> }
+  | { type: "approval_resolved"; approval_id: string; kind: ApprovalKind; action: Exclude<ApprovalDecision["action"], "answer" | "deny"> }
+  | { type: "approval_resolved"; approval_id: string; kind: ApprovalKind; action: "deny"; message?: string; attachments?: Attachment[] }
   | {
       type: "approval_resolved";
       approval_id: string;

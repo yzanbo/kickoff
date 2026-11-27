@@ -1,0 +1,39 @@
+/* ==== 承認・質問のカードで答えを書く欄（ReplyField。質問の「その他」・拒否の理由） ==== */
+@layer feature {
+  /* 書いた分だけ伸びる複数行の欄（チャット欄と同じく Enter で決める・Shift+Enter で改行）と添付 */
+
+  .reply-field {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .reply-field.file-over {
+    outline: 1px dashed var(--accent);
+    outline-offset: 2px;
+  }
+
+  .reply-field-input {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .reply-field-input textarea {
+    flex: 1;
+    min-height: 24px;
+    padding: 3px 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    max-height: 40vh;
+    field-sizing: content;
+    resize: none;
+  }
+
+  .reply-field-attachments {
+    padding: 0;
+  }
+}

@@ -4,8 +4,8 @@ import { chosenPreviews } from "@shared/chat/questionPreviews";
 import { isUnreadEvent } from "@shared/chat/state";
 import { systemClock } from "@/foundation/core/clock";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
-import type { Question } from "@shared/chat/approvalTypes";
-import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Approval, ApprovalDecision, Question } from "@shared/chat/approvalTypes";
+import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { DRAWING_TOOLS } from "@shared/chat/indexedTools";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
@@ -97,26 +97,32 @@ export function callbacksFor(
         title: approval.title,
       });
       const answer = await decision;
-      // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付・選んだ選択肢の図）も残す（画面は「質問への回答」の吹き出しで出す）
-      const previews = answer.action === "answer" ? chosenPreviews((approval.input.questions as Question[] | undefined) ?? [], answer.plain ?? answer.answers) : undefined;
-      recordEvent(
-        store,
-        runtime,
-        answer.action === "answer"
-          ? {
-              type: "approval_resolved",
-              approval_id: approval.id,
-              kind: approval.kind,
-              action: "answer",
-              answers: answer.plain ?? answer.answers,
-              ...(answer.attachments ? { attachments: answer.attachments } : {}),
-              ...(previews ? { previews } : {}),
-            }
-          : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
-      );
+      recordEvent(store, runtime, resolvedRecord(approval, answer));
       return answer;
     },
   };
+}
+
+/**
+ * 承認・質問に答えた記録。AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付・選んだ選択肢の図）も残す（画面は「質問への回答」の吹き出し）。
+ * 拒否は、利用者が書いた理由と添付を残す（画面は「拒否の理由」の吹き出し。中断で拒否になったときは plain がないので残さない）
+ */
+function resolvedRecord(approval: Approval, answer: ApprovalDecision): ChatEventData {
+  const base = { type: "approval_resolved" as const, approval_id: approval.id, kind: approval.kind };
+  if (answer.action === "answer") {
+    const previews = chosenPreviews((approval.input.questions as Question[] | undefined) ?? [], answer.plain ?? answer.answers);
+    return {
+      ...base,
+      action: "answer",
+      answers: answer.plain ?? answer.answers,
+      ...(answer.attachments ? { attachments: answer.attachments } : {}),
+      ...(previews ? { previews } : {}),
+    };
+  }
+  if (answer.action === "deny") {
+    return { ...base, action: "deny", ...(answer.plain ? { message: answer.plain } : {}), ...(answer.attachments ? { attachments: answer.attachments } : {}) };
+  }
+  return { ...base, action: answer.action };
 }
 
 /** 図のツール（DRAWING_TOOLS）の入力を書いている数を数え、書き始めたら true、全部書き終えたら false を渡す（ほかのツールは見ない） */

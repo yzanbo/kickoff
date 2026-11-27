@@ -69,16 +69,10 @@
     word-break: break-all;
   }
 
-  .approval-actions,
-  .approval-deny {
+  .approval-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-  }
-
-  .approval-deny input {
-    flex: 1;
-    min-width: 200px;
   }
 
   /* 再開するかを聞くカードのバッジ */

@@ -1,0 +1,13 @@
+/* ==== 拒否の理由の発言（DenyReasonMessage） ==== */
+@layer feature {
+  /* 理由の文は書いたままの改行で折り返す（吹き出しと札は AnswerBubble） */
+
+  .deny-reason-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .deny-reason-text + .bubble-attachments {
+    margin-top: 6px;
+  }
+}

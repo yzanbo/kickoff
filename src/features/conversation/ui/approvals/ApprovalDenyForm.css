@@ -1,0 +1,42 @@
+/* ==== 承認の拒否の欄（ApprovalDenyForm） ==== */
+@layer feature {
+  .approval-deny {
+    display: grid;
+    gap: 6px;
+  }
+
+  /* 理由の欄（ReplyField）を入力欄と同じ枠で囲む（拒否の欄だと分かるよう、ピントのある間は枠を危険の色に）。
+     ReplyField.css より後に読まれるとは限らないので、.reply-field と重ねて強める */
+
+  .reply-field.approval-deny-field {
+    padding: 6px 8px 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+  }
+
+  .reply-field.approval-deny-field:focus-within {
+    border-color: color-mix(in srgb, var(--ng) 60%, var(--border));
+  }
+
+  /* 理由は数行書くことが多いので、初めから 2 行分の高さにする */
+
+  .approval-deny-field .reply-field-input textarea {
+    min-height: 44px;
+  }
+
+  /* 案内は左、ボタンは右に寄せる（狭いときは案内を上の行に回す） */
+
+  .approval-deny-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .approval-deny-hint {
+    flex: 1;
+    min-width: 12em;
+  }
+}
