@@ -139,7 +139,7 @@ function Item({ item, onPrompt }: { item: TimelineItem; onPrompt?: (text: string
     case "answer":
       return (
         <View style={{ alignSelf: "flex-end", maxWidth: "88%", backgroundColor: colors.hover, borderRadius: 12, padding: 10 }}>
-          <Text style={[ui.muted, { fontSize: 11 }]}>質問への回答</Text>
+          <Text style={[ui.muted, { fontSize: 11 }]}>{item.label}</Text>
           <Text style={ui.text}>{item.text}</Text>
         </View>
       );

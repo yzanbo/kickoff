@@ -4,6 +4,7 @@ import type { Approval } from "@shared/chat/approvalTypes";
 import { REMEMBER_SCOPE_LABELS } from "@shared/ai/approvals";
 import { toolText } from "@/features/chat/ui";
 import { QuestionCard } from "./QuestionCard";
+import { ApprovalDenyForm } from "./ApprovalDenyForm";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
@@ -76,7 +77,6 @@ function ReconnectCard({ approval }: { approval: Approval }) {
 function PermissionCard({ approval }: { approval: Approval }) {
   const { sending, error, resolve } = useResolve(approval.id);
   const [denying, setDenying] = useState(false);
-  const [message, setMessage] = useState("");
   const description = typeof approval.input.description === "string" ? approval.input.description : approval.description;
   const view = toolRowViewOf(approval.tool_name, approval.input);
 
@@ -94,21 +94,7 @@ function PermissionCard({ approval }: { approval: Approval }) {
         </Suspense>
       </pre>
       {denying ? (
-        <div className="approval-deny">
-          <input
-            type="text"
-            value={message}
-            autoFocus
-            placeholder="理由や代わりにしてほしいこと（任意）"
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button className="btn" disabled={sending} onClick={() => setDenying(false)}>
-            戻る
-          </button>
-          <button className="btn btn-danger" disabled={sending} onClick={() => void resolve({ action: "deny", message: message.trim() || undefined })}>
-            拒否する
-          </button>
-        </div>
+        <ApprovalDenyForm sending={sending} onBack={() => setDenying(false)} onDeny={(reason) => void resolve({ action: "deny", ...reason })} />
       ) : (
         <div className="approval-actions">
           <button className="btn btn-primary" disabled={sending} onClick={() => void resolve({ action: "allow" })}>
@@ -119,7 +105,7 @@ function PermissionCard({ approval }: { approval: Approval }) {
               {REMEMBER_SCOPE_LABELS[approval.remember_scope ?? "rule"].label}
             </button>
           )}
-          <button className="btn" disabled={sending} onClick={() => setDenying(true)}>
+          <button className="btn" disabled={sending} title="拒否する（理由・画像を添えるか、理由なしで拒否するかを選べます）" onClick={() => setDenying(true)}>
             拒否…
           </button>
         </div>

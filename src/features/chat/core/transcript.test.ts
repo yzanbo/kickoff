@@ -71,3 +71,18 @@ test("チャットの記録: AI からの質問に答えた内容を、質問ご
   assert.match(md, /## 自分（質問への回答・.+）\n\n- 好きな色は？ → この色（添付: 色\.png）\n- 好きな季節は？ → 春、秋/);
   assert.equal(md.match(/質問への回答/g)?.length, 1);
 });
+
+test("チャットの記録: 承認を拒否したときに書いた理由を入れる（理由なしの拒否は入れない）", () => {
+  const md = chatTranscript(chat, project, [
+    makeEvent(1, "approval_resolved", {
+      approval_id: "x",
+      action: "deny",
+      kind: "permission",
+      message: "消さずに\n残して",
+      attachments: [{ kind: "file", id: "a", name: "画面.png", mime: "image/png", size: 1 }],
+    }),
+    makeEvent(2, "approval_resolved", { approval_id: "y", action: "deny", kind: "permission" }),
+  ]);
+  assert.match(md, /## 自分（拒否の理由・.+）\n\n消さずに\n残して（添付: 画面\.png）/);
+  assert.equal(md.match(/拒否の理由/g)?.length, 1);
+});

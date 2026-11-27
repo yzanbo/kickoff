@@ -34,13 +34,18 @@ export interface Approval {
 }
 
 /**
- * 承認・質問への回答（画面・スマホが送る形。AI へ返す形 ApprovalReply に、質問の答えだけ次の 2 つを足す）。
- * attachments: 質問ごとの「その他」に添えた添付（画面から送るときだけ。コアが回答の文に添付のパスを書き添えてから
- * Claude Code に渡す。AskUserQuestion の回答は文字だけなので、画像は Read ツールで読んでもらう。チャットの添付と同じ）。
- * plain: 選んだままの回答（attachments の添付のパスを書き添える前。コアが付け、チャットの記録 approval_resolved に残して画面に出す）
+ * 承認・質問への回答（画面・スマホが送る形。AI へ返す形 ApprovalReply に、質問の答えと拒否の理由だけ次の 2 つを足す）。
+ * attachments: 質問ごとの「その他」・拒否の理由に添えた添付（画面から送るときだけ。コアが回答の文・拒否の理由に添付のパスを書き添えてから
+ * AI に渡す。AskUserQuestion の回答・拒否の理由は文字だけなので、画像は Read ツールで読んでもらう。チャットの添付と同じ）。
+ * plain: 書いたままの回答・拒否の理由（attachments の添付のパスを書き添える前。コアが付け、チャットの記録 approval_resolved に残して画面に出す。
+ * 拒否で plain がないのは、利用者が理由を書かなかったか、利用者でなく中断で拒否になったとき）
  */
 export type ApprovalDecision =
-  | Exclude<ApprovalReply, { action: "answer" }>
+  | Exclude<ApprovalReply, { action: "answer" | "deny" }>
+  | (Extract<ApprovalReply, { action: "deny" }> & { attachments?: Attachment[]; plain?: string })
   | (Extract<ApprovalReply, { action: "answer" }> & { attachments?: Record<string, Attachment[]>; plain?: Record<string, string | string[]> });
 /** 回答の本文（POST /api/approvals/:approvalId。画面・スマホが送る形。plain はコアが付ける） */
-export type ApprovalDecisionBody = Exclude<ApprovalReply, { action: "answer" }> | (Extract<ApprovalReply, { action: "answer" }> & { attachments?: Record<string, Attachment[]> });
+export type ApprovalDecisionBody =
+  | Exclude<ApprovalReply, { action: "answer" | "deny" }>
+  | (Extract<ApprovalReply, { action: "deny" }> & { attachments?: Attachment[] })
+  | (Extract<ApprovalReply, { action: "answer" }> & { attachments?: Record<string, Attachment[]> });

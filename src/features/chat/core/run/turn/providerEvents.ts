@@ -112,7 +112,17 @@ export function callbacksFor(
               ...(answer.attachments ? { attachments: answer.attachments } : {}),
               ...(previews ? { previews } : {}),
             }
-          : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
+          : answer.action === "deny"
+            ? // 拒否は、利用者が書いた理由と添付を残す（中断で拒否になったときは plain がないので残さない）
+              {
+                type: "approval_resolved",
+                approval_id: approval.id,
+                kind: approval.kind,
+                action: "deny",
+                ...(answer.plain ? { message: answer.plain } : {}),
+                ...(answer.attachments ? { attachments: answer.attachments } : {}),
+              }
+            : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
       );
       return answer;
     },

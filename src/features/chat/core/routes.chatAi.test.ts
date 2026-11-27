@@ -112,6 +112,22 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.equal((await api("POST /api/approvals/:approvalId", { params: { approvalId: scoped.approval.id }, body: { action: "allow_always" } })).status, 204);
   assert.equal((await scoped.decision).action, "allow_always");
 
+  // 拒否の理由に添えた添付も、理由の文にパスを書き添えて渡し、記録には書いたままの理由と添付を残す
+  const denyRequest = () =>
+    approvals.request({ chatId: 1, projectId: project.id }, { kind: "permission", toolName: "Bash", input: { command: "rm -rf x" }, canRemember: false }, new AbortController().signal);
+  const denied = denyRequest();
+  assert.equal((await call("POST", `/api/approvals/${denied.approval.id}`, { action: "deny", message: " 消さずに\n残して ", attachments: [saved] })).status, 204);
+  const deny = await denied.decision;
+  assert.equal(deny.action, "deny");
+  if (deny.action !== "deny") return;
+  assert.match(deny.message ?? "", /^消さずに\n残して\n\n添付ファイル（Read ツールで読めます）:\n- .+a\.txt（text\/plain, 5 B）$/);
+  assert.equal(deny.plain, "消さずに\n残して");
+  assert.equal(deny.attachments?.length, 1);
+  // 空白だけの理由・添付なしは、理由なしの拒否（記録に理由を残さず、AI には既定の文が届く）
+  const bare = denyRequest();
+  assert.equal((await call("POST", `/api/approvals/${bare.approval.id}`, { action: "deny", message: "  \n" })).status, 204);
+  assert.deepEqual(await bare.decision, { action: "deny" });
+
   assert.equal((await call("GET", "/api/providers")).body.length, PROVIDER_IDS.length);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);
   assert.equal((await call("GET", "/api/providers/unknown/models")).status, 400);

@@ -52,14 +52,17 @@ test("timelineOf: AI が描いた図は描いた位置にいちばん新しい�
   ]);
 });
 
-test("timelineOf: 質問への回答・圧縮・失敗の理由", () => {
+test("timelineOf: 質問への回答・拒否の理由・圧縮・失敗の理由", () => {
   const items = timelineOf([
     makeEvent(1, "approval_resolved", { approval_id: "a", kind: "question", action: "answer", answers: { 色は: ["赤", "青"], 形は: "丸" } }),
+    makeEvent(4, "approval_resolved", { approval_id: "b", kind: "permission", action: "deny", message: "別の方法で" }),
+    makeEvent(5, "approval_resolved", { approval_id: "c", kind: "permission", action: "deny" }),
     makeEvent(2, "compact", { trigger: "auto", pre_tokens: 1 }),
     makeEvent(3, "result", { status: "failed", text: "通信が切れました" }),
   ]);
   assert.deepEqual(items, [
-    { kind: "answer", id: 1, text: "色は: 赤、青\n形は: 丸" },
+    { kind: "answer", id: 1, label: "質問への回答", text: "色は: 赤、青\n形は: 丸" },
+    { kind: "answer", id: 4, label: "拒否の理由", text: "別の方法で" },
     { kind: "notice", id: 2, text: "会話を自動で圧縮しました" },
     { kind: "end", id: 3, status: "失敗しました", text: "通信が切れました" },
   ]);

@@ -11,12 +11,12 @@
 ## 決まり
 - チャットの画面は `ChatScreen` 1 つ。置き場所の違いは `ChatHost` で受ける。店はチャットごとに 1 つ（何か所で開いても読み込みと SSE は 1 回）。
 - 部品は要る口だけを `useSyncExternalStore` で読む。記録から作るものは持ち主の `defineChatSelector` で読み、記録の配列・流れ全体に効く値を項目の props で渡さない（作業中かは `TimelineBusyContext`）。
-- 書いている途中の文は state・props に入れず店の口から読む（見えていない間は rAF を回さない）。
-- 操作は持ち主ごとの口（`TimelineNav` など）で配る。props で中継しない・DOM を探さない。移る処理は `TimelineNav.reveal(ID)` を待ってから。
+- 途中の文は state・props に入れず店の口から読む（見えていない間は rAF を回さない）。
+- 操作は持ち主ごとの口（`TimelineNav` など）で配る。props で中継しない・DOM を探さない。移る処理は `reveal(ID)` を待ってから。
 - 行の文は `toolText()`（生の JSON を出さない）。上の機能の行の見せ方は拡張点 `toolRowViews`、メッセージの操作は `messageActions`。
 - 選択部分は「追加」（「添付」はファイル全体だけ）。引用は下書きの後ろに足す `appendToDraft`（送るのは利用者）。
 - 見出しはドラッグ領域にしない。会話の文字は `calc(… * var(--chat-scale, 1))`。
-- 承認カードの SQL・依頼は全文出す。質問は 1 問ずつで、たたんでも欄を作り直さない。
+- 承認の SQL・依頼は全文。質問は 1 問ずつ（たたんでも作り直さない）。拒否の理由は「その他」と同じ欄。
 
 ## 落とし穴
 - `ChatScreen` と殻は記録を読まない（隠れている間も殻ごと描き直す）。`ChatColumn` は `Activity` の hidden で止める（ノートのチャット・別ウィンドウは止めない）。

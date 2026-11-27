@@ -1,6 +1,7 @@
 // 流れの種類の表（項目の種類ごとの見分け方・高さの見積もり・描き方）。流れの行の部品を import するのはこのファイルだけ
 import { memo, type ReactNode } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
+import { hasDenyReason } from "@shared/chat/denyReason";
 import type { RenderScope, ToolCall } from "@/features/chat/ui";
 import { ProviderSwitchRecord } from "@/features/providerSwitch/ui";
 import { ToolGroup } from "@/features/conversation/ui/tools/ToolGroup";
@@ -58,8 +59,9 @@ export const EVENT_ROWS: { [T in ChatEvent["type"]]?: EventRow<ChatEventOf<T>> }
   thinking: { estimateKind: () => "thinking", estimate: ROW_ESTIMATES.thinking, render: (e) => <Thinking event={e} /> },
   approval_resolved: {
     prompt: isAnswer,
-    estimateKind: (e) => (isAnswer(e) ? "user" : "note"),
-    estimate: (e) => (isAnswer(e) ? ROW_ESTIMATES.answer() : ROW_ESTIMATES.note()),
+    // 質問への回答・拒否の理由は自分の吹き出し、それ以外（許可・理由なしの拒否）は 1 行
+    estimateKind: (e) => (isAnswer(e) || hasDenyReason(e.data) ? "user" : "note"),
+    estimate: (e) => (isAnswer(e) || hasDenyReason(e.data) ? ROW_ESTIMATES.answer() : ROW_ESTIMATES.note()),
     render: (e) => <ResolvedRow event={e} />,
   },
   // 作業の終わりには、作業時間と返答のコピーを出す
