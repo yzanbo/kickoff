@@ -1015,6 +1015,7 @@
 | BASE-022 | トークンで API を守る | 土台:core | T:auth |
 | BASE-023 | 秘密の値を分けて守る | 土台:core | M |
 | BASE-024 | AI が Kickoff 自身を壊す呼び出しを断る | guard | T:selfProtection |
+| BASE-054 | AI が配る版の印鑑の金庫に触る・金庫を開ける publish・install-app を流すのを断る | guard | T:vaultGuard |
 | BASE-025 | 参照資料・作業場所の外への書き込みを断る | guard | T:scope |
 | BASE-026 | Git 管理外だけ書けるチャット | guard | T:scope |
 | BASE-027 | AI のファイルの書き込みを作業場所・ノート・例外だけにする | guard | T:writeScope |
@@ -1050,7 +1051,8 @@
 ### 開発と配布
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| BASE-044 | 製品版を入れ替える | 道具 | M |
+| BASE-044 | 製品版を手元ビルドで入れ替える（金庫の印鑑・Hardened Runtime。製品版を終了してから金庫を開け、指紋を確かめる） | 道具 | M |
+| BASE-055 | 金庫のない Mac は ADHOC=1 で印鑑なしの製品版を作る（ADHOC なしなら止めて案内する） | 道具 | M |
 | BASE-045 | コアだけ動かしてブラウザで使う | app | M |
 | BASE-046 | 開発版に製品版のデータを写す | 土台:core | T:devData |
 | BASE-047 | 開発版を Kickoff Dev として見分ける | 道具 | M |

@@ -37,16 +37,25 @@ asarUnpack:
   # 音声入力の「macOS の音声認識」の補助コマンド（native/kickoff-speech をビルドが作る実行ファイル）
   - out/native/**
 mac:
-  target: dmg
+  # 配る形は dmg（初めて入れるとき）と zip（更新。electron-updater が読む）。Apple Silicon だけ
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
   category: public.app-category.developer-tools
-  # 手元用の署名（ad-hoc）でアプリ全体に署名する。配り方は「使う人が clone して npm run install-app で自分の Mac に作って入れる」なので、
-  # Apple の証明書（Developer ID）と公証は要らない。署名しないと、本体だけの中途半端な署名になり、開けない・同梱の実行ファイルが動かないことがある。
-  # 自分用の証明書は作らない（codesign が黙って使える鍵を置くと、AI が自作のプログラムに Kickoff の署名を付けてキーチェーンの鍵を取り出せるため。
-  # 仮の署名はキーチェーンの許可を中身に結びつけるので、入れ替えたあと最初に DB のパスワードを読むときに 1 回だけ許可を聞かれる）
-  identity: "-"
-  # ad-hoc の署名では、ライブラリの検証で読み込みを断られないよう、hardened runtime を使わない
-  hardenedRuntime: false
-  # チャット欄の音声入力で、macOS がマイクの許可を聞けるようにする（説明がないと、マイクを使おうとした時点で断られる）。
-  # hardened runtime を使わないので、マイクの entitlement（com.apple.security.device.audio-input）は要らない
+  # 署名は electron-builder にさせない（信頼の設定のない自前の印鑑を選べず、黙って仮の署名で成功してしまうため）。
+  # afterPack（scripts/after-pack.mjs）が、金庫の印鑑（KICKOFF_SIGN=release）か仮の署名で、Hardened Runtime と build/entitlements.mac.plist の権限を付けて押す
+  identity: null
   extendInfo:
+    # チャット欄の音声入力で、macOS がマイクの許可を聞けるようにする（説明がないと、マイクを使おうとした時点で断られる）
     NSMicrophoneUsageDescription: チャット欄の音声入力で、話した内容を文字にするためにマイクを使います。
+    # ターミナルや AI のコマンドからほかのアプリを操作するとき、macOS が許可を聞けるようにする（Hardened Runtime では権限と説明の両方が要る）
+    NSAppleEventsUsageDescription: ターミナルや AI のコマンドから、ほかのアプリを操作するときに使います。
+afterPack: scripts/after-pack.mjs
+# 版の一覧（latest-mac.yml）の置き場所。配ったあとは変えない（配った版は古い場所を見続け、新しい版に気づかなくなる）
+publish:
+  provider: generic
+  url: https://nexy-apps.github.io/kickoff/
+# β 版（0.1.0-beta.1 など）でも、版の一覧を beta-mac.yml に分けず latest-mac.yml の 1 つにする（分け方は 1.0 を出すときに決める）
+detectUpdateChannel: false
