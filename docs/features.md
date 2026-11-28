@@ -512,21 +512,21 @@
 ### 書く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| NOTE-010 | ライブプレビューで書く（返答の表示と同じ所を同じ書き方として飾る） | notes | T:livePreview,markdownParity |
+| NOTE-010 | Markdown 表示で書く（返答の表示と同じ所を同じ書き方として飾る） | notes | T:previewMarks,markdownParity |
 | NOTE-011 | ⌘S で保存・書きかけを残す | notes | E:note-edit |
 | NOTE-012 | ほかで変わったノートを読み直す | notes | T:noteWatcher,notes/routes |
 | NOTE-013 | 題名を書き換えて名前を変える | notes | M |
 | NOTE-014 | ノートの中を探す・置き換える（表の中も。当たりのあるセルに色を付け、いまの当たりのセルを開く） | notes | M |
 | NOTE-015 | HTML で書く | notes | M |
-| NOTE-027 | ライブ表示で数式と Mermaid を図にする | notes | M |
-| NOTE-034 | ライブ表示で表を返答の表示と同じ見た目で描く（段落の途中から始まる表も） | notes | T:tableBlocks,markdownParity |
+| NOTE-027 | Markdown 表示で数式と Mermaid を図にする | notes | M |
+| NOTE-034 | Markdown 表示で表を返答の表示と同じ見た目で描く（段落の途中から始まる表も） | notes | T:tableBlocks,markdownParity |
 | NOTE-035 | 表のセルを押してその場で書く（Tab・Enter・矢印で移る・⌘Z は本文と同じ履歴・その表の書き方で書き戻す） | notes | T:tableEdit,tableState |
 | NOTE-036 | 表の行・列を足す・消す・列の寄せ・表を入れる・消す（右クリック・表の端の「＋」・最後のセルの Tab と Enter） | notes | T:tableStructure |
-| NOTE-037 | ライブ表示のコードの塊に返答と同じ色と、言語名・コピーの帯（書けるまま。打っても色が消えない） | notes | T:codeBlocks |
-| NOTE-039 | ライブ表示で下線の見出し・\ の打ち消し・実体参照・行の中の HTML（返答と同じ一覧のタグ）を描く | notes | T:inlineSyntax,livePreview |
-| NOTE-040 | ライブ表示で HTML のまとまり（<details> など。開け閉めできる）と画像を描く（ノートのフォルダの中はそのまま、外の画像は押して許可したホストだけ。許可はノートごとで、動かすと付いていく） | notes | T:htmlBlocks,livePreview,remoteImages/noteImages |
-| NOTE-041 | ライブ表示の脚注（印は上付きの番号・定義の行は番号付きの小さな文字・印の小窓に注の文と「注へ移る」） | notes | T:footnotes,markdownParity |
-| NOTE-038 | ライブ表示のリンクを開く（押すと行き先・開く・コピーの小窓、⌘ ＋クリックですぐ。外のページ・ノート・フォルダ・見出し・URL のそのまま書き・参照の形） | notes | T:noteLinkTarget,markdownParity |
+| NOTE-037 | Markdown 表示のコードの塊に返答と同じ色と、言語名・コピーの帯（書けるまま。打っても色が消えない） | notes | T:codeBlocks |
+| NOTE-039 | Markdown 表示で下線の見出し・\ の打ち消し・実体参照・行の中の HTML（返答と同じ一覧のタグ）を描く | notes | T:inlineSyntax,previewMarks |
+| NOTE-040 | Markdown 表示で HTML のまとまり（<details> など。開け閉めできる）と画像を描く（ノートのフォルダの中はそのまま、外の画像は押して許可したホストだけ。許可はノートごとで、動かすと付いていく） | notes | T:htmlBlocks,previewMarks,remoteImages/noteImages |
+| NOTE-041 | Markdown 表示の脚注（印は上付きの番号・定義の行は番号付きの小さな文字・印の小窓に注の文と「注へ移る」） | notes | T:footnotes,markdownParity |
+| NOTE-038 | Markdown 表示のリンクを開く（押すと行き先・開く・コピーの小窓、⌘ ＋クリックですぐ。外のページ・ノート・フォルダ・見出し・URL のそのまま書き・参照の形） | notes | T:noteLinkTarget,markdownParity |
 
 ### ノートの AI
 | ID | 機能 | 持ち主 | 確かめ方 |

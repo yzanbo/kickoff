@@ -12,14 +12,14 @@ import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
-import { livePreview } from "./livePreviewExtension";
+import { previewDecorations } from "./previewDecorations";
 import { blockWidgets } from "./blockWidgets";
 import { cellEditorOf } from "./cellEditor";
 import { codeHighlight } from "./codeHighlight";
 import { linkTooltip, noteLinkOpenerFacet, type NoteLinkOpener } from "./linkTooltip";
 import { insertTable, tableMenuItems } from "./tableActions";
 import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget, type EditorMenuItem } from "./tableField";
-import { liveRich } from "./liveRich";
+import { previewRich } from "./previewRich";
 import type { NoteLines } from "./noteAttachment";
 import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
 import { createWidgetPortals, WidgetPortalOutlet, widgetPortalsFacet } from "./widgetPortals";
@@ -54,7 +54,7 @@ interface Props {
   /** ノートの種類（Markdown か HTML か。言語の色分けと Enter の続け方。作ったときだけ読む） */
   kind: NoteKind;
   /** Markdown 表示（Obsidian のライブプレビューと同じ）か、そのまま表示か（Markdown のノートだけ）。切り替えても書いたもの・元に戻す履歴はそのまま */
-  live: boolean;
+  preview: boolean;
   /** 隠す（HTML のノートをページで見ている間。作り直さずに置いて、書いたもの・元に戻す履歴を残す） */
   hidden?: boolean;
   onChange: (text: string) => void;
@@ -84,11 +84,11 @@ const htmlHighlight = HighlightStyle.define([
 /**
  * ノートの編集（CodeMirror 6）。HTML のノートは HTML のソースをそのまま書く（色分けと、タグを閉じる補助。ページの見た目は NoteView が別に描く）。
  * Markdown のノートの Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
- * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
+ * （previewDecorations。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
  * 太字・取り消し線は返答の表示と同じ日本語向けの決まりで読む（cjkEmphasis.ts）。行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、ノートを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
-export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady, linkOpener }: Props) {
+export default function NoteEditor({ initialValue, kind, preview, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady, linkOpener }: Props) {
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
   const handlers = useLatest({ onSave, onContextMenu, linkOpener });
   // 表などを置き換えて描く飾りの中身（React の部品）を、この木から描く口
@@ -98,8 +98,8 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     initialValue,
     onChange,
     // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
-    dynamic: live && kind === "markdown" ? [blockWidgets, liveRich, livePreview, codeHighlight, linkTooltip] : [],
-    dynamicDeps: [live, kind],
+    dynamic: preview && kind === "markdown" ? [blockWidgets, previewRich, previewDecorations, codeHighlight, linkTooltip] : [],
+    dynamicDeps: [preview, kind],
     extensions: () => [
       baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),
       kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }),
@@ -175,7 +175,7 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
 
   return (
     <>
-      <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />
+      <div ref={host} hidden={hidden} className={cx("md-editor", preview && kind === "markdown" ? "preview" : "source")} />
       <WidgetPortalOutlet portals={portals} />
     </>
   );

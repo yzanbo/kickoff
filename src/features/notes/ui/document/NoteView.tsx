@@ -176,7 +176,7 @@ export function NoteView({
                   key={`${path}:${doc.revision}`}
                   initialValue={doc.initial}
                   kind={kind}
-                  live={view === "preview"}
+                  preview={view === "preview"}
                   hidden={page}
                   onChange={doc.setText}
                   onSave={saveNow}

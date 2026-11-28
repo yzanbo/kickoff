@@ -162,4 +162,4 @@ const richWatcher = ViewPlugin.fromClass(
 );
 
 /** ノートの Markdown 表示の数式と Mermaid の図（ライブプレビューの記号の飾りより前に置く。数式の中の _ ・ * や、コードの塊の飾りと重ねないように） */
-export const liveRich = [editorFocus, Prec.high(richField), richWatcher];
+export const previewRich = [editorFocus, Prec.high(richField), richWatcher];

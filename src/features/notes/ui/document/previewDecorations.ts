@@ -1,11 +1,11 @@
-// ノートの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（livePreview.ts）が決め、
+// ノートの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（previewMarks.ts）が決め、
 // ここではエディタの飾り（隠す・行と文字の見た目・「•」・チェックボックス・区切り線）に直す。カーソルのある行は記号をそのまま見せる（ピントがないときは、どの行も整えて見せる）
 import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { InlineHtmlWidget } from "./InlineHtml";
 import { NoteImageWidget } from "./NoteImage";
-import { previewMarks, type PreviewMark } from "./livePreview";
+import { previewMarks, type PreviewMark } from "./previewMarks";
 import { docText } from "./noteDoc";
 
 /** 箇条書きの記号の代わりの「•」 */
@@ -145,7 +145,7 @@ function build(view: EditorView): DecorationSet {
 }
 
 /** Markdown 表示の飾り（NoteEditor が、表示の切り替えで付け外しする） */
-export const livePreview = ViewPlugin.fromClass(
+export const previewDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     constructor(view: EditorView) {

@@ -86,7 +86,7 @@ class CodeHighlighter {
     const colors: Range<Decoration>[] = [];
     const heads: Range<Decoration>[] = [];
     for (const block of blocks) {
-      // Mermaid の塊は図にする（liveRich）
+      // Mermaid の塊は図にする（previewRich）
       if (isMermaidBlock(block)) continue;
       const info = fenceInfoLanguage(block.info);
       // 帯（カーソルが開きの行にあれば元の文字）

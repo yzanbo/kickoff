@@ -7,8 +7,8 @@
 | ファイル | 中身 |
 |---|---|
 | `NoteView.tsx`・`useNoteDocument.ts`・`NoteEditor.tsx` | 枠・保存・表示の切り替え・編集の部品（Markdown 表示のときだけ下の飾り） |
-| `livePreview.ts`・`livePreviewExtension.ts`・`inlineSyntax.ts`・`InlineHtml.tsx` | 行の中の飾り（どこを飾るかは純粋な関数 `previewMarks`。行の中の HTML は返答と同じ処理で描く） |
-| `liveRich.ts`・`mermaidBlocks.ts` | 数式と Mermaid を置き換えて描く |
+| `previewMarks.ts`・`previewDecorations.ts`・`inlineSyntax.ts`・`InlineHtml.tsx` | 行の中の飾り（どこを飾るかは純粋な関数 `previewMarks`。行の中の HTML は返答と同じ処理で描く） |
+| `previewRich.ts`・`mermaidBlocks.ts` | 数式と Mermaid を置き換えて描く |
 | `codeHighlight.tsx`・`codeBlocks.ts` | コードの塊の色（返答と同じ部品）と開きの行の帯 |
 | `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`HtmlBlock.tsx`・`htmlBlocks.ts`・`NoteImage.tsx`・`widgetPortals.tsx` | 表・HTML のまとまり・画像を置き換えて描く（返答と同じ処理と部品。React は portal で。見た目は `NoteEditorBlocks.unlayered.css`） |
 | `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts`・`editorFocus.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー）・ピントの場所 |

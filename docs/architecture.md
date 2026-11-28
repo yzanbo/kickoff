@@ -245,6 +245,7 @@ scripts/  docs/           道具と文書
 | すべてのプロジェクト（定型文） | `snippetScopes`・`scopeLabel` | 定型文の `project_id` が null の範囲。札は「すべて」で、共通のチャットにも出る（「共通」と呼ばない） |
 | 添付 / AI に渡す | `Attachment`・`handOffTargets` | |
 | ノート | `Note`・`note_path` | プロジェクトの外のフォルダに置く |
+| Markdown で表示 / そのまま表示 | 設定 `view`（`preview` / `edit`）・`NoteEditor` の `preview`・`previewMarks` | ノートの表示の切り替え。Markdown で表示は整えて見せたまま書ける（HTML のノートは「ページで表示」） |
 | リンクの小窓 | `LinkTooltip` | ノートのリンクにカーソルを置くと出る（行き先・開く・コピー） |
 | セルを開く | `openCell`・`OpenCell` | ノートの表のセルを、表のままその場で書く |
 | 共通 | `isCommonProject`・`ProjectKind`（`common`） | Kickoff が用意する見えないプロジェクト 1 つ。共通のチャットと共通のノートの持ち主で、一覧のいつも先頭。文の中では「共通のチャット」 |
