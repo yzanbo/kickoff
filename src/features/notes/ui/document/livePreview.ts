@@ -2,6 +2,7 @@
 // Markdown の構文の木（@lezer/markdown・GFM）から、カーソルのない行の記号（# ・** ・` ・> ・リンクの URL など）を隠し、
 // 見出し・太字・コード・引用などの見た目を付ける印を返す（コードの塊の ``` もカーソルのない行では隠す）。ファイルの中身は変えない（見せ方だけ。書き換えはチェックボックスを押したときだけ）
 import type { SyntaxNodeRef, Tree } from "@lezer/common";
+import { decodeEntity, inlineHtmlRanges } from "./inlineSyntax";
 import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 
 /** 見せ方の印（エディタの飾りに直す。位置はファイルの文字の位置） */
@@ -17,7 +18,11 @@ export type PreviewMark =
   /** タスクの [ ] / [x] をチェックボックスに（押すと書き換える） */
   | { kind: "task"; from: number; to: number; checked: boolean }
   /** 区切り線（---）を線に */
-  | { kind: "rule"; from: number; to: number };
+  | { kind: "rule"; from: number; to: number }
+  /** 文字に置き換える（実体参照 &amp; を & に） */
+  | { kind: "text"; from: number; to: number; text: string }
+  /** 行の中の HTML（返答の表示と同じ処理で描く） */
+  | { kind: "html"; from: number; to: number; source: string };
 
 /** 中身に見た目を付ける要素 */
 const SPAN_CLASS: Record<string, string> = {
@@ -56,15 +61,37 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
   // 行き先のあるリンクだけを飾る（定義のない [文字] は角かっこごと文字のまま。返答の表示と同じ）
   const defs = linkDefinitions(tree, text);
   const isLink = (n: SyntaxNodeRef | null | undefined) => !!n && n.name === "Link" && linkHref(n.node, text, defs) !== null;
+  // 行の中の HTML（カーソルのない行だけ描く。中の飾りは描く物に任せる）
+  const html = inlineHtmlRanges(tree, text, from, to).filter((r) => !isActive(r.from));
+  for (const r of html) out.push({ kind: "html", from: r.from, to: r.to, source: text.slice(r.from, r.to) });
+  const inHtml = (n: SyntaxNodeRef) => html.some((r) => n.from >= r.from && n.to <= r.to);
 
   tree.iterate({
     from,
     to,
     enter(n) {
       const name = n.name;
+      if (inHtml(n)) return false;
       const heading = /^ATXHeading(\d)$/.exec(name);
       if (heading) {
         out.push({ kind: "line", at: lineStart(n.from), cls: `md-h${heading[1]}` });
+        return;
+      }
+      // 下線で書く見出し: 中身の行に見出しの見た目（下線の行は HeaderMark で隠す）
+      const setext = /^SetextHeading(\d)$/.exec(name);
+      if (setext) {
+        const mark = n.node.getChild("HeaderMark");
+        for (const at of linesOf(n.from, (mark?.from ?? n.to) - 1)) out.push({ kind: "line", at, cls: `md-h${setext[1]}` });
+        return;
+      }
+      // \ の打ち消しは \ を隠し、実体参照は文字にする（カーソルのない行だけ）
+      if (name === "Escape") {
+        hide(n.from, n.from + 1);
+        return;
+      }
+      if (name === "Entity") {
+        const decoded = decodeEntity(text.slice(n.from, n.to));
+        if (decoded !== null && !isActive(n.from)) out.push({ kind: "text", from: n.from, to: n.to, text: decoded });
         return;
       }
       const span = SPAN_CLASS[name];
@@ -93,8 +120,9 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
       }
       switch (name) {
         case "HeaderMark":
-          // 見出しの頭の # だけ（行の終わりの # や、下線で書く見出しの ===・--- は残す）
+          // 見出しの頭の # と、下線で書く見出しの下線の行（行の終わりの # は残す）
           if (/^ATXHeading/.test(parentName(n)) && n.from === lineStart(n.from)) hide(n.from, withSpace(n.to));
+          else if (/^SetextHeading/.test(parentName(n))) hide(n.from, n.to);
           return;
         case "EmphasisMark":
         case "StrikethroughMark":

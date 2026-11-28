@@ -3,6 +3,7 @@
 import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { InlineHtmlWidget } from "./InlineHtml";
 import { previewMarks, type PreviewMark } from "./livePreview";
 
 /** 箇条書きの記号の代わりの「•」 */
@@ -61,6 +62,21 @@ class RuleWidget extends WidgetType {
   }
 }
 
+/** 実体参照の代わりの文字 */
+class TextWidget extends WidgetType {
+  constructor(readonly text: string) {
+    super();
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.text;
+    return span;
+  }
+  eq(other: TextWidget) {
+    return other.text === this.text;
+  }
+}
+
 const BULLET = Decoration.replace({ widget: new BulletWidget() });
 const RULE = Decoration.replace({ widget: new RuleWidget() });
 const HIDE = Decoration.replace({});
@@ -79,6 +95,10 @@ function decorationOf(mark: PreviewMark): Range<Decoration> {
       return Decoration.replace({ widget: new TaskWidget(mark.checked, mark.from, mark.to) }).range(mark.from, mark.to);
     case "rule":
       return RULE.range(mark.from, mark.to);
+    case "text":
+      return Decoration.replace({ widget: new TextWidget(mark.text) }).range(mark.from, mark.to);
+    case "html":
+      return Decoration.replace({ widget: new InlineHtmlWidget(mark.source) }).range(mark.from, mark.to);
   }
 }
 

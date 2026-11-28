@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `NoteView.tsx`・`useNoteDocument.ts`・`NoteEditor.tsx` | 枠・保存・表示の切り替え・編集の部品（Markdown 表示のときだけ下の飾り） |
-| `livePreview.ts`・`livePreviewExtension.ts` | 行の中の飾り（どこを飾るかは純粋な関数 `previewMarks`） |
+| `livePreview.ts`・`livePreviewExtension.ts`・`inlineSyntax.ts`・`InlineHtml.tsx` | 行の中の飾り（どこを飾るかは純粋な関数 `previewMarks`。行の中の HTML は返答と同じ処理で描く） |
 | `liveRich.ts`・`mermaidBlocks.ts` | 数式と Mermaid を置き換えて描く |
 | `codeHighlight.tsx`・`codeBlocks.ts` | コードの塊の色（返答と同じ部品）と開きの行の帯 |
 | `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`widgetPortals.tsx` | 表を置き換えて描く（返答と同じ処理と部品。React は NoteEditor の木から portal で） |

@@ -100,3 +100,15 @@ test("livePreview: <URL> は < > を隠してリンクに、URL のそのまま�
   assert.deepEqual(marksOf("<https://x.y>"), ['span:md-link="<https://x.y>"', 'hide="<"', 'hide=">"']);
   assert.deepEqual(marksOf("見る https://x.y/a。次"), ['span:md-link="https://x.y/a"']);
 });
+
+test("livePreview: 下線で書く見出しは中身の行に見出しの見た目を付け、下線の行を隠す", () => {
+  assert.deepEqual(marksOf("見出し\n==="), ["line:md-h1@0", 'hide="==="']);
+  assert.deepEqual(marksOf("見出し\n---", 1), ["line:md-h2@0"]);
+});
+
+test("livePreview: \\ の打ち消しは \\ を隠し、実体参照は文字に、行の中の HTML は描く物に替える（カーソルの行は元の文字）", () => {
+  assert.deepEqual(marksOf("\\*星\\*"), ['hide="\\\\"', 'hide="\\\\"']);
+  assert.deepEqual(marksOf("A &amp; B"), ['text="&amp;"']);
+  assert.deepEqual(marksOf("改行<br>と<kbd>**K**</kbd>"), ['html="<br>"', 'html="<kbd>**K**</kbd>"']);
+  assert.deepEqual(marksOf("改行<br>と", 0), []);
+});
