@@ -17,6 +17,7 @@
     "test:changed:isolated": "node scripts/test-changed.mjs --isolated",
     "dist": "electron-vite build && electron-builder --mac --arm64",
     "install-app": "node scripts/install-app.mjs",
+    "publish": "node scripts/publish.mjs",
     "icon": "node scripts/build-icon.mjs",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs && node scripts/install-git-hooks.mjs",
     "test:db": "node scripts/test-db.mjs",

@@ -1,7 +1,7 @@
 # Kickoff
 
 > [!WARNING]
-> 開発中です（v0.1）。macOS（Apple Silicon）でしか確かめていません。
+> β 版です（0.1.0-beta）。macOS（Apple Silicon）でしか確かめていません。
 > 機能・画面・保存の形は予告なく変わり、版によってはそれまでのデータを引き継がないことがあります。
 
 アプリ開発を、AI エージェントとのチャットで進めるための Mac デスクトップアプリ。プロジェクトごとに、作業場所（git のワークツリー）・グループ・状態でチャットを並べ、並行して進める。
@@ -10,9 +10,13 @@
 - 設計（構成・機能の一覧と向き・語彙）: [docs/architecture.md](docs/architecture.md)
 - 書き方の決まり: `CLAUDE.md`（ルートと各フォルダ）
 
-## 使い方
+## 入れ方
 
-`npm install && npm run install-app` で `/Applications/Kickoff.app` に入れて起動する（前提は下の「前提」）。
+1. [GitHub の Releases](https://github.com/nexy-apps/kickoff/releases) から `Kickoff-<版>-arm64.dmg` をダウンロードし、Kickoff を「アプリケーション」へ入れる。本物はここからだけ配っている（ほかの場所の Kickoff は入れない）。
+2. 初めて開くときは止められるので、システム設定の「プライバシーとセキュリティ」で［このまま開く］を押す（Apple の公証をしていないため。2 回目からと、アプリの中の更新では出ない）。
+3. 新しい版が出ると、左下の ⚙ に印が付く。⚙ を押して設定の上の帯の［更新して開き直す］を選ぶ（作業中のチャットがあれば、終わってから開き直す）。
+
+## 使い方
 
 ![全プロジェクトのボード。チャットが状態（下書き・作業中・回答待ち・未読・既読）の列に並ぶ](docs/images/board.png)
 
@@ -36,22 +40,22 @@
 ```sh
 npm install
 npm run dev                    # 開発版（Kickoff Dev）を起動
-npm run dev:cdp                # 同じく、CDP のポート 9333 を開いて起動（画面の確かめ。scripts/ui-*.mjs が使う）
+npm run dev:cdp                # 同じく、CDP のポート 9333 を開いて起動
 npm run fixture:seed           # 決まったデータを /private/tmp/kickoff-fixture に作る（scripts/devtools/fixture.mjs）
-npm run dev:fixture            # そのデータで開発版を起動（コア 4319・CDP 9335。通しの確かめ node scripts/e2e/run.mjs が使う）
-npm run typecheck              # 型（tsconfig をプロセスごとに。使っていない import・変数も見る）
+npm run dev:fixture            # そのデータで開発版を起動（コア 4319・CDP 9335）
+npm run typecheck              # 型（使っていない import・変数も見る）
 npm run test:changed           # 変えたファイルに関係するテストだけ（作業中）
-npm test                       # 全体を 1 プロセスで、ファイルの順番を毎回入れ替えて（Vitest）
-npm run test:isolated          # 全体を、ファイルごとに新しいプロセスで（:changed にも :isolated を付けられる）
-npm run test:db                # DB クライアントのドライバを Docker で立てた本物の DB で確かめる（Docker が要る）
+npm test                       # 全体（Vitest。ファイルの順番を毎回入れ替える）
+npm run test:isolated          # 全体を、ファイルごとに新しいプロセスで
+npm run test:db                # DB のドライバを Docker の本物の DB で確かめる
 npm run knip                   # 使っていない export・ファイル・依存
 npm run build                  # ビルド（out/）
 npm run mobile:typecheck       # スマホのアプリ（mobile/）の型
 npm run daemon                 # Electron なしでコアだけを起動（データは KICKOFF_DATA_DIR）
-npm run dist                   # .app / .dmg を作る
-npm run install-app            # ビルドして /Applications/Kickoff.app（製品版）を入れ替える
-npm run icon                   # build/icon.svg・icon-dev.svg からアイコンを作り直す
-node scripts/ui-snapshot.mjs take <名前>   # 開発版の画面の DOM と計算後のスタイルを記録する（diff <前> <後> で比べる）
+npm run dist                   # 印鑑なしで .app・dmg・zip を作る
+npm run install-app            # 手元ビルドで製品版を入れ替える（下の「製品版を作る」）
+npm run icon                   # build/icon*.svg からアイコンを作り直す
+node scripts/ui-snapshot.mjs take <名前>   # 画面の DOM とスタイルを記録（diff で比べる）
 ```
 
 コミットと push のたびに git のフック（`.githooks/`。`npm install` が設定する）が確かめを流し、落ちたら止める。コミット時は文書の検査と、コードを含めば構造の検査・型・knip・テストの書き方の見張り・関係するテスト。push 時は文書と構造の検査・`npm test`・ビルド。コミットしない変更が混ざっていると止まる。
@@ -65,16 +69,16 @@ node scripts/ui-snapshot.mjs take <名前>   # 開発版の画面の DOM と計�
 | ポート | 4317 | 4318 |
 | アプリ ID | `app.nexy.Kickoff` | `app.nexy.Kickoff.dev` |
 
-どちらも仮の署名（ad-hoc）なので、アクセシビリティ・画面収録の許可は中身に結びつき、作り直すと効かなくなる。`npm run install-app`（製品版）と `npm install`（開発版。Electron.app が置き直されたとき）は、中身が変わったらその許可を消すので、次に使うときに macOS が聞き直す（`scripts/mac-privacy.mjs`）。
+製品版は金庫の印鑑で署名するので、入れ替えても許可は残る。開発版は仮の署名で、Electron.app が置き直されたら許可を消して聞き直す（`scripts/mac-privacy.mjs`）。
 
-製品版を入れ替えるときは、macOS のターミナルで流す（Kickoff の中のチャット・ターミナルからは流さない）:
+### 製品版を作る（作る人向け。macOS のターミナルで流す）
 
-1. 製品版で作業中のチャットがないことを確かめ、⌘Q で終える。
-2. データを引き継がない版へ上げるときは、古いデータを消さずに退避する（知らない版の DB は開かずに止まる）: `mv "$HOME/Library/Application Support/Kickoff" "$HOME/Library/Application Support/Kickoff.old"`。開発版の `Kickoff Dev` も同じ。
-3. `git pull && npm install && npm run install-app`
-4. 引き継がない版なら、起動してプロジェクトを取り込み直し、設定・定型文・DB の接続を入れ直し、スマホはペアリングし直す。
+- `npm run install-app`: 手元ビルドを金庫の印鑑で作って製品版を入れ替える（製品版を終了してから金庫のパスワードを聞く）。
+- `ADHOC=1 npm run install-app`: 金庫のない Mac（clone した人）が、印鑑なしで製品版を作る。入れ替えるたびに許可を聞き直し、新しい版の知らせは出ない。
+- `npm run publish`: 配る（`release-notes/<版>.md` が要る。dmg と zip を Releases へ、版の一覧を Pages へ置く）。
+- データを引き継がない版へ上げるときは、先に保存先の `Kickoff` を `Kickoff.old` に退避する（知らない版の DB は開かない）。
 
-`.claude/settings.json` の SessionStart フックは、Kickoff に入っている Claude Code に新しい版が出たら、このリポジトリのチャットのエージェントに知らせる（`scripts/check-agent-updates.mjs`）。
+`.claude/settings.json` の SessionStart フックは、同梱の Claude Code の新しい版を知らせる（`scripts/check-agent-updates.mjs`）。
 
 | 環境変数 | 説明 |
 |---|---|

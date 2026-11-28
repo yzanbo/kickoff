@@ -1057,6 +1057,7 @@
 |---|---|---|---|
 | BASE-044 | 製品版を手元ビルドで入れ替える（金庫の印鑑・Hardened Runtime。製品版を終了してから金庫を開け、指紋を確かめる） | 道具 | M |
 | BASE-055 | 金庫のない Mac は ADHOC=1 で印鑑なしの製品版を作る（ADHOC なしなら止めて案内する） | 道具 | M |
+| BASE-056 | 配る（npm run publish。確かめ → 金庫で dmg と zip を署名 → タグ・Releases → 版の一覧を Pages へ） | 道具 | M |
 | BASE-045 | コアだけ動かしてブラウザで使う | app | M |
 | BASE-046 | 開発版に製品版のデータを写す | 土台:core | T:devData |
 | BASE-047 | 開発版を Kickoff Dev として見分ける | 道具 | M |
