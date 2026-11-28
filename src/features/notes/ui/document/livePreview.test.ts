@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { GFM, parser } from "@lezer/markdown";
-import { cjkFriendlyEmphasis } from "./cjkEmphasis";
 import { previewMarks, type PreviewMark } from "./livePreview";
+import { noteMarkdownParser } from "./noteMarkdown";
 
-const md = parser.configure(GFM);
-/** 返答の表示と同じ日本語向けの強調の拡張を足した読み取り（NoteEditor と同じ組） */
-const cjk = parser.configure([GFM, cjkFriendlyEmphasis]);
+/** 編集の部品と同じ読み取り（表の拡張・日本語向けの強調・上付きなどを外したもの） */
+const md = noteMarkdownParser;
+/** 日本語向けの強調の拡張だけを外した読み取り（拡張が効いていることと、英語の文を変えないことの確かめ） */
+const plain = noteMarkdownParser.configure({ remove: ["CjkFriendlyEmphasis", "CjkFriendlyStrikethrough"] });
 /** 印を、種類と対象の文字で並べる（読みやすく比べる） */
 function marksOf(text: string, activeLine: number | null = null, reader = md) {
   const lineOf = (pos: number) => text.slice(0, pos).split("\n").length - 1;
@@ -67,11 +67,9 @@ test("livePreview: 引用は行ごとに見た目を付けて > を隠し、コ�
   assert.deepEqual(marksOf("> ```js\n> a\n> ```").filter((m) => m.startsWith("hide")), ['hide="> "', 'hide="```"', 'hide="js"', 'hide="> "', 'hide="> "', 'hide="```"']);
 });
 
-const cjkMarksOf = (text: string) => marksOf(text, null, cjk);
-
 test("livePreview: 印の内側が記号で外側が日本語の太字・取り消し線も、返答の表示と同じく読む（日本語向けの拡張）", () => {
-  assert.deepEqual(cjkMarksOf("**「強調」**は"), ['span:md-strong="**「強調」**"', 'hide="**"', 'hide="**"']);
-  assert.deepEqual(cjkMarksOf("**ノート（.md）**と**チャット（.json）**の違い"), [
+  assert.deepEqual(marksOf("**「強調」**は"), ['span:md-strong="**「強調」**"', 'hide="**"', 'hide="**"']);
+  assert.deepEqual(marksOf("**ノート（.md）**と**チャット（.json）**の違い"), [
     'span:md-strong="**ノート（.md）**"',
     'hide="**"',
     'hide="**"',
@@ -79,14 +77,14 @@ test("livePreview: 印の内側が記号で外側が日本語の太字・取り�
     'hide="**"',
     'hide="**"',
   ]);
-  assert.deepEqual(cjkMarksOf("~~取消（x）~~です"), ['span:md-strike="~~取消（x）~~"', 'hide="~~"', 'hide="~~"']);
+  assert.deepEqual(marksOf("~~取消（x）~~です"), ['span:md-strike="~~取消（x）~~"', 'hide="~~"', 'hide="~~"']);
   // 日本語向けの拡張がないと太字にならない（拡張が効いていることの確かめ）
-  assert.deepEqual(marksOf("**「強調」**は"), []);
+  assert.deepEqual(marksOf("**「強調」**は", null, plain), []);
 });
 
 test("livePreview: 英語の文・語の中の _・~ 1 つの木は、日本語向けの拡張があっても変わらない", () => {
   for (const text of ["foo**bar**baz", "snake_case_name", "__init__", "x * y * z", "a *b* c ~~d~~ e", "5~10秒", "**太字**は", "__下線（x）__です"]) {
-    assert.equal(cjk.parse(text).toString(), md.parse(text).toString(), text);
+    assert.equal(md.parse(text).toString(), plain.parse(text).toString(), text);
   }
 });
 

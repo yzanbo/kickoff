@@ -9,7 +9,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { editorFocus, editorFocusOf } from "./editorFocus";
 import { footnoteAt, footnotes } from "./footnotes";
 import { linkAt, type NoteLinkAt } from "./noteLinks";
-import { headingSlug } from "./noteLinkTarget";
+import { headingPosition } from "./noteLinkTarget";
 import { docText } from "./noteDoc";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
@@ -23,20 +23,10 @@ export interface NoteLinkOpener {
 
 export const noteLinkOpenerFacet = Facet.define<NoteLinkOpener, NoteLinkOpener | null>({ combine: (values) => values[0] ?? null });
 
-/** このノートの見出しへ移る（# の後ろと、見出しの文の行き先の名前が同じもの） */
+/** このノートの見出しへ移る（なければ false） */
 function jumpToHeading(view: EditorView, id: string): boolean {
-  const want = headingSlug(id);
-  let target = -1;
-  syntaxTree(view.state).iterate({
-    enter(n) {
-      if (target >= 0) return false;
-      if (!/^(ATX|Setext)Heading\d$/.test(n.name)) return n.name === "Document" || n.name === "ListItem" || n.name.endsWith("List") || n.name === "Blockquote";
-      const line = view.state.doc.lineAt(n.from).text.replace(/^\s*#+\s*/, "").replace(/\s*#*\s*$/, "");
-      if (headingSlug(line) === want || line === id) target = n.from;
-      return false;
-    },
-  });
-  if (target < 0) return false;
+  const target = headingPosition(syntaxTree(view.state), docText(view.state), id);
+  if (target === null) return false;
   view.dispatch({ selection: { anchor: target }, effects: EditorView.scrollIntoView(target, { y: "start" }) });
   view.focus();
   return true;

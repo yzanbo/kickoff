@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { headingSlug, noteLinkTarget } from "./noteLinkTarget";
+import { noteMarkdownParser } from "./noteMarkdown";
+import { headingPosition, headingSlug, noteLinkTarget } from "./noteLinkTarget";
 
 test("noteLinkTarget: 外のページ・見出し・開けない形", () => {
   assert.deepEqual(noteLinkTarget("https://example.com/a", "a.md"), { kind: "web", url: "https://example.com/a" });
@@ -23,4 +24,13 @@ test("noteLinkTarget: 相対のパスはノートの入ったフォルダから�
 test("headingSlug: 小文字・空白は -・記号を除く（日本語はそのまま）", () => {
   assert.equal(headingSlug("Hello World!"), "hello-world");
   assert.equal(headingSlug("4. 振る舞い（案）"), "4-振る舞い案");
+});
+
+test("headingPosition: 行き先の名前か文そのものが同じ最初の見出し（下線の見出しも）", () => {
+  const text = "# はじめに\n\n本文\n\n## Getting Started ##\n\n下線の見出し\n---\n\n# はじめに";
+  const at = (id: string) => headingPosition(noteMarkdownParser.parse(text), text, id);
+  assert.equal(at("はじめに"), 0);
+  assert.equal(at("getting-started"), text.indexOf("##"));
+  assert.equal(at("下線の見出し"), text.indexOf("下線"));
+  assert.equal(at("本文"), null);
 });

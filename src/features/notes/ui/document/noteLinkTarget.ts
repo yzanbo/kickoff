@@ -1,7 +1,9 @@
 // ノートのリンクの行き先を決める純粋な関数: 外のページ・このノートの見出し・ノートのフォルダの中のノート / ファイル / フォルダ・開けないもの。
 // 相対のパスは、このノートの入ったフォルダから読む（HTML のノートのページのリンクと同じく、ノートのフォルダの外は開かない）
+import type { Tree } from "@lezer/common";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
+import { lineEndOf, lineStartOf, walkBlocks } from "./blockWalk";
 
 export type NoteLinkTarget =
   /** 外のページ（http・https。読み直した URL） */
@@ -61,4 +63,22 @@ export function headingSlug(heading: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, "")
     .replace(/\s/g, "-");
+}
+
+/** このノートの見出しのうち、# の後ろの id が指すものの頭（見出しの文の行き先の名前か、文そのものが同じ最初のもの。なければ null） */
+export function headingPosition(tree: Tree, text: string, id: string): number | null {
+  const want = headingSlug(id);
+  let found: number | null = null;
+  walkBlocks(
+    tree,
+    (node) => {
+      if (!/^(ATX|Setext)Heading\d$/.test(node.name)) return false;
+      const line = text.slice(lineStartOf(text, node.from), lineEndOf(text, node.from)).replace(/^\s*#+\s*/, "").replace(/\s*#*\s*$/, "");
+      if (headingSlug(line) !== want && line !== id) return false;
+      found = node.from;
+      return true;
+    },
+    { quotes: true },
+  );
+  return found;
 }
