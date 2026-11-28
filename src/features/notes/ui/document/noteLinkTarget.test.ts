@@ -34,3 +34,10 @@ test("headingPosition: 行き先の名前か文そのものが同じ最初の見
   assert.equal(at("下線の見出し"), text.indexOf("下線"));
   assert.equal(at("本文"), null);
 });
+
+test("headingPosition: 引用・リストの中の見出しも、> と印を除いた文で探す", () => {
+  const text = "> ## 引用の見出し\n\n- # 項目の見出し";
+  const at = (id: string) => headingPosition(noteMarkdownParser.parse(text), text, id);
+  assert.equal(at("引用の見出し"), text.indexOf("##"));
+  assert.equal(at("項目の見出し"), text.indexOf("# 項目"));
+});

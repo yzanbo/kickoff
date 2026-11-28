@@ -3,7 +3,7 @@
 import type { Tree } from "@lezer/common";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { linkTargetOf } from "@shared/foundation/linkTarget";
-import { lineEndOf, lineStartOf, walkBlocks } from "./blockWalk";
+import { lineEndOf, walkBlocks } from "./blockWalk";
 
 export type NoteLinkTarget =
   /** 外のページ（http・https。読み直した URL） */
@@ -73,7 +73,8 @@ export function headingPosition(tree: Tree, text: string, id: string): number | 
     tree,
     (node) => {
       if (!/^(ATX|Setext)Heading\d$/.test(node.name)) return false;
-      const line = text.slice(lineStartOf(text, node.from), lineEndOf(text, node.from)).replace(/^\s*#+\s*/, "").replace(/\s*#*\s*$/, "");
+      // 見出しの頭から読む（引用の > ・リストの印は見出しの文でない）
+      const line = text.slice(node.from, lineEndOf(text, node.from)).replace(/^\s*#+\s*/, "").replace(/\s*#*\s*$/, "");
       if (headingSlug(line) !== want && line !== id) return false;
       found = node.from;
       return true;
