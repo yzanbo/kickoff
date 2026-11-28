@@ -1,0 +1,50 @@
+/* ==== 新しい版の帯と ⚙ の印（UpdateBanner・UpdateBadge） ==== */
+@layer feature {
+  /* 設定のダイアログの見出しの下の帯（新しい版・ダウンロードの進み具合・待っている・入れられなかった） */
+
+  .update-banner {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 20px 10px 24px;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-13);
+    background: color-mix(in srgb, var(--info) 10%, var(--bg-elev));
+  }
+
+  .update-banner[data-tone="error"] {
+    background: color-mix(in srgb, var(--ng) 12%, var(--bg-elev));
+  }
+
+  .update-banner-text {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  .update-banner-progress {
+    flex: 0 1 200px;
+    height: 6px;
+    accent-color: var(--info);
+  }
+
+  .update-banner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* 下の帯の ⚙ のアイコンの右上の点（⚙ のボタンを基準に置く。格子に入れるとアイコンが次のマスへ押し出される） */
+
+  .update-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--info);
+    box-shadow: 0 0 0 1.5px var(--bg-sidebar);
+  }
+}

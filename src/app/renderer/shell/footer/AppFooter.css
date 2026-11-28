@@ -45,6 +45,8 @@
   /* 左下の設定（歯車だけ）。フッターの高さに収まる大きさにする */
 
   .footer-settings {
+    /* 上の機能の印（新しい版など）を右上に重ねる基準 */
+    position: relative;
     flex: none;
     width: 24px;
     height: 24px;

@@ -18,10 +18,10 @@ src/
     core/                 コアの土台（Kernel・CoreFeature・db/・http/・bus・clock・system/・platform/・workplace/・files/・watch/・aiTools/・settings/・host/・testing/）
     ui/                   画面の土台（store/・query/・storage/・api/・navigation/・points・kit/・hooks/・lib/・workplace/・document/・external/・commands/・shell/・theme/・styles/）
     desktop/              メインプロセスの土台（parts・app/・ipc/・platform/・notifications/・terminal/・diagnostics/）と preload/
-  features/<機能>/        機能（下の 3 章の 40 個）
+  features/<機能>/        機能（下の 3 章の 41 個）
     core/                 コアの部分（index.ts が createX を出す・schema.ts・routes・tools.ts・db/・testing.ts）
     ui/                   画面の部分（index.ts・contributes.ts・storage.ts・api・部品と隣の CSS・testing.ts）
-    desktop/              メインの部分（browser と diagnostics だけ）
+    desktop/              メインの部分（browser・diagnostics・updates だけ）
     worker/               別プロセスの入口（database だけ）
     CLAUDE.md             地図・決まり・落とし穴（4KB まで）
   app/                    組み立て（ここだけが全部の機能を知る。並べるだけで仕組みは書かない）
@@ -102,8 +102,9 @@ scripts/  docs/           道具と文書
 | 36 | `voice` | 音声入力・音声モード・読み上げ |
 | 37 | `devices` | スマホ連携（ペアリング・端末・Tailscale・プッシュ） |
 | 38 | `diagnostics` | 診断 |
-| 39 | `sidebar` | サイドバー |
-| 40 | `board` | ボード |
+| 39 | `updates` | 版と更新（版・ビルド番号の表示・新しい版を確かめて入れる） |
+| 40 | `sidebar` | サイドバー |
+| 41 | `board` | ボード |
 
 機能ではなく土台に置くもの:
 
@@ -256,6 +257,9 @@ scripts/  docs/           道具と文書
 | ワークツリーの実行環境 | `WorktreeEnv` | ポートの番号など |
 | ポートを使っているプロセス | `PortProcess` | |
 | 外の画像 | `RemoteImage` | 押したら表示 |
+| 版 / 手元ビルド | `BuildInfo`・`BUILD_KIND_LABELS` | 版・ビルド番号（コミットの数）・短い SHA。install-app で作った版は手元ビルド |
+| 新しい版 / 更新して開き直す | `UpdateState`・`requestInstall` | 印鑑で署名した製品版だけが確かめる。作業中のチャットがあれば終わってから開き直す |
+| この版は飛ばす | `skipped_update_version` | 効くのはその版だけ |
 | 本体 / スマホ連携 | `DeviceAccess`・`mobile_enabled` | スマホから見た Mac の Kickoff |
 
 ## 6. 決めたこと

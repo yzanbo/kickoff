@@ -89,7 +89,7 @@ export const FEATURES = [
   "composer", "snippets", "compact", "subagents", "childChats", "visuals", "remoteImages", "providerSwitch",
   "workplaceMove", "queue", "userView", "notifications", "conversation", "chatList", "chatPanel", "files",
   "git", "docker", "worktrees", "github", "notes", "database", "terminal", "browser", "ports", "voice",
-  "devices", "diagnostics", "sidebar", "board",
+  "devices", "diagnostics", "updates", "sidebar", "board",
 ];
 
 /** f と、f より下の機能の glob の { } */

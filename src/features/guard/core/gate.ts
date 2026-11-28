@@ -4,6 +4,7 @@ import { askApproval, declinedNote, isAllowed, modeVerdict, wordsOf, type GateAs
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { ALLOWED_COMMANDS } from "./allowedCommands";
 import { compileCacheRule } from "./guard/compileCacheGuard";
+import { vaultRule } from "./guard/vaultGuard";
 import { deleteRule } from "./guard/deleteGuard";
 import { gitHookRule } from "./guard/gitHookGuard";
 import { referenceRule, resolveCallPaths, untrackedRule, writeTargetOf } from "./guard/scope";
@@ -96,7 +97,7 @@ function writeFactsOf(m: GuardMaterials): WriteScopeFacts | null {
   return { workdir: realPathOrSelf(m.cwd), writableDirs: scope.writableDirs, exceptionDirs: [...(scope.exceptionDirs ?? []), ...(extra?.writableDirs ?? [])], memoryParents: extra?.memoryParents ?? [], workplaces: scope.workplaces, denied: scope.denied ?? null };
 }
 
-/** 実行の材料から守りの決まりを並べる（材料のない守りは付けない。git のフック・NODE_COMPILE_CACHE はいつも。見せない DB・Docker は登録された口から） */
+/** 実行の材料から守りの決まりを並べる（材料のない守りは付けない。git のフック・NODE_COMPILE_CACHE・金庫はいつも。見せない DB・Docker は登録された口から） */
 export function gateRules(m: GuardMaterials, self: SelfInfo | undefined, sources: readonly GuardRuleSource[]): GuardRule[] {
   const facts = writeFactsOf(m);
   return [
@@ -106,6 +107,7 @@ export function gateRules(m: GuardMaterials, self: SelfInfo | undefined, sources
     ...(m.deleteGuard ? [deleteRule()] : []),
     gitHookRule(),
     compileCacheRule(),
+    vaultRule(),
     ...(facts && m.writeScope ? [writeScopeRule(facts, m.writeScope.allowed)] : []),
     ...sources.flatMap((source) => source.rulesFor(m)),
   ];

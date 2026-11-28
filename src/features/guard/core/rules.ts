@@ -21,7 +21,7 @@ export interface GuardCall {
 export type DenyVerdict = Exclude<GuardVerdict, { kind: "ask" }>;
 
 /** 当てる順は全体で 1 つ。断る守りを先に全部、聞く守り（docker・writeScope）はそのあと（judge.ts の judgeCall） */
-export const GUARD_ORDER = ["self", "reference", "untracked", "hiddenDb", "delete", "gitHook", "compileCache", "docker", "writeScope"] as const;
+export const GUARD_ORDER = ["self", "reference", "untracked", "hiddenDb", "delete", "gitHook", "compileCache", "vault", "docker", "writeScope"] as const;
 export type GuardName = (typeof GUARD_ORDER)[number];
 
 /** 守りの決まり 1 つ（実行ごとに材料から作る） */

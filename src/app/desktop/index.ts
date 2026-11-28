@@ -15,6 +15,7 @@ import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundatio
 import { mainWindow, openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
 import { browserDesktop } from "@/features/browser/desktop";
 import { diagnosticsDesktop } from "@/features/diagnostics/desktop";
+import { updatesDesktop } from "@/features/updates/desktop";
 import { createPinstageBadges } from "@/features/notifications/desktop";
 import { watchMainStalls } from "@/foundation/desktop/app/stalls";
 import { markMain, startMetricsLog } from "@/foundation/desktop/app/bootRecorder";
@@ -40,7 +41,7 @@ enableHangStacks();
 // 2. 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
 timed("boot:seedDevData", seedDevDataOnce)();
 // 3. 機能の部品の起動の初めの分（埋め込みブラウザの安全設定・コンソールの見張りは、ウィンドウを作る前に登録しておく）
-const featureParts: DesktopPart[] = [browserDesktop, diagnosticsDesktop];
+const featureParts: DesktopPart[] = [browserDesktop, diagnosticsDesktop, updatesDesktop];
 for (const part of featureParts) part.start?.();
 
 let core: CoreProcess | undefined;
@@ -81,13 +82,16 @@ async function start() {
   setMainWindowUrl(url);
   const merged = mergeParts([...parts, coreDesktop(coreProcess)]);
   registerIpc(url, NATIVE_API, merged);
-  setAppMenu(merged.menu);
-  // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる
-  const session = ready.then(async (r) => {
-    await prepareAppSession(url, r.token);
-    allowHangStacks(url);
-    startupLog("認証の Cookie を設定しました");
-  });
+  setAppMenu(merged.menu, merged.appMenu);
+  // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる（部品の読み込み前の用意も待つ）
+  const session = Promise.all([
+    ready.then(async (r) => {
+      await prepareAppSession(url, r.token);
+      allowHangStacks(url);
+      startupLog("認証の Cookie を設定しました");
+    }),
+    ...parts.map((part) => part.beforeLoad?.()),
+  ]).then(() => {});
   // ログイン時に起動したときは窓を出さずに裏で動かす（スマホから届くように本体だけ起こしておく。Dock を押せば activate で出る）
   if (openedAtLogin()) startupLog("ログイン時に起動したので、窓を出さずに動かします");
   else openMainWindow(url, session);

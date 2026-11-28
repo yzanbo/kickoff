@@ -10,6 +10,7 @@ import { noteSettingSchemas } from "@/features/notes/core/settings";
 import { compactSettingSchemas } from "@/features/compact/core/settings";
 import { childChatSettingSchemas } from "@/features/childChats/core/settings";
 import { remoteImageSettingSchemas } from "@/features/remoteImages/core/settings";
+import { updateSettingSchemas } from "@/features/updates/core/settings";
 
 export const SETTING_SCHEMAS = {
   ...aiSettingSchemas,
@@ -23,4 +24,5 @@ export const SETTING_SCHEMAS = {
   ...compactSettingSchemas,
   ...childChatSettingSchemas,
   ...remoteImageSettingSchemas,
+  ...updateSettingSchemas,
 };

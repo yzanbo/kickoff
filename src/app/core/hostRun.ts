@@ -114,6 +114,10 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
       },
       "terminal.closeOwnedBy": async (owner) => requireCore().terminals.closeOwnedBy(owner),
       runningChats: async () => requireCore().runningChats(),
+      "updates.settings": async () => {
+        const settings = requireCore().settings();
+        return { autoCheck: settings.auto_check_updates, skippedVersion: settings.skipped_update_version };
+      },
       metrics: async () => {
         const m = process.memoryUsage();
         return { heapUsedMB: Math.round(m.heapUsed / 1048576), rssMB: Math.round(m.rss / 1048576) };

@@ -1,5 +1,5 @@
 // 文書の検査（scripts/check-docs.mjs）の決まり。上限は文書の役目ごとに決める
-// （ルートの CLAUDE.md 8KB・土台 6KB・機能 4KB と祖先と合わせて 20KB・docs/architecture.md 30KB・docs/features.md 60KB・README 10KB）。
+// （ルートの CLAUDE.md 8KB・土台 6KB・機能 4KB と祖先と合わせて 20KB・docs/architecture.md 30KB・docs/features.md 64KB（機能が 41 個に増えた分）・README 10KB）。
 // 違反は 1 つも残さない（緩める差し替え・基準線は持たない）
 
 import structure, { FEATURES } from "./structure.config.mjs";
@@ -11,7 +11,7 @@ export default {
   limits: [
     { glob: "CLAUDE.md", bytes: 8192 },
     { glob: "docs/architecture.md", bytes: 30720 },
-    { glob: "docs/features.md", bytes: 61440 },
+    { glob: "docs/features.md", bytes: 65536 },
     { glob: "README.md", bytes: 10240 },
     { glob: "mobile/README.md", bytes: 10240 },
     { glob: "src/foundation/*/CLAUDE.md", bytes: 6144 },

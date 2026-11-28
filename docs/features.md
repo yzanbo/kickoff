@@ -968,6 +968,15 @@
 | SET-024 | 記録の様子と保存先を出す | diagnostics | M |
 | SET-025 | 詰まりと起動の時刻を見る | diagnostics | M |
 
+### 版と更新
+| ID | 機能 | 持ち主 | 確かめ方 |
+|---|---|---|---|
+| SET-029 | 設定の「Kickoff について」とメニューの「Kickoff について」に、版・ビルド番号・短い SHA と手元ビルドかを出す | updates | T:buildLabel |
+| SET-030 | 印鑑で署名した製品版だけ、起動して少しあとと 1 時間ごとに新しい版を確かめ、裏でダウンロードして ⚙ に印を付ける（切る設定あり） | updates | T:updater,updateModel |
+| SET-031 | 設定の上の帯に進み具合・［更新して開き直す］［この版は飛ばす］・変わった点を出し、作業中のチャットがあれば終わってから開き直す | updates | T:updateBannerModel,updateModel,M |
+| SET-032 | メニューの「アップデートを確認…」（確認中は 0.5 秒以上・なければ「最新の版です」） | updates | T:updater,M |
+| SET-033 | 入れられなかったら帯でダウンロードのページへ案内し、版が変わった最初の起動で画面の HTTP キャッシュを消す | updates | T:updater,cacheReset |
+
 ## BASE 土台（保存・守り・OS）
 
 ### 起動と終了
@@ -1010,6 +1019,7 @@
 | BASE-022 | トークンで API を守る | 土台:core | T:auth |
 | BASE-023 | 秘密の値を分けて守る | 土台:core | M |
 | BASE-024 | AI が Kickoff 自身を壊す呼び出しを断る | guard | T:selfProtection |
+| BASE-054 | AI が配る版の印鑑の金庫に触る・金庫を開ける publish・install-app を流すのを断る | guard | T:vaultGuard |
 | BASE-025 | 参照資料・作業場所の外への書き込みを断る | guard | T:scope |
 | BASE-026 | Git 管理外だけ書けるチャット | guard | T:scope |
 | BASE-027 | AI のファイルの書き込みを作業場所・ノート・例外だけにする | guard | T:writeScope |
@@ -1045,7 +1055,9 @@
 ### 開発と配布
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| BASE-044 | 製品版を入れ替える | 道具 | M |
+| BASE-044 | 製品版を手元ビルドで入れ替える（金庫の印鑑・Hardened Runtime。製品版を終了してから金庫を開け、指紋を確かめる） | 道具 | M |
+| BASE-055 | 金庫のない Mac は ADHOC=1 で印鑑なしの製品版を作る（ADHOC なしなら止めて案内する） | 道具 | M |
+| BASE-056 | 配る（npm run publish。確かめ → 金庫で dmg と zip を署名 → タグ・Releases → 版の一覧を Pages へ） | 道具 | M |
 | BASE-045 | コアだけ動かしてブラウザで使う | app | M |
 | BASE-046 | 開発版に製品版のデータを写す | 土台:core | T:devData |
 | BASE-047 | 開発版を Kickoff Dev として見分ける | 道具 | M |

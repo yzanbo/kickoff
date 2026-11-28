@@ -4,8 +4,8 @@ AI のツールの呼び出しを、書き込み・見せない DB・自分（Ki
 
 ## 地図
 - `core/rules.ts`: 判定 `GuardVerdict`（断るだけは `DenyVerdict`）・`GuardRule`・当てる順 `GUARD_ORDER`
-- `core/judge.ts`（`judgeCall`）・`core/gate.ts`（実行ごとの門 `ToolGate`。上の機能は `addRuleSource`）・`core/turnParts.ts`（門・砂場・診断の contributor）
-- `core/guard/`: `scope.ts`（参照資料・`untrackedOnly`・`resolveCallPaths`）・`writeScope.ts`（書く先。聞く）・`deleteGuard.ts`・`gitHookGuard.ts`・`compileCacheGuard.ts`・`selfProtection.ts`（断る）
+- `core/judge.ts`（`judgeCall`）・`core/gate.ts`（門 `ToolGate`。上の機能は `addRuleSource`）・`core/turnParts.ts`（門・砂場・診断の contributor）
+- `core/guard/`: `scope.ts`（参照資料・`untrackedOnly`・`resolveCallPaths`）・`writeScope.ts`（書く先。聞く）・`deleteGuard.ts`・`gitHookGuard.ts`・`compileCacheGuard.ts`・`vaultGuard.ts`・`selfProtection.ts`（断る）
 - 上の機能の守り: `@/features/database/core/guard/hiddenDb.ts`（断る）・`@/features/docker/core/guard/`（聞く）
 - `core/sandbox/`（Bash が書ける場所。OS が止める）・`networkRelay.ts`・`core/allowedCommands.ts`（`ALLOWED_COMMANDS`）
 

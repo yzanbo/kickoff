@@ -12,12 +12,16 @@ export interface DesktopPart {
   argSchemas?: Partial<IpcArgSchemas>;
   /** アプリのメニューの「ヘルプ」に足す項目 */
   menu?: MenuItemConstructorOptions[];
+  /** アプリのメニューの「Kickoff」（アプリの名前のメニュー）の「Kickoff について」の下に足す項目 */
+  appMenu?: MenuItemConstructorOptions[];
   /** コア → メインの RPC の処理（browser.* など） */
   hostMethods?: Partial<HostHandlers>;
   /** 起動の初め、窓を作る前に呼ぶ（webview の守り・見張りなど） */
   start?(): void;
   /** コアのプロセスを作ったら呼ぶ（コアからの知らせを受ける） */
   connectCore?(core: CoreProcess): void;
+  /** 画面を読み込む前に済ませること（窓は作ってあり、読み込みだけ待たせる。画面の HTTP キャッシュを消すなど） */
+  beforeLoad?(): Promise<void>;
   /** コアの準備ができ、画面のセッションを置いたあとに呼ぶ */
   ready?(): void;
 }
@@ -25,12 +29,13 @@ export interface DesktopPart {
 /** 部品を定める（渡した形のまま返す。ipc・hostMethods のまとまりの型を呼ぶ側が読めるように） */
 export const defineDesktopPart = <P extends DesktopPart>(part: P): P => part;
 
-/** 並べた部品を合わせたもの（start・connectCore・ready は呼ぶ側が並び順に呼ぶ） */
+/** 並べた部品を合わせたもの（start・connectCore・beforeLoad・ready は呼ぶ側が並び順に呼ぶ） */
 export interface MergedParts {
   ipc: IpcHandlers;
   argSchemas: IpcArgSchemas;
   hostMethods: Partial<HostHandlers>;
   menu: MenuItemConstructorOptions[];
+  appMenu: MenuItemConstructorOptions[];
 }
 
 /** 表を 1 つに合わせる（同じキーが 2 つの部品にあれば投げる = 起動のときに分かる） */
@@ -55,5 +60,6 @@ export function mergeParts(parts: readonly DesktopPart[]): MergedParts {
     argSchemas: mergeTables(parts, (p) => p.argSchemas, "IPC の引数の形") as IpcArgSchemas,
     hostMethods: mergeTables(parts, (p) => p.hostMethods, "コアから呼ばれる口") as Partial<HostHandlers>,
     menu: parts.flatMap((p) => p.menu ?? []),
+    appMenu: parts.flatMap((p) => p.appMenu ?? []),
   };
 }

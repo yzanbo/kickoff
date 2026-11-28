@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, utimesSync } from "node:fs";
 import path from "node:path";
-import { cdhashOf, DEVELOPMENT_BUNDLE_ID, resetPrivacyPermissions } from "./mac-privacy.mjs";
+import { bundleIdOf, cdhashOf, DEVELOPMENT_BUNDLE_ID, resetPrivacyPermissions } from "./mac-privacy.mjs";
 
 const root = path.join(import.meta.dirname, "..");
 const bundle = path.join(root, "node_modules", "electron", "dist", "Electron.app");
@@ -15,6 +15,8 @@ if (process.platform !== "darwin" || !existsSync(bundle)) process.exit(0);
 
 // 同じ中身を同じ手順で署名すると同じハッシュになるので、Electron.app が置き直されていなければ許可はそのまま効く
 const previousHash = cdhashOf(bundle);
+// ID を替えた版へ上げたとき、前の ID の許可の記録も片付ける（Electron の既定の ID は、ほかの Electron 製アプリと共通なので消さない）
+const previousId = bundleIdOf(bundle);
 const plist = path.join(bundle, "Contents", "Info.plist");
 for (const key of ["CFBundleName", "CFBundleDisplayName"]) {
   execFileSync("plutil", ["-replace", key, "-string", name, plist]);
@@ -30,6 +32,7 @@ const now = new Date();
 utimesSync(bundle, now, now);
 console.log(`開発用の Electron.app を「${name}」の名前とアイコンにしました`);
 // 中身が変わったら、アクセシビリティ・画面収録の許可を消して聞き直してもらう
-if (cdhashOf(bundle) !== previousHash && resetPrivacyPermissions([DEVELOPMENT_BUNDLE_ID]).length > 0) {
+const staleIds = previousId && previousId !== "com.github.Electron" ? [previousId, DEVELOPMENT_BUNDLE_ID] : [DEVELOPMENT_BUNDLE_ID];
+if (cdhashOf(bundle) !== previousHash && resetPrivacyPermissions(staleIds).length > 0) {
   console.log("開発版のアクセシビリティ・画面収録の許可を消しました（次に使うときに macOS が聞き直します）");
 }

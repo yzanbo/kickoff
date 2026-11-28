@@ -24,6 +24,7 @@ export function TabbedDialog<K extends string>({
   sections,
   initial,
   onClose,
+  banner,
   children,
 }: {
   title: string;
@@ -33,6 +34,8 @@ export function TabbedDialog<K extends string>({
   /** 最初に開く項目（省略時は先頭） */
   initial?: K;
   onClose: () => void;
+  /** 見出しの下・項目の上に、ダイアログの幅いっぱいに出す帯（知らせなど。何も描かなければ場所を取らない） */
+  banner?: ReactNode;
   /** 選んでいる項目の内容（select で中からほかの項目へ移れる） */
   children: (section: K, select: (section: K) => void) => ReactNode;
 }) {
@@ -46,6 +49,7 @@ export function TabbedDialog<K extends string>({
         <h2>{title}</h2>
         <CloseButton title="閉じる（Esc）" iconSize={16} onClick={dialog.close} />
       </header>
+      {banner}
       <div className="tabbed-dialog-body">
         <nav className="tabbed-dialog-nav" {...tabs.listProps}>
           {sections.map(({ key, label: name, icon: Icon, danger }) => (

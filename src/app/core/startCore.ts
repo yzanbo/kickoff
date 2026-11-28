@@ -25,6 +25,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     databaseStats: () => assembled.apis.chat.stats(),
     runningChats: assembled.runningChats,
     awakeNeeds: assembled.awakeNeeds,
+    settings: () => k.settings.get(),
     turns: assembled.apis.chat.runner,
     browserLoginUrl: () => `${localUrl}/login?code=${served.browserLogin.issue()}`,
     terminals: assembled.terminals,

@@ -36,6 +36,7 @@ function fakeCore() {
     databaseStats: () => ({}) as never,
     browserLoginUrl: () => "",
     awakeNeeds: () => ({ running: state.running, mobileEnabled: false }),
+    settings: () => ({ auto_check_updates: true, skipped_update_version: null }) as never,
     turns: { onTurnStarted: () => () => {}, onTurnEnded: () => () => {} },
     runningChats: () => [{ id: 7, title: "作業中" }],
     terminals: { closeOwnedBy: (owner: string) => void state.closedOwners.push(owner) } as never,

@@ -4,7 +4,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 
 /** 製品版のアプリ ID（electron-builder.yml の appId と同じ） */
-export const PRODUCTION_BUNDLE_ID = "app.kickoff.desktop";
+export const PRODUCTION_BUNDLE_ID = "app.nexy.Kickoff";
 /** 開発版のアプリ ID（製品版と許可を混ぜないよう分ける） */
 export const DEVELOPMENT_BUNDLE_ID = `${PRODUCTION_BUNDLE_ID}.dev`;
 

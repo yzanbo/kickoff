@@ -3,7 +3,9 @@ import type { StateBadges } from "@shared/foundation/ipc";
 import { STATE_BADGE_COLUMNS, STATE_BADGE_LAYOUT, type StateBadgeColumn } from "@shared/notifications/stateBadges";
 
 /** 製品版のアプリ ID（electron-builder.yml の appId と同じ。Pinstage はこれで Dock のアイコンを見分ける） */
-export const KICKOFF_BUNDLE_ID = "app.kickoff.desktop";
+export const KICKOFF_BUNDLE_ID = "app.nexy.Kickoff";
+/** 前に使っていたアプリ ID（その名前のファイルが残ると、Pinstage が消えた版の数を出し続けるので、書き出すときに片付ける） */
+export const LEGACY_BUNDLE_IDS = ["app.kickoff.desktop"] as const;
 const MAX_BYTES = 8_192;
 const MAX_COUNT = 1_000_000;
 export interface PinstageBadge {
