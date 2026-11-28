@@ -1,7 +1,7 @@
 import "./NoteView.css";
 import { StickyNote } from "lucide-react";
 import { baseName } from "@shared/foundation/path";
-import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";
+import { noteKindOf } from "@shared/notes/kinds";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerUnsaved, useUnsavedSurface } from "@/foundation/ui/document/unsaved";
@@ -9,11 +9,10 @@ import { registerNoteSelection } from "@/features/userView/ui";
 import { storage } from "@/features/notes/ui/storage";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useNoteList } from "@/features/notes/ui/store";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { AddToChat } from "@/foundation/ui/kit/icons";
-import { alert, reportFailure } from "@/foundation/ui/kit/ask";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
 import { PopOutTabButton } from "@/features/panel/ui";
@@ -28,12 +27,13 @@ import { NoteSelectionAttach } from "./NoteSelectionAttach";
 import { noteTitle } from "@/features/notes/ui/notePaths";
 import { subscribeNoteReveal, takeNoteReveal } from "@/features/notes/ui/noteReveal";
 import { useNoteDocument } from "./useNoteDocument";
+import { useNoteLinkOpener } from "./useNoteLinkOpener";
+import { NoteImagesProvider } from "@/features/remoteImages/ui";
 import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
 import { noteDocKey } from "@/features/notes/ui/noteLeave";
 import { useNoteEditMenu } from "./useNoteEditMenu";
 import { NoteSaveState, NoteViewToggle } from "./NoteHeadTools";
 import { NoteTitleField } from "./NoteTitleField";
-import { openExternal } from "@/foundation/ui/external/native";
 
 // 編集の部品（CodeMirror）は大きいので、ノートを開いたときに初めて読み込む
 const NoteEditor = lazy(() => import("./NoteEditor"));
@@ -69,7 +69,6 @@ export function NoteView({
   onOpenInNoteTab?: () => void;
 }) {
   const doc = useNoteDocument(projectId, path);
-  const list = useNoteList(projectId);
   // 編集の部品を外から動かす口（右クリックのメニュー）と、ノートのチャットの欄を動かす口（チャットに追加）
   const editor = useRef<NoteEditorHandle | null>(null);
   const chat = useRef<NoteChatHandle | null>(null);
@@ -114,14 +113,9 @@ export function NoteView({
   const saveBeforeSend = async () => {
     if (!(await doc.save())) throw new Error("ノートを保存できなかったので送りませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから送ってください）");
   };
-  // HTML のノートのページで、ノートのフォルダの中へのリンクを押した
-  const openLink = (to: string) => {
-    const entry = list.data?.entries.find((e) => e.path === to);
-    if (!entry) void alert("リンク先が見つかりません", `ノートのフォルダに「${to}」がありません。`);
-    else if (!entry.dir && noteExtensionOf(to)) {
-      if (to !== path) onOpenNote(to);
-    } else void openExternal({ kind: "reveal", path: `${dir}/${to}` });
-  };
+  // リンクの開き方（Markdown のノートのリンクの小窓・⌘ ＋クリックと、HTML のノートのページでノートのフォルダの中へのリンクを押したとき）
+  const links = useNoteLinkOpener({ projectId, path, dir, onOpenNote });
+  const openLink = links.openInNotes;
   const [view, setView] = useSetting(storage.settings.view);
   const kind = noteKindOf(path);
   // HTML のノートをページで見ているか（ページの中身は、いま書いてあるもの。表示を切り替えた・読み直したときに描き直す）
@@ -175,20 +169,24 @@ export function NoteView({
         ) : (
           <>
             {page && <HtmlNotePage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} onOpenLink={openLink} handleRef={pageHandle} />}
-            <Suspense fallback={<p className="muted small note-message">編集の準備中…</p>}>
-              <NoteEditor
-                key={`${path}:${doc.revision}`}
-                initialValue={doc.initial}
-                kind={kind}
-                live={view === "preview"}
-                hidden={page}
-                onChange={doc.setText}
-                onSave={saveNow}
-                handleRef={editor}
-                onContextMenu={editMenu.open}
-                onReady={revealSoon}
-              />
-            </Suspense>
+            {/* 画像の描き方（ノートのフォルダの中はそのまま・外の画像は押して許可したホストだけ。許可はノートごと） */}
+            <NoteImagesProvider projectId={projectId} path={path} localUrl={links.imageUrl}>
+              <Suspense fallback={<p className="muted small note-message">編集の準備中…</p>}>
+                <NoteEditor
+                  key={`${path}:${doc.revision}`}
+                  initialValue={doc.initial}
+                  kind={kind}
+                  preview={view === "preview"}
+                  hidden={page}
+                  onChange={doc.setText}
+                  onSave={saveNow}
+                  handleRef={editor}
+                  onContextMenu={editMenu.open}
+                  onReady={revealSoon}
+                  linkOpener={links.opener}
+                />
+              </Suspense>
+            </NoteImagesProvider>
             {editMenu.element}
             <NoteSelectionAttach targets={targets} file={file} editor={editor} page={page ? pageHandle : null} />
             <NoteChatPane layout={layout} paneRef={chatPane} projectId={projectId} path={path} beforeSend={saveBeforeSend} handleRef={chat} />

@@ -200,6 +200,20 @@ test("ゴミ箱: AI が kickoff-trash でノートを消したら、ノートの
   assert.ok(fs.existsSync(path.join(noteDir, "案.md")));
 });
 
+test("ゴミ箱: AI が kickoff-trash でノートを消しても、画面から消したときと同じく外の画像の許可を忘れる", async () => {
+  const { api, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes", "remoteImages"] });
+  const params = { projectId: project.id };
+  await api("POST /api/projects/:projectId/notes", { params, body: { path: "案.md", content: "# 案" } });
+  await api("PUT /api/projects/:projectId/note-image-hosts", { params, body: { path: "案.md", host: "images.example.com" } });
+  const noteDir = (await api("GET /api/projects/:projectId/notes", { params })).body.dir as string;
+  const worker = store.chats.create({ project_id: project.id, provider: "claude", title: "片付け", status: "completed" });
+  const bin = await installTrashCommand(tempDir());
+  await execFileAsync("sh", ["-c", `kickoff-trash "${path.join(noteDir, "案.md")}"`], { env: { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, worker.id) } });
+  // kickoff-trash で入れたものは、ゴミ箱の一覧を読んだときに取り込まれる
+  assert.equal((await api("GET /api/projects/:projectId/trash", { params })).body.length, 1);
+  await until(async () => (await api("GET /api/projects/:projectId/note-image-hosts", { params, query: { path: "案.md" } })).body.hosts.length === 0);
+});
+
 test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォルダ）も置き場へ移し、大きさに数え、戻すと元の場所へ戻る", async () => {
   const { api, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();

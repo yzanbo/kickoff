@@ -4,7 +4,7 @@ Electron に依存しないサーバー（HTTP・SQLite・外部コマンド・A
 
 ## 口の一覧
 - `kernel.ts`（`Kernel`）・`bus.ts`（知らせ `Bus`。SSE で配る）・`errors.ts`（`Invalid` / `NotFound` / `Conflict`）・`clock.ts`（`Clock`）・`undo.ts`・`feature.ts`（`CoreFeature`）・`serve.ts`
-- `db/`: `openDb`・`table()`（列の宣言で行と型を変換）・`inspectSchema`。`settings/`: 設定と秘密の値
+- `db/`: `openDb`・`table()`（列の宣言で行と型を変換）・`inspectSchema`・パスとフォルダの中の条件 `pathOrInside`。`settings/`: 設定と秘密の値
 - `http/`: `implement.ts`（取り決めを受ける）・`mount.ts`・`lookups.ts`（`withProject` / `withWorkdir`）・`input.ts`（`jsonBody`・`queryOf`）・`sseData.ts`・`deviceAccess.ts`・`framePage.ts`（閉じた枠のページ。Mermaid の枠もここ）
 - `aiTools/`: `defineAiTool`・`AiToolRegistry`・`McpToolHost`（1 つの MCP サーバー `/mcp/<名前>`）
 - `system/`: `runCommand`・`streamCommand`・`paths.ts`（`toApiPath`）・`appEnv.ts`・`stallWatch.ts`・`childProcesses.ts`。`platform/`: `HostPlatform`（macOS は `macos/`）

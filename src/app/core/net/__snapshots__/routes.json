@@ -56,6 +56,10 @@
     "device": "full"
   },
   {
+    "route": "DELETE /api/projects/:projectId/note-image-hosts",
+    "device": "none"
+  },
+  {
     "route": "DELETE /api/providers/:id/login",
     "device": "none"
   },
@@ -378,6 +382,14 @@
   {
     "route": "GET /api/projects/:projectId/note",
     "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:projectId/note-image-hosts",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:projectId/note-remote-image",
+    "device": "none"
   },
   {
     "route": "GET /api/projects/:projectId/note/file/*",
@@ -1014,6 +1026,10 @@
   {
     "route": "PUT /api/projects/:projectId/note",
     "device": "full"
+  },
+  {
+    "route": "PUT /api/projects/:projectId/note-image-hosts",
+    "device": "none"
   },
   {
     "route": "PUT /api/projects/:projectId/repo-path",

@@ -4,7 +4,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { IssueFromTextItem } from "@/features/github/ui";
 import type { NoteLines } from "./noteAttachment";
-import type { NoteEditorHandle } from "./NoteEditor";
+import type { EditorMenuGroup, NoteEditorHandle } from "./NoteEditor";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /**
@@ -12,6 +12,8 @@ import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
  * HTML のノートのページの表示は書けないので、切り取り・貼り付けを出さない）、copyAll = 何も選んでいないときにコピーする文（題名の欄は題名の全体）
  */
 interface NoteMenuSource {
+  /** 編集の部品が足す項目（表のセルなら表の操作・本文なら「表を入れる」） */
+  editorItems?: EditorMenuGroup[];
   text: string;
   lines?: NoteLines | null;
   insert: ((text: string) => void) | null;
@@ -95,12 +97,18 @@ export function useNoteEditMenu(
       menu.openAt(
         at,
         pageSelection === undefined
-          ? { text: editor.current?.selectedText() ?? "", lines: editor.current?.selectedLines() ?? null, insert: (text) => editor.current?.insert(text) }
+          ? {
+              editorItems: editor.current?.contextItems() ?? [],
+              text: editor.current?.selectedText() ?? "",
+              lines: editor.current?.selectedLines() ?? null,
+              insert: (text) => editor.current?.insert(text),
+            }
           : { text: pageSelection, insert: null },
       ),
     openFor: (at, source) => menu.openAt(at, source),
     element: shown && (
       <PopupMenu at={shown.at} label="ノートの本文の操作" onClose={menu.close}>
+        <EditorItems groups={shown.value.editorItems} place="top" />
         {groups.map((group) => (
           <Fragment key={group.key}>
             <div className="menu-label">{group.label}</div>
@@ -125,6 +133,7 @@ export function useNoteEditMenu(
           onCut={insert ? () => insert("") : undefined}
           onPaste={insert ?? undefined}
         />
+        <EditorItems groups={shown.value.editorItems} place="bottom" />
         {issue && (
           <>
             <div className="menu-separator" role="separator" />
@@ -141,4 +150,22 @@ export function useNoteEditMenu(
       </PopupMenu>
     ),
   };
+}
+
+/** 編集の部品が足す項目の組（place の組だけ。top は後ろに、bottom は前に区切りの線） */
+function EditorItems({ groups = [], place }: { groups?: EditorMenuGroup[]; place: EditorMenuGroup["place"] }) {
+  return groups
+    .filter((g) => g.place === place)
+    .map((group) => (
+      <Fragment key={group.label}>
+        {place === "bottom" && <div className="menu-separator" role="separator" />}
+        <div className="menu-label">{group.label}</div>
+        {group.items.map((item) => (
+          <MenuItem key={item.label} onSelect={item.run}>
+            {item.label}
+          </MenuItem>
+        ))}
+        {place === "top" && <div className="menu-separator" role="separator" />}
+      </Fragment>
+    ));
 }

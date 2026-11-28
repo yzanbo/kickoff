@@ -22,7 +22,7 @@ import type { ChatEnv } from "@/features/chat/core/index";
 import type { DockerEnv } from "@/features/docker/core/index";
 import type { PortsEnv } from "@/features/ports/core/index";
 import type { GitHubEnv } from "@/features/github/core/index";
-import type { RemoteImageServiceOptions } from "@/features/remoteImages/core/service";
+import type { ChatImageServiceOptions } from "@/features/remoteImages/core/chatImageService";
 import type { DatabaseEnv } from "@/features/database/core/index";
 import type { WorkerChannel } from "@/features/database/core/index";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
@@ -118,7 +118,7 @@ export interface CoreEnv {
   ports: Omit<PortsEnv, "selfPid">;
   /** ログインのシェルは platformParts.terminalShell */
   terminal: Omit<TerminalEnv, "shell">;
-  remoteImages: Pick<RemoteImageServiceOptions, "fetcher">;
+  remoteImages: Pick<ChatImageServiceOptions, "fetcher">;
   github: GitHubEnv;
   /** 暗号化の口は secretCipher から渡す */
   database: Omit<DatabaseEnv, "secretCipher">;

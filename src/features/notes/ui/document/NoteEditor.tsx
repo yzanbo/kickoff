@@ -1,20 +1,28 @@
 import "./NoteEditor.unlayered.css";
+import "./NoteEditorBlocks.unlayered.css";
 import "./NoteEditor.css";
 import { html } from "@codemirror/lang-html";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
-import type { MutableRefObject } from "react";
+import { useState, type MutableRefObject } from "react";
 import type { NoteKind } from "@shared/notes/kinds";
 import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
-import { cjkFriendlyEmphasis } from "./cjkEmphasis";
-import { livePreview } from "./livePreviewExtension";
-import { liveRich } from "./liveRich";
+import { previewDecorations } from "./previewDecorations";
+import { blockWidgets } from "./blockWidgets";
+import { cellEditorOf } from "./cellEditor";
+import { codeHighlight } from "./codeHighlight";
+import { linkTooltip, noteLinkOpenerFacet, type NoteLinkOpener } from "./linkTooltip";
+import { insertTable, tableMenuItems } from "./tableActions";
+import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget, type EditorMenuItem } from "./tableField";
+import { previewRich } from "./previewRich";
 import type { NoteLines } from "./noteAttachment";
+import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
+import { createWidgetPortals, WidgetPortalOutlet, widgetPortalsFacet } from "./widgetPortals";
 
 /** 外から編集の部品を動かす口（右クリックのメニュー。選んだ文を読む・選んだ所に入れる） */
 export interface NoteEditorHandle {
@@ -28,6 +36,16 @@ export interface NoteEditorHandle {
   insert: (text: string) => void;
   /** その行（1 から）を選んで真ん中に見せる（⌘K の「ノート内の文言」から開いたとき。行が足りなければ最後の行） */
   revealLine: (line: number) => void;
+  /** 右クリックした所の項目（表のセルなら表の操作、Markdown の本文なら「表を入れる」）。メニューを開くときに 1 回読む */
+  contextItems: () => EditorMenuGroup[];
+}
+
+/** 編集の部品が右クリックのメニューに足す項目の組 */
+export interface EditorMenuGroup {
+  /** top: メニューの先頭（右クリックした物の操作）/ bottom: クリップボードの組の後ろ */
+  place: "top" | "bottom";
+  label: string;
+  items: EditorMenuItem[];
 }
 
 interface Props {
@@ -36,7 +54,7 @@ interface Props {
   /** ノートの種類（Markdown か HTML か。言語の色分けと Enter の続け方。作ったときだけ読む） */
   kind: NoteKind;
   /** Markdown 表示（Obsidian のライブプレビューと同じ）か、そのまま表示か（Markdown のノートだけ）。切り替えても書いたもの・元に戻す履歴はそのまま */
-  live: boolean;
+  preview: boolean;
   /** 隠す（HTML のノートをページで見ている間。作り直さずに置いて、書いたもの・元に戻す履歴を残す） */
   hidden?: boolean;
   onChange: (text: string) => void;
@@ -48,6 +66,8 @@ interface Props {
   onContextMenu?: (at: { x: number; y: number }) => void;
   /** 作り終えた（外から動かす口が使えるようになった。頼まれていた行へ移るのに使う） */
   onReady?: () => void;
+  /** リンクの行き先の説明と開き方（Markdown 表示のリンクの小窓・⌘ ＋クリック） */
+  linkOpener?: NoteLinkOpener;
 }
 
 /** HTML のソースの色分け（アプリの色の変数で、ダークでもライトでも読める色に。Markdown のノートには付けない） */
@@ -64,31 +84,43 @@ const htmlHighlight = HighlightStyle.define([
 /**
  * ノートの編集（CodeMirror 6）。HTML のノートは HTML のソースをそのまま書く（色分けと、タグを閉じる補助。ページの見た目は NoteView が別に描く）。
  * Markdown のノートの Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
- * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
+ * （previewDecorations。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
  * 太字・取り消し線は返答の表示と同じ日本語向けの決まりで読む（cjkEmphasis.ts）。行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、ノートを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
-export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
+export default function NoteEditor({ initialValue, kind, preview, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady, linkOpener }: Props) {
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useLatest({ onSave, onContextMenu });
+  const handlers = useLatest({ onSave, onContextMenu, linkOpener });
+  // 表などを置き換えて描く飾りの中身（React の部品）を、この木から描く口
+  const [portals] = useState(createWidgetPortals);
 
   const { host } = useCodeMirror({
     initialValue,
     onChange,
     // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
-    dynamic: live && kind === "markdown" ? [liveRich, livePreview] : [],
-    dynamicDeps: [live, kind],
+    dynamic: preview && kind === "markdown" ? [blockWidgets, previewRich, previewDecorations, codeHighlight, linkTooltip] : [],
+    dynamicDeps: [preview, kind],
     extensions: () => [
       baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),
-      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: [cjkFriendlyEmphasis] }),
+      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }),
       EditorView.lineWrapping,
+      widgetPortalsFacet.of(portals),
+      // 表のセルの右クリックも、ノートの右クリックのメニューで開く
+      editorContextMenuFacet.of((at) => handlers.current.onContextMenu?.(at)),
+      // リンクの開き方はいつも最新の画面のものを使う（ノートの一覧が変われば、行き先があるかも変わる）
+      noteLinkOpenerFacet.of({
+        describe: (href) => handlers.current.linkOpener?.describe(href) ?? { label: href, problem: null },
+        open: (href, text, invert) => handlers.current.linkOpener?.open(href, text, invert),
+      }),
       EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "ノート（HTML のソース）" : "ノート" }),
       // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
       EditorView.domEventHandlers({
-        contextmenu: (e) => {
+        contextmenu: (e, view) => {
           const open = handlers.current.onContextMenu;
           if (!open) return false;
           e.preventDefault();
+          // 本文の右クリック（表のセルでない）
+          setTableMenuTarget(view, null);
           open({ x: e.clientX, y: e.clientY });
           return true;
         },
@@ -108,10 +140,13 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
           return { from: v.state.doc.lineAt(from).number, to: v.state.doc.lineAt(to - 1).number };
         },
         selectionRect: () => {
-          const { from, to } = v.state.selection.main;
-          if (from === to || !v.hasFocus) return null;
-          const start = v.coordsAtPos(from, 1);
-          const end = v.coordsAtPos(to, -1);
+          // 表のセルの中で選んでいるときは、セルの書く部品の選んだ範囲の位置（本体は表を置き換えているので位置を出せない）
+          const cell = cellEditorOf(v);
+          const target = cell?.hasFocus ? cell : v;
+          const { from, to } = target.state.selection.main;
+          if (from === to || !target.hasFocus) return null;
+          const start = target.coordsAtPos(from, 1);
+          const end = target.coordsAtPos(to, -1);
           if (!start) return null;
           // 1 行の中なら選んだ幅の真ん中、行をまたげば選び始めの上
           return { left: start.left, top: start.top, width: end && end.top === start.top ? end.left - start.left : 0 };
@@ -119,6 +154,11 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
         insert: (text) => {
           v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });
           v.focus();
+        },
+        contextItems: () => {
+          const target = takeTableMenuTarget(v);
+          if (target) return [{ place: "top", label: "表", items: tableMenuItems(v, target) }];
+          return kind === "markdown" ? [{ place: "bottom", label: "表", items: [{ label: "表を入れる", run: () => insertTable(v) }] }] : [];
         },
         revealLine: (line) => {
           const target = v.state.doc.line(Math.min(Math.max(1, line), v.state.doc.lines));
@@ -133,5 +173,10 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     },
   });
 
-  return <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />;
+  return (
+    <>
+      <div ref={host} hidden={hidden} className={cx("md-editor", preview && kind === "markdown" ? "preview" : "source")} />
+      <WidgetPortalOutlet portals={portals} />
+    </>
+  );
 }

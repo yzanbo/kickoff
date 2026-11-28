@@ -127,7 +127,7 @@
   border-top: 1px solid var(--border-strong);
 }
 
-/* Mermaid の図（liveRich。```mermaid の塊。描くまでは低い枠）。カーソルを中に入れると元の文に戻る */
+/* Mermaid の図（previewRich。```mermaid の塊。描くまでは低い枠）。カーソルを中に入れると元の文に戻る */
 
 .md-editor .cm-md-mermaid {
   min-height: 48px;
@@ -144,7 +144,7 @@
   color: var(--ng);
 }
 
-/* 数式（liveRich。KaTeX）。段落の数式は真ん中に置き、欄の幅に収まらなければ横にスクロール */
+/* 数式（previewRich。KaTeX）。段落の数式は真ん中に置き、欄の幅に収まらなければ横にスクロール */
 
 .md-editor .cm-md-math .katex {
   font-size: 1.1em;
@@ -178,4 +178,3 @@
 .md-editor .cm-md-math-display .katex-display {
   margin: 0;
 }
-

@@ -80,7 +80,7 @@ scripts/  docs/           道具と文書
 | 14 | `subagents` | サブエージェント |
 | 15 | `childChats` | 子チャット（作る・分岐・親から外す・親へ渡す） |
 | 16 | `visuals` | AI が描く図 |
-| 17 | `remoteImages` | チャット欄の外の画像とリンク |
+| 17 | `remoteImages` | チャット欄とノートの外の画像とリンク |
 | 18 | `providerSwitch` | AI を替えて会話を続ける |
 | 19 | `workplaceMove` | チャットの作業場所を変える |
 | 20 | `queue` | 送信待ちの画面と、起動したときの再開の確かめ |
@@ -245,6 +245,9 @@ scripts/  docs/           道具と文書
 | すべてのプロジェクト（定型文） | `snippetScopes`・`scopeLabel` | 定型文の `project_id` が null の範囲。札は「すべて」で、共通のチャットにも出る（「共通」と呼ばない） |
 | 添付 / AI に渡す | `Attachment`・`handOffTargets` | |
 | ノート | `Note`・`note_path` | プロジェクトの外のフォルダに置く |
+| Markdown で表示 / そのまま表示 | 設定 `view`（`preview` / `edit`）・`NoteEditor` の `preview`・`previewMarks` | ノートの表示の切り替え。Markdown で表示は整えて見せたまま書ける（HTML のノートは「ページで表示」） |
+| リンクの小窓 | `LinkTooltip` | ノートのリンクにカーソルを置くと出る（行き先・開く・コピー） |
+| セルを開く | `openCell`・`OpenCell` | ノートの表のセルを、表のままその場で書く |
 | 共通 | `isCommonProject`・`ProjectKind`（`common`） | Kickoff が用意する見えないプロジェクト 1 つ。共通のチャットと共通のノートの持ち主で、一覧のいつも先頭。文の中では「共通のチャット」 |
 | 共通のチャット | `isCommonChatProject`・`CommonChatInfo` | どのプロジェクトにも属さないチャット。作業フォルダは `COMMON_WORK_FOLDER`（`.common-work`）、ノートは頼まれたときだけ |
 | 共通のチャットがほかのプロジェクトに書くとき | `ai_write_other_projects`・`aiWritePolicy` | 毎回聞く・聞かずに書く・書かせない。書く場所で効く設定は 1 つ |

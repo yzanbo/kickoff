@@ -1,6 +1,7 @@
-// ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
+// ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（mermaidBlocks）を図にする飾り。
 // 数式の場所は `@shared/markdown/mathGuard` の mathRanges（チャットの返答と同じ決まり）を KaTeX で、Mermaid はチャットと同じ renderMermaid で描く。
 // カーソルがその中にあるときは、書いたとおりの記号を見せる（ライブプレビューの見出しなどと同じ）。行をまたいで置き換えるので、ViewPlugin ではなく StateField で飾る
+import { syntaxTree } from "@codemirror/language";
 import { Prec, StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from "@codemirror/view";
 import type KaTeX from "katex";
@@ -10,6 +11,8 @@ import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
 import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
+import { editorFocus, editorFocusOf } from "./editorFocus";
+import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
@@ -19,8 +22,8 @@ const loadKatex = () =>
     katex = m.default;
   }));
 
-/** 描き直しの合図（KaTeX を読み込んだ・ピントが変わった・テーマが変わった） */
-const refresh = StateEffect.define<{ focused: boolean; theme: AppliedTheme }>();
+/** 描き直しの合図（KaTeX を読み込んだ・テーマが変わった） */
+const refresh = StateEffect.define<AppliedTheme>();
 
 class MathWidget extends WidgetType {
   constructor(
@@ -84,24 +87,28 @@ class MermaidWidget extends WidgetType {
 }
 
 interface RichState {
-  focused: boolean;
   theme: AppliedTheme;
   decorations: DecorationSet;
 }
 
-function build(state: EditorState, focused: boolean, theme: AppliedTheme): DecorationSet {
-  const text = state.doc.toString();
+function build(state: EditorState, theme: AppliedTheme): DecorationSet {
+  // 本文にピントがあるときだけ、カーソルのある所を元の文字にする
+  const focused = editorFocusOf(state).text;
+  const text = docText(state);
   const touches = (from: number, to: number) => focused && state.selection.ranges.some((r) => r.from <= to && r.to >= from);
   const out: Range<Decoration>[] = [];
+  // 表と HTML のまとまりの中は blockWidgets が描くので、数式・図を重ねない
+  const replaced = [...tablesOf(state), ...htmlBlocksOf(state)];
+  const inReplaced = (from: number, to: number) => replaced.some((t) => from < t.to && to > t.from);
   // Mermaid の塊（行をまるごと置き換える）。数式はこの外だけを探す
-  const blocks = text.includes("mermaid") ? mermaidBlocks(text) : [];
+  const blocks = mermaidBlocks(syntaxTree(state), text);
   for (const b of blocks) {
-    if (touches(b.from, b.to) || !b.code.trim()) continue;
+    if (touches(b.from, b.to) || !b.code.trim() || inReplaced(b.from, b.to)) continue;
     out.push(Decoration.replace({ widget: new MermaidWidget(b.code, theme), block: true }).range(b.from, b.to));
   }
   if (katex && mayContainMath(text)) {
     for (const m of mathRanges(text)) {
-      if (touches(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
+      if (touches(m.from, m.to) || inReplaced(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
       const start = state.doc.lineAt(m.from);
       const end = state.doc.lineAt(m.to);
       // 行をまるごと占める段落の数式は、行ごと置き換える（行をまたいでよい）
@@ -116,18 +123,20 @@ function build(state: EditorState, focused: boolean, theme: AppliedTheme): Decor
 const richField = StateField.define<RichState>({
   create: (state) => {
     const theme = readAppliedTheme();
-    return { focused: false, theme, decorations: build(state, false, theme) };
+    return { theme, decorations: build(state, theme) };
   },
   update(value, tr) {
     const effect = tr.effects.find((e) => e.is(refresh));
-    if (!effect && !tr.docChanged && !tr.selection) return value;
-    const { focused, theme } = effect ? effect.value : value;
-    return { focused, theme, decorations: build(tr.state, focused, theme) };
+    const refocused = editorFocusOf(tr.startState).text !== editorFocusOf(tr.state).text;
+    // 読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す（文が変わらなくても図の塊が見つかる）
+    if (!effect && !refocused && !tr.docChanged && !tr.selection && syntaxTree(tr.startState) === syntaxTree(tr.state)) return value;
+    const theme = effect ? effect.value : value.theme;
+    return { theme, decorations: build(tr.state, theme) };
   },
   provide: (field) => EditorView.decorations.from(field, (v) => v.decorations),
 });
 
-/** ピントの出入り・テーマの変化と KaTeX の読み込みを、飾りの描き直しに伝える */
+/** テーマの変化と KaTeX の読み込みを、飾りの描き直しに伝える */
 const richWatcher = ViewPlugin.fromClass(
   class {
     private readonly stopTheme: () => void;
@@ -135,8 +144,7 @@ const richWatcher = ViewPlugin.fromClass(
       this.ensure();
       this.stopTheme = subscribeAppliedTheme(() => this.notify());
     }
-    update(u: { docChanged: boolean; focusChanged: boolean; view: EditorView }) {
-      if (u.focusChanged) queueMicrotask(() => this.notify());
+    update(u: { docChanged: boolean }) {
       if (u.docChanged) this.ensure();
     }
     destroy() {
@@ -144,14 +152,14 @@ const richWatcher = ViewPlugin.fromClass(
     }
     /** 数式があれば KaTeX を読み込み、読み込んだら描き直す */
     ensure() {
-      if (katex || !mayContainMath(this.view.state.doc.toString())) return;
+      if (katex || !mayContainMath(docText(this.view.state))) return;
       void loadKatex().then(() => this.notify());
     }
     notify() {
-      this.view.dispatch({ effects: refresh.of({ focused: this.view.hasFocus, theme: readAppliedTheme() }) });
+      this.view.dispatch({ effects: refresh.of(readAppliedTheme()) });
     }
   },
 );
 
 /** ノートの Markdown 表示の数式と Mermaid の図（ライブプレビューの記号の飾りより前に置く。数式の中の _ ・ * や、コードの塊の飾りと重ねないように） */
-export const liveRich = [Prec.high(richField), richWatcher];
+export const previewRich = [editorFocus, Prec.high(richField), richWatcher];

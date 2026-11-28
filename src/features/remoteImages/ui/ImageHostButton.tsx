@@ -5,6 +5,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Popover, usePopover } from "@/foundation/ui/kit/Popover";
 import { allowImageHost, revokeImageHost } from "./imageHosts";
+import { scopeLabel, type ImageScope } from "./imageScope";
 import { urlsTip, type ImageHostGroup } from "./imageGroups";
 
 /** 画像の中（リンクの中にもある）のボタンを押したとき、リンクを開かせない */
@@ -20,9 +21,9 @@ function InlineError({ message }: { message: string | undefined }) {
 
 /**
  * まだ表示を許可していないホストの画像の代わりに出すボタン「host から画像を n 件表示（最初：名前）」（押すまで外へ通信しない）。
- * 押すとそのホストをこのチャットで許可し、そのホストの画像を元の位置にすべて出す。乗せると URL を並べ、横の「URL を見る」で全部の一覧を開く
+ * 押すとそのホストをこのチャット（ノート）で許可し、そのホストの画像を元の位置にすべて出す。乗せると URL を並べ、横の「URL を見る」で全部の一覧を開く
  */
-export function ImageHostButton({ chatId, group, firstName }: { chatId: number; group: ImageHostGroup; firstName: string }) {
+export function ImageHostButton({ scope, group, firstName }: { scope: ImageScope; group: ImageHostGroup; firstName: string }) {
   const { run, busy, error } = useAction();
   const count = group.urls.length;
   return (
@@ -35,7 +36,7 @@ export function ImageHostButton({ chatId, group, firstName }: { chatId: number; 
         data-tip-title={`${group.host} の画像`}
         onClick={(e) => {
           keepInside(e);
-          void run("allow", () => allowImageHost(chatId, group.host));
+          void run("allow", () => allowImageHost(scope, group.host));
         }}
       >
         <ImageIcon size={14} aria-hidden />
@@ -49,14 +50,14 @@ export function ImageHostButton({ chatId, group, firstName }: { chatId: number; 
           </span>
         )}
       </button>
-      <ImageUrlsButton chatId={chatId} group={group} allowed={false} />
+      <ImageUrlsButton scope={scope} group={group} allowed={false} />
       <InlineError message={error} />
     </span>
   );
 }
 
 /** 「URL を見る」: そのホストの画像の URL をすべて並べる（コピーできる。許可しているホストなら、ここで許可を外せる） */
-export function ImageUrlsButton({ chatId, group, allowed }: { chatId: number; group: ImageHostGroup; allowed: boolean }) {
+export function ImageUrlsButton({ scope, group, allowed }: { scope: ImageScope; group: ImageHostGroup; allowed: boolean }) {
   // 中の ref は分けて受ける（オブジェクトのまま pop.anchor を ref に渡すと React Compiler が外す）
   const { anchor, ...pop } = usePopover();
   const { run, busy, error } = useAction();
@@ -110,12 +111,12 @@ export function ImageUrlsButton({ chatId, group, allowed }: { chatId: number; gr
                 disabled={busy !== null}
                 onClick={() =>
                   void run("revoke", async () => {
-                    await revokeImageHost(chatId, group.host);
+                    await revokeImageHost(scope, group.host);
                     pop.close();
                   })
                 }
               >
-                このサイトの許可を外す
+                {scopeLabel(scope)}でのこのサイトの許可を外す
               </button>
             )}
           </div>

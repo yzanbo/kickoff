@@ -1,9 +1,13 @@
-// ノートの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（livePreview.ts）が決め、
+// ノートの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（previewMarks.ts）が決め、
 // ここではエディタの飾り（隠す・行と文字の見た目・「•」・チェックボックス・区切り線）に直す。カーソルのある行は記号をそのまま見せる（ピントがないときは、どの行も整えて見せる）
 import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { previewMarks, type PreviewMark } from "./livePreview";
+import { InlineHtmlWidget } from "./InlineHtml";
+import { NoteImageWidget } from "./NoteImage";
+import { previewMarks, type PreviewMark } from "./previewMarks";
+import { docText } from "./noteDoc";
+import { imageSources } from "./noteLinks";
 
 /** 箇条書きの記号の代わりの「•」 */
 class BulletWidget extends WidgetType {
@@ -61,11 +65,43 @@ class RuleWidget extends WidgetType {
   }
 }
 
+/** 実体参照の代わりの文字 */
+class TextWidget extends WidgetType {
+  constructor(readonly text: string) {
+    super();
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.text;
+    return span;
+  }
+  eq(other: TextWidget) {
+    return other.text === this.text;
+  }
+}
+
+/** 脚注の印の代わりの上付きの番号 */
+class SupWidget extends WidgetType {
+  constructor(readonly text: string) {
+    super();
+  }
+  toDOM() {
+    const sup = document.createElement("sup");
+    sup.className = "cm-md-footref";
+    sup.textContent = this.text;
+    return sup;
+  }
+  eq(other: SupWidget) {
+    return other.text === this.text;
+  }
+}
+
 const BULLET = Decoration.replace({ widget: new BulletWidget() });
 const RULE = Decoration.replace({ widget: new RuleWidget() });
 const HIDE = Decoration.replace({});
 
-function decorationOf(mark: PreviewMark): Range<Decoration> {
+/** sources はノートの中の画像の行き先（画像のボタンを、同じホストの最初の 1 枚にだけ出す） */
+function decorationOf(mark: PreviewMark, sources: readonly string[]): Range<Decoration> {
   switch (mark.kind) {
     case "hide":
       return HIDE.range(mark.from, mark.to);
@@ -79,6 +115,14 @@ function decorationOf(mark: PreviewMark): Range<Decoration> {
       return Decoration.replace({ widget: new TaskWidget(mark.checked, mark.from, mark.to) }).range(mark.from, mark.to);
     case "rule":
       return RULE.range(mark.from, mark.to);
+    case "text":
+      return Decoration.replace({ widget: new TextWidget(mark.text) }).range(mark.from, mark.to);
+    case "html":
+      return Decoration.replace({ widget: new InlineHtmlWidget(mark.source) }).range(mark.from, mark.to);
+    case "sup":
+      return Decoration.replace({ widget: new SupWidget(mark.text) }).range(mark.from, mark.to);
+    case "image":
+      return Decoration.replace({ widget: new NoteImageWidget(mark.src, mark.alt, sources) }).range(mark.from, mark.to);
   }
 }
 
@@ -93,17 +137,18 @@ function build(view: EditorView): DecorationSet {
   }
   const isActive = (pos: number) => active.has(state.doc.lineAt(pos).number);
   const tree = syntaxTree(state);
-  const text = state.doc.toString();
+  const text = docText(state);
   // 見えている範囲（いくつかに分かれていても、最初から最後までを 1 回でたどる。同じ要素を 2 回飾らないように）
   const visible = view.visibleRanges;
   const from = visible[0]?.from ?? 0;
   const to = visible[visible.length - 1]?.to ?? state.doc.length;
-  const ranges: Range<Decoration>[] = previewMarks(tree, text, isActive, from, to).map(decorationOf);
+  const sources = imageSources(tree, text);
+  const ranges: Range<Decoration>[] = previewMarks(tree, text, isActive, from, to).map((m) => decorationOf(m, sources));
   return Decoration.set(ranges, true);
 }
 
 /** Markdown 表示の飾り（NoteEditor が、表示の切り替えで付け外しする） */
-export const livePreview = ViewPlugin.fromClass(
+export const previewDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     constructor(view: EditorView) {

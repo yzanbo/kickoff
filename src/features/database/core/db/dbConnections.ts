@@ -3,7 +3,7 @@ import { normalizePrep, prepConfirmKey } from "@shared/database/dbPrep";
 import { DB_ENVIRONMENT_DEFAULTS, type DbConnection } from "@shared/database/types";
 import type { DbConnectionPatch, NewDbConnectionBody } from "@shared/database/api";
 import { NOW } from "@/foundation/core/db/db";
-import type { Notify } from "@/foundation/core/db/common";
+import { pathOrInside, type Notify } from "@/foundation/core/db/common";
 import type { RowOf } from "@/foundation/core/db/table";
 import type { SecretStore } from "@/foundation/core/settings/secretStore";
 import { dbConnectionsTable } from "@/features/database/core/schema";
@@ -83,7 +83,8 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     },
     /** ノートの名前を変えた・動かしたとき、それを手順ノートにしている接続の note_path を付け替える（フォルダなら中のノートのものも） */
     remapNotePath(projectId: number, from: string, to: string) {
-      const found = rows.list("project_id = ? AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/')", [projectId, from, from, from]);
+      const inside = pathOrInside("note_path", from);
+      const found = rows.list(`project_id = ? AND ${inside.sql}`, [projectId, ...inside.values]);
       if (found.length === 0) return;
       for (const r of found) rows.update(r.id, { note_path: r.note_path === from ? to : `${to}${r.note_path!.slice(from.length)}` });
       notify(projectId);

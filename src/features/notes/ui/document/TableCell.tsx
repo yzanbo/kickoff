@@ -1,0 +1,94 @@
+import { createContext, useContext, useLayoutEffect, useRef, type ComponentProps, type MouseEvent } from "react";
+import type { EditorView } from "@codemirror/view";
+import type { Components } from "react-markdown";
+import { COMPONENTS } from "@/foundation/ui/markdown/markdownComponents";
+import { openNoteLink } from "./linkTooltip";
+import { createCellEditor, destroyCellEditor } from "./cellEditor";
+import { openCell } from "./cellKeys";
+import { editorContextMenuFacet, setTableMenuTarget } from "./tableField";
+import type { CellAddress } from "./tableModel";
+
+/** 描いている表の様子（編集の部品と、この表で開いているセル） */
+interface NoteTableContextValue {
+  view: EditorView;
+  open: CellAddress | null;
+  /** ⌘F の当たりのあるセル（「行,列」を ; でつないだもの） */
+  matches: string;
+}
+
+export const NoteTableContext = createContext<NoteTableContextValue | null>(null);
+
+type CellProps = ComponentProps<"td"> & { node?: { tagName?: string; properties?: Record<string, unknown> } };
+
+/**
+ * 開いているセルの中の書く部品（作るのは 1 回。開くセルが替わると React が外して作り直す）。
+ * 描いた直後に作ってピントを移す（前のセルの部品が消えてピントが外へ出た扱いになり、開いたセルが閉じないように）
+ */
+function CellEditorHost({ view }: { view: EditorView }) {
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!host.current) return;
+    const cell = createCellEditor(view, host.current);
+    return () => destroyCellEditor(view, cell);
+  }, [view]);
+  return <div ref={host} className="note-cell-editor" />;
+}
+
+/**
+ * 表のセル（th・td）。押すとそのセルを開いて書ける。開いているセルは、元の文字を書く部品に替える。
+ * ⌘ を押しながらリンクを押したときは開かない（リンクを開く）
+ */
+function TableCell({ node, children, ...props }: CellProps) {
+  const ctx = useContext(NoteTableContext);
+  const Tag = node?.tagName === "th" ? "th" : "td";
+  const row = Number(node?.properties?.dataRow);
+  const col = Number(node?.properties?.dataCol);
+  if (!ctx) return <Tag {...props}>{children}</Tag>;
+  const { view, open, matches } = ctx;
+  // 右クリック: 表の項目を足したノートのメニュー（開いたセルの中でも同じ）
+  const menu = (e: MouseEvent<HTMLElement>) => {
+    const openMenu = view.state.facet(editorContextMenuFacet);
+    if (!openMenu) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setTableMenuTarget(view, { tableFrom: view.posAtDOM(e.currentTarget), row, col });
+    openMenu({ x: e.clientX, y: e.clientY });
+  };
+  if (open && open.row === row && open.col === col) {
+    return (
+      <Tag {...props} className="note-cell-open" onContextMenu={menu}>
+        <CellEditorHost view={view} />
+      </Tag>
+    );
+  }
+  const press = (e: MouseEvent<HTMLElement>) => {
+    if (e.button !== 0 || (e.metaKey && (e.target as Element).closest("a"))) return;
+    e.preventDefault();
+    openCell(view, view.posAtDOM(e.currentTarget), { row, col }, "end");
+  };
+  return (
+    <Tag {...props} className={matches && `;${matches};`.includes(`;${row},${col};`) ? "note-cell-match" : undefined} onMouseDown={press} onContextMenu={menu}>
+      {children}
+    </Tag>
+  );
+}
+
+/**
+ * 表の中のリンク: 押してもすぐには開かない（押したセルを開いて書く）。⌘ を押しながらなら、本文のリンクと同じ開き方ですぐ開く
+ * （ノートのフォルダの中への相対のパスもリンクにする。返答の表示は相対のパスを文字のまま出す）
+ */
+function TableLink({ node: _node, href, children, ...props }: ComponentProps<"a"> & { node?: unknown }) {
+  const ctx = useContext(NoteTableContext);
+  const press = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (e.metaKey && ctx && href) openNoteLink(ctx.view, href, e.currentTarget.textContent ?? "", false);
+  };
+  return (
+    <a {...props} href={href} className="note-table-link" onClick={press} onAuxClick={(e) => e.preventDefault()}>
+      {children}
+    </a>
+  );
+}
+
+/** 表を描く部品（返答の表示の部品に、セルとリンクの扱いを足したもの。描くたびに作り直さない） */
+export const TABLE_COMPONENTS: Components = { ...COMPONENTS, th: TableCell, td: TableCell, a: TableLink };

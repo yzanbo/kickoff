@@ -1,6 +1,6 @@
 // ノートの編集の画面（@lezer/markdown）の強調・取り消し線の読み取りを、返答の表示と同じ日本語向けの決まりにする拡張。
 // 元の Emphasis・Strikethrough の前に置いて同じ印を先に読む。作る木の名前（StrongEmphasis・Emphasis・Strikethrough と各 Mark）は元と同じなので、
-// livePreview.ts の装飾はそのまま効く
+// previewMarks.ts の装飾はそのまま効く
 import { InlineContext, type MarkdownConfig } from "@lezer/markdown";
 import { attentionSides, strikethroughSides, type Around } from "@/foundation/ui/markdown/syntax/cjkFlanking";
 

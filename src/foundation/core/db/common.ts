@@ -29,3 +29,11 @@ export function updateRow(db: DatabaseSync, table: string, id: number, patch: Ro
   for (const k of keys) params[k] = patch[k];
   db.prepare(`UPDATE ${table} SET ${sets} WHERE id = $id`).run(params);
 }
+
+/**
+ * 列 column がパス path か、フォルダ path の中か（SQL の条件と値。ノートやフォルダを動かした・ゴミ箱に入れたとき、中のものも扱う）。
+ * 長さは SQLite の length で数える（substr は文字の数で数えるので、UTF-16 の数の JS の length を渡すと絵文字の入ったパスでずれる）
+ */
+export function pathOrInside(column: string, path: string): { sql: string; values: [string, string, string] } {
+  return { sql: `(${column} = ? OR substr(${column}, 1, length(?) + 1) = ? || '/')`, values: [path, path, path] };
+}

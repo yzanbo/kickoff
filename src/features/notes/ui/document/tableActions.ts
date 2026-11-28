@@ -1,0 +1,98 @@
+// 表の行・列を足す・消す操作を、本体の書き換えにして当てる（右クリックのメニュー・「＋」・Tab と Enter の行の足し）。
+// そろえた表は、書き換えたあとにそろえ直す（同じ 1 回の元に戻す）。当てたあと、足したセルなどを開く
+import { Transaction } from "@codemirror/state";
+import type { EditorView } from "@codemirror/view";
+import type { ColumnAlign, TableBlock } from "./tableBlocks";
+import type { TextChange } from "./tableEdit";
+import { dispatchOpeningCell, type EditorMenuItem } from "./tableField";
+import { bodyRows, cellRange, columnAligns, columnCount, type CellAddress } from "./tableModel";
+import { docText } from "./noteDoc";
+import { editTable, fromCell, openCellEffect, openTable, type OpenCell } from "./tableState";
+import { deleteColumn, deleteRow, deleteTable, insertColumn, insertRow, insertTableAt, setColumnAlign } from "./tableStructure";
+
+/** 書き換えを当て、after のセルを開く（null なら閉じて本体にピントを戻す。undefined なら開いたまま） */
+function apply(main: EditorView, target: OpenCell, changes: TextChange[], after: CellAddress | null | undefined) {
+  const edit = changes.length ? editTable(main.state, target.tableFrom, changes) : null;
+  if (!edit) return;
+  const { later, tableFrom, state: finalState } = edit;
+  const finalTable = openTable(finalState, tableFrom);
+  const range = after && finalTable ? cellRange(docText(finalState), finalTable, after) : null;
+  const effects = after === undefined ? [] : [openCellEffect.of(after && finalTable ? { tableFrom, ...after } : null)];
+  const selection = range ? { anchor: range.to } : after === null ? { anchor: Math.min(tableFrom, finalState.doc.length) } : undefined;
+  const specs = [
+    { changes, annotations: [fromCell.of(true), Transaction.userEvent.of("input.table")] },
+    { changes: later, sequential: true, effects, selection, scrollIntoView: true },
+  ];
+  if (after && finalTable) dispatchOpeningCell(main, ...specs);
+  else main.dispatch(...specs);
+  if (after === null) main.focus();
+}
+
+/** 行を足して、足した行の同じ列のセルを開く */
+export function addRow(main: EditorView, target: OpenCell, where: "above" | "below") {
+  const table = openTable(main.state, target.tableFrom);
+  if (!table) return;
+  const { changes, row } = insertRow(docText(main.state), table, target.row, where);
+  apply(main, target, changes, { row, col: target.col });
+}
+
+/** 列を足して、足した列の同じ行のセルを開く */
+function addColumn(main: EditorView, target: OpenCell, where: "left" | "right") {
+  const table = openTable(main.state, target.tableFrom);
+  if (!table) return;
+  const { changes, col } = insertColumn(docText(main.state), table, target.col, where);
+  apply(main, target, changes, { row: target.row, col });
+}
+
+/** 最後に行・列を足す（表の端の「＋」） */
+export function appendRow(main: EditorView, tableFrom: number) {
+  const table = openTable(main.state, tableFrom);
+  if (table) addRow(main, { tableFrom, row: bodyRows(table).length - 1, col: 0 }, "below");
+}
+
+export function appendColumn(main: EditorView, tableFrom: number) {
+  const table = openTable(main.state, tableFrom);
+  if (table) addColumn(main, { tableFrom, row: 0, col: columnCount(docText(main.state), table) - 1 }, "right");
+}
+
+/** 表のセルの右クリックのメニューの項目（見出しの行は消せない・上に足せない、列が 1 つなら列を消せない） */
+export function tableMenuItems(main: EditorView, target: OpenCell): EditorMenuItem[] {
+  const table = openTable(main.state, target.tableFrom);
+  if (!table) return [];
+  const text = docText(main.state);
+  const columns = columnCount(text, table);
+  const current = columnAligns(text, table)[target.col] ?? null;
+  // 押したときの表で書き換えを作る（メニューを開いてから押すまでに表が消えていれば何もしない）
+  const edit = (build: (text: string, table: TableBlock) => TextChange[], after: CellAddress | null) => () => {
+    const now = openTable(main.state, target.tableFrom);
+    if (now) apply(main, target, build(docText(main.state), now), after);
+  };
+  const align = (value: ColumnAlign) => edit((text, t) => setColumnAlign(text, t, target.col, value), target);
+  const items: (EditorMenuItem | false)[] = [
+    target.row > 0 && { label: "上に行を足す", run: () => addRow(main, target, "above") },
+    { label: "下に行を足す", run: () => addRow(main, target, "below") },
+    { label: "左に列を足す", run: () => addColumn(main, target, "left") },
+    { label: "右に列を足す", run: () => addColumn(main, target, "right") },
+    target.row > 0 && { label: "行を消す", run: edit((text, t) => deleteRow(text, t, target.row), { row: target.row - 1, col: target.col }) },
+    columns > 1 && { label: "列を消す", run: edit((text, t) => deleteColumn(text, t, target.col), { row: target.row, col: Math.max(0, target.col - 1) }) },
+    current !== "left" && { label: "列を左寄せ", run: align("left") },
+    current !== "center" && { label: "列を中央寄せ", run: align("center") },
+    current !== "right" && { label: "列を右寄せ", run: align("right") },
+    current !== null && { label: "列の寄せを外す", run: align(null) },
+    { label: "表を消す", run: edit(deleteTable, null) },
+  ];
+  return items.filter((i): i is EditorMenuItem => i !== false);
+}
+
+/** カーソルの行に空の表を入れて、見出しの最初のセルを開く */
+export function insertTable(main: EditorView) {
+  const { change, tableFrom } = insertTableAt(docText(main.state), main.state.selection.main.head);
+  main.dispatch({ changes: change, annotations: Transaction.userEvent.of("input.table"), scrollIntoView: true });
+  // 入れた表は次の読み取りで見つかるので、そのあとで開く
+  queueMicrotask(() => {
+    const table = openTable(main.state, tableFrom);
+    const range = table && cellRange(docText(main.state), table, { row: 0, col: 0 });
+    if (!range) return;
+    dispatchOpeningCell(main, { effects: openCellEffect.of({ tableFrom, row: 0, col: 0 }), selection: { anchor: range.to }, annotations: fromCell.of(true) });
+  });
+}
