@@ -245,6 +245,8 @@ scripts/  docs/           道具と文書
 | すべてのプロジェクト（定型文） | `snippetScopes`・`scopeLabel` | 定型文の `project_id` が null の範囲。札は「すべて」で、共通のチャットにも出る（「共通」と呼ばない） |
 | 添付 / AI に渡す | `Attachment`・`handOffTargets` | |
 | ノート | `Note`・`note_path` | プロジェクトの外のフォルダに置く |
+| リンクの小窓 | `LinkTooltip` | ノートのリンクにカーソルを置くと出る（行き先・開く・コピー） |
+| セルを開く | `openCell`・`OpenCell` | ノートの表のセルを、表のままその場で書く |
 | 共通 | `isCommonProject`・`ProjectKind`（`common`） | Kickoff が用意する見えないプロジェクト 1 つ。共通のチャットと共通のノートの持ち主で、一覧のいつも先頭。文の中では「共通のチャット」 |
 | 共通のチャット | `isCommonChatProject`・`CommonChatInfo` | どのプロジェクトにも属さないチャット。作業フォルダは `COMMON_WORK_FOLDER`（`.common-work`）、ノートは頼まれたときだけ |
 | 共通のチャットがほかのプロジェクトに書くとき | `ai_write_other_projects`・`aiWritePolicy` | 毎回聞く・聞かずに書く・書かせない。書く場所で効く設定は 1 つ |
