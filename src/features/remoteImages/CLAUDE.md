@@ -20,4 +20,5 @@
 - 画像は `<p>` の中に描かれるので、中に置けない要素は body に出し（`Popover` の `portal`）、中の押す操作は包むリンクに届かせない。失敗の文も span。
 - 許可を外したら、そのホストの blob も捨てる（`forgetRemoteImages`）。
 - 取った画像は分岐で `copyChat`、チャットを本当に消すときに `forgetChats`。
+- ノートの範囲はパスで引くので、Kickoff の外（Finder など）で名前を変えた・消したノートの許可は付いていかず、同じパスに作ったノートが引き継ぐ（知らせが来ないため）。
 - テスト: `core/routes.test.ts`・`core/noteImages.test.ts`・`core/imageCache.test.ts`・`core/remoteImages.test.ts`・`ui/imageGroups.test.ts`。
