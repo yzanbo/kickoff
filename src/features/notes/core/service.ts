@@ -30,6 +30,13 @@ export interface NoteMoved {
   from: string;
   to: string;
 }
+/** ノートをほかのプロジェクト（共通のノートを含む）のノートのフォルダへ動かした */
+export interface NoteMovedAcross {
+  from_project_id: number;
+  from: string;
+  to_project_id: number;
+  to: string;
+}
 /** ノートをゴミ箱へ入れた（trash_id は入れたゴミ箱の行） */
 export interface NoteTrashed {
   project_id: number;
@@ -48,6 +55,7 @@ interface NoteServiceOptions {
 export class NoteService {
   private readonly moved: ((e: NoteMoved) => void)[] = [];
   private readonly trashed: ((e: NoteTrashed) => void)[] = [];
+  private readonly movedAcross: ((e: NoteMovedAcross) => void)[] = [];
   // Kickoff の外（Finder・ほかのアプリ）での変更も知らせる見張り（消したプロジェクトのものは、次に変わったときにやめる）
   private readonly watcher = new NoteWatcher((projectId, file) => {
     if (!this.opts.projects.get(projectId)) this.watcher.stop(projectId);
@@ -61,6 +69,11 @@ export class NoteService {
   }
 
   /** ノートを動かしたときに呼ぶ（登録の順に。知らせの notes より前） */
+  /** ほかのプロジェクトへ動かしたとき（ノートの外の画像の許可を付け替える。ノートのチャットは noteTransfer.ts が移す） */
+  onMovedAcross(fn: (e: NoteMovedAcross) => void): void {
+    this.movedAcross.push(fn);
+  }
+
   onMoved(fn: (e: NoteMoved) => void): void {
     this.moved.push(fn);
   }
@@ -164,6 +177,7 @@ export class NoteService {
     const dir = this.opts.dirs.ensureNoteDir(target);
     await fs.mkdir(dir, { recursive: true });
     await files.moveTo(from, noteFiles(dir), to);
+    for (const fn of this.movedAcross) fn({ from_project_id: source.id, from, to_project_id: target.id, to });
     this.changed(source, null);
     this.changed(target, to);
   }

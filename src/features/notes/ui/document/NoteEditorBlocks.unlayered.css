@@ -173,19 +173,12 @@
   color: var(--muted);
 }
 
-/* HTML のまとまり（blockWidgets。返答と同じ Markdown の部品）と画像（NoteImage） */
+/* HTML のまとまり（blockWidgets。返答と同じ Markdown の部品）と、画像の描き方がないときの説明の文（NoteImage） */
 
 .md-editor .cm-note-html {
   padding-block: 0.2em;
   white-space: normal;
   contain: inline-size;
-}
-
-.md-editor .note-image {
-  display: inline-block;
-  max-width: 100%;
-  height: auto;
-  vertical-align: bottom;
 }
 
 .md-editor .note-image-text {

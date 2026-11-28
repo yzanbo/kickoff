@@ -10,6 +10,7 @@ import type { ProjectsApi } from "@/features/projects/core/index";
 import type { SettingsApi } from "@/features/settings/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
+import type { RemoteImagesApi } from "@/features/remoteImages/core/index";
 import { createCommonNotes } from "./commonNotes";
 import { createNoteDirs } from "./noteDir";
 import { followNoteDirChanges } from "./noteDirChanges";
@@ -52,6 +53,8 @@ export interface NotesDeps {
   attachments: AttachmentsApi;
   /** ノートをほかの欄（プロジェクト・共通のノート）へ動かすとき、ノートのチャットも行き先のプロジェクトへ移す */
   workplaceMove: Pick<WorkplaceMoveApi, "move">;
+  /** ノートの外の画像の表示の許可（ノートごと）を、動かしたら付け替え、ゴミ箱に入れたら忘れる */
+  remoteImages: RemoteImagesApi;
 }
 
 /** プロジェクトのノート（保存先はプロジェクトの外。外での変更の見張りは止めるときに閉じる） */
@@ -70,6 +73,10 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   // 動かした・ゴミ箱へ入れたノートの、ノートのチャットも付け替える・一緒に入れる（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える）
   notes.onMoved((e) => chat.noteChats.moved(e.project_id, e.from, e.to));
   notes.onTrashed((e) => chat.noteChats.trashed(e.project_id, e.path, e.trash_id));
+  // ノートの外の画像の表示の許可も付いていく（欄の間で動かしたときも）。ゴミ箱に入れたら忘れる
+  notes.onMoved((e) => void deps.remoteImages.noteMoved(e.project_id, e.from, e.project_id, e.to));
+  notes.onMovedAcross((e) => void deps.remoteImages.noteMoved(e.from_project_id, e.from, e.to_project_id, e.to));
+  notes.onTrashed((e) => void deps.remoteImages.noteTrashed(e.project_id, e.path));
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
   trash.addOriginResolver((origin) => projects.list().find((p) => (p.note_dir || p.note_folder) && isInside(realPathLoose(dirs.dirOf(p)), origin))?.id ?? null);
   // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）

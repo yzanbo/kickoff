@@ -80,7 +80,7 @@ scripts/  docs/           道具と文書
 | 14 | `subagents` | サブエージェント |
 | 15 | `childChats` | 子チャット（作る・分岐・親から外す・親へ渡す） |
 | 16 | `visuals` | AI が描く図 |
-| 17 | `remoteImages` | チャット欄の外の画像とリンク |
+| 17 | `remoteImages` | チャット欄とノートの外の画像とリンク |
 | 18 | `providerSwitch` | AI を替えて会話を続ける |
 | 19 | `workplaceMove` | チャットの作業場所を変える |
 | 20 | `queue` | 送信待ちの画面と、起動したときの再開の確かめ |

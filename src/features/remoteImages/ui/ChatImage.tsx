@@ -3,12 +3,13 @@ import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Lock } from "lucide-react";
 import { errorMessage } from "@shared/foundation/errors";
-import { isLocalImagePath, remoteImageOf, type RemoteImage } from "@shared/remoteImages/remoteImages";
+import { isLocalImagePath, remoteImageOf, type RemoteImage as RemoteImageRef } from "@shared/remoteImages/remoteImages";
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/markdown/markdownImages";
 import { useAttachmentViewer, uploadsApi } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui";
 import { useQuery } from "@/foundation/ui/query";
 import { useAllowedHosts } from "./imageHosts";
+import { scopeKey, type ImageScope } from "./imageScope";
 import { hostGroupOf, type ImageHostGroup } from "./imageGroups";
 import { loadRemoteImage } from "./remoteImageCache";
 import { imageErrorText } from "./imageError";
@@ -26,29 +27,29 @@ export function ChatImagesProvider({ chatId, children }: { chatId: number; child
 
 function ChatImage({ chatId, src, alt, sources }: MarkdownImageProps & { chatId: number }) {
   const remote = remoteImageOf(src);
-  if (remote) return <RemoteChatImage chatId={chatId} remote={remote} alt={alt} sources={sources} />;
+  if (remote) return <RemoteImage scope={{ kind: "chat", chatId }} remote={remote} alt={alt} sources={sources} />;
   if (isLocalImagePath(src)) return <LocalChatImage chatId={chatId} path={src} alt={alt} />;
   // data: の画像は画面の CSP が通すのでそのまま。ほか（読めない URL・ユーザー名入りなど）は文字だけ
   if (/^data:image\//i.test(src)) return <img className="chat-image-img" src={src} alt={alt ?? ""} loading="lazy" decoding="async" />;
   return <span className="chat-image-text">{alt || src}</span>;
 }
 
-/** 外の画像: 許可したホストなら出し、まだなら同じホストの最初の 1 枚の位置にボタン（2 枚目からは何も出さない） */
-function RemoteChatImage({ chatId, remote, alt, sources }: { chatId: number; remote: RemoteImage; alt?: string; sources: readonly string[] }) {
-  const allowed = useAllowedHosts(chatId).has(remote.host);
+/** 外の画像: 許可したホストなら出し、まだなら同じホストの最初の 1 枚の位置にボタン（2 枚目からは何も出さない。チャットとノートで同じ） */
+export function RemoteImage({ scope, remote, alt, sources }: { scope: ImageScope; remote: RemoteImageRef; alt?: string; sources: readonly string[] }) {
+  const allowed = useAllowedHosts(scope).has(remote.host);
   const group = useMemo(() => hostGroupOf(sources, remote), [sources, remote]);
   const first = group.urls[0] === remote.url;
-  if (!allowed) return first ? <ImageHostButton chatId={chatId} group={group} firstName={alt || nameOf(remote.url)} /> : null;
+  if (!allowed) return first ? <ImageHostButton scope={scope} group={group} firstName={alt || nameOf(remote.url)} /> : null;
   return (
     <span className="chat-image">
-      <LoadedImage load={() => loadRemoteImage(chatId, remote.host, remote.url)} loadKey={`${chatId}:${remote.url}`} alt={alt} label={remote.url} />
-      {first && <HostLine chatId={chatId} group={group} />}
+      <LoadedImage load={() => loadRemoteImage(scope, remote.host, remote.url)} loadKey={`${scopeKey(scope)}:${remote.url}`} alt={alt} label={remote.url} />
+      {first && <HostLine scope={scope} group={group} />}
     </span>
   );
 }
 
 /** 許可したホストの最初の画像の下: どのサイトの画像か・暗号化なし・URL を見る（その中で許可を外せる） */
-function HostLine({ chatId, group }: { chatId: number; group: ImageHostGroup }) {
+function HostLine({ scope, group }: { scope: ImageScope; group: ImageHostGroup }) {
   return (
     <span className="chat-image-host-line">
       <span className="chat-image-host">{group.host}</span>
@@ -59,7 +60,7 @@ function HostLine({ chatId, group }: { chatId: number; group: ImageHostGroup }) 
         </span>
       )}
       <span>画像 {group.urls.length} 件</span>
-      <ImageUrlsButton chatId={chatId} group={group} allowed />
+      <ImageUrlsButton scope={scope} group={group} allowed />
     </span>
   );
 }
@@ -82,7 +83,7 @@ function LocalChatImage({ chatId, path, alt }: { chatId: number; path: string; a
 }
 
 /** 読み込んで出す画像（押すと大きく見る。読めなければ理由と URL・パス） */
-function LoadedImage({ load, loadKey, alt, label, own = false }: { load: () => Promise<string>; loadKey: string; alt?: string; label: string; own?: boolean }) {
+export function LoadedImage({ load, loadKey, alt, label, own = false }: { load: () => Promise<string>; loadKey: string; alt?: string; label: string; own?: boolean }) {
   // 何を読むかは loadKey で決める（load は描くたびに作られる）
   const image = useQuery(["ChatImage", loadKey], () => load());
   const url = image.data;

@@ -8,7 +8,7 @@ import { GITHUB_SCHEMA_V1 } from "@/features/github/core/schema";
 import { GROUPS_SCHEMA_V1 } from "@/features/groups/core/schema";
 import { PROJECTS_SCHEMA_V1, PROJECTS_SCHEMA_V2 } from "@/features/projects/core/schema";
 import { PROVIDER_SWITCH_SCHEMA_V1 } from "@/features/providerSwitch/core/schema";
-import { REMOTE_IMAGES_SCHEMA_V1 } from "@/features/remoteImages/core/schema";
+import { REMOTE_IMAGES_SCHEMA_V1, REMOTE_IMAGES_SCHEMA_V3 } from "@/features/remoteImages/core/schema";
 import { SNIPPETS_SCHEMA_V1 } from "@/features/snippets/core/schema";
 import { TRASH_SCHEMA_V1 } from "@/features/trash/core/schema";
 import { WORKTREES_SCHEMA_V1 } from "@/features/worktrees/core/schema";
@@ -37,4 +37,5 @@ export const MIGRATIONS: readonly Migration[] = [
     ].join("\n"),
   },
   { version: 2, sql: PROJECTS_SCHEMA_V2 },
+  { version: 3, sql: REMOTE_IMAGES_SCHEMA_V3 },
 ];

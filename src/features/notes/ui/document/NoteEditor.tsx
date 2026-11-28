@@ -17,7 +17,6 @@ import { blockWidgets } from "./blockWidgets";
 import { cellEditorOf } from "./cellEditor";
 import { codeHighlight } from "./codeHighlight";
 import { noteLinkOpenerFacet, noteLinks, type NoteLinkOpener } from "./linkTooltip";
-import { noteImageUrlFacet } from "./NoteImage";
 import { insertTable, tableMenuItems } from "./tableActions";
 import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget } from "./tableField";
 import { liveRich } from "./liveRich";
@@ -69,8 +68,6 @@ interface Props {
   onReady?: () => void;
   /** リンクの行き先の説明と開き方（Markdown 表示のリンクの小窓・⌘ ＋クリック） */
   linkOpener?: NoteLinkOpener;
-  /** 画像の src を画面で読める URL にする（ノートのフォルダの中の画像だけ。ほかは null） */
-  imageUrl?: (src: string) => string | null;
 }
 
 /** HTML のソースの色分け（アプリの色の変数で、ダークでもライトでも読める色に。Markdown のノートには付けない） */
@@ -91,9 +88,9 @@ const htmlHighlight = HighlightStyle.define([
  * 太字・取り消し線は返答の表示と同じ日本語向けの決まりで読む（cjkEmphasis.ts）。行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、ノートを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
-export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady, linkOpener, imageUrl }: Props) {
+export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady, linkOpener }: Props) {
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useLatest({ onSave, onContextMenu, linkOpener, imageUrl });
+  const handlers = useLatest({ onSave, onContextMenu, linkOpener });
   // 表などを置き換えて描く飾りの中身（React の部品）を、この木から描く口
   const [portals] = useState(createWidgetPortals);
 
@@ -111,7 +108,6 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
       // 表のセルの右クリックも、ノートの右クリックのメニューで開く
       editorContextMenuFacet.of((at) => handlers.current.onContextMenu?.(at)),
       // リンクの開き方はいつも最新の画面のものを使う（ノートの一覧が変われば、行き先があるかも変わる）
-      noteImageUrlFacet.of((src) => handlers.current.imageUrl?.(src) ?? null),
       noteLinkOpenerFacet.of({
         describe: (href) => handlers.current.linkOpener?.describe(href) ?? { label: href, problem: null },
         open: (href, text, invert) => handlers.current.linkOpener?.open(href, text, invert),

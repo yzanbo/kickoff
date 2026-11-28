@@ -32,6 +32,7 @@ const SSE_TYPES = {
   worktrees_changed: true,
   worktree_prs: true,
   chat_image_hosts: true,
+  note_image_hosts: true,
   db_connections: true,
   db_connection_state: true,
   docker_changed: true,

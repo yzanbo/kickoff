@@ -28,6 +28,7 @@ import { noteTitle } from "@/features/notes/ui/notePaths";
 import { subscribeNoteReveal, takeNoteReveal } from "@/features/notes/ui/noteReveal";
 import { useNoteDocument } from "./useNoteDocument";
 import { useNoteLinkOpener } from "./useNoteLinkOpener";
+import { NoteImagesProvider } from "@/features/remoteImages/ui";
 import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
 import { noteDocKey } from "@/features/notes/ui/noteLeave";
 import { useNoteEditMenu } from "./useNoteEditMenu";
@@ -168,22 +169,24 @@ export function NoteView({
         ) : (
           <>
             {page && <HtmlNotePage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} onOpenLink={openLink} handleRef={pageHandle} />}
-            <Suspense fallback={<p className="muted small note-message">編集の準備中…</p>}>
-              <NoteEditor
-                key={`${path}:${doc.revision}`}
-                initialValue={doc.initial}
-                kind={kind}
-                live={view === "preview"}
-                hidden={page}
-                onChange={doc.setText}
-                onSave={saveNow}
-                handleRef={editor}
-                onContextMenu={editMenu.open}
-                onReady={revealSoon}
-                linkOpener={links.opener}
-                imageUrl={links.imageUrl}
-              />
-            </Suspense>
+            {/* 画像の描き方（ノートのフォルダの中はそのまま・外の画像は押して許可したホストだけ。許可はノートごと） */}
+            <NoteImagesProvider projectId={projectId} path={path} localUrl={links.imageUrl}>
+              <Suspense fallback={<p className="muted small note-message">編集の準備中…</p>}>
+                <NoteEditor
+                  key={`${path}:${doc.revision}`}
+                  initialValue={doc.initial}
+                  kind={kind}
+                  live={view === "preview"}
+                  hidden={page}
+                  onChange={doc.setText}
+                  onSave={saveNow}
+                  handleRef={editor}
+                  onContextMenu={editMenu.open}
+                  onReady={revealSoon}
+                  linkOpener={links.opener}
+                />
+              </Suspense>
+            </NoteImagesProvider>
             {editMenu.element}
             <NoteSelectionAttach targets={targets} file={file} editor={editor} page={page ? pageHandle : null} />
             <NoteChatPane layout={layout} paneRef={chatPane} projectId={projectId} path={path} beforeSend={saveBeforeSend} handleRef={chat} />

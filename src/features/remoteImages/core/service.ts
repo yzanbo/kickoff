@@ -30,7 +30,10 @@ export interface RemoteImageServiceOptions {
 }
 
 /** 覚えるときの名前（URL の SHA-256。URL には何が入っているか分からないので、そのままファイル名にしない） */
-const keyOf = (url: string) => createHash("sha256").update(url).digest("hex");
+export const keyOf = (url: string) => createHash("sha256").update(url).digest("hex");
+
+/** 外の画像を取る本物の口（1 枚の上限・時間・転送の回数を決めたもの。チャットとノートで同じ） */
+export const defaultImageFetcher: ImageFetcher = (url) => fetchRemoteImage(url, { maxBytes: REMOTE_IMAGE_MAX_BYTES, timeoutMs: FETCH_TIMEOUT_MS, maxRedirects: MAX_REDIRECTS });
 
 export class RemoteImageService {
   readonly dir: string;
@@ -46,7 +49,7 @@ export class RemoteImageService {
     this.dir = opts.dir;
     this.publish = opts.publish;
     this.maxCacheBytes = opts.maxCacheBytes ?? REMOTE_IMAGE_CACHE_MAX_BYTES;
-    this.fetcher = opts.fetcher ?? ((url) => fetchRemoteImage(url, { maxBytes: REMOTE_IMAGE_MAX_BYTES, timeoutMs: FETCH_TIMEOUT_MS, maxRedirects: MAX_REDIRECTS }));
+    this.fetcher = opts.fetcher ?? defaultImageFetcher;
   }
 
   hosts(chatId: number): ChatImageHost[] {

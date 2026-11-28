@@ -19,6 +19,7 @@
   "docker_changed",
   "group",
   "group_deleted",
+  "note_image_hosts",
   "notes",
   "open_view",
   "pairing",
