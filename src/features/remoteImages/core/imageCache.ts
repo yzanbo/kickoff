@@ -89,10 +89,13 @@ export class ScopedImageCache {
       await fs.mkdir(this.dirOf(scope), { recursive: true });
       await fs.writeFile(this.fileOf(scope, key), image.body);
       this.opts.rows.remember({ scope, key, host, content_type: image.contentType, size: image.body.length });
-      await this.trim();
     } catch {
-      // 覚えられなくても、取ってきた画像は返す（次は取り直す）
+      // 覚えられなくても、取ってきた画像は返す（次は取り直す）。取っている間に範囲が消えて覚え書きを書けなかったときは、
+      // 書いたファイルを残さない（覚え書きにないファイルは合計にも数えず、消す時が来ない）
+      await fs.rm(this.fileOf(scope, key), { force: true });
+      return image;
     }
+    await this.trim().catch(() => {});
     return image;
   }
 

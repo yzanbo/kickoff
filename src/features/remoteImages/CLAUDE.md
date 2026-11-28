@@ -20,4 +20,4 @@
 - 画像は `<p>` の中に描かれるので、中に置けない要素は body に出し（`Popover` の `portal`）、中の押す操作は包むリンクに届かせない。失敗の文も span。
 - 許可を外したら、そのホストの blob も捨てる（`forgetRemoteImages`）。
 - 取った画像は分岐で `copyChat`、チャットを本当に消すときに `forgetChats`。
-- テスト: `core/routes.test.ts`・`core/noteImages.test.ts`・`core/remoteImages.test.ts`・`ui/imageGroups.test.ts`。
+- テスト: `core/routes.test.ts`・`core/noteImages.test.ts`・`core/imageCache.test.ts`・`core/remoteImages.test.ts`・`ui/imageGroups.test.ts`。
