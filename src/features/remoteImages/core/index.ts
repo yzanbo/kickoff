@@ -5,7 +5,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { ChildChatsApi } from "@/features/childChats/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
-import { RemoteImageService, type RemoteImageServiceOptions } from "./service";
+import { ChatImageService, type ChatImageServiceOptions } from "./chatImageService";
 import { NoteImageService } from "./noteImageService";
 import { createChatImageStore } from "./db/chatImages";
 import { createNoteImageStore } from "./db/noteImages";
@@ -30,22 +30,22 @@ export interface RemoteImagesApi {
 export function createRemoteImages(
   k: Kernel,
   deps: { chat: Pick<ChatApi, "onChatsPurged" | "chatParam">; childChats: ChildChatsApi; projects: Pick<ProjectsApi, "param"> },
-  env: Pick<RemoteImageServiceOptions, "fetcher">,
+  env: Pick<ChatImageServiceOptions, "fetcher">,
 ): CoreFeature<RemoteImagesApi> {
   const dir = remoteImageCacheDir(k.paths.dataDir);
   const publish = (e: Parameters<typeof k.bus.publish>[0]) => k.bus.publish(e);
-  const remoteImages = new RemoteImageService({ store: { chatImages: createChatImageStore(k.db) }, dir, publish, fetcher: env.fetcher });
+  const chatImages = new ChatImageService({ store: createChatImageStore(k.db), dir, publish, fetcher: env.fetcher });
   const noteImages = new NoteImageService({ store: createNoteImageStore(k.db), dir: path.join(dir, "notes"), publish, fetcher: env.fetcher });
-  deps.chat.onChatsPurged((ids) => remoteImages.forgetChats(ids));
+  deps.chat.onChatsPurged((ids) => chatImages.forgetChats(ids));
   // 分岐したチャットには元の返答がそのまま並ぶので、外の画像の表示の許可と覚えた画像も写す
-  deps.childChats.onForked((from, to) => remoteImages.copyChat(from, to));
+  deps.childChats.onForked((from, to) => chatImages.copyChat(from, to));
   return {
     name: "remoteImages",
     api: {
       noteMoved: (fromProjectId, from, toProjectId, to) => noteImages.moved(fromProjectId, from, toProjectId, to),
       noteTrashed: (projectId, notePath) => noteImages.trashed(projectId, notePath),
     },
-    routes: [chatImageRoutes({ chatParam: deps.chat.chatParam, remoteImages }), noteImageRoutes({ projectParam: deps.projects.param, noteImages })],
+    routes: [chatImageRoutes({ chatParam: deps.chat.chatParam, chatImages }), noteImageRoutes({ projectParam: deps.projects.param, noteImages })],
     // 本当に消したプロジェクトのノートの覚えた画像（行は一緒に消え、ファイルだけが残る）を片付ける
     start: () => void noteImages.sweep(),
   };

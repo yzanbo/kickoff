@@ -109,3 +109,13 @@ test("欄の間: 作業中のノートのチャット・同じ名前・アーカ
   assert.ok(fs.existsSync(path.join(projectDir, "案.md")));
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
 });
+
+test("欄の間: 動かしたノートの外の画像の許可も行き先のプロジェクトへ付いていき、元の場所では外れる", async () => {
+  const { project, other, api, create, move } = await setupTransfer();
+  await create(project.id, "絵.md");
+  const hostsOf = async (projectId: number, file: string) => (await api("GET /api/projects/:projectId/note-image-hosts", { params: { projectId }, query: { path: file } })).body.hosts.length;
+  await api("PUT /api/projects/:projectId/note-image-hosts", { params: { projectId: project.id }, body: { path: "絵.md", host: "images.example.com" } });
+  assert.equal((await move(project.id, { from: "絵.md", to: "移した絵.md", to_project_id: other.id })).status, 200);
+  await until(async () => (await hostsOf(other.id, "移した絵.md")) === 1);
+  assert.equal(await hostsOf(project.id, "絵.md"), 0);
+});

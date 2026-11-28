@@ -30,12 +30,9 @@ export interface NoteMoved {
   from: string;
   to: string;
 }
-/** ノートをほかのプロジェクト（共通のノートを含む）のノートのフォルダへ動かした */
-export interface NoteMovedAcross {
-  from_project_id: number;
-  from: string;
+/** ノートをほかのプロジェクト（共通のノートを含む）のノートのフォルダへ動かした（project_id は元のプロジェクト） */
+export interface NoteMovedAcross extends NoteMoved {
   to_project_id: number;
-  to: string;
 }
 /** ノートをゴミ箱へ入れた（trash_id は入れたゴミ箱の行） */
 export interface NoteTrashed {
@@ -69,13 +66,13 @@ export class NoteService {
   }
 
   /** ノートを動かしたときに呼ぶ（登録の順に。知らせの notes より前） */
+  onMoved(fn: (e: NoteMoved) => void): void {
+    this.moved.push(fn);
+  }
+
   /** ほかのプロジェクトへ動かしたとき（ノートの外の画像の許可を付け替える。ノートのチャットは noteTransfer.ts が移す） */
   onMovedAcross(fn: (e: NoteMovedAcross) => void): void {
     this.movedAcross.push(fn);
-  }
-
-  onMoved(fn: (e: NoteMoved) => void): void {
-    this.moved.push(fn);
   }
 
   /** ノートをゴミ箱へ入れたときに呼ぶ */
@@ -177,7 +174,7 @@ export class NoteService {
     const dir = this.opts.dirs.ensureNoteDir(target);
     await fs.mkdir(dir, { recursive: true });
     await files.moveTo(from, noteFiles(dir), to);
-    for (const fn of this.movedAcross) fn({ from_project_id: source.id, from, to_project_id: target.id, to });
+    for (const fn of this.movedAcross) fn({ project_id: source.id, from, to_project_id: target.id, to });
     this.changed(source, null);
     this.changed(target, to);
   }

@@ -36,11 +36,15 @@ test("移行 v3: v2 の DB を開くとノートの外の画像の表（範囲�
     const id = (db.prepare("SELECT id FROM projects").get() as { id: number }).id;
     const scope = Number(db.prepare("INSERT INTO note_image_scopes (project_id, path) VALUES (?, 'a.md')").run(id).lastInsertRowid);
     db.prepare("INSERT INTO note_image_hosts (scope_id, host) VALUES (?, 'example.com')").run(scope);
+    db.prepare("INSERT INTO note_image_cache (scope_id, key, host, content_type, size) VALUES (?, 'k', 'example.com', 'image/png', 3)").run(scope);
     assert.throws(() => db.prepare("INSERT INTO note_image_scopes (project_id, path) VALUES (?, '')").run(id), /CHECK constraint failed/);
     assert.throws(() => db.prepare("INSERT INTO note_image_scopes (project_id, path) VALUES (?, 'a.md')").run(id), /UNIQUE constraint failed/);
     db.prepare("DELETE FROM projects WHERE id = ?").run(id);
     const count = (table: string) => (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
-    assert.deepEqual([count("note_image_scopes"), count("note_image_hosts")], [0, 0]);
+    assert.deepEqual([count("note_image_scopes"), count("note_image_hosts"), count("note_image_cache")], [0, 0, 0]);
+    // 範囲の ID は使い回さない（覚えた画像のフォルダ名なので）
+    const next = Number(db.prepare("INSERT INTO projects (name, repo_path, provider, hue, position) VALUES ('B', '/tmp/b', 'claude', 0, 2) RETURNING id").get()!.id);
+    assert.ok(Number(db.prepare("INSERT INTO note_image_scopes (project_id, path) VALUES (?, 'a.md')").run(next).lastInsertRowid) > scope);
   } finally {
     db.close();
   }

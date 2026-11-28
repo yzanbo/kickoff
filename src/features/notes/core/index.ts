@@ -75,7 +75,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   notes.onTrashed((e) => chat.noteChats.trashed(e.project_id, e.path, e.trash_id));
   // ノートの外の画像の表示の許可も付いていく（欄の間で動かしたときも）。ゴミ箱に入れたら忘れる
   notes.onMoved((e) => void deps.remoteImages.noteMoved(e.project_id, e.from, e.project_id, e.to));
-  notes.onMovedAcross((e) => void deps.remoteImages.noteMoved(e.from_project_id, e.from, e.to_project_id, e.to));
+  notes.onMovedAcross((e) => void deps.remoteImages.noteMoved(e.project_id, e.from, e.to_project_id, e.to));
   notes.onTrashed((e) => void deps.remoteImages.noteTrashed(e.project_id, e.path));
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
   trash.addOriginResolver((origin) => projects.list().find((p) => (p.note_dir || p.note_folder) && isInside(realPathLoose(dirs.dirOf(p)), origin))?.id ?? null);

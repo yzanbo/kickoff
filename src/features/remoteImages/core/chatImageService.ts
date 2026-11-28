@@ -9,14 +9,14 @@ import type { createChatImageStore } from "./db/chatImages";
 import { Invalid } from "@/foundation/core/errors";
 import type { FetchedImage, ImageFetcher } from "./fetchImage";
 import { defaultImageFetcher, ScopedImageCache } from "./imageCache";
-import { normalizedHost } from "./hosts";
+import { hostKey, normalizedHost } from "./hosts";
 
 /** 覚えておく画像の合計の上限（超えたら古いものから消す。消えたものは次に出すときに取り直す） */
-const REMOTE_IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024;
+const CHAT_IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024;
 
-export interface RemoteImageServiceOptions {
+export interface ChatImageServiceOptions {
   /** 自分の表の店（表示を許可したホストと、取ってきた画像の覚え） */
-  store: { chatImages: ReturnType<typeof createChatImageStore> };
+  store: ReturnType<typeof createChatImageStore>;
   /** 覚えた画像の置き場（データのフォルダの image-cache。中はチャットごと） */
   dir: string;
   publish: (e: BusEvent) => void;
@@ -26,42 +26,28 @@ export interface RemoteImageServiceOptions {
   maxCacheBytes?: number;
 }
 
-export class RemoteImageService {
-  private readonly store: RemoteImageServiceOptions["store"];
-  private readonly publish: (e: BusEvent) => void;
+export class ChatImageService {
+  private readonly store: ChatImageServiceOptions["store"];
   private readonly cache: ScopedImageCache;
 
-  constructor(opts: RemoteImageServiceOptions) {
+  constructor(private readonly opts: ChatImageServiceOptions) {
     this.store = opts.store;
-    this.publish = opts.publish;
-    const rows = opts.store.chatImages;
-    this.cache = new ScopedImageCache({
-      dir: opts.dir,
-      fetcher: opts.fetcher ?? defaultImageFetcher,
-      maxBytes: opts.maxCacheBytes ?? REMOTE_IMAGE_CACHE_MAX_BYTES,
-      rows: {
-        cached: (chatId, key) => rows.cached(chatId, key),
-        remember: (r) => rows.remember({ chat_id: r.scope, key: r.key, host: r.host, content_type: r.content_type, size: r.size }),
-        forget: (chatId, key) => rows.forget(chatId, key),
-        totalSize: () => rows.totalSize(),
-        oldest: (limit) => rows.oldest(limit).map((r) => ({ scope: r.chat_id, key: r.key, size: r.size })),
-      },
-    });
+    this.cache = new ScopedImageCache({ dir: opts.dir, rows: opts.store, fetcher: opts.fetcher ?? defaultImageFetcher, maxBytes: opts.maxCacheBytes ?? CHAT_IMAGE_CACHE_MAX_BYTES });
   }
 
   hosts(chatId: number): ImageHost[] {
-    return this.store.chatImages.hosts(chatId);
+    return this.store.hosts(chatId);
   }
 
   /** ホストの表示を許可する（押した「host から画像を n 件表示」） */
   allow(chat: Chat, host: string): ImageHost[] {
-    this.store.chatImages.allow(chat.id, normalizedHost(host));
+    this.store.allow(chat.id, normalizedHost(host));
     return this.changed(chat);
   }
 
   /** 許可を外し、そのホストの覚えた画像も消す */
   async revoke(chat: Chat, host: string): Promise<ImageHost[]> {
-    await this.cache.removeKeys(chat.id, this.store.chatImages.revoke(chat.id, host.trim().toLowerCase()));
+    await this.cache.removeKeys(chat.id, this.store.revoke(chat.id, hostKey(host)));
     return this.changed(chat);
   }
 
@@ -69,19 +55,17 @@ export class RemoteImageService {
   async image(chat: Chat, src: string): Promise<FetchedImage> {
     const remote = remoteImageOf(src);
     if (!remote) throw new Invalid("http・https の画像だけを読み込みます");
-    if (!this.store.chatImages.allowed(chat.id, remote.host)) throw new Invalid(`このチャットでは ${remote.host} の画像の表示を許可していません`);
+    if (!this.store.allowed(chat.id, remote.host)) throw new Invalid(`このチャットでは ${remote.host} の画像の表示を許可していません`);
     return this.cache.get(chat.id, remote);
   }
 
   /** 分岐: 許可と覚えた画像を新しいチャットに写す（ファイルは APFS なら複製で写す） */
   async copyChat(fromChatId: number, toChatId: number): Promise<void> {
-    const rows = this.store.chatImages.copy(fromChatId, toChatId);
-    if (rows.length === 0) return;
+    const keys = this.store.copy(fromChatId, toChatId);
+    if (keys.length === 0) return;
     await fs.mkdir(this.cache.dirOf(toChatId), { recursive: true });
     await Promise.all(
-      rows.map((r) =>
-        fs.copyFile(this.cache.fileOf(fromChatId, r.key), this.cache.fileOf(toChatId, r.key), fsConstants.COPYFILE_FICLONE).catch(() => this.store.chatImages.forget(toChatId, r.key)),
-      ),
+      keys.map((key) => fs.copyFile(this.cache.fileOf(fromChatId, key), this.cache.fileOf(toChatId, key), fsConstants.COPYFILE_FICLONE).catch(() => this.store.forget(toChatId, key))),
     );
   }
 
@@ -92,7 +76,7 @@ export class RemoteImageService {
 
   private changed(chat: Chat): ImageHost[] {
     const hosts = this.hosts(chat.id);
-    this.publish({ type: "chat_image_hosts", project_id: chat.project_id, chat_id: chat.id, hosts });
+    this.opts.publish({ type: "chat_image_hosts", project_id: chat.project_id, chat_id: chat.id, hosts });
     return hosts;
   }
 }

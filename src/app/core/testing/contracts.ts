@@ -8,7 +8,7 @@ import { chatContract, approvalContract, chatTurnContract, chatQueueContract } f
 import { snippetContract } from "@shared/snippets/contract";
 import { compactContract } from "@shared/compact/contract";
 import { childChatContract } from "@shared/childChats/contract";
-import { noteImagesContract, remoteImagesContract } from "@shared/remoteImages/contract";
+import { noteImagesContract, chatImagesContract } from "@shared/remoteImages/contract";
 import { providerSwitchContract } from "@shared/providerSwitch/contract";
 import { workplaceMoveContract } from "@shared/workplaceMove/contract";
 import { queueContract } from "@shared/queue/contract";
@@ -42,7 +42,7 @@ export const ALL_CONTRACTS = {
   ...snippetContract,
   ...compactContract,
   ...childChatContract,
-  ...remoteImagesContract,
+  ...chatImagesContract,
   ...noteImagesContract,
   ...providerSwitchContract,
   ...workplaceMoveContract,

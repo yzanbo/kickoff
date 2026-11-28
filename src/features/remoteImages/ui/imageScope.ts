@@ -1,6 +1,6 @@
 // 外の画像の表示の許可を覚える範囲: チャット 1 つか、ノート 1 つ（押したホストはその範囲の中だけ覚える）
 import type { ImageHost } from "@shared/remoteImages/types";
-import { noteImagesApi, remoteImagesApi } from "./api";
+import { noteImagesApi, chatImagesApi } from "./api";
 
 export type ImageScope = { kind: "chat"; chatId: number } | { kind: "note"; projectId: number; path: string };
 
@@ -20,24 +20,24 @@ export const scopeLabel = (scope: ImageScope) => (scope.kind === "chat" ? "こ�
 
 /** 許可したホストの一覧 */
 export async function fetchHosts(scope: ImageScope): Promise<ImageHost[]> {
-  if (scope.kind === "chat") return (await remoteImagesApi("GET /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId } })).hosts;
+  if (scope.kind === "chat") return (await chatImagesApi("GET /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId } })).hosts;
   return (await noteImagesApi("GET /api/projects/:projectId/note-image-hosts", { params: { projectId: scope.projectId }, query: { path: scope.path } })).hosts;
 }
 
 /** ホストを許可する（変わったあとの一覧） */
 export async function putHost(scope: ImageScope, host: string): Promise<ImageHost[]> {
-  if (scope.kind === "chat") return (await remoteImagesApi("PUT /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId }, body: { host } })).hosts;
+  if (scope.kind === "chat") return (await chatImagesApi("PUT /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId }, body: { host } })).hosts;
   return (await noteImagesApi("PUT /api/projects/:projectId/note-image-hosts", { params: { projectId: scope.projectId }, body: { path: scope.path, host } })).hosts;
 }
 
 /** 許可を外す（変わったあとの一覧） */
 export async function deleteHost(scope: ImageScope, host: string): Promise<ImageHost[]> {
-  if (scope.kind === "chat") return (await remoteImagesApi("DELETE /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId }, query: { host } })).hosts;
+  if (scope.kind === "chat") return (await chatImagesApi("DELETE /api/chats/:chatId/image-hosts", { params: { chatId: scope.chatId }, query: { host } })).hosts;
   return (await noteImagesApi("DELETE /api/projects/:projectId/note-image-hosts", { params: { projectId: scope.projectId }, query: { path: scope.path, host } })).hosts;
 }
 
 /** 許可したホストの画像（コアが代わりに取ったもの） */
 export async function fetchRemoteImage(scope: ImageScope, url: string): Promise<Blob> {
-  if (scope.kind === "chat") return (await remoteImagesApi("GET /api/chats/:chatId/remote-image", { params: { chatId: scope.chatId }, query: { url } })).blob;
+  if (scope.kind === "chat") return (await chatImagesApi("GET /api/chats/:chatId/remote-image", { params: { chatId: scope.chatId }, query: { url } })).blob;
   return (await noteImagesApi("GET /api/projects/:projectId/note-remote-image", { params: { projectId: scope.projectId }, query: { path: scope.path, url } })).blob;
 }

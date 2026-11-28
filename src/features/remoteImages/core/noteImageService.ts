@@ -7,7 +7,7 @@ import { remoteImageOf } from "@shared/remoteImages/remoteImages";
 import { Invalid } from "@/foundation/core/errors";
 import type { createNoteImageStore } from "./db/noteImages";
 import type { FetchedImage, ImageFetcher } from "./fetchImage";
-import { normalizedHost } from "./hosts";
+import { hostKey, normalizedHost } from "./hosts";
 import { defaultImageFetcher, ScopedImageCache } from "./imageCache";
 
 /** ノートのために覚えておく画像の合計の上限（超えたら古いものから消す） */
@@ -22,52 +22,37 @@ export interface NoteImageServiceOptions {
   maxCacheBytes?: number;
 }
 
-/** ノートのパスとして受け付けるか（ノートのフォルダからの相対。外・「.」の段・空の段を断る） */
-export function isNotePath(value: string): boolean {
-  return value.length > 0 && value.length <= 1024 && !value.startsWith("/") && value.split("/").every((s) => s !== "" && s !== "." && s !== "..");
-}
-
 export class NoteImageService {
   private readonly store: NoteImageServiceOptions["store"];
   private readonly cache: ScopedImageCache;
 
   constructor(private readonly opts: NoteImageServiceOptions) {
-    const store = (this.store = opts.store);
-    this.cache = new ScopedImageCache({
-      dir: opts.dir,
-      fetcher: opts.fetcher ?? defaultImageFetcher,
-      maxBytes: opts.maxCacheBytes ?? NOTE_IMAGE_CACHE_MAX_BYTES,
-      rows: {
-        cached: (scope, key) => store.cached(scope, key),
-        remember: (r) => store.remember({ scope_id: r.scope, key: r.key, host: r.host, content_type: r.content_type, size: r.size }),
-        forget: (scope, key) => store.forget(scope, key),
-        totalSize: () => store.totalSize(),
-        oldest: (limit) => store.oldest(limit).map((r) => ({ scope: r.scope_id, key: r.key, size: r.size })),
-      },
-    });
+    this.store = opts.store;
+    this.cache = new ScopedImageCache({ dir: opts.dir, rows: opts.store, fetcher: opts.fetcher ?? defaultImageFetcher, maxBytes: opts.maxCacheBytes ?? NOTE_IMAGE_CACHE_MAX_BYTES });
   }
 
+  /** パスは受け口がノートのパスの形を確かめたもの（notePathSchema） */
   hosts(projectId: number, note: string): ImageHost[] {
-    return this.store.hosts(this.store.scope(projectId, checked(note)));
+    const scope = this.store.scope(projectId, note);
+    return scope === null ? [] : this.store.hosts(scope);
   }
 
   /** ノートでホストの表示を許可する（押した「host から画像を n 件表示」。範囲がまだなければ作る） */
   allow(projectId: number, note: string, host: string): ImageHost[] {
-    const scope = this.store.scope(projectId, checked(note), true)!;
-    this.store.allow(scope, normalizedHost(host));
+    this.store.allow(this.store.ensureScope(projectId, note), normalizedHost(host));
     return this.changed(projectId, note);
   }
 
   /** 許可を外し、そのホストの覚えた画像も消す */
   async revoke(projectId: number, note: string, host: string): Promise<ImageHost[]> {
-    const scope = this.store.scope(projectId, checked(note));
-    if (scope !== null) await this.cache.removeKeys(scope, this.store.revoke(scope, host.trim().toLowerCase()));
+    const scope = this.store.scope(projectId, note);
+    if (scope !== null) await this.cache.removeKeys(scope, this.store.revoke(scope, hostKey(host)));
     return this.changed(projectId, note);
   }
 
   /** 画像の中身（そのノートで許可したホストだけ。覚えていれば手元から、なければ取ってきて覚える） */
   async image(projectId: number, note: string, src: string): Promise<FetchedImage> {
-    const scope = this.store.scope(projectId, checked(note));
+    const scope = this.store.scope(projectId, note);
     const remote = remoteImageOf(src);
     if (!remote) throw new Invalid("http・https の画像だけを読み込みます");
     if (scope === null || !this.store.allowed(scope, remote.host)) throw new Invalid(`このノートでは ${remote.host} の画像の表示を許可していません`);
@@ -108,7 +93,3 @@ export class NoteImageService {
   }
 }
 
-function checked(note: string): string {
-  if (!isNotePath(note)) throw new Invalid("ノートのパスが正しくありません");
-  return note;
-}

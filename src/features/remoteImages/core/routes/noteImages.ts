@@ -3,11 +3,9 @@ import { z } from "zod";
 import type { Project } from "@shared/projects/types";
 import { noteImagesContract } from "@shared/remoteImages/contract";
 import type { NoteImageService } from "@/features/remoteImages/core/noteImageService";
+import { notePathSchema as pathSchema } from "@/features/chat/core/index";
+import { hostSchema } from "@/features/remoteImages/core/hosts";
 import { implement, type Param } from "@/foundation/core/http/implement";
-
-const hostSchema = z.string().trim().min(1).max(300);
-/** ノートのフォルダからの相対のパス（形は NoteImageService が確かめる） */
-const pathSchema = z.string().min(1).max(1024);
 
 /**
  * ノートの外の画像: 表示を許可したホストの一覧・許可・取り消しと、許可したホストの画像（許可はノートごと）。

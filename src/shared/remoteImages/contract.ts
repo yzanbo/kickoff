@@ -7,7 +7,8 @@ export interface ImageHostsReply {
   hosts: ImageHost[];
 }
 
-export const remoteImagesContract = {
+/** チャット欄の外の画像の取り決め（受け口は src/features/remoteImages/core/routes/chatImages.ts）。許可はチャットごと */
+export const chatImagesContract = {
   /** そのチャットで表示を許可したホスト（許可した順） */
   "GET /api/chats/:chatId/image-hosts": route<never, ImageHostsReply>(),
   /** ホストの表示を許可する */

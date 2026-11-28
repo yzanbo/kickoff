@@ -89,8 +89,8 @@ test("ノートの範囲: 動かした先に古い範囲が残っていれば先
   const { store, project } = setup({ features: [...FEATURES] });
   const notes = createNoteImageStore(store.db);
   const service = new NoteImageService({ store: notes, dir, publish: () => {} });
-  const stale = notes.scope(project.id, "b.md", true)!;
-  const scope = notes.scope(project.id, "a.md", true)!;
+  const stale = notes.ensureScope(project.id, "b.md");
+  const scope = notes.ensureScope(project.id, "a.md");
   notes.allow(scope, "x.example");
   fs.mkdirSync(path.join(dir, String(stale)));
   await service.moved(project.id, "a.md", project.id, "b.md");
