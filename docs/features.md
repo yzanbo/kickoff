@@ -523,6 +523,7 @@
 | NOTE-035 | 表のセルを押してその場で書く（Tab・Enter・矢印で移る・⌘Z は本文と同じ履歴・その表の書き方で書き戻す） | notes | T:tableEdit,tableState |
 | NOTE-036 | 表の行・列を足す・消す・列の寄せ・表を入れる・消す（右クリック・表の端の「＋」・最後のセルの Tab と Enter） | notes | T:tableStructure |
 | NOTE-037 | ライブ表示のコードの塊に返答と同じ色と、言語名・コピーの帯（書けるまま。打っても色が消えない） | notes | T:codeBlocks |
+| NOTE-038 | ライブ表示のリンクを開く（押すと行き先・開く・コピーの小窓、⌘ ＋クリックですぐ。外のページ・ノート・フォルダ・見出し・URL のそのまま書き・参照の形） | notes | T:noteLinkTarget,markdownParity |
 
 ### ノートの AI
 | ID | 機能 | 持ち主 | 確かめ方 |

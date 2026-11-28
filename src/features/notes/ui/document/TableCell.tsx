@@ -1,7 +1,8 @@
-import { createContext, useContext, useLayoutEffect, useRef, type ComponentProps, type MouseEvent, type ReactElement } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, type ComponentProps, type MouseEvent } from "react";
 import type { EditorView } from "@codemirror/view";
 import type { Components } from "react-markdown";
 import { COMPONENTS } from "@/foundation/ui/markdown/markdownComponents";
+import { openNoteLink } from "./linkTooltip";
 import { createCellEditor, destroyCellEditor } from "./cellEditor";
 import { openCell } from "./cellKeys";
 import { editorContextMenuFacet, setTableMenuTarget } from "./tableField";
@@ -72,18 +73,22 @@ function TableCell({ node, children, ...props }: CellProps) {
   );
 }
 
-/** 表の中のリンク: 押してもすぐには開かない（押したセルを開いて書く）。⌘ を押しながらなら、返答の表示と同じく開く */
-const MarkdownLink = COMPONENTS.a as (props: ComponentProps<"a"> & { node?: unknown }) => ReactElement;
-const TableLink = (props: ComponentProps<"a"> & { node?: unknown }) => {
-  const guard = (e: MouseEvent) => {
-    if (!e.metaKey) e.preventDefault();
+/**
+ * 表の中のリンク: 押してもすぐには開かない（押したセルを開いて書く）。⌘ を押しながらなら、本文のリンクと同じ開き方ですぐ開く
+ * （ノートのフォルダの中への相対のパスもリンクにする。返答の表示は相対のパスを文字のまま出す）
+ */
+function TableLink({ node: _node, href, children, ...props }: ComponentProps<"a"> & { node?: unknown }) {
+  const ctx = useContext(NoteTableContext);
+  const press = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (e.metaKey && ctx && href) openNoteLink(ctx.view, href, e.currentTarget.textContent ?? "", false);
   };
   return (
-    <span onClickCapture={guard} onAuxClickCapture={guard}>
-      <MarkdownLink {...props} />
-    </span>
+    <a {...props} href={href} className="note-table-link" onClick={press} onAuxClick={(e) => e.preventDefault()}>
+      {children}
+    </a>
   );
-};
+}
 
 /** 表を描く部品（返答の表示の部品に、セルとリンクの扱いを足したもの。描くたびに作り直さない） */
 export const TABLE_COMPONENTS: Components = { ...COMPONENTS, th: TableCell, td: TableCell, a: TableLink };

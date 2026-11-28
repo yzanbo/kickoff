@@ -87,10 +87,16 @@ test("livePreview: 英語の文・語の中の _・~ 1 つの木は、日本語�
 
 test("livePreview: 定義のない [文字] は角かっこごと文字のまま、定義のある参照はリンクにする", () => {
   assert.deepEqual(marksOf("配列 [2, 3] とキー ⌘[ ⌘]"), []);
-  assert.deepEqual(marksOf("[名前] と [x]\n\n[名前]: https://x.y"), ['span:md-link="[名前]"', 'hide="["', 'hide="]"']);
+  assert.deepEqual(marksOf("[名前] と [x]\n\n[名前]: https://x.y"), ['span:md-link="[名前]"', 'hide="["', 'hide="]"', "line:md-linkdef@2"]);
 });
 
-test("livePreview: 画像と定義の行の印は隠さない（画像はまだ描かないので、書いたまま見せる）", () => {
+test("livePreview: 画像と定義の行の印は隠さない（定義の行は薄い小さな文字。脚注の定義は除く）", () => {
   assert.deepEqual(marksOf("![[a.png]] ![説明](b.png)"), []);
-  assert.deepEqual(marksOf("[a]: https://x.y"), []);
+  assert.deepEqual(marksOf("[a]: https://x.y"), ["line:md-linkdef@0"]);
+  assert.deepEqual(marksOf("[^1]: 注"), []);
+});
+
+test("livePreview: <URL> は < > を隠してリンクに、URL のそのまま書きは日本語の記号の手前までリンクに", () => {
+  assert.deepEqual(marksOf("<https://x.y>"), ['span:md-link="<https://x.y>"', 'hide="<"', 'hide=">"']);
+  assert.deepEqual(marksOf("見る https://x.y/a。次"), ['span:md-link="https://x.y/a"']);
 });

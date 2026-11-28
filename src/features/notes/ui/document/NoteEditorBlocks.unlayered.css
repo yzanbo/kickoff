@@ -1,0 +1,174 @@
+/* ==== ノートの Markdown 表示の、置き換えて描く物の見た目（表・セルで書く部品・コードの帯・リンクの小窓）。NoteEditor.unlayered.css と同じく層の外に置く ==== */
+
+/* 表（blockWidgets。返答の表示と同じ部品で描く）。行の高さは本文に合わせ、表の文字の大きさは返答と同じ */
+
+.md-editor .cm-note-table {
+  /* 幅の広い表は本文からはみ出さず、表の枠（.markdown-table）の中で横にスクロールする
+     （セルの最小の幅で本文の幅が広がらないよう、表の幅を中身から決めない） */
+  contain: inline-size;
+  padding-block: 0.2em;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.md-editor .cm-note-table .note-table-plain {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+/* 表の開いているセル（cellEditor。元の文字をその場で書く小さな編集の部品） */
+
+.md-editor .cm-note-table .note-cell-open {
+  padding: 0;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-editor {
+  background: transparent;
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-content {
+  padding: 5px 10px;
+  font-family: var(--mono);
+  font-size: var(--chat-fs-13);
+  line-height: 1.6;
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-line {
+  padding: 0;
+}
+
+.md-editor .cm-note-table td,
+.md-editor .cm-note-table th {
+  cursor: text;
+}
+
+/* 表の端の「＋」（最後に行・列を足す）。表にマウスを乗せたときだけ出す */
+
+.md-editor .cm-note-table .note-table-frame {
+  position: relative;
+  padding: 0 22px 18px 0;
+}
+
+.md-editor .cm-note-table .note-table-add-row,
+.md-editor .cm-note-table .note-table-add-column {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.md-editor .cm-note-table .note-table-add-row {
+  left: 0;
+  bottom: 0;
+}
+
+.md-editor .cm-note-table .note-table-add-column {
+  top: 0.55em;
+  right: 0;
+}
+
+.md-editor .cm-note-table .note-table-frame:hover .note-table-add-row,
+.md-editor .cm-note-table .note-table-frame:hover .note-table-add-column,
+.md-editor .cm-note-table .note-table-add-row:focus-visible,
+.md-editor .cm-note-table .note-table-add-column:focus-visible {
+  opacity: 1;
+}
+
+/* ⌘F の当たりのあるセル（置き換えて描いた表の中には当たりの色が出ないので、セルに色を付ける） */
+
+.md-editor .cm-note-table .note-cell-match {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-selectionBackground {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* コードの塊の帯（codeHighlight。開きの ``` の行の代わり。返答のコードの帯と同じ言語名とコピーのボタン） */
+
+.md-editor .cm-code-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 4px);
+  /* 元の文字の行と同じ高さ（カーソルが入って文字に替わっても行の高さが動かない） */
+  height: 1lh;
+  vertical-align: top;
+}
+
+.md-editor .cm-code-head .code-block-lang {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--muted);
+}
+
+.md-editor .cm-code-head .code-block-copy {
+  width: 18px;
+  height: 18px;
+}
+
+/* リンクの小窓（linkTooltip。カーソルがリンクの中にあるとき、リンクの下に行き先・開く・コピー） */
+
+.md-editor .cm-tooltip:has(.note-link-tip) {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-md, 0 4px 14px rgb(0 0 0 / 25%));
+}
+
+.md-editor .note-link-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 480px;
+  padding: 3px 4px 3px 10px;
+  font-size: var(--fs-12);
+}
+
+.md-editor .note-link-tip-target {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-editor .note-link-tip-target[data-problem] {
+  color: var(--warn);
+}
+
+.md-editor .note-link-tip-open {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-text);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ⌘ を押している間は、リンクの上で指の形（⌘ ＋クリックで開く） */
+
+.md-editor .note-meta-held .cm-md-link,
+.md-editor .note-meta-held .note-table-link {
+  cursor: pointer;
+}
+
+/* 表の中のリンク（返答のリンクと同じ色。相対のパスもリンクにする） */
+
+.md-editor .cm-note-table .note-table-link {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+/* リンクの定義の行（[名前]: URL）は薄い小さな文字 */
+
+.md-editor .cm-md-linkdef {
+  font-size: 0.85em;
+  color: var(--muted);
+}

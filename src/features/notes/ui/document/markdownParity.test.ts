@@ -7,13 +7,13 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
-import { linkDefinitions, linkHref } from "./noteLinks";
+import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 import { noteMarkdownParser as noteParser } from "./noteMarkdown";
 import { splitTableRow, tableBlocks } from "./tableBlocks";
 
 const chatParser = unified().use(remarkParse).use(markdownRemarkPlugins());
 
-type Kind = "link" | "heading" | "code" | "table";
+type Kind = "link" | "url" | "heading" | "code" | "table";
 
 /** 返答の表示が描くもの（種類と、文の中の位置の範囲） */
 function chatSummary(text: string, kinds: readonly Kind[]): string[] {
@@ -22,6 +22,8 @@ function chatSummary(text: string, kinds: readonly Kind[]): string[] {
     const at = `${node.position?.start.offset}-${node.position?.end.offset}`;
     // [ ] で書いたリンクだけ（URL のそのまま書き・<URL> は別に比べる）
     if (kinds.includes("link") && (node.type === "link" || node.type === "linkReference") && text[node.position?.start.offset ?? 0] === "[") out.push(`link ${at}`);
+    // URL のそのまま書きと <URL>（[ ] で書いていないリンク）
+    if (kinds.includes("url") && node.type === "link" && text[node.position?.start.offset ?? 0] !== "[") out.push(`url ${at}`);
     if (kinds.includes("heading") && node.type === "heading") out.push(`heading${node.depth} ${at}`);
     // 表は行で比べる（始まり・終わりの行と、行の数・見出しのセルの数）
     if (kinds.includes("table") && node.type === "table") out.push(`table ${node.position?.start.line}-${node.position?.end.line} ${node.children.length}x${node.children[0]?.children.length}`);
@@ -46,6 +48,8 @@ function noteSummary(text: string, kinds: readonly Kind[]): string[] {
     enter(n) {
       const at = `${n.from}-${n.to}`;
       if (kinds.includes("link") && n.name === "Link" && linkHref(n.node, text, defs) !== null) out.push(`link ${at}`);
+      if (kinds.includes("url") && n.name === "Autolink") out.push(`url ${at}`);
+      if (kinds.includes("url") && isBareUrl(n.node)) out.push(`url ${n.from}-${bareUrlEnd(text, n.from, n.to)}`);
       const heading = /^(?:ATX|Setext)Heading(\d)$/.exec(n.name);
       // 見出しの終わりは返答の表示に合わせて行の終わりの空白を数えない
       if (kinds.includes("heading") && heading) out.push(`heading${heading[1]} ${n.from}-${n.from + text.slice(n.from, n.to).trimEnd().length}`);
@@ -96,5 +100,17 @@ test("読み方の比べ: 表は同じ行から同じ行までを、同じ行と
     "> | a | b |\n> |---|---|\n> | 1 | 2 |",
   ]) {
     same(text, ["table"]);
+  }
+});
+
+test("読み方の比べ: URL のそのまま書きと <URL> は同じ所までをリンクにする（日本語の記号の手前で終える）", () => {
+  for (const text of [
+    "見る https://example.com/a。次の文",
+    "<https://example.com> と http://x.y/z?q=1 、",
+    "（https://example.com）を開く",
+    "https://ja.wikipedia.org/wiki/東京都 は 1 つ",
+    "www.example.com も",
+  ]) {
+    same(text, ["url"]);
   }
 });

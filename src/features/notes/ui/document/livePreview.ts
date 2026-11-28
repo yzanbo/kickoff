@@ -2,7 +2,7 @@
 // Markdown の構文の木（@lezer/markdown・GFM）から、カーソルのない行の記号（# ・** ・` ・> ・リンクの URL など）を隠し、
 // 見出し・太字・コード・引用などの見た目を付ける印を返す（コードの塊の ``` もカーソルのない行では隠す）。ファイルの中身は変えない（見せ方だけ。書き換えはチェックボックスを押したときだけ）
 import type { SyntaxNodeRef, Tree } from "@lezer/common";
-import { linkDefinitions, linkHref } from "./noteLinks";
+import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 
 /** 見せ方の印（エディタの飾りに直す。位置はファイルの文字の位置） */
 export type PreviewMark =
@@ -74,6 +74,21 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
       }
       if (name === "Link") {
         if (isLink(n)) out.push({ kind: "span", from: n.from, to: n.to, cls: "md-link" });
+        return;
+      }
+      // <URL> と URL のそのまま書き（そのまま書きは日本語の記号の手前まで。返答の表示と同じ）
+      if (name === "Autolink") {
+        out.push({ kind: "span", from: n.from, to: n.to, cls: "md-link" });
+        return;
+      }
+      if (isBareUrl(n.node)) {
+        const end = bareUrlEnd(text, n.from, n.to);
+        if (end > n.from) out.push({ kind: "span", from: n.from, to: end, cls: "md-link" });
+        return;
+      }
+      // リンクの定義の行（[名前]: URL）は消さずに、薄い小さな文字で見せる（脚注の定義は除く）
+      if (name === "LinkReference") {
+        if (text[n.from + 1] !== "^") out.push({ kind: "line", at: lineStart(n.from), cls: "md-linkdef" });
         return;
       }
       switch (name) {
