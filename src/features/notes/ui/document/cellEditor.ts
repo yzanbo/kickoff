@@ -3,7 +3,7 @@
 // 本体がほかから変わった（元に戻す・置き換え・読み直し）ときは、本体からこの部品へ写す（cellSync）
 import { defaultKeymap } from "@codemirror/commands";
 import { Annotation, EditorState, Transaction, type ChangeSpec } from "@codemirror/state";
-import { EditorView, keymap, runScopeHandlers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import { drawSelection, EditorView, keymap, runScopeHandlers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { openCellOf, syncEditorFocus, takeFocusRequest } from "./tableField";
 import { cellKeymap } from "./cellKeys";
 import { alignTableChanges, escapeCellInput, fillMissingCell, isAlignedTable } from "./tableEdit";
@@ -81,6 +81,8 @@ export function createCellEditor(main: EditorView, parent: HTMLElement): EditorV
       selection: { anchor: local(sel.anchor), head: local(sel.head) },
       extensions: [
         EditorView.lineWrapping,
+        // ピントが ⌘F の欄にあっても、当たった文字を選んだ範囲として見せる
+        drawSelection(),
         EditorView.contentAttributes.of({ "aria-label": "表のセル" }),
         keymap.of([
           ...cellKeymap(main),
@@ -107,6 +109,8 @@ export function createCellEditor(main: EditorView, parent: HTMLElement): EditorV
     }),
   });
   editorsByMain.set(main, view);
+  // 検索・行へ移るで開いたセルが見えるように（大きな表では、表の頭だけが見えていることがある）
+  requestAnimationFrame(() => parent.isConnected && parent.scrollIntoView({ block: "nearest" }));
   const active = document.activeElement;
   // 押した・キーで動いたとき、ピントが編集の部品の中にあったとき（元に戻すなど）にピントを移す。⌘F の欄からは奪わない
   if (takeFocusRequest(main) || (!active?.closest(".cm-panels") && (active === document.body || main.dom.contains(active)))) view.focus();

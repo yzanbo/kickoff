@@ -6,7 +6,8 @@ import { Prec, StateField, type EditorState, type Range } from "@codemirror/stat
 import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
 import { NoteTable } from "./NoteTable";
 import type { TableBlock } from "./tableBlocks";
-import { cellRange, markdownWithoutCell, type CellAddress } from "./tableModel";
+import { getSearchQuery, searchPanelOpen } from "@codemirror/search";
+import { cellAt, cellRange, markdownWithoutCell, type CellAddress } from "./tableModel";
 import { cellSync } from "./cellEditor";
 import { enterTableKeymap } from "./cellKeys";
 import { focusWatcher, openCellOf, tableCellField } from "./tableField";
@@ -24,11 +25,19 @@ class TableWidget extends WidgetType {
     readonly markdown: string,
     /** この表で開いているセル（なければ null） */
     readonly open: CellAddress | null,
+    /** ⌘F の当たりのあるセル（「行,列」を ; でつないだもの。なければ空） */
+    readonly matches: string,
   ) {
     super();
   }
   eq(other: TableWidget) {
-    return other.markdown === this.markdown && other.block.prefix === this.block.prefix && other.open?.row === this.open?.row && other.open?.col === this.open?.col;
+    return (
+      other.markdown === this.markdown &&
+      other.block.prefix === this.block.prefix &&
+      other.open?.row === this.open?.row &&
+      other.open?.col === this.open?.col &&
+      other.matches === this.matches
+    );
   }
   // 描く前の高さの見込み（行の数ぶん。描いたら測り直す）
   get estimatedHeight() {
@@ -38,7 +47,7 @@ class TableWidget extends WidgetType {
     const portals = view.state.facet(widgetPortalsFacet);
     if (!portals) return;
     portalsByElement.set(el, portals);
-    portals.mount(el, <NoteTable markdown={this.markdown} view={view} open={this.open} />);
+    portals.mount(el, <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />);
   }
   toDOM(view: EditorView) {
     const el = document.createElement("div");
@@ -63,6 +72,21 @@ class TableWidget extends WidgetType {
   }
 }
 
+/** ⌘F の当たりのある表のセル（置き換えて描いた所には当たりの色が出ないので、セルに印を付ける） */
+function searchMatches(state: EditorState, table: TableBlock): string {
+  if (!searchPanelOpen(state)) return "";
+  const query = getSearchQuery(state);
+  if (!query.valid || !query.search) return "";
+  const text = docText(state);
+  const cells = new Set<string>();
+  const cursor = query.getCursor(state, table.from, table.to);
+  for (let next = cursor.next(); !next.done; next = cursor.next()) {
+    const at = cellAt(text, table, next.value.from);
+    cells.add(`${at.row},${at.col}`);
+  }
+  return [...cells].join(";");
+}
+
 function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
   const text = docText(state);
   const out: Range<Decoration>[] = [];
@@ -70,7 +94,7 @@ function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
     const here = open && open.tableFrom === t.from ? { row: open.row, col: open.col } : null;
     const range = here && cellRange(text, t, here);
     const markdown = range ? markdownWithoutCell(text, t, range) : t.markdown;
-    out.push(Decoration.replace({ widget: new TableWidget(t, markdown, here), block: true }).range(t.from, t.to));
+    out.push(Decoration.replace({ widget: new TableWidget(t, markdown, here, searchMatches(state, t)), block: true }).range(t.from, t.to));
   }
   return Decoration.set(out, true);
 }
@@ -81,7 +105,9 @@ const decorationsField = StateField.define<DecorationSet>({
     const open = openCellOf(tr.state);
     // 読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す（文が変わらなくても表が見つかる）
     const grew = syntaxTree(tr.startState) !== syntaxTree(tr.state);
-    if (!tr.docChanged && !grew && open === openCellOf(tr.startState)) return value;
+    // ⌘F の欄を開け閉めした・探す文が変わったときも、当たりのセルの印を付け直す
+    const searched = searchPanelOpen(tr.startState) !== searchPanelOpen(tr.state) || !getSearchQuery(tr.startState).eq(getSearchQuery(tr.state));
+    if (!tr.docChanged && !grew && !searched && open === openCellOf(tr.startState)) return value;
     return decorate(tr.state, open);
   },
   provide: (field) => EditorView.decorations.from(field),

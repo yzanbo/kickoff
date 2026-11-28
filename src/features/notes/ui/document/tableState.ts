@@ -61,7 +61,8 @@ export function nextOpenCell(prev: OpenCell | null, wasFocused: boolean, focused
     const { main } = tr.state.selection;
     const table = tableAt(tablesOf(tr.state), main.head);
     const inside = table && main.anchor >= table.from && main.anchor <= table.to;
-    open = inside ? { tableFrom: table.from, ...cellAt(docText(tr.state), table, main.head) } : null;
+    // 範囲の頭のセル（検索の当たりはその頭、行へ移るときは行の最初のセル）
+    open = inside ? { tableFrom: table.from, ...cellAt(docText(tr.state), table, main.from) } : null;
   }
   return open && openTable(tr.state, open) ? open : null;
 }

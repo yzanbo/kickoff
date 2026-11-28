@@ -259,3 +259,13 @@
 .md-editor .cm-note-table .note-table-add-column:focus-visible {
   opacity: 1;
 }
+
+/* ⌘F の当たりのあるセル（置き換えて描いた表の中には当たりの色が出ないので、セルに色を付ける） */
+
+.md-editor .cm-note-table .note-cell-match {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+}
+
+.md-editor .cm-note-table .note-cell-editor .cm-selectionBackground {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}

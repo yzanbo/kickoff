@@ -516,7 +516,7 @@
 | NOTE-011 | ⌘S で保存・書きかけを残す | notes | E:note-edit |
 | NOTE-012 | ほかで変わったノートを読み直す | notes | T:noteWatcher,notes/routes |
 | NOTE-013 | 題名を書き換えて名前を変える | notes | M |
-| NOTE-014 | ノートの中を探す・置き換える | notes | M |
+| NOTE-014 | ノートの中を探す・置き換える（表の中も。当たりのあるセルに色を付け、いまの当たりのセルを開く） | notes | M |
 | NOTE-015 | HTML で書く | notes | M |
 | NOTE-027 | ライブ表示で数式と Mermaid を図にする | notes | M |
 | NOTE-034 | ライブ表示で表を返答の表示と同じ見た目で描く（段落の途中から始まる表も） | notes | T:tableBlocks,markdownParity |

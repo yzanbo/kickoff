@@ -11,6 +11,8 @@ import type { CellAddress } from "./tableModel";
 interface NoteTableContextValue {
   view: EditorView;
   open: CellAddress | null;
+  /** ⌘F の当たりのあるセル（「行,列」を ; でつないだもの） */
+  matches: string;
 }
 
 export const NoteTableContext = createContext<NoteTableContextValue | null>(null);
@@ -41,7 +43,7 @@ function TableCell({ node, children, ...props }: CellProps) {
   const row = Number(node?.properties?.dataRow);
   const col = Number(node?.properties?.dataCol);
   if (!ctx) return <Tag {...props}>{children}</Tag>;
-  const { view, open } = ctx;
+  const { view, open, matches } = ctx;
   // 右クリック: 表の項目を足したノートのメニュー（開いたセルの中でも同じ）
   const menu = (e: MouseEvent<HTMLElement>) => {
     const openMenu = view.state.facet(editorContextMenuFacet);
@@ -64,7 +66,7 @@ function TableCell({ node, children, ...props }: CellProps) {
     openCell(view, view.posAtDOM(e.currentTarget), { row, col }, "end");
   };
   return (
-    <Tag {...props} onMouseDown={press} onContextMenu={menu}>
+    <Tag {...props} className={matches && `;${matches};`.includes(`;${row},${col};`) ? "note-cell-match" : undefined} onMouseDown={press} onContextMenu={menu}>
       {children}
     </Tag>
   );
