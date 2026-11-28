@@ -4,7 +4,7 @@
 import { defaultKeymap } from "@codemirror/commands";
 import { Annotation, EditorState, Transaction, type ChangeSpec } from "@codemirror/state";
 import { drawSelection, EditorView, keymap, runScopeHandlers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { openCellOf, syncEditorFocus, takeFocusRequest } from "./tableField";
+import { openCellRangeOf, openCellTable, syncEditorFocus, takeFocusRequest } from "./tableField";
 import { cellKeymap } from "./cellKeys";
 import { alignTableChanges, escapeCellInput, fillMissingCell, isAlignedTable } from "./tableEdit";
 import { bodyRows, cellRange } from "./tableModel";
@@ -24,9 +24,9 @@ const FORWARDED_KEYS = new Set(["s", "f", "g", "z", "y"]);
 
 /** セルの部品の変更を、本体の文の書き換えにして送る（そろえた表は、そろえたまま書き戻す） */
 function pushToMain(main: EditorView, update: ViewUpdate) {
-  const open = openCellOf(main.state);
-  const table = open && openTable(main.state, open);
-  if (!open || !table) return;
+  const here = openCellTable(main.state);
+  if (!here) return;
+  const { open, table } = here;
   const text = docText(main.state);
   const range = cellRange(text, table, open);
   const changes: ChangeSpec[] = [];
@@ -58,14 +58,13 @@ function pushToMain(main: EditorView, update: ViewUpdate) {
 }
 
 function alignAfter(state: EditorState, open: { tableFrom: number; row: number; col: number }) {
-  const table = openTable(state, open);
+  const table = openTable(state, open.tableFrom);
   return table ? alignTableChanges(docText(state), table) : [];
 }
 
 /** セルの部品の選んだ範囲を、本体の選んだ範囲にも写す（選んだ行をチャットに追加・右クリックのメニューが本体を読むため） */
 function mirrorSelection(main: EditorView, update: ViewUpdate) {
-  const open = openCellOf(main.state);
-  const range = open && openCellRange(main.state, open);
+  const range = openCellRangeOf(main.state);
   if (!range) return;
   const sel = update.state.selection.main;
   main.dispatch({ selection: { anchor: range.from + sel.anchor, head: range.from + sel.head }, annotations: fromCell.of(true) });
@@ -73,8 +72,7 @@ function mirrorSelection(main: EditorView, update: ViewUpdate) {
 
 /** 開いているセルの中に書く部品を作る（中身は本体のそのセルの元の文字。足りないセルは空） */
 export function createCellEditor(main: EditorView, parent: HTMLElement): EditorView {
-  const open = openCellOf(main.state);
-  const range = open && openCellRange(main.state, open);
+  const range = openCellRangeOf(main.state);
   const text = range ? main.state.sliceDoc(range.from, range.to) : "";
   const sel = main.state.selection.main;
   const local = (pos: number) => (range && pos >= range.from && pos <= range.to ? pos - range.from : text.length);
@@ -136,8 +134,7 @@ export const cellSync = ViewPlugin.fromClass(
       // セルを開いている間に本体がピントを得たら（表の余白を押したなど）、セルへ戻す（本体の Tab が表の文字を字下げしないように）
       if (cell && u.focusChanged && this.view.hasFocus) queueMicrotask(() => editorsByMain.get(this.view) === cell && cell.focus());
       if (!cell || u.transactions.every((t) => t.annotation(fromCell))) return;
-      const open = openCellOf(u.state);
-      const range = open && openCellRange(u.state, open);
+      const range = openCellRangeOf(u.state);
       const text = range ? u.state.sliceDoc(range.from, range.to) : "";
       const sel = u.state.selection.main;
       const inside = range && sel.from >= range.from && sel.to <= range.to;

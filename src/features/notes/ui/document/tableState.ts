@@ -22,14 +22,14 @@ export const fromCell = Annotation.define<boolean>();
 /** ピントが編集の部品（本体かセル）の中にあるか（変わったら知らせる） */
 export const editorFocusEffect = StateEffect.define<boolean>();
 
-/** 開いているセルの表（もう表でなくなっていれば null） */
-export function openTable(state: EditorState, open: OpenCell): TableBlock | null {
-  return tablesOf(state).find((t) => t.from === open.tableFrom) ?? null;
+/** 最初の行の頭が tableFrom の表（もう表でなくなっていれば null） */
+export function openTable(state: EditorState, tableFrom: number): TableBlock | null {
+  return tablesOf(state).find((t) => t.from === tableFrom) ?? null;
 }
 
 /** 開いているセルの元の文字の範囲（足りないセルは null） */
 export function openCellRange(state: EditorState, open: OpenCell) {
-  const table = openTable(state, open);
+  const table = openTable(state, open.tableFrom);
   return table ? cellRange(docText(state), table, open) : null;
 }
 
@@ -49,7 +49,7 @@ export function nextOpenCell(prev: OpenCell | null, wasFocused: boolean, focused
     // 範囲の頭のセル（検索の当たりはその頭、行へ移るときは行の最初のセル）
     open = inside ? { tableFrom: table.from, ...cellAt(docText(tr.state), table, main.from) } : null;
   }
-  return open && openTable(tr.state, open) ? open : null;
+  return open && openTable(tr.state, open.tableFrom) ? open : null;
 }
 
 /** ピントの様子（effect が来たらその値。セルを開いたら中にある） */

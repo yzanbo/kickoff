@@ -3,21 +3,20 @@
 import { redo, undo } from "@codemirror/commands";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { addRow } from "./tableActions";
-import { dispatchOpeningCell, openCellOf } from "./tableField";
+import { dispatchOpeningCell, openCellOf, openCellTable } from "./tableField";
 import { bodyRows, cellRange, columnCount, nextCell, previousCell, type CellAddress } from "./tableModel";
 import { docText, tablesOf } from "./noteDoc";
 import { fromCell, openCellEffect, openTable } from "./tableState";
 
 /** 開いているセルの表と場所 */
 function current(main: EditorView) {
-  const open = openCellOf(main.state);
-  const table = open && openTable(main.state, open);
-  return open && table ? { open, table, text: docText(main.state) } : null;
+  const here = openCellTable(main.state);
+  return here && { ...here, text: docText(main.state) };
 }
 
-/** セル target を開く（place: 中身の頭か終わりにカーソル）。target が null なら何もしない */
+/** 表 tableFrom のセル target を開く（place: 中身の頭か終わりにカーソル）。表がもうなければ何もしない */
 export function openCell(main: EditorView, tableFrom: number, target: CellAddress, place: "start" | "end") {
-  const table = openTable(main.state, { tableFrom, ...target });
+  const table = openTable(main.state, tableFrom);
   if (!table) return;
   const range = cellRange(docText(main.state), table, target);
   const row = bodyRows(table)[target.row];

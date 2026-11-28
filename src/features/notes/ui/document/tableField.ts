@@ -2,10 +2,8 @@
 // 置き換えて描く飾り（blockWidgets）とセルの書く部品（cellEditor・cellKeys）の両方が読む
 import { Facet, StateField, type EditorState, type TransactionSpec } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
-import { editorFocusEffect, nextFocused, nextOpenCell, type OpenCell } from "./tableState";
-
-/** 表とセル（右クリックしたセル） */
-export type TableTarget = OpenCell;
+import type { TableBlock } from "./tableBlocks";
+import { editorFocusEffect, nextFocused, nextOpenCell, openCellRange, openTable, type OpenCell } from "./tableState";
 
 interface TableCellState {
   focused: boolean;
@@ -26,6 +24,19 @@ export const tableCellField = StateField.define<TableCellState>({
 
 /** 開いているセル（なければ null） */
 export const openCellOf = (state: EditorState): OpenCell | null => state.field(tableCellField, false)?.open ?? null;
+
+/** 開いているセルとその表（開いていなければ null） */
+export function openCellTable(state: EditorState): { open: OpenCell; table: TableBlock } | null {
+  const open = openCellOf(state);
+  const table = open && openTable(state, open.tableFrom);
+  return open && table ? { open, table } : null;
+}
+
+/** 開いているセルの元の文字の範囲（開いていない・その行に書いていないセルは null） */
+export function openCellRangeOf(state: EditorState) {
+  const open = openCellOf(state);
+  return open && openCellRange(state, open);
+}
 
 /**
  * ピントが編集の部品（本体かセルの書く部品）の中にあるかを、表の状態に伝える（外へ出たら開いているセルを閉じる）。
@@ -72,12 +83,12 @@ export const editorContextMenuFacet = Facet.define<(at: { x: number; y: number }
 });
 
 /** 右クリックした表のセル（メニューを開くときに 1 回だけ読む） */
-const menuTargets = new WeakMap<EditorView, TableTarget>();
+const menuTargets = new WeakMap<EditorView, OpenCell>();
 
-export const setTableMenuTarget = (main: EditorView, target: TableTarget | null) => void (target ? menuTargets.set(main, target) : menuTargets.delete(main));
+export const setTableMenuTarget = (main: EditorView, target: OpenCell | null) => void (target ? menuTargets.set(main, target) : menuTargets.delete(main));
 
 /** 右クリックした表のセルを受け取る（受け取ったら消す。表の外の右クリックなら null） */
-export function takeTableMenuTarget(main: EditorView): TableTarget | null {
+export function takeTableMenuTarget(main: EditorView): OpenCell | null {
   const target = menuTargets.get(main) ?? null;
   menuTargets.delete(main);
   return target;

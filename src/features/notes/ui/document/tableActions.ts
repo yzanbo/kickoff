@@ -4,26 +4,26 @@ import { Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { ColumnAlign, TableBlock } from "./tableBlocks";
 import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
-import { dispatchOpeningCell, type TableTarget } from "./tableField";
+import { dispatchOpeningCell } from "./tableField";
 import { bodyRows, cellRange, columnAligns, columnCount, type CellAddress } from "./tableModel";
 import { docText } from "./noteDoc";
-import { fromCell, openCellEffect, openTable } from "./tableState";
+import { fromCell, openCellEffect, openTable, type OpenCell } from "./tableState";
 import { deleteColumn, deleteRow, deleteTable, insertColumn, insertRow, insertTableAt, setColumnAlign } from "./tableStructure";
 
 
 /** 書き換えを当て、after のセルを開く（null なら閉じて本体にピントを戻す。undefined なら開いたまま） */
-function apply(main: EditorView, target: TableTarget, changes: TextChange[], after: CellAddress | null | undefined) {
+function apply(main: EditorView, target: OpenCell, changes: TextChange[], after: CellAddress | null | undefined) {
   if (!changes.length) return;
   const state = main.state;
-  const table = openTable(state, target);
+  const table = openTable(state, target.tableFrom);
   if (!table) return;
   const first = state.update({ changes });
   const aligned = isAlignedTable(docText(state), table);
   const mapped = first.changes.mapPos(target.tableFrom);
-  const next = openTable(first.state, { ...target, tableFrom: mapped });
+  const next = openTable(first.state, mapped);
   const later = aligned && next ? alignTableChanges(docText(first.state), next) : [];
   const finalState = later.length ? first.state.update({ changes: later }).state : first.state;
-  const finalTable = openTable(finalState, { ...target, tableFrom: mapped });
+  const finalTable = openTable(finalState, mapped);
   const range = after && finalTable ? cellRange(docText(finalState), finalTable, after) : null;
   const effects = after === undefined ? [] : [openCellEffect.of(after && finalTable ? { tableFrom: mapped, ...after } : null)];
   const selection = range ? { anchor: range.to } : after === null ? { anchor: Math.min(mapped, finalState.doc.length) } : undefined;
@@ -37,16 +37,16 @@ function apply(main: EditorView, target: TableTarget, changes: TextChange[], aft
 }
 
 /** 行を足して、足した行の同じ列のセルを開く */
-export function addRow(main: EditorView, target: TableTarget, where: "above" | "below") {
-  const table = openTable(main.state, target);
+export function addRow(main: EditorView, target: OpenCell, where: "above" | "below") {
+  const table = openTable(main.state, target.tableFrom);
   if (!table) return;
   const { changes, row } = insertRow(docText(main.state), table, target.row, where);
   apply(main, target, changes, { row, col: target.col });
 }
 
 /** 列を足して、足した列の同じ行のセルを開く */
-export function addColumn(main: EditorView, target: TableTarget, where: "left" | "right") {
-  const table = openTable(main.state, target);
+export function addColumn(main: EditorView, target: OpenCell, where: "left" | "right") {
+  const table = openTable(main.state, target.tableFrom);
   if (!table) return;
   const { changes, col } = insertColumn(docText(main.state), table, target.col, where);
   apply(main, target, changes, { row: target.row, col });
@@ -54,12 +54,12 @@ export function addColumn(main: EditorView, target: TableTarget, where: "left" |
 
 /** 最後に行・列を足す（表の端の「＋」） */
 export function appendRow(main: EditorView, tableFrom: number) {
-  const table = openTable(main.state, { tableFrom, row: 0, col: 0 });
+  const table = openTable(main.state, tableFrom);
   if (table) addRow(main, { tableFrom, row: bodyRows(table).length - 1, col: 0 }, "below");
 }
 
 export function appendColumn(main: EditorView, tableFrom: number) {
-  const table = openTable(main.state, { tableFrom, row: 0, col: 0 });
+  const table = openTable(main.state, tableFrom);
   if (table) addColumn(main, { tableFrom, row: 0, col: columnCount(docText(main.state), table) - 1 }, "right");
 }
 
@@ -70,15 +70,15 @@ export interface TableMenuItem {
 }
 
 /** 表のセルの右クリックのメニューの項目（見出しの行は消せない・上に足せない、列が 1 つなら列を消せない） */
-export function tableMenuItems(main: EditorView, target: TableTarget): TableMenuItem[] {
-  const table = openTable(main.state, target);
+export function tableMenuItems(main: EditorView, target: OpenCell): TableMenuItem[] {
+  const table = openTable(main.state, target.tableFrom);
   if (!table) return [];
   const text = docText(main.state);
   const columns = columnCount(text, table);
   const current = columnAligns(text, table)[target.col] ?? null;
   // 押したときの表で書き換えを作る（メニューを開いてから押すまでに表が消えていれば何もしない）
   const edit = (build: (text: string, table: TableBlock) => TextChange[], after: CellAddress | null) => () => {
-    const now = openTable(main.state, target);
+    const now = openTable(main.state, target.tableFrom);
     if (now) apply(main, target, build(docText(main.state), now), after);
   };
   const align = (value: ColumnAlign) => edit((text, t) => setColumnAlign(text, t, target.col, value), target);
@@ -104,7 +104,7 @@ export function insertTable(main: EditorView) {
   main.dispatch({ changes: change, annotations: Transaction.userEvent.of("input.table"), scrollIntoView: true });
   // 入れた表は次の読み取りで見つかるので、そのあとで開く
   queueMicrotask(() => {
-    const table = openTable(main.state, { tableFrom, row: 0, col: 0 });
+    const table = openTable(main.state, tableFrom);
     const range = table && cellRange(docText(main.state), table, { row: 0, col: 0 });
     if (!range) return;
     dispatchOpeningCell(main, { effects: openCellEffect.of({ tableFrom, row: 0, col: 0 }), selection: { anchor: range.to }, annotations: fromCell.of(true) });
