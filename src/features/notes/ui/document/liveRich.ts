@@ -12,7 +12,7 @@ import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
 import { editorFocus, editorFocusOf } from "./editorFocus";
-import { htmlBlocksOf, tablesOf } from "./noteDoc";
+import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
@@ -94,21 +94,21 @@ interface RichState {
 function build(state: EditorState, theme: AppliedTheme): DecorationSet {
   // 本文にピントがあるときだけ、カーソルのある所を元の文字にする
   const focused = editorFocusOf(state).text;
-  const text = state.doc.toString();
+  const text = docText(state);
   const touches = (from: number, to: number) => focused && state.selection.ranges.some((r) => r.from <= to && r.to >= from);
   const out: Range<Decoration>[] = [];
   // 表と HTML のまとまりの中は blockWidgets が描くので、数式・図を重ねない
   const replaced = [...tablesOf(state), ...htmlBlocksOf(state)];
-  const inTable = (from: number, to: number) => replaced.some((t) => from < t.to && to > t.from);
+  const inReplaced = (from: number, to: number) => replaced.some((t) => from < t.to && to > t.from);
   // Mermaid の塊（行をまるごと置き換える）。数式はこの外だけを探す
   const blocks = mermaidBlocks(syntaxTree(state), text);
   for (const b of blocks) {
-    if (touches(b.from, b.to) || !b.code.trim() || inTable(b.from, b.to)) continue;
+    if (touches(b.from, b.to) || !b.code.trim() || inReplaced(b.from, b.to)) continue;
     out.push(Decoration.replace({ widget: new MermaidWidget(b.code, theme), block: true }).range(b.from, b.to));
   }
   if (katex && mayContainMath(text)) {
     for (const m of mathRanges(text)) {
-      if (touches(m.from, m.to) || inTable(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
+      if (touches(m.from, m.to) || inReplaced(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
       const start = state.doc.lineAt(m.from);
       const end = state.doc.lineAt(m.to);
       // 行をまるごと占める段落の数式は、行ごと置き換える（行をまたいでよい）
@@ -152,7 +152,7 @@ const richWatcher = ViewPlugin.fromClass(
     }
     /** 数式があれば KaTeX を読み込み、読み込んだら描き直す */
     ensure() {
-      if (katex || !mayContainMath(this.view.state.doc.toString())) return;
+      if (katex || !mayContainMath(docText(this.view.state))) return;
       void loadKatex().then(() => this.notify());
     }
     notify() {

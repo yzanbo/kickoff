@@ -6,6 +6,7 @@ import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, typ
 import { InlineHtmlWidget } from "./InlineHtml";
 import { NoteImageWidget } from "./NoteImage";
 import { previewMarks, type PreviewMark } from "./livePreview";
+import { docText } from "./noteDoc";
 
 /** 箇条書きの記号の代わりの「•」 */
 class BulletWidget extends WidgetType {
@@ -134,7 +135,7 @@ function build(view: EditorView): DecorationSet {
   }
   const isActive = (pos: number) => active.has(state.doc.lineAt(pos).number);
   const tree = syntaxTree(state);
-  const text = state.doc.toString();
+  const text = docText(state);
   // 見えている範囲（いくつかに分かれていても、最初から最後までを 1 回でたどる。同じ要素を 2 回飾らないように）
   const visible = view.visibleRanges;
   const from = visible[0]?.from ?? 0;
