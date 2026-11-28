@@ -2,9 +2,9 @@
 // そろえた表は、書き換えたあとにそろえ直す（同じ 1 回の元に戻す）。当てたあと、足したセルなどを開く
 import { Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { tableAligns, type ColumnAlign } from "./tableBlocks";
+import { tableAligns, type ColumnAlign, type TableBlock } from "./tableBlocks";
 import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
-import { focusNextCell, type TableTarget } from "./tableField";
+import { dispatchOpeningCell, type TableTarget } from "./tableField";
 import { bodyRows, cellRange, columnCount, type CellAddress } from "./tableModel";
 import { docText } from "./noteDoc";
 import { fromCell, openCellEffect, openTable } from "./tableState";
@@ -27,13 +27,12 @@ function apply(main: EditorView, target: TableTarget, changes: TextChange[], aft
   const range = after && finalTable ? cellRange(docText(finalState), finalTable, after) : null;
   const effects = after === undefined ? [] : [openCellEffect.of(after && finalTable ? { tableFrom: mapped, ...after } : null)];
   const selection = range ? { anchor: range.to } : after === null ? { anchor: Math.min(mapped, finalState.doc.length) } : undefined;
-  if (after) focusNextCell(main);
-  main.dispatch(
-    state.update(
-      { changes, annotations: [fromCell.of(true), Transaction.userEvent.of("input.table")] },
-      { changes: later, sequential: true, effects, selection, scrollIntoView: true },
-    ),
-  );
+  const specs = [
+    { changes, annotations: [fromCell.of(true), Transaction.userEvent.of("input.table")] },
+    { changes: later, sequential: true, effects, selection, scrollIntoView: true },
+  ];
+  if (after && finalTable) dispatchOpeningCell(main, ...specs);
+  else main.dispatch(...specs);
   if (after === null) main.focus();
 }
 
@@ -78,19 +77,24 @@ export function tableMenuItems(main: EditorView, target: TableTarget): TableMenu
   const columns = columnCount(text, table);
   const delimiter = table.rows.find((r) => r.delimiter);
   const current = delimiter ? (tableAligns(text.slice(delimiter.from, delimiter.to))[target.col] ?? null) : null;
-  const align = (value: ColumnAlign) => () => apply(main, target, setColumnAlign(docText(main.state), openTable(main.state, target)!, target.col, value), target);
+  // 押したときの表で書き換えを作る（メニューを開いてから押すまでに表が消えていれば何もしない）
+  const edit = (build: (text: string, table: TableBlock) => TextChange[], after: CellAddress | null) => () => {
+    const now = openTable(main.state, target);
+    if (now) apply(main, target, build(docText(main.state), now), after);
+  };
+  const align = (value: ColumnAlign) => edit((text, t) => setColumnAlign(text, t, target.col, value), target);
   const items: (TableMenuItem | false)[] = [
     target.row > 0 && { label: "上に行を足す", run: () => addRow(main, target, "above") },
     { label: "下に行を足す", run: () => addRow(main, target, "below") },
     { label: "左に列を足す", run: () => addColumn(main, target, "left") },
     { label: "右に列を足す", run: () => addColumn(main, target, "right") },
-    target.row > 0 && { label: "行を消す", run: () => apply(main, target, deleteRow(docText(main.state), openTable(main.state, target)!, target.row), { row: target.row - 1, col: target.col }) },
-    columns > 1 && { label: "列を消す", run: () => apply(main, target, deleteColumn(docText(main.state), openTable(main.state, target)!, target.col), { row: target.row, col: Math.max(0, target.col - 1) }) },
+    target.row > 0 && { label: "行を消す", run: edit((text, t) => deleteRow(text, t, target.row), { row: target.row - 1, col: target.col }) },
+    columns > 1 && { label: "列を消す", run: edit((text, t) => deleteColumn(text, t, target.col), { row: target.row, col: Math.max(0, target.col - 1) }) },
     current !== "left" && { label: "列を左寄せ", run: align("left") },
     current !== "center" && { label: "列を中央寄せ", run: align("center") },
     current !== "right" && { label: "列を右寄せ", run: align("right") },
     current !== null && { label: "列の寄せを外す", run: align(null) },
-    { label: "表を消す", run: () => apply(main, target, deleteTable(docText(main.state), openTable(main.state, target)!), null) },
+    { label: "表を消す", run: edit(deleteTable, null) },
   ];
   return items.filter((i): i is TableMenuItem => i !== false);
 }
@@ -98,14 +102,12 @@ export function tableMenuItems(main: EditorView, target: TableTarget): TableMenu
 /** カーソルの行に空の表を入れて、見出しの最初のセルを開く */
 export function insertTable(main: EditorView) {
   const { change, tableFrom } = insertTableAt(docText(main.state), main.state.selection.main.head);
-  focusNextCell(main);
   main.dispatch({ changes: change, annotations: Transaction.userEvent.of("input.table"), scrollIntoView: true });
   // 入れた表は次の読み取りで見つかるので、そのあとで開く
   queueMicrotask(() => {
     const table = openTable(main.state, { tableFrom, row: 0, col: 0 });
     const range = table && cellRange(docText(main.state), table, { row: 0, col: 0 });
     if (!range) return;
-    focusNextCell(main);
-    main.dispatch({ effects: openCellEffect.of({ tableFrom, row: 0, col: 0 }), selection: { anchor: range.to }, annotations: fromCell.of(true) });
+    dispatchOpeningCell(main, { effects: openCellEffect.of({ tableFrom, row: 0, col: 0 }), selection: { anchor: range.to }, annotations: fromCell.of(true) });
   });
 }

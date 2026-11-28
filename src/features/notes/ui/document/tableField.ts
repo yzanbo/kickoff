@@ -1,6 +1,6 @@
 // 表のセルで書く状態を持つ StateField（どのセルを開いているか・ピントが編集の部品の中にあるか）と、ピントの見張り。
 // 置き換えて描く飾り（blockWidgets）とセルの書く部品（cellEditor・cellKeys）の両方が読む
-import { Facet, StateField, type EditorState } from "@codemirror/state";
+import { Facet, StateField, type EditorState, type TransactionSpec } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { editorFocusEffect, nextFocused, nextOpenCell, type OpenCell } from "./tableState";
 
@@ -50,8 +50,18 @@ export const focusWatcher = ViewPlugin.fromClass(
 /** 次に作るセルの部品にピントを移すか（押した・セルの間を動いた） */
 const focusRequests = new WeakSet<EditorView>();
 
-/** 次に開くセルの部品へピントを移す（押した・キーで動いたとき） */
-export const focusNextCell = (main: EditorView) => void focusRequests.add(main);
+/**
+ * セルを開く書き換えを送り、開いたセルの部品へピントを移す（押した・キーで動いたとき）。
+ * 開くセルが替わらなかった（開けなかった・表を書けない表示・同じセルのまま）ときは、部品を作り直さないので頼みを残さない
+ * （残すと、あとで ⌘F の当たりで開いたセルが検索の欄からピントを奪う）
+ */
+export function dispatchOpeningCell(main: EditorView, ...specs: TransactionSpec[]) {
+  const before = openCellOf(main.state);
+  focusRequests.add(main);
+  main.dispatch(...specs);
+  const after = openCellOf(main.state);
+  if (!after || sameCell(before, after)) focusRequests.delete(main);
+}
 
 /** ピントを移す頼みを受け取る（あれば true。受け取ったら消す） */
 export const takeFocusRequest = (main: EditorView) => focusRequests.delete(main);

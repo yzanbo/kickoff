@@ -3,7 +3,7 @@
 import { redo, undo } from "@codemirror/commands";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { addRow } from "./tableActions";
-import { focusNextCell, openCellOf } from "./tableField";
+import { dispatchOpeningCell, openCellOf } from "./tableField";
 import { bodyRows, cellRange, columnCount, nextCell, previousCell, type CellAddress } from "./tableModel";
 import { docText, tablesOf } from "./noteDoc";
 import { fromCell, openCellEffect, openTable } from "./tableState";
@@ -22,8 +22,7 @@ export function openCell(main: EditorView, tableFrom: number, target: CellAddres
   const range = cellRange(docText(main.state), table, target);
   const row = bodyRows(table)[target.row];
   const pos = range ? (place === "start" ? range.from : range.to) : row.to;
-  focusNextCell(main);
-  main.dispatch({ effects: openCellEffect.of({ tableFrom, ...target }), selection: { anchor: pos }, annotations: fromCell.of(true), scrollIntoView: true });
+  dispatchOpeningCell(main, { effects: openCellEffect.of({ tableFrom, ...target }), selection: { anchor: pos }, annotations: fromCell.of(true), scrollIntoView: true });
 }
 
 /** 表の外へ出る（up: 表の前の行の終わり / down: 表の後ろの行の頭。表が文の最後なら空の行を足す） */
