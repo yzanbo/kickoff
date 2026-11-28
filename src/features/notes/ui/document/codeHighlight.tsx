@@ -29,6 +29,8 @@ class CodeHeadWidget extends WidgetType {
     return other.lang === this.lang && other.code === this.code && other.indent === this.indent;
   }
   private render(el: HTMLElement, view: EditorView) {
+    // 要素を使い回すので、字下げの幅は描くたびに当て直す
+    el.style.width = this.indent ? `calc(100% - ${this.indent}ch - 4px)` : "";
     mountInEditor(
       view,
       el,
@@ -41,7 +43,6 @@ class CodeHeadWidget extends WidgetType {
   toDOM(view: EditorView) {
     const el = document.createElement("span");
     el.className = "cm-code-head";
-    if (this.indent) el.style.width = `calc(100% - ${this.indent}ch - 4px)`;
     this.render(el, view);
     return el;
   }

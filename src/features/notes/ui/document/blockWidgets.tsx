@@ -43,14 +43,14 @@ class TableWidget extends WidgetType {
     return this.block.rows.length * 30;
   }
   private render(el: HTMLElement, view: EditorView) {
+    // リストの中の表は、その字下げの場所に描く（要素を使い回すので、描くたびに当て直す）
+    const indent = this.block.prefix.replace(/[>]/g, " ").length;
+    el.style.paddingInlineStart = indent ? `${indent}ch` : "";
     mountInEditor(view, el, <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />);
   }
   toDOM(view: EditorView) {
     const el = document.createElement("div");
     el.className = "cm-note-table";
-    // リストの中の表は、その字下げの場所に描く
-    const indent = this.block.prefix.replace(/[>]/g, " ").length;
-    if (indent) el.style.paddingInlineStart = `${indent}ch`;
     this.render(el, view);
     return el;
   }
