@@ -269,3 +269,26 @@
 .md-editor .cm-note-table .note-cell-editor .cm-selectionBackground {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
+
+/* コードの塊の帯（codeHighlight。開きの ``` の行の代わり。返答のコードの帯と同じ言語名とコピーのボタン） */
+
+.md-editor .cm-code-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 4px);
+  /* 元の文字の行と同じ高さ（カーソルが入って文字に替わっても行の高さが動かない） */
+  height: 1lh;
+  vertical-align: top;
+}
+
+.md-editor .cm-code-head .code-block-lang {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--muted);
+}
+
+.md-editor .cm-code-head .code-block-copy {
+  width: 18px;
+  height: 18px;
+}

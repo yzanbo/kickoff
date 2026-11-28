@@ -46,7 +46,7 @@ test("livePreview: 箇条書きは「•」、タスクは記号を隠してチ�
   assert.deepEqual(marksOf("- 項目", 0), []);
 });
 
-test("livePreview: 引用は行ごとに見た目を付けて > を隠し、コードの塊は行に見た目を付けて ``` と言語を隠し、区切り線は線に", () => {
+test("livePreview: 引用は行ごとに見た目を付けて > を隠し、コードの塊は行に見た目を付けて閉じの ``` を隠し（開きの行は帯）、区切り線は線に", () => {
   assert.deepEqual(marksOf("> 引用\n\n```js\na\n```\n\n---"), [
     "line:md-quote@0",
     'hide="> "',
@@ -54,12 +54,12 @@ test("livePreview: 引用は行ごとに見た目を付けて > を隠し、コ�
     "line:md-codeblock@3",
     "line:md-codeblock@4",
     'hide="```"',
-    'hide="js"',
-    'hide="```"',
     'rule="---"',
   ]);
-  // カーソルのある行（``` の行）は残す
-  assert.deepEqual(marksOf("```js\na\n```", 0), ["line:md-codeblock@0", "line:md-codeblock@1", "line:md-codeblock@2", 'hide="```"']);
+  // カーソルのある行（閉じの ``` の行）は残す
+  assert.deepEqual(marksOf("```js\na\n```", 2), ["line:md-codeblock@0", "line:md-codeblock@1", "line:md-codeblock@2"]);
+  // 引用の中の塊は帯を出さないので、開きの ``` と言語名も隠す
+  assert.deepEqual(marksOf("> ```js\n> a\n> ```").filter((m) => m.startsWith("hide")), ['hide="> "', 'hide="```"', 'hide="js"', 'hide="> "', 'hide="> "', 'hide="```"']);
 });
 
 const cjkMarksOf = (text: string) => marksOf(text, null, cjk);

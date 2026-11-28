@@ -51,6 +51,8 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
     if (!isActive(a) && b > a) out.push({ kind: "hide", from: a, to: b });
   };
   const parentName = (n: SyntaxNodeRef) => n.node.parent?.name ?? "";
+  const isOpeningFence = (n: SyntaxNodeRef) => n.node.parent?.firstChild?.from === n.from;
+  const inQuote = (n: SyntaxNodeRef) => n.node.parent?.parent?.name === "Blockquote";
   // 行き先のあるリンクだけを飾る（定義のない [文字] は角かっこごと文字のまま。返答の表示と同じ）
   const defs = linkDefinitions(tree, text);
   const isLink = (n: SyntaxNodeRef | null | undefined) => !!n && n.name === "Link" && linkHref(n.node, text, defs) !== null;
@@ -88,12 +90,12 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
           if (isLink(n.node.parent) || parentName(n) === "Autolink") hide(n.from, n.to);
           return;
         case "CodeMark":
-          // 行の中のコードの `・コードの塊の ```（カーソルのない行は、塊の地だけを見せる）
-          if (parentName(n) === "InlineCode" || parentName(n) === "FencedCode") hide(n.from, n.to);
+          // 行の中のコードの `・コードの塊の閉じの ```（開きの行は帯に替える。codeHighlight）。引用の中の塊は帯を出さないので開きも隠す
+          if (parentName(n) === "InlineCode" || (parentName(n) === "FencedCode" && (!isOpeningFence(n) || inQuote(n)))) hide(n.from, n.to);
           return;
         case "CodeInfo":
-          // コードの塊の言語の名前（```js の js）
-          hide(n.from, n.to);
+          // コードの塊の言語の名前（```js の js。引用の中の塊だけ。ほかは帯に出す）
+          if (inQuote(n)) hide(n.from, n.to);
           return;
         case "URL":
           // リンクの行き先（[文](URL) の URL）は隠し、文だけを見せる
