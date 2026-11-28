@@ -112,7 +112,9 @@ const sameTip = (a: Tooltip | null, b: Tooltip | null) => a === b || (!!a && !!b
 const linkTooltipField = StateField.define<Tooltip | null>({
   create: tooltipOf,
   update(value, tr) {
-    if (!tr.docChanged && !tr.selection && !tr.effects.length) return value;
+    // 書いた・選んだ範囲が動いた・ピントが変わった・読み取りの木が育ったときだけ見直す
+    const refocused = editorFocusOf(tr.startState).inside !== editorFocusOf(tr.state).inside;
+    if (!tr.docChanged && !tr.selection && !refocused && syntaxTree(tr.startState) === syntaxTree(tr.state)) return value;
     const next = tooltipOf(tr.state);
     // 同じリンクのまま（中で動いた・書いた）でも、行き先が変わりうるので作り直す。動かないときは同じ物
     return !tr.docChanged && sameTip(next, value) ? value : next;

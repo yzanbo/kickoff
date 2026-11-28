@@ -13,6 +13,7 @@ import { enterTableKeymap } from "./cellKeys";
 import { editorFocusOf } from "./editorFocus";
 import { openCellOf, tableCells } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
+import type { HtmlBlockSource } from "./htmlBlocks";
 import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
 import { type OpenCell } from "./tableState";
 import { PortalWidget } from "./widgetPortals";
@@ -94,14 +95,22 @@ function searchMatches(state: EditorState, table: TableBlock): string {
   return [...cells].join(";");
 }
 
+/** 元の文字で見せる HTML のまとまり（ピントが編集の部品の中にあり、選んだ範囲がかかっているもの） */
+function rawHtmlBlocks(state: EditorState): HtmlBlockSource[] {
+  if (!editorFocusOf(state).inside) return [];
+  return htmlBlocksOf(state).filter((h) => state.selection.ranges.some((r) => r.from <= h.to && r.to >= h.from));
+}
+
+const sameBlocks = (a: HtmlBlockSource[], b: HtmlBlockSource[]) => a.length === b.length && a.every((h, i) => h.from === b[i].from && h.to === b[i].to);
+
 function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
   const text = docText(state);
   const out: Range<Decoration>[] = [];
   // HTML のまとまり（カーソルが中にあれば元の文字）。中の表は表として描かない
-  const focused = editorFocusOf(state).inside;
+  const raw = rawHtmlBlocks(state);
   const html = htmlBlocksOf(state);
   for (const h of html) {
-    if (focused && state.selection.ranges.some((r) => r.from <= h.to && r.to >= h.from)) continue;
+    if (raw.includes(h)) continue;
     out.push(Decoration.replace({ widget: new HtmlBlockWidget(h.source), block: true }).range(h.from, h.to));
   }
   for (const t of tablesOf(state)) {
@@ -122,8 +131,9 @@ const decorationsField = StateField.define<DecorationSet>({
     const grew = syntaxTree(tr.startState) !== syntaxTree(tr.state);
     // ⌘F の欄を開け閉めした・探す文が変わったときも、当たりのセルの印を付け直す
     const searched = searchPanelOpen(tr.startState) !== searchPanelOpen(tr.state) || !getSearchQuery(tr.startState).eq(getSearchQuery(tr.state));
-    // HTML のまとまりがあれば、カーソルの出入り・ピントでも組み直す（入ると元の文字）
-    const moved = (tr.selection || tr.effects.length > 0) && htmlBlocksOf(tr.state).length > 0;
+    // 選んだ範囲が HTML のまとまりにかかり始めた・外れた・ピントが変わったときも組み直す（かかると元の文字）
+    const refocused = editorFocusOf(tr.startState).inside !== editorFocusOf(tr.state).inside;
+    const moved = !tr.docChanged && (tr.selection || refocused) && !sameBlocks(rawHtmlBlocks(tr.startState), rawHtmlBlocks(tr.state));
     if (!tr.docChanged && !grew && !searched && !moved && open === openCellOf(tr.startState)) return value;
     return decorate(tr.state, open);
   },
