@@ -11,7 +11,7 @@ import { linkAt, type NoteLinkAt } from "./noteLinks";
 import { headingSlug } from "./noteLinkTarget";
 import { tableCellField } from "./tableField";
 import { docText } from "./tableState";
-import { widgetPortalsFacet } from "./widgetPortals";
+import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** リンクの行き先の説明と開き方（開いたノートの画面が渡す） */
 export interface NoteLinkOpener {
@@ -92,10 +92,9 @@ function tooltipWith(pos: number, render: (view: EditorView) => JSX.Element | nu
     arrow: false,
     create(view) {
       const dom = document.createElement("div");
-      const portals = view.state.facet(widgetPortalsFacet);
       const node = render(view);
-      if (portals && node) portals.mount(dom, node);
-      return { dom, destroy: () => portals?.unmount(dom) };
+      if (node) mountInEditor(view, dom, node);
+      return { dom, destroy: () => unmountFromEditor(dom) };
     },
   };
 }

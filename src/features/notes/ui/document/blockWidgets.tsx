@@ -13,10 +13,7 @@ import { enterTableKeymap } from "./cellKeys";
 import { focusWatcher, openCellOf, tableCellField } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
 import { docText, htmlBlocksOf, tablesOf, type OpenCell } from "./tableState";
-import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
-
-/** 要素を描いた portals（destroy では view を受け取れないので、描いたときに覚える） */
-const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
+import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 表 1 つを描く飾り（中身は React の部品。widgetPortals で描く） */
 class TableWidget extends WidgetType {
@@ -45,10 +42,7 @@ class TableWidget extends WidgetType {
     return this.block.rows.length * 30;
   }
   private render(el: HTMLElement, view: EditorView) {
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (!portals) return;
-    portalsByElement.set(el, portals);
-    portals.mount(el, <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />);
+    mountInEditor(view, el, <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />);
   }
   toDOM(view: EditorView) {
     const el = document.createElement("div");
@@ -65,7 +59,7 @@ class TableWidget extends WidgetType {
     return true;
   }
   destroy(el: HTMLElement) {
-    portalsByElement.get(el)?.unmount(el);
+    unmountFromEditor(el);
   }
   // 中の押下・キー・入力は表の部品とセルの書く部品が受ける（本体は扱わない）
   ignoreEvent() {
@@ -84,15 +78,11 @@ class HtmlBlockWidget extends WidgetType {
   toDOM(view: EditorView) {
     const el = document.createElement("div");
     el.className = "cm-note-html";
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (portals) {
-      portalsByElement.set(el, portals);
-      portals.mount(el, <HtmlBlock source={this.source} view={view} />);
-    }
+    mountInEditor(view, el, <HtmlBlock source={this.source} view={view} />);
     return el;
   }
   destroy(el: HTMLElement) {
-    portalsByElement.get(el)?.unmount(el);
+    unmountFromEditor(el);
   }
   // 中のたたむ部分（details）の開け閉めは部品が受け、ほかを押すと本体がカーソルを置く（元の文字に戻る）
   ignoreEvent(e: Event) {

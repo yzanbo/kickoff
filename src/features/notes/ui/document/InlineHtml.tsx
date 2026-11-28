@@ -4,7 +4,7 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { WidgetType, type EditorView } from "@codemirror/view";
 import { markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
 import { COMPONENTS } from "@/foundation/ui/markdown/markdownComponents";
-import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
+import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 段落 1 つだけの木なら、段落の中身（行の中に描くので段落の枠を外す） */
 function inlineChildren(tree: Root): ElementContent[] {
@@ -21,8 +21,6 @@ export function InlineHtml({ source }: { source: string }) {
   return <span className="markdown note-inline-html">{element}</span>;
 }
 
-const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
-
 /** 行の中の HTML の代わりに描く飾り（カーソルがその行に入ると元の文字） */
 export class InlineHtmlWidget extends WidgetType {
   constructor(readonly source: string) {
@@ -34,15 +32,11 @@ export class InlineHtmlWidget extends WidgetType {
   toDOM(view: EditorView) {
     const el = document.createElement("span");
     el.className = "cm-inline-html";
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (portals) {
-      portalsByElement.set(el, portals);
-      portals.mount(el, <InlineHtml source={this.source} />);
-    }
+    mountInEditor(view, el, <InlineHtml source={this.source} />);
     return el;
   }
   destroy(el: HTMLElement) {
-    portalsByElement.get(el)?.unmount(el);
+    unmountFromEditor(el);
   }
   ignoreEvent() {
     return false;

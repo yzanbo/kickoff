@@ -10,12 +10,10 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { codeBlocks, tokenRanges } from "./codeBlocks";
 import { docText } from "./tableState";
-import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
+import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 色が届いた・テーマが変わった（組み直しの合図） */
 const recolor = StateEffect.define<null>();
-
-const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
 
 /** 開きの ``` の行の代わりの帯（言語名とコピーのボタン。返答のコードの帯と同じ部品とクラス） */
 class CodeHeadWidget extends WidgetType {
@@ -31,10 +29,8 @@ class CodeHeadWidget extends WidgetType {
     return other.lang === this.lang && other.code === this.code && other.indent === this.indent;
   }
   private render(el: HTMLElement, view: EditorView) {
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (!portals) return;
-    portalsByElement.set(el, portals);
-    portals.mount(
+    mountInEditor(
+      view,
       el,
       <>
         <span className="code-block-lang">{this.lang}</span>
@@ -54,7 +50,7 @@ class CodeHeadWidget extends WidgetType {
     return true;
   }
   destroy(el: HTMLElement) {
-    portalsByElement.get(el)?.unmount(el);
+    unmountFromEditor(el);
   }
   // コピーのボタンを押せるように、帯の中の押下は本体が扱わない
   ignoreEvent(e: Event) {

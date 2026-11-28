@@ -1,7 +1,7 @@
 import { Facet } from "@codemirror/state";
 import { WidgetType, type EditorView } from "@codemirror/view";
 import { webUrlOf } from "@shared/foundation/linkTarget";
-import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
+import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 画像の src を、画面で読める URL にする口（ノートのフォルダの中の画像だけ。ほかは null。開いたノートの画面が渡す） */
 export const noteImageUrlFacet = Facet.define<(src: string) => string | null, ((src: string) => string | null) | null>({ combine: (values) => values[0] ?? null });
@@ -17,8 +17,6 @@ function NoteImage({ src, alt, view }: { src: string; alt: string; view: EditorV
   return <span className="note-image-text">{remote ? `外の画像（${remote.host}）${alt ? `: ${alt}` : ""}` : alt || src}</span>;
 }
 
-const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
-
 /** 画像の書き方（![説明](パス)）の代わりに描く飾り（カーソルがその行に入ると元の文字） */
 export class NoteImageWidget extends WidgetType {
   constructor(
@@ -33,15 +31,11 @@ export class NoteImageWidget extends WidgetType {
   toDOM(view: EditorView) {
     const el = document.createElement("span");
     el.className = "cm-note-image";
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (portals) {
-      portalsByElement.set(el, portals);
-      portals.mount(el, <NoteImage src={this.src} alt={this.alt} view={view} />);
-    }
+    mountInEditor(view, el, <NoteImage src={this.src} alt={this.alt} view={view} />);
     return el;
   }
   destroy(el: HTMLElement) {
-    portalsByElement.get(el)?.unmount(el);
+    unmountFromEditor(el);
   }
   ignoreEvent() {
     return false;
