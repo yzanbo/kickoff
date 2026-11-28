@@ -147,7 +147,7 @@
   padding: 1px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 4px);
-  color: var(--accent-text);
+  color: var(--accent-fg);
   background: transparent;
   cursor: pointer;
 }
@@ -162,7 +162,6 @@
 /* 表の中のリンク（返答のリンクと同じ色。相対のパスもリンクにする） */
 
 .md-editor .cm-note-table .note-table-link {
-  color: var(--accent-text);
   text-decoration: none;
 }
 
@@ -193,7 +192,7 @@
 
 .md-editor .cm-md-footref {
   font-size: 0.75em;
-  color: var(--accent-text);
+  color: var(--accent-fg);
 }
 
 .md-editor .cm-md-footdef {
