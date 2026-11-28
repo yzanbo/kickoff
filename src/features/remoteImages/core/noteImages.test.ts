@@ -51,20 +51,20 @@ test("ノートの画像: 許可したホストだけを取り、2 回目から�
   assert.equal((await app.request(imageUrl(project.id, "b.md", url), { headers: AUTH })).status, 400);
 });
 
-test("ノートを動かすと許可と覚えた画像が付いていき（フォルダごとでも）、ゴミ箱に入れると忘れる", async () => {
+test("ノートを動かすと許可と覚えた画像が付いていき（絵文字の名前のフォルダごとでも）、ゴミ箱に入れると忘れる", async () => {
   const { app, api, project, imageFake } = setup({ features: [...FEATURES] });
   const params = { projectId: project.id };
   const url = "https://images.example.com/m.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
-  await api("POST /api/projects/:projectId/notes", { params, body: { path: "dir", dir: true } });
-  await api("POST /api/projects/:projectId/notes", { params, body: { path: "dir/a.md" } });
-  await api("PUT /api/projects/:projectId/note-image-hosts", { params, body: { path: "dir/a.md", host: "images.example.com" } });
-  await app.request(imageUrl(project.id, "dir/a.md", url), { headers: AUTH });
+  await api("POST /api/projects/:projectId/notes", { params, body: { path: "📁dir", dir: true } });
+  await api("POST /api/projects/:projectId/notes", { params, body: { path: "📁dir/a.md" } });
+  await api("PUT /api/projects/:projectId/note-image-hosts", { params, body: { path: "📁dir/a.md", host: "images.example.com" } });
+  await app.request(imageUrl(project.id, "📁dir/a.md", url), { headers: AUTH });
 
-  assert.equal((await api("POST /api/projects/:projectId/notes/move", { params, body: { from: "dir", to: "moved" } })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/notes/move", { params, body: { from: "📁dir", to: "moved" } })).status, 200);
   const hostsOf = async (note: string) => (await api("GET /api/projects/:projectId/note-image-hosts", { params, query: { path: note } })).body.hosts.length;
   await until(async () => (await hostsOf("moved/a.md")) === 1);
-  assert.equal(await hostsOf("dir/a.md"), 0);
+  assert.equal(await hostsOf("📁dir/a.md"), 0);
   // 覚えた画像も付いていく（取り直さない）
   assert.equal((await app.request(imageUrl(project.id, "moved/a.md", url), { headers: AUTH })).status, 200);
   assert.deepEqual(imageFake.fetched, [url]);

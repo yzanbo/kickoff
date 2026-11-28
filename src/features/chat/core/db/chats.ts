@@ -2,7 +2,7 @@ import { systemClock } from "@/foundation/core/clock";
 import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
 import type { Chat, GitHubLink } from "@shared/chat/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
+import { bit, pathOrInside, updateRow, type Notify } from "@/foundation/core/db/common";
 import { chatsTable } from "@/features/chat/core/schema";
 import { CHAT_COLUMNS, type ChatFilter, type ChatPatch, type NewChat } from "./types";
 import { createChatArchive } from "./chatArchive";
@@ -48,8 +48,10 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
 
   const archive = createChatArchive(db, onChange, get, descendants);
 
-  const noteChats = (projectId: number, notePath: string): Chat[] =>
-    db.prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC").all(projectId, notePath, notePath, notePath).map(toChat);
+  const noteChats = (projectId: number, notePath: string): Chat[] => {
+    const inside = pathOrInside("note_path", notePath);
+    return db.prepare(`SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND ${inside.sql} ORDER BY id DESC`).all(projectId, ...inside.values).map(toChat);
+  };
 
   return {
     get,
