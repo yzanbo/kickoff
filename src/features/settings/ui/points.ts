@@ -33,6 +33,12 @@ export interface SettingsItemDef {
   Component: ComponentType<SettingsPartProps>;
 }
 
+/**
+ * 節の中でない、決まった場所に置く欄の section（上の機能が settingsItems に入れる）:
+ * dialogTop = アプリの設定のダイアログのいちばん上の帯（新しい版の知らせなど）/ buttonBadge = 下の帯の ⚙ に重ねる印（何も描かなければ印なし）
+ */
+export const SETTINGS_SLOTS = { dialogTop: "@dialogTop", buttonBadge: "@buttonBadge" } as const;
+
 export const settingsSections = definePoint<SettingsSectionDef>("settingsSections", { key: (s) => `${s.scope}:${s.id}`, order: (a, b) => a.order - b.order });
 export const settingsItems = definePoint<SettingsItemDef>("settingsItems", { key: (i) => i.id, order: (a, b) => a.order - b.order });
 

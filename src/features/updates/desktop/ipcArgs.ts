@@ -6,7 +6,11 @@ import type { ArgSchemasFor, ArgsOfTable, ZodArgsOf } from "@/foundation/desktop
 
 export const updatesArgs = {
   updates: {
-    build: none,
+    snapshot: none,
+    check: none,
+    install: none,
+    cancelInstall: none,
+    skip: none,
   },
 } satisfies ArgSchemasFor<typeof UPDATES_IPC>;
 true satisfies Same<ArgsOfTable<typeof UPDATES_IPC>, ZodArgsOf<typeof updatesArgs>>;

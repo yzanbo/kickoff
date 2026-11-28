@@ -7,11 +7,12 @@ const handler = () => {};
 
 test("mergeParts: IPC のまとまり・引数の形・RPC を合わせ、メニューの項目は並び順につなぐ", () => {
   const a: DesktopPart = { name: "a", ipc: { dialog: { pickReferences: handler } } as unknown as DesktopPart["ipc"], menu: [{ label: "1" }] };
-  const b: DesktopPart = { name: "b", ipc: { loginItem: { get: handler } } as unknown as DesktopPart["ipc"], hostMethods: { "browser.tabs": handler } as unknown as DesktopPart["hostMethods"], menu: [{ label: "2" }, { label: "3" }] };
+  const b: DesktopPart = { name: "b", ipc: { loginItem: { get: handler } } as unknown as DesktopPart["ipc"], hostMethods: { "browser.tabs": handler } as unknown as DesktopPart["hostMethods"], menu: [{ label: "2" }, { label: "3" }], appMenu: [{ label: "更新" }] };
   const merged = mergeParts([a, b]);
   assert.deepEqual(Object.keys(merged.ipc), ["dialog", "loginItem"]);
   assert.deepEqual(Object.keys(merged.hostMethods), ["browser.tabs"]);
   assert.deepEqual(merged.menu.map((m) => m.label), ["1", "2", "3"]);
+  assert.deepEqual(merged.appMenu.map((m) => m.label), ["更新"]);
 });
 
 test("mergeParts: 同じまとまり・同じ RPC の名前を 2 つの部品が出していれば投げる", () => {

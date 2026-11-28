@@ -1,5 +1,6 @@
 // コアの起動の値（CoreOptions）と、起動したコアの口（Core）。startCore と、コアのプロセスの入口（hostRun.ts）が読む
 import type { Bus } from "@/foundation/core/bus";
+import type { AppSettings } from "@shared/foundation/contract/settings";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { HostPlatform } from "@/foundation/core/platform/types";
@@ -71,6 +72,8 @@ export interface Core {
   runningChats(): { id: number; title: string }[];
   /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら turns の知らせか bus の settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
+  /** アプリの設定（メインプロセスの更新の仕組みが、自動で確かめるか・飛ばした版を読む） */
+  settings(): AppSettings;
   /** チャットの作業を動かし始めた・1 回の実行が終わった知らせ（chat の殻） */
   turns: Pick<ChatRunPort, "onTurnStarted" | "onTurnEnded">;
   /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */

@@ -257,6 +257,9 @@ scripts/  docs/           道具と文書
 | ワークツリーの実行環境 | `WorktreeEnv` | ポートの番号など |
 | ポートを使っているプロセス | `PortProcess` | |
 | 外の画像 | `RemoteImage` | 押したら表示 |
+| 版 / 手元ビルド | `BuildInfo`・`BUILD_KIND_LABELS` | 版・ビルド番号（コミットの数）・短い SHA。install-app で作った版は手元ビルド |
+| 新しい版 / 更新して開き直す | `UpdateState`・`requestInstall` | 印鑑で署名した製品版だけが確かめる。作業中のチャットがあれば終わってから開き直す |
+| この版は飛ばす | `skipped_update_version` | 効くのはその版だけ |
 | 本体 / スマホ連携 | `DeviceAccess`・`mobile_enabled` | スマホから見た Mac の Kickoff |
 
 ## 6. 決めたこと

@@ -5,6 +5,7 @@ import { BROWSER_METHODS, type BrowserControl } from "@shared/browser/control";
 import type { WorkerChannel } from "@/features/database/core/index";
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { Notice } from "@shared/foundation/ipc/notifications";
+import type { UpdatePrefs } from "@shared/updates/types";
 import type { DesktopNotify } from "@/features/notifications/core/index";
 import { SECRET_METHODS, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 import { shellPathSettled } from "@/foundation/core/system/exec";
@@ -14,10 +15,11 @@ import type { RpcPort } from "@/foundation/core/host/ports";
 import type { HostRpc } from "@/foundation/core/host/rpc";
 
 declare module "@/foundation/core/host/protocol" {
-  /** メイン → コア: 診断の記録（10 秒）と、消えた画面のシェルを止める */
+  /** メイン → コア: 診断の記録（10 秒）と、消えた画面のシェルを止める・更新の設定を読む */
   interface CoreFeatureMethods
     extends Prefixed<"diagnostics", { start(): Promise<void>; stop(): Promise<CoreDiagnostics> }>,
-      Prefixed<"terminal", { closeOwnedBy(owner: string): Promise<void> }> {}
+      Prefixed<"terminal", { closeOwnedBy(owner: string): Promise<void> }>,
+      Prefixed<"updates", { settings(): Promise<UpdatePrefs> }> {}
   /** コア → メイン: 埋め込みブラウザの操作とキーチェーンの鍵 */
   interface HostFeatureMethods extends Prefixed<"browser", Omit<BrowserControl, "touch">>, Prefixed<"secret", SecretCipher> {}
   /** コア → メインの知らせ: Mac の通知と、AI が操作したタブの印 */

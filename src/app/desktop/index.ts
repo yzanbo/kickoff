@@ -82,13 +82,16 @@ async function start() {
   setMainWindowUrl(url);
   const merged = mergeParts([...parts, coreDesktop(coreProcess)]);
   registerIpc(url, NATIVE_API, merged);
-  setAppMenu(merged.menu);
-  // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる
-  const session = ready.then(async (r) => {
-    await prepareAppSession(url, r.token);
-    allowHangStacks(url);
-    startupLog("認証の Cookie を設定しました");
-  });
+  setAppMenu(merged.menu, merged.appMenu);
+  // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる（部品の読み込み前の用意も待つ）
+  const session = Promise.all([
+    ready.then(async (r) => {
+      await prepareAppSession(url, r.token);
+      allowHangStacks(url);
+      startupLog("認証の Cookie を設定しました");
+    }),
+    ...parts.map((part) => part.beforeLoad?.()),
+  ]).then(() => {});
   // ログイン時に起動したときは窓を出さずに裏で動かす（スマホから届くように本体だけ起こしておく。Dock を押せば activate で出る）
   if (openedAtLogin()) startupLog("ログイン時に起動したので、窓を出さずに動かします");
   else openMainWindow(url, session);

@@ -29,3 +29,34 @@ export interface BuildInfo extends BuildStamp {
   /** package.json の version（semver） */
   version: string;
 }
+
+/**
+ * 更新の様子（メインが持ち、画面へ updates.onState で知らせる）。
+ * checking・latest・unreachable は手で確かめたときだけ（自動の確かめでは帯を出さない）。previous は確かめる前の様子（つながらなければ戻す）
+ */
+export type UpdateState =
+  | { kind: "idle" }
+  | { kind: "checking"; previous: UpdateState }
+  | { kind: "latest" }
+  | { kind: "unreachable" }
+  | { kind: "downloading"; version: string; percent: number }
+  | { kind: "ready"; version: string }
+  /** 作業中のチャットがあるので、終わったら開き直す（running は作業中の数） */
+  | { kind: "waiting"; version: string; running: number }
+  | { kind: "installing"; version: string }
+  /** 入れられなかった（印鑑が違う・置き場所に書けないなど） */
+  | { kind: "failed"; version: string };
+
+/** 画面に渡す更新のまとめ */
+export interface UpdatesSnapshot {
+  build: BuildInfo;
+  /** この版で更新を確かめるか（印鑑で署名した製品版だけ。開発版・印鑑なしの版は確かめない） */
+  supported: boolean;
+  state: UpdateState;
+}
+
+/** 更新の設定のうちメインが読む所（コアのアプリの設定 auto_check_updates・skipped_update_version。RPC の updates.settings） */
+export interface UpdatePrefs {
+  autoCheck: boolean;
+  skippedVersion: string | null;
+}

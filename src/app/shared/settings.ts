@@ -11,6 +11,7 @@ import { noteSettings } from "@shared/notes/settings";
 import { compactSettings } from "@shared/compact/settings";
 import { childChatSettings } from "@shared/childChats/settings";
 import { remoteImageSettings } from "@shared/remoteImages/settings";
+import { updateSettings } from "@shared/updates/settings";
 
 /** 全部の設定（並びは機能の順。GET /api/settings の項目の順もこれ） */
 export const ALL_SETTINGS = {
@@ -25,6 +26,7 @@ export const ALL_SETTINGS = {
   ...compactSettings,
   ...childChatSettings,
   ...remoteImageSettings,
+  ...updateSettings,
 } as const satisfies SettingTable;
 
 declare module "@shared/foundation/contract/settings" {

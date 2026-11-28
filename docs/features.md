@@ -972,6 +972,10 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | SET-029 | 設定の「Kickoff について」とメニューの「Kickoff について」に、版・ビルド番号・短い SHA と手元ビルドかを出す | updates | T:buildLabel |
+| SET-030 | 印鑑で署名した製品版だけ、起動して少しあとと 1 時間ごとに新しい版を確かめ、裏でダウンロードして ⚙ に印を付ける（切る設定あり） | updates | T:updater,updateModel |
+| SET-031 | 設定の上の帯に進み具合・［更新して開き直す］［この版は飛ばす］・変わった点を出し、作業中のチャットがあれば終わってから開き直す | updates | T:updateBannerModel,updateModel,M |
+| SET-032 | メニューの「アップデートを確認…」（確認中は 0.5 秒以上・なければ「最新の版です」） | updates | T:updater,M |
+| SET-033 | 入れられなかったら帯でダウンロードのページへ案内し、版が変わった最初の起動で画面の HTTP キャッシュを消す | updates | T:updater,cacheReset |
 
 ## BASE 土台（保存・守り・OS）
 
