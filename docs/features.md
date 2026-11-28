@@ -520,6 +520,7 @@
 | NOTE-015 | HTML で書く | notes | M |
 | NOTE-027 | ライブ表示で数式と Mermaid を図にする | notes | M |
 | NOTE-034 | ライブ表示で表を返答の表示と同じ見た目で描く（段落の途中から始まる表も） | notes | T:tableBlocks,markdownParity |
+| NOTE-035 | 表のセルを押してその場で書く（Tab・Enter・矢印で移る・⌘Z は本文と同じ履歴・その表の書き方で書き戻す） | notes | T:tableEdit,tableState |
 
 ### ノートの AI
 | ID | 機能 | 持ち主 | 確かめ方 |

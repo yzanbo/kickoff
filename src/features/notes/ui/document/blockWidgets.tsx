@@ -1,23 +1,44 @@
 // ノートの Markdown 表示で、表などのまとまりを置き換えて描く飾り（中身は返答の表示と同じ処理で描く。NoteTable）。
+// 表はカーソルが入っても表のまま描き、開いているセルだけをその場で書く部品にする（tableState・cellEditor）。
 // 行をまたいで置き換えるので StateField で出す。読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す
 import { syntaxTree } from "@codemirror/language";
-import { StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { Prec, StateField, type EditorState, type Range } from "@codemirror/state";
+import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
 import { NoteTable } from "./NoteTable";
-import { tableBlocks, type TableBlock } from "./tableBlocks";
+import type { TableBlock } from "./tableBlocks";
+import { cellRange, markdownWithoutCell, type CellAddress } from "./tableModel";
+import { cellSync } from "./cellEditor";
+import { enterTableKeymap } from "./cellKeys";
+import { focusWatcher, openCellOf, tableCellField } from "./tableField";
+import { docText, tablesOf, type OpenCell } from "./tableState";
 import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
+
+/** 要素を描いた portals（destroy では view を受け取れないので、描いたときに覚える） */
+const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
 
 /** 表 1 つを描く飾り（中身は React の部品。widgetPortals で描く） */
 class TableWidget extends WidgetType {
-  constructor(readonly block: TableBlock) {
+  constructor(
+    readonly block: TableBlock,
+    /** 描く Markdown（開いているセルの中身は抜く。そのセルを書いても描き直さない） */
+    readonly markdown: string,
+    /** この表で開いているセル（なければ null） */
+    readonly open: CellAddress | null,
+  ) {
     super();
   }
   eq(other: TableWidget) {
-    return other.block.markdown === this.block.markdown && other.block.prefix === this.block.prefix;
+    return other.markdown === this.markdown && other.block.prefix === this.block.prefix && other.open?.row === this.open?.row && other.open?.col === this.open?.col;
   }
   // 描く前の高さの見込み（行の数ぶん。描いたら測り直す）
   get estimatedHeight() {
     return this.block.rows.length * 30;
+  }
+  private render(el: HTMLElement, view: EditorView) {
+    const portals = view.state.facet(widgetPortalsFacet);
+    if (!portals) return;
+    portalsByElement.set(el, portals);
+    portals.mount(el, <NoteTable markdown={this.markdown} view={view} open={this.open} />);
   }
   toDOM(view: EditorView) {
     const el = document.createElement("div");
@@ -25,66 +46,46 @@ class TableWidget extends WidgetType {
     // リストの中の表は、その字下げの場所に描く
     const indent = this.block.prefix.replace(/[>]/g, " ").length;
     if (indent) el.style.paddingInlineStart = `${indent}ch`;
-    const portals = view.state.facet(widgetPortalsFacet);
-    if (portals) {
-      portalsByElement.set(el, portals);
-      portals.mount(el, <NoteTable markdown={this.block.markdown} view={view} />);
-    }
+    this.render(el, view);
     return el;
+  }
+  // 中身が変わっても要素は作り直さない（開いているセルの書く部品・横のスクロールを残す）
+  updateDOM(el: HTMLElement, view: EditorView) {
+    this.render(el, view);
+    return true;
   }
   destroy(el: HTMLElement) {
     portalsByElement.get(el)?.unmount(el);
   }
-  // 押したら編集の部品がカーソルを置く（中に入ると元の文字に戻る）
+  // 中の押下・キー・入力は表の部品とセルの書く部品が受ける（本体は扱わない）
   ignoreEvent() {
-    return false;
+    return true;
   }
 }
 
-/** 要素を描いた portals（destroy では view を受け取れないので、描いたときに覚える） */
-const portalsByElement = new WeakMap<HTMLElement, WidgetPortals>();
-
-/** 描き直しの合図（ピントが変わった・読み取りの木が育った） */
-const refresh = StateEffect.define<{ focused: boolean }>();
-
-interface BlocksState {
-  focused: boolean;
-  decorations: DecorationSet;
-}
-
-function build(state: EditorState, focused: boolean): BlocksState {
-  const text = state.doc.toString();
-  const tables = tableBlocks(syntaxTree(state), text);
-  // カーソル（選んだ範囲）が中にある表は元の文字のまま（ピントがないときは、どれも描く）
-  const touches = (from: number, to: number) => focused && state.selection.ranges.some((r) => r.from <= to && r.to >= from);
+function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
+  const text = docText(state);
   const out: Range<Decoration>[] = [];
-  for (const t of tables) {
-    if (touches(t.from, t.to)) continue;
-    out.push(Decoration.replace({ widget: new TableWidget(t), block: true }).range(t.from, t.to));
+  for (const t of tablesOf(state)) {
+    const here = open && open.tableFrom === t.from ? { row: open.row, col: open.col } : null;
+    const range = here && cellRange(text, t, here);
+    const markdown = range ? markdownWithoutCell(text, t, range) : t.markdown;
+    out.push(Decoration.replace({ widget: new TableWidget(t, markdown, here), block: true }).range(t.from, t.to));
   }
-  return { focused, decorations: Decoration.set(out, true) };
+  return Decoration.set(out, true);
 }
 
-const blocksField = StateField.define<BlocksState>({
-  create: (state) => build(state, false),
+const decorationsField = StateField.define<DecorationSet>({
+  create: (state) => decorate(state, openCellOf(state)),
   update(value, tr) {
-    const effect = tr.effects.find((e) => e.is(refresh));
-    if (!effect && !tr.docChanged && !tr.selection && syntaxTree(tr.startState) === syntaxTree(tr.state)) return value;
-    return build(tr.state, effect ? effect.value.focused : value.focused);
+    const open = openCellOf(tr.state);
+    // 読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す（文が変わらなくても表が見つかる）
+    const grew = syntaxTree(tr.startState) !== syntaxTree(tr.state);
+    if (!tr.docChanged && !grew && open === openCellOf(tr.startState)) return value;
+    return decorate(tr.state, open);
   },
-  provide: (field) => EditorView.decorations.from(field, (v) => v.decorations),
+  provide: (field) => EditorView.decorations.from(field),
 });
 
-/** ピントの出入りと、読み取りの木が文を変えずに育ったことを、組み直しに伝える */
-const blocksWatcher = ViewPlugin.fromClass(
-  class {
-    constructor(readonly view: EditorView) {}
-    update(u: ViewUpdate) {
-      const grew = !u.docChanged && syntaxTree(u.startState) !== syntaxTree(u.state);
-      if (u.focusChanged || grew) queueMicrotask(() => this.view.dispatch({ effects: refresh.of({ focused: this.view.hasFocus }) }));
-    }
-  },
-);
-
 /** 表などのまとまりを置き換えて描く飾り（Markdown 表示のときだけ入れる） */
-export const blockWidgets = [blocksField, blocksWatcher];
+export const blockWidgets = [tableCellField, focusWatcher, decorationsField, cellSync, Prec.high(keymap.of(enterTableKeymap))];

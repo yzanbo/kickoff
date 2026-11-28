@@ -1,13 +1,13 @@
 import type { Element, Root } from "hast";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import type { EditorView } from "@codemirror/view";
-import type { Components } from "react-markdown";
 import { convertTexDelimiters, mayContainMath } from "@shared/foundation/markdown/mathGuard";
 import { markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
-import { COMPONENTS } from "@/foundation/ui/markdown/markdownComponents";
 import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
+import { NoteTableContext, TABLE_COMPONENTS } from "./TableCell";
+import type { CellAddress } from "./tableModel";
 
 /**
  * 表のセルに、何行目・何列目か（data-row・data-col。見出しの行が 0、区切りの行は数えない）を付ける。
@@ -34,19 +34,46 @@ function markCells(tree: Root): void {
 
 /**
  * ノートの表を、返答の表示と同じ処理（読み方・中の HTML の一覧・リンク・数式・部品）で描く。
- * 描き終えたら編集の部品に高さを測り直させる（置き換えた所の高さが変わるため）
+ * open はこの表で開いているセル（そのセルは書く部品に替える）。描き終えたら編集の部品に高さを測り直させる（置き換えた所の高さが変わるため）
  */
-export function NoteTable({ markdown, view, components = COMPONENTS }: { markdown: string; view: EditorView; components?: Components }) {
+export function NoteTable({ markdown, view, open }: { markdown: string; view: EditorView; open: CellAddress | null }) {
   const hasMath = mayContainMath(markdown);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
   const pipeline = pipelineOf(undefined, withMath ? math : null);
   const tree = markdownToHast(pipeline, withMath ? convertTexDelimiters(markdown) : markdown);
+  const box = useRef<HTMLDivElement>(null);
+  // セルを開く前の列の幅（開いている間はこの幅に固定する）
+  const widths = useRef<number[] | null>(null);
+  const editing = open !== null;
   useLayoutEffect(() => {
     view.requestMeasure();
+    const table = box.current?.querySelector("table");
+    if (!editing && table) widths.current = [...(table.rows[0]?.cells ?? [])].map((c) => c.getBoundingClientRect().width);
   });
+  // セルを開いている間は列の幅を固定する（開いたセルの中身が抜けても列が動かない。1 文字ごとに大きな表の全部の行の幅を測り直さない）
+  useLayoutEffect(() => {
+    const table = box.current?.querySelector("table");
+    const fixed = widths.current;
+    if (!editing || !table || !fixed) return;
+    const head = [...(table.rows[0]?.cells ?? [])];
+    table.style.tableLayout = "fixed";
+    table.style.width = `${fixed.reduce((a, b) => a + b, 0)}px`;
+    head.forEach((c, i) => (c.style.width = `${fixed[i] ?? 0}px`));
+    return () => {
+      table.style.tableLayout = "";
+      table.style.width = "";
+      head.forEach((c) => (c.style.width = ""));
+    };
+  }, [editing]);
   if (!tree) return <pre className="note-table-plain">{markdown}</pre>;
   markCells(tree);
-  const element = toJsxRuntime(tree, { Fragment, components, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true });
-  return <div className="markdown">{element}</div>;
+  const element = toJsxRuntime(tree, { Fragment, components: TABLE_COMPONENTS, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true });
+  return (
+    <NoteTableContext.Provider value={{ view, open }}>
+      <div ref={box} className="markdown">
+        {element}
+      </div>
+    </NoteTableContext.Provider>
+  );
 }
