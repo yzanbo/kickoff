@@ -12,8 +12,11 @@ export interface NoteChatLink {
   moved(projectId: number, from: string, to: string): void;
   /** ノートをゴミ箱へ入れた: ノートのチャットも同じ行に入れる（作業中のものはそのまま） */
   trashed(projectId: number, path: string, itemId: string): void;
-  /** AI の kickoff-trash でノートのフォルダの中のものが入った: 画面から入れたときと同じくノートのチャットも入れ、一覧が変わったと知らせる */
-  imported(item: TrashItem, noteDirOf: (project: Project) => string): void;
+  /**
+   * AI の kickoff-trash でノートのフォルダの中のものが入った: 画面から入れたときと同じくノートのチャットも入れ、一覧が変わったと知らせる。
+   * 入ったノート（かフォルダ）のプロジェクトとパスを返す（ノートのフォルダの外なら null。ノートの機能がほかの付け替えに使う）
+   */
+  imported(item: TrashItem, noteDirOf: (project: Project) => string): { projectId: number; path: string } | null;
   /** そのノートのチャット（アーカイブしていないもの）があるか */
   hasChat(projectId: number, path: string): boolean;
 }

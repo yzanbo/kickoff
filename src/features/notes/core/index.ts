@@ -79,8 +79,11 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   notes.onTrashed((e) => void deps.remoteImages.noteTrashed(e.project_id, e.path));
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
   trash.addOriginResolver((origin) => projects.list().find((p) => (p.note_dir || p.note_folder) && isInside(realPathLoose(dirs.dirOf(p)), origin))?.id ?? null);
-  // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
-  trash.addImportHook((item) => chat.noteChats.imported(item, dirs.dirOf));
+  // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れ、外の画像の許可も忘れる（画面から消したときと同じ）
+  trash.addImportHook((item) => {
+    const note = chat.noteChats.imported(item, dirs.dirOf);
+    if (note) void deps.remoteImages.noteTrashed(note.projectId, note.path);
+  });
   deps.attachments.addImageDir(dirs.dirOf);
   deps.attachments.useNoteDir(dirs.dirOf);
   // チャットの実行に、ノートのフォルダと共通のノートのフォルダ（なければ決めて作る）・「ノート」の節・ノートのチャットの知らせを足す

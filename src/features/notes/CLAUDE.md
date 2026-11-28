@@ -28,7 +28,7 @@
 ## 落とし穴
 
 - 行へ移る `?line=`（`ui/noteReveal.ts`）は開く前に `requestNoteReveal` で頼み、編集の部品ができたとき（`onReady`）に受け取る。古い頼みは捨てる（後で急に移らない）。
-- 動かす・ゴミ箱に入れると `onMoved`・`onMovedAcross`（欄の間）・`onTrashed` で知らせ、ノートのチャット（chat の `noteChats`）・DB の手順ノート・外の画像の許可（remoteImages。ノートごと）を付け替える。
+- 動かす・ゴミ箱に入れると `onMoved`・`onMovedAcross`（欄の間）・`onTrashed` で知らせ、ノートのチャット（chat の `noteChats`）・DB の手順ノート・外の画像の許可（remoteImages。ノートごと）を付け替える（AI の kickoff-trash で入れたときも同じ）。
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻っても確かめる（`checkFresh`）。
 - ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。
 - テスト: `core/routes.test.ts`（`noteFake`）。

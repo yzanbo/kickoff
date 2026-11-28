@@ -87,16 +87,17 @@ export function trashNoteChats(deps: Omit<ChatTrashDeps, "trashBin">, projectId:
 export function trashNoteChatsOnImport(
   deps: Omit<ChatTrashDeps, "trashBin"> & { noteDirOf: (project: Project) => string; publish: (e: BusEvent) => void },
   item: StoredTrashItem,
-): void {
+): { projectId: number; path: string } | null {
   const project = item.project_id !== null ? deps.store.projects.get(item.project_id) : null;
-  if (!project || !item.origin || !(project.note_dir || project.note_folder)) return;
+  if (!project || !item.origin || !(project.note_dir || project.note_folder)) return null;
   // kickoff-trash は元の場所をリンクを解いた形で書くので、ノートのフォルダもリンクを解いて比べる
   const dir = realPathLoose(deps.noteDirOf(project));
-  if (!isInside(dir, item.origin) || item.origin === dir) return;
+  if (!isInside(dir, item.origin) || item.origin === dir) return null;
   const note = path.relative(dir, item.origin).split(path.sep).join("/");
   deps.store.trash.setDetails(item.id, { ...(item.details as FileTrashDetails), note });
   trashNoteChats(deps, project.id, note, item.id);
   deps.publish({ type: "notes", project_id: project.id, path: null });
+  return { projectId: project.id, path: note };
 }
 
 /** ゴミ箱の行と一緒に入れたチャットを戻す（親がもう消えたものは親のないチャットに） */
