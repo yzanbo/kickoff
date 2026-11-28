@@ -77,13 +77,17 @@ export class NoteImageService {
   /** ノート（かフォルダ）を動かした・ほかのプロジェクトへ移した: 範囲の path を書き換える（覚えたファイルは範囲の ID の下なので動かさない） */
   async moved(fromProject: number, from: string, toProject: number, to: string): Promise<void> {
     const { moved, dropped } = this.store.move(fromProject, from, toProject, to);
-    await this.cache.removeScopes(dropped);
+    // 元のパスの分は空になったと知らせる（画面が覚えた許可を残さない。戻した・同じ名前で作り直したノートでは、また押して許可する）
+    for (const m of moved) this.publishHosts(fromProject, m.from, []);
     for (const m of moved) this.changed(toProject, m.path);
+    await this.cache.removeScopes(dropped);
   }
 
   /** ノート（かフォルダ）をゴミ箱に入れた: 許可と覚えた画像を忘れる（戻したら、また押して許可する） */
   async trashed(projectId: number, note: string): Promise<void> {
-    await this.cache.removeScopes(this.store.forgetUnder(projectId, note));
+    const gone = this.store.forgetUnder(projectId, note);
+    for (const g of gone) this.publishHosts(projectId, g.path, []);
+    await this.cache.removeScopes(gone.map((g) => g.id));
   }
 
   /** 範囲の行がもうない覚えた画像のフォルダを消す（プロジェクトを本当に消したとき、行は一緒に消えるがファイルは残るため。起動したときに流す） */
@@ -95,8 +99,12 @@ export class NoteImageService {
 
   private changed(projectId: number, note: string): ImageHost[] {
     const hosts = this.hosts(projectId, note);
-    this.opts.publish({ type: "note_image_hosts", project_id: projectId, path: note, hosts });
+    this.publishHosts(projectId, note, hosts);
     return hosts;
+  }
+
+  private publishHosts(projectId: number, note: string, hosts: ImageHost[]): void {
+    this.opts.publish({ type: "note_image_hosts", project_id: projectId, path: note, hosts });
   }
 }
 

@@ -45,12 +45,12 @@ export function createNoteImageStore(db: DatabaseSync) {
     },
     /**
      * ノート（かフォルダ）from を動かした: 中のノートの範囲の path を書き換える（許可も覚えた画像も付いていく）。行き先に古い範囲が残っていれば先に消す。
-     * 動かした範囲（ID と新しいパス）と、消した古い範囲の ID を返す（古い範囲のファイルは呼ぶ側が消す）
+     * 動かした範囲（ID と元・新しいパス）と、消した古い範囲の ID を返す（古い範囲のファイルは呼ぶ側が消す）
      */
-    move(fromProject: number, from: string, toProject: number, to: string): { moved: { id: number; path: string }[]; dropped: number[] } {
+    move(fromProject: number, from: string, toProject: number, to: string): { moved: { id: number; from: string; path: string }[]; dropped: number[] } {
       const inside = pathOrInside("path", from);
       const rows = db.prepare(`SELECT id, path FROM note_image_scopes WHERE project_id = ? AND ${inside.sql}`).all(fromProject, ...inside.values) as { id: number; path: string }[];
-      const moved = rows.map((r) => ({ id: r.id, path: to + r.path.slice(from.length) }));
+      const moved = rows.map((r) => ({ id: r.id, from: r.path, path: to + r.path.slice(from.length) }));
       const dropped: number[] = [];
       for (const m of moved) {
         const stale = scopeId(toProject, m.path);
@@ -62,12 +62,10 @@ export function createNoteImageStore(db: DatabaseSync) {
       }
       return { moved, dropped };
     },
-    /** ノート（かフォルダ）の範囲を消す（許可と覚え書きも一緒に。消した範囲の ID を返す。ファイルは呼ぶ側が消す） */
-    forgetUnder(projectId: number, path: string): number[] {
+    /** ノート（かフォルダ）の範囲を消す（許可と覚え書きも一緒に。消した範囲の ID とパスを返す。ファイルは呼ぶ側が消す） */
+    forgetUnder(projectId: number, path: string): { id: number; path: string }[] {
       const inside = pathOrInside("path", path);
-      const ids = (db.prepare(`SELECT id FROM note_image_scopes WHERE project_id = ? AND ${inside.sql}`).all(projectId, ...inside.values) as { id: number }[]).map((r) => r.id);
-      for (const id of ids) db.prepare("DELETE FROM note_image_scopes WHERE id = ?").run(id);
-      return ids;
+      return db.prepare(`DELETE FROM note_image_scopes WHERE project_id = ? AND ${inside.sql} RETURNING id, path`).all(projectId, ...inside.values) as { id: number; path: string }[];
     },
     /** いまある範囲の ID（ファイルだけ残った範囲を片付けるため） */
     scopeIds(): Set<number> {
