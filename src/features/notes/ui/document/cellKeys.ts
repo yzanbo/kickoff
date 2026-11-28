@@ -25,7 +25,7 @@ export function openCell(main: EditorView, tableFrom: number, target: CellAddres
 }
 
 /** 表の外へ出る（up: 表の前の行の終わり / down: 表の後ろの行の頭。表が文の最後なら空の行を足す） */
-export function leaveTable(main: EditorView, direction: "up" | "down") {
+function leaveTable(main: EditorView, direction: "up" | "down") {
   const here = current(main);
   if (!here) return;
   const { table } = here;

@@ -4,7 +4,7 @@ import { Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { ColumnAlign, TableBlock } from "./tableBlocks";
 import type { TextChange } from "./tableEdit";
-import { dispatchOpeningCell } from "./tableField";
+import { dispatchOpeningCell, type EditorMenuItem } from "./tableField";
 import { bodyRows, cellRange, columnAligns, columnCount, type CellAddress } from "./tableModel";
 import { docText } from "./noteDoc";
 import { editTable, fromCell, openCellEffect, openTable, type OpenCell } from "./tableState";
@@ -37,7 +37,7 @@ export function addRow(main: EditorView, target: OpenCell, where: "above" | "bel
 }
 
 /** 列を足して、足した列の同じ行のセルを開く */
-export function addColumn(main: EditorView, target: OpenCell, where: "left" | "right") {
+function addColumn(main: EditorView, target: OpenCell, where: "left" | "right") {
   const table = openTable(main.state, target.tableFrom);
   if (!table) return;
   const { changes, col } = insertColumn(docText(main.state), table, target.col, where);
@@ -55,14 +55,8 @@ export function appendColumn(main: EditorView, tableFrom: number) {
   if (table) addColumn(main, { tableFrom, row: 0, col: columnCount(docText(main.state), table) - 1 }, "right");
 }
 
-/** 右クリックのメニューの項目（表のセルで開いたとき） */
-export interface TableMenuItem {
-  label: string;
-  run: () => void;
-}
-
 /** 表のセルの右クリックのメニューの項目（見出しの行は消せない・上に足せない、列が 1 つなら列を消せない） */
-export function tableMenuItems(main: EditorView, target: OpenCell): TableMenuItem[] {
+export function tableMenuItems(main: EditorView, target: OpenCell): EditorMenuItem[] {
   const table = openTable(main.state, target.tableFrom);
   if (!table) return [];
   const text = docText(main.state);
@@ -74,7 +68,7 @@ export function tableMenuItems(main: EditorView, target: OpenCell): TableMenuIte
     if (now) apply(main, target, build(docText(main.state), now), after);
   };
   const align = (value: ColumnAlign) => edit((text, t) => setColumnAlign(text, t, target.col, value), target);
-  const items: (TableMenuItem | false)[] = [
+  const items: (EditorMenuItem | false)[] = [
     target.row > 0 && { label: "上に行を足す", run: () => addRow(main, target, "above") },
     { label: "下に行を足す", run: () => addRow(main, target, "below") },
     { label: "左に列を足す", run: () => addColumn(main, target, "left") },
@@ -87,7 +81,7 @@ export function tableMenuItems(main: EditorView, target: OpenCell): TableMenuIte
     current !== null && { label: "列の寄せを外す", run: align(null) },
     { label: "表を消す", run: edit(deleteTable, null) },
   ];
-  return items.filter((i): i is TableMenuItem => i !== false);
+  return items.filter((i): i is EditorMenuItem => i !== false);
 }
 
 /** カーソルの行に空の表を入れて、見出しの最初のセルを開く */

@@ -8,7 +8,7 @@ import { pipeIndexes } from "./tableBlocks";
 const DELIMITER_LINE = /^[>\s]*\|?(\s*:?-+:?\s*\|)+(\s*:?-+:?\s*)?$/;
 
 /** 行のセルの数（元の決まりの数え方と同じ: 頭と終わりの | は数えず、\ で消した | は区切りにしない） */
-export function countTableCells(text: string, start = 0): number {
+function countTableCells(text: string, start = 0): number {
   let count = 0;
   let first = true;
   let inCell = false;

@@ -82,6 +82,12 @@ export const editorContextMenuFacet = Facet.define<(at: { x: number; y: number }
   combine: (values) => values[0] ?? null,
 });
 
+/** 編集の部品が右クリックのメニューに足す項目 */
+export interface EditorMenuItem {
+  label: string;
+  run: () => void;
+}
+
 /** 右クリックした表のセル（メニューを開くときに 1 回だけ読む） */
 const menuTargets = new WeakMap<EditorView, OpenCell>();
 

@@ -18,7 +18,7 @@ import { cellEditorOf } from "./cellEditor";
 import { codeHighlight } from "./codeHighlight";
 import { linkTooltip, noteLinkOpenerFacet, type NoteLinkOpener } from "./linkTooltip";
 import { insertTable, tableMenuItems } from "./tableActions";
-import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget } from "./tableField";
+import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget, type EditorMenuItem } from "./tableField";
 import { liveRich } from "./liveRich";
 import type { NoteLines } from "./noteAttachment";
 import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
@@ -45,7 +45,7 @@ export interface EditorMenuGroup {
   /** top: メニューの先頭（右クリックした物の操作）/ bottom: クリップボードの組の後ろ */
   place: "top" | "bottom";
   label: string;
-  items: { label: string; run: () => void }[];
+  items: EditorMenuItem[];
 }
 
 interface Props {
