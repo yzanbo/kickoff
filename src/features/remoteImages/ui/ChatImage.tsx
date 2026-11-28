@@ -3,7 +3,7 @@ import { isLocalImagePath, remoteImageOf } from "@shared/remoteImages/remoteImag
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/markdown/markdownImages";
 import { uploadsApi } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui";
-import { LoadedImage, RemoteImage } from "./RemoteImage";
+import { LoadedImage, PlainImage, RemoteImage } from "./RemoteImage";
 
 /**
  * チャットの画面の Markdown の画像の描き方を入れる: 手元の画像はコアから読んで出し、
@@ -19,9 +19,7 @@ function ChatImage({ chatId, src, alt, sources }: MarkdownImageProps & { chatId:
   const remote = remoteImageOf(src);
   if (remote) return <RemoteImage scope={{ kind: "chat", chatId }} remote={remote} alt={alt} sources={sources} />;
   if (isLocalImagePath(src)) return <LocalChatImage chatId={chatId} path={src} alt={alt} />;
-  // data: の画像は画面の CSP が通すのでそのまま。ほか（読めない URL・ユーザー名入りなど）は文字だけ
-  if (/^data:image\//i.test(src)) return <img className="chat-image-img" src={src} alt={alt ?? ""} loading="lazy" decoding="async" />;
-  return <span className="chat-image-text">{alt || src}</span>;
+  return <PlainImage src={src} alt={alt} />;
 }
 
 /** 手元の画像（作業場所・添付・ノートのフォルダの中。相対パスはチャットの作業場所から） */

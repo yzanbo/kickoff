@@ -82,6 +82,12 @@ export function LoadedImage({ load, loadKey, alt, label, own = false }: { load: 
   );
 }
 
+/** 読み込まずに出す画像: data: の画像は画面の CSP が通すのでそのまま、ほか（読めない URL・ユーザー名入りなど）は文字だけ（チャットとノートで同じ） */
+export function PlainImage({ src, alt }: { src: string; alt?: string }) {
+  if (/^data:image\//i.test(src)) return <img className="chat-image-img" src={src} alt={alt ?? ""} loading="lazy" decoding="async" />;
+  return <span className="chat-image-text">{alt || src}</span>;
+}
+
 /** 画像を押したとき: リンクに包まれた画像はリンクの確認に任せ（押せばリンクを開く）、ほかは大きく見る */
 function openViewer(e: MouseEvent<HTMLElement>, open: () => void) {
   if (e.currentTarget.closest("a[href]")) return;
