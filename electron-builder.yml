@@ -1,5 +1,6 @@
-# アプリ ID（scripts/mac-privacy.mjs の PRODUCTION_BUNDLE_ID・notifications の KICKOFF_BUNDLE_ID と同じ）。保存先はアプリの名前で決まるので、替えてもデータは引き継がれる
-appId: app.kickoff.desktop
+# アプリ ID（scripts/mac-privacy.mjs の PRODUCTION_BUNDLE_ID・notifications の KICKOFF_BUNDLE_ID と同じ）。保存先はアプリの名前で決まるので、替えてもデータは引き継がれる。
+# 配ったあとは変えない（別のアプリ扱いになり、許可を取り直し、更新も入らなくなる）
+appId: app.nexy.Kickoff
 productName: Kickoff
 directories:
   output: dist

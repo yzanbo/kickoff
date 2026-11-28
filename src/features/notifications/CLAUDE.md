@@ -8,7 +8,7 @@
 - `ui/viewingReport.ts`・`ui/notificationClicks.ts`・`ui/native.ts`
 - Dock のアイコン: 集計対象 `ui/dockBadge.ts`（数え方はチャットの `stateCounts`）・丸の位置と色 `ui/dockIconModel.ts`・更新順 `ui/dockIconUpdater.ts`・描画 `ui/dockIcon.ts`（canvas で描いた PNG をメインの `foundation/desktop/app/dockIcon.ts` が当てる）
 - 状態と角・IPC の対応は `@shared/notifications/stateBadges`。画面は `ui/stateBadgeModel.ts` で色と件数を整える。
-- Pinstage: `desktop/index.ts` はメインのウィンドウから届いた状態をバッジに変換する。`desktop/pinstageBadges.ts` は変換済みのバッジの更新順と終了を制御し、`desktop/pinstageBadgeFile.ts` がファイルを置き換える。受け入れは `docs/features.md` の `SET-028`。
+- Pinstage: `desktop/index.ts` はメインのウィンドウから届いた状態をバッジに変換する。`desktop/pinstageBadges.ts` は変換済みのバッジの更新順と終了を制御し、`desktop/pinstageBadgeFile.ts` がファイル（`<アプリ ID>.json`）を置き換え、前の ID（`LEGACY_BUNDLE_IDS`）のファイルは最初の書き出しで片付ける。受け入れは `docs/features.md` の `SET-028`。
 
 ## 決まり
 - 見ているチャットの通知は出さない（呼び主ごとの「見ているもの」。この Mac で見ていても、見ていない端末には送る）。

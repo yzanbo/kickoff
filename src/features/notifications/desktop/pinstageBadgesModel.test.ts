@@ -9,7 +9,7 @@ test("Pinstage の JSON は版・PID・秒での時刻と、決められた隅�
   });
   assert.deepEqual(JSON.parse(encodePinstageBadges(items, 12345, 1795670000125)), {
     version: 1,
-    bundleID: "app.kickoff.desktop",
+    bundleID: "app.nexy.Kickoff",
     pid: 12345,
     updatedAt: 1795670000.125,
     badges: [

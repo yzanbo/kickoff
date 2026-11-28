@@ -5,7 +5,7 @@ import { DEVELOPMENT_BUNDLE_ID, parseCdhash, PRODUCTION_BUNDLE_ID } from "./mac-
 test("codesign -dvvv の出力から cdhash を取り出す", () => {
   const output = [
     "Executable=/tmp/Example.app/Contents/MacOS/Example",
-    "Identifier=app.kickoff.desktop",
+    "Identifier=app.nexy.Kickoff",
     "CandidateCDHash sha256=a101f8244f0ba6c27cdc0f164db6e35328c63dd4",
     "CDHash=a101f8244f0ba6c27cdc0f164db6e35328c63dd4",
     "Signature=adhoc",
