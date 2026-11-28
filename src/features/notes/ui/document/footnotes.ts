@@ -49,10 +49,14 @@ const REF = /\[\^([^\]\s]+)\]/g;
 /** 文の中の脚注（同じ木と文には同じ結果） */
 export const footnotes = cacheByTree((tree: Tree, text: string): Footnotes => {
   const defs = new Map<string, FootnoteDef>();
+  // 定義の行の頭の [^名前] の位置（印として読まない。同じ名前の 2 つ目の定義も定義の行）
+  const defMarks = new Set<number>();
   for (const m of text.matchAll(DEF)) {
     const from = m.index;
     const key = normalizeLabel(m[1]);
-    if (defs.has(key) || inCode(tree, from + m[0].indexOf("["))) continue;
+    const mark = from + m[0].indexOf("[");
+    defMarks.add(mark);
+    if (defs.has(key) || inCode(tree, mark)) continue;
     // 続きの行（字下げした行）まで
     let to = text.indexOf("\n", from);
     if (to < 0) to = text.length;
@@ -70,8 +74,8 @@ export const footnotes = cacheByTree((tree: Tree, text: string): Footnotes => {
   let count = 0;
   for (const m of text.matchAll(REF)) {
     const def = defs.get(normalizeLabel(m[1]));
-    // 定義の行の頭の [^名前]: は印でない
-    if (!def || text[m.index + m[0].length] === ":" || inCode(tree, m.index)) continue;
+    // 定義の行の頭の [^名前]: は印でない（本文の途中の「注[^1]: …」は印）
+    if (!def || defMarks.has(m.index) || inCode(tree, m.index)) continue;
     if (def.number === null) def.number = ++count;
     refs.push({ from: m.index, to: m.index + m[0].length, label: normalizeLabel(m[1]), number: def.number });
   }

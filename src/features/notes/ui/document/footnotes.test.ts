@@ -21,3 +21,10 @@ test("footnoteAt: 印の上なら印と定義", () => {
   assert.equal(hit?.def.text, "注");
   assert.equal(footnoteAt(notesOf(text), 0), null);
 });
+
+test("footnotes: 本文の途中の「注[^1]: …」の [^1] は印として読む（外すのは行の頭の定義だけ）", () => {
+  const text = "注[^1]: 続きの文\n\n[^1]: 注の文";
+  const n = notesOf(text);
+  assert.deepEqual(n.refs.map((r) => [r.from, r.number]), [[1, 1]]);
+  assert.equal(n.defs.get("1")?.text, "注の文");
+});
