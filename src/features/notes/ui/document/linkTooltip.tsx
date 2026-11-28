@@ -42,7 +42,7 @@ export function openNoteLink(view: EditorView, href: string, text: string, inver
 
 /** 小窓の中身（行き先・開く・コピー。開けないときは理由とコピーだけ） */
 function LinkTooltip({ view, link, opener }: { view: EditorView; link: NoteLinkAt; opener: NoteLinkOpener }) {
-  const { label, problem } = link.href.startsWith("#") ? { label: `見出し「${link.href.slice(1)}」へ`, problem: null } : opener.describe(link.href);
+  const { label, problem } = opener.describe(link.href);
   return (
     <div className="note-link-tip">
       <span className="note-link-tip-target" data-problem={problem ? "" : undefined}>
