@@ -3,7 +3,7 @@
 // 行をまたいで置き換えるので StateField で出す。読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す
 import { syntaxTree } from "@codemirror/language";
 import { Prec, StateField, type EditorState, type Range } from "@codemirror/state";
-import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
+import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
 import { NoteTable } from "./NoteTable";
 import type { TableBlock } from "./tableBlocks";
 import { getSearchQuery, searchPanelOpen } from "@codemirror/search";
@@ -14,10 +14,10 @@ import { focusWatcher, openCellOf, tableCellField } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
 import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
 import { type OpenCell } from "./tableState";
-import { mountInEditor, unmountFromEditor } from "./widgetPortals";
+import { PortalWidget } from "./widgetPortals";
 
 /** 表 1 つを描く飾り（中身は React の部品。widgetPortals で描く） */
-class TableWidget extends WidgetType {
+class TableWidget extends PortalWidget {
   constructor(
     readonly block: TableBlock,
     /** 描く Markdown（開いているセルの中身は抜く。そのセルを書いても描き直さない） */
@@ -27,7 +27,7 @@ class TableWidget extends WidgetType {
     /** ⌘F の当たりのあるセル（「行,列」を ; でつないだもの。なければ空） */
     readonly matches: string,
   ) {
-    super();
+    super("div", "cm-note-table");
   }
   eq(other: TableWidget) {
     return (
@@ -42,25 +42,18 @@ class TableWidget extends WidgetType {
   get estimatedHeight() {
     return this.block.rows.length * 30;
   }
-  private render(el: HTMLElement, view: EditorView) {
-    // リストの中の表は、その字下げの場所に描く（要素を使い回すので、描くたびに当て直す）
+  // リストの中の表は、その字下げの場所に描く
+  protected shape(el: HTMLElement) {
     const indent = this.block.prefix.replace(/[>]/g, " ").length;
     el.style.paddingInlineStart = indent ? `${indent}ch` : "";
-    mountInEditor(view, el, <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />);
   }
-  toDOM(view: EditorView) {
-    const el = document.createElement("div");
-    el.className = "cm-note-table";
-    this.render(el, view);
-    return el;
+  protected content(view: EditorView) {
+    return <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />;
   }
   // 中身が変わっても要素は作り直さない（開いているセルの書く部品・横のスクロールを残す）
   updateDOM(el: HTMLElement, view: EditorView) {
     this.render(el, view);
     return true;
-  }
-  destroy(el: HTMLElement) {
-    unmountFromEditor(el);
   }
   // 中の押下・キー・入力は表の部品とセルの書く部品が受ける（本体は扱わない）
   ignoreEvent() {
@@ -69,21 +62,15 @@ class TableWidget extends WidgetType {
 }
 
 /** HTML のまとまり 1 つを描く飾り（返答の表示と同じ Markdown の部品で。カーソルが入ると元の文字） */
-class HtmlBlockWidget extends WidgetType {
+class HtmlBlockWidget extends PortalWidget {
   constructor(readonly source: string) {
-    super();
+    super("div", "cm-note-html");
   }
   eq(other: HtmlBlockWidget) {
     return other.source === this.source;
   }
-  toDOM(view: EditorView) {
-    const el = document.createElement("div");
-    el.className = "cm-note-html";
-    mountInEditor(view, el, <HtmlBlock source={this.source} view={view} />);
-    return el;
-  }
-  destroy(el: HTMLElement) {
-    unmountFromEditor(el);
+  protected content(view: EditorView) {
+    return <HtmlBlock source={this.source} view={view} />;
   }
   // 中のたたむ部分（details）の開け閉めは部品が受け、ほかを押すと本体がカーソルを置く（元の文字に戻る）
   ignoreEvent(e: Event) {

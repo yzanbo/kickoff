@@ -16,7 +16,7 @@ import { livePreview } from "./livePreviewExtension";
 import { blockWidgets } from "./blockWidgets";
 import { cellEditorOf } from "./cellEditor";
 import { codeHighlight } from "./codeHighlight";
-import { noteLinkOpenerFacet, noteLinks, type NoteLinkOpener } from "./linkTooltip";
+import { linkTooltip, noteLinkOpenerFacet, type NoteLinkOpener } from "./linkTooltip";
 import { insertTable, tableMenuItems } from "./tableActions";
 import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget } from "./tableField";
 import { liveRich } from "./liveRich";
@@ -98,7 +98,7 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     initialValue,
     onChange,
     // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
-    dynamic: live && kind === "markdown" ? [blockWidgets, liveRich, livePreview, codeHighlight, noteLinks] : [],
+    dynamic: live && kind === "markdown" ? [blockWidgets, liveRich, livePreview, codeHighlight, linkTooltip] : [],
     dynamicDeps: [live, kind],
     extensions: () => [
       baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),

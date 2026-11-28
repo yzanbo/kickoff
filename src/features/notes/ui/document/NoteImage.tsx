@@ -1,7 +1,6 @@
 import { useContext } from "react";
-import { WidgetType, type EditorView } from "@codemirror/view";
 import { MarkdownImagesContext } from "@/foundation/ui/markdown/markdownImages";
-import { mountInEditor, unmountFromEditor } from "./widgetPortals";
+import { PortalWidget } from "./widgetPortals";
 
 /**
  * ノートの画像（行の中に描く）。描き方は開いたノートの画面が入れる（remoteImages の NoteImagesProvider。ノートのフォルダの中の画像はそのまま、
@@ -13,24 +12,18 @@ function NoteImage({ src, alt }: { src: string; alt: string }) {
 }
 
 /** 画像の書き方（![説明](パス)）の代わりに描く飾り（カーソルがその行に入ると元の文字） */
-export class NoteImageWidget extends WidgetType {
+export class NoteImageWidget extends PortalWidget {
   constructor(
     readonly src: string,
     readonly alt: string,
   ) {
-    super();
+    super("span", "cm-note-image");
   }
   eq(other: NoteImageWidget) {
     return other.src === this.src && other.alt === this.alt;
   }
-  toDOM(view: EditorView) {
-    const el = document.createElement("span");
-    el.className = "cm-note-image";
-    mountInEditor(view, el, <NoteImage src={this.src} alt={this.alt} />);
-    return el;
-  }
-  destroy(el: HTMLElement) {
-    unmountFromEditor(el);
+  protected content() {
+    return <NoteImage src={this.src} alt={this.alt} />;
   }
   // 画像のボタン（表示・URL を見る）と画像を押せるように、中の押下は本体が扱わない
   ignoreEvent(e: Event) {

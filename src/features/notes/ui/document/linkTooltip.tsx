@@ -154,4 +154,4 @@ const metaClick = EditorView.domEventHandlers({
 });
 
 /** リンクの小窓と ⌘ ＋クリック（Markdown 表示のときだけ入れる） */
-export const noteLinks = [linkTooltipField, metaClick];
+export const linkTooltip = [linkTooltipField, metaClick];

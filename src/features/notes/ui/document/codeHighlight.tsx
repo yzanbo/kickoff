@@ -3,55 +3,45 @@
 // 帯は開きの ``` の行の場所に出し、カーソルがその行に入ると「```言語名」の文字に替わる（高さは変わらない）
 import { syntaxTree } from "@codemirror/language";
 import { StateEffect, type Range } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { highlightLines, peekHighlight } from "@/foundation/ui/code/highlight";
 import { fenceLanguage } from "@/foundation/ui/code/languages";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { codeBlocks, tokenRanges } from "./codeBlocks";
 import { docText } from "./noteDoc";
-import { mountInEditor, unmountFromEditor } from "./widgetPortals";
+import { PortalWidget } from "./widgetPortals";
 
 /** 色が届いた・テーマが変わった（組み直しの合図） */
 const recolor = StateEffect.define<null>();
 
 /** 開きの ``` の行の代わりの帯（言語名とコピーのボタン。返答のコードの帯と同じ部品とクラス） */
-class CodeHeadWidget extends WidgetType {
+class CodeHeadWidget extends PortalWidget {
   constructor(
     readonly lang: string,
     readonly code: string,
     /** 開きの行の字下げ（リストの中の塊。帯の幅をその分だけ縮めて、1 行に収める） */
     readonly indent: number,
   ) {
-    super();
+    super("span", "cm-code-head");
   }
   eq(other: CodeHeadWidget) {
     return other.lang === this.lang && other.code === this.code && other.indent === this.indent;
   }
-  private render(el: HTMLElement, view: EditorView) {
-    // 要素を使い回すので、字下げの幅は描くたびに当て直す
+  protected shape(el: HTMLElement) {
     el.style.width = this.indent ? `calc(100% - ${this.indent}ch - 4px)` : "";
-    mountInEditor(
-      view,
-      el,
+  }
+  protected content() {
+    return (
       <>
         <span className="code-block-lang">{this.lang}</span>
         <CopyButton text={this.code} label="コードをコピー" className="code-block-copy" />
-      </>,
+      </>
     );
-  }
-  toDOM(view: EditorView) {
-    const el = document.createElement("span");
-    el.className = "cm-code-head";
-    this.render(el, view);
-    return el;
   }
   updateDOM(el: HTMLElement, view: EditorView) {
     this.render(el, view);
     return true;
-  }
-  destroy(el: HTMLElement) {
-    unmountFromEditor(el);
   }
   // コピーのボタンを押せるように、帯の中の押下は本体が扱わない
   ignoreEvent(e: Event) {

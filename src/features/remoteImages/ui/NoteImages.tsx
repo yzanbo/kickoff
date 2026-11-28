@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { remoteImageOf } from "@shared/remoteImages/remoteImages";
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/markdown/markdownImages";
-import { LoadedImage, RemoteImage } from "./ChatImage";
+import { LoadedImage, RemoteImage } from "./RemoteImage";
 
 /**
  * 開いたノートの Markdown の画像の描き方を入れる（ノートの本文・表・HTML のまとまりの中で同じ）: ノートのフォルダの中の画像はそのまま出し

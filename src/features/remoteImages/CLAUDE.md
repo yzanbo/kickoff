@@ -5,7 +5,7 @@
 ## 地図
 
 - `core/`: 受け口 `routes/chatImages.ts`・`routes/noteImages.ts`（取り決め `@shared/remoteImages/contract.ts`）・取る `fetchImage.ts`・手元と社内の宛先の見分け `addresses.ts`・許可と取り出し `service.ts`（チャット）・`noteImageService.ts`（ノート）・取った画像の覚え（ディスク。チャットとノートで同じ）`imageCache.ts`・許可のホスト（チャットごと・ノートの範囲ごとに DB）。
-- `ui/`: 返答の画像 `ChatImage.tsx`（読み込みは `useQuery`）・ノートの画像 `NoteImages.tsx`・許可の範囲（チャット 1 つかノート 1 つ）`imageScope.ts`・許可のホストの管理・取った画像の覚え `remoteImageCache.ts`（`createLruMap`。落ちたら blob を捨てる）。
+- `ui/`: 返答の画像 `ChatImage.tsx`・ノートの画像 `NoteImages.tsx`・両方の部品 `RemoteImage.tsx`（読み込みは `useQuery`）・許可の範囲（チャット 1 つかノート 1 つ）`imageScope.ts`・許可のホストの管理・取った画像の覚え `remoteImageCache.ts`（`createLruMap`。落ちたら blob を捨てる）。
 
 ## 決まり
 

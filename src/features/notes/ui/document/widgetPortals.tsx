@@ -1,7 +1,7 @@
 // CodeMirror の飾り（置き換えて描く部品）の中に、React の部品を描く口。
 // 部品は編集の部品（NoteEditor）の React の木から portal で描くので、アプリの文脈（リンクを開く口・テーマなど）がそのまま届く
 import { Facet } from "@codemirror/state";
-import type { EditorView } from "@codemirror/view";
+import { WidgetType, type EditorView } from "@codemirror/view";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { createCell, useCell } from "@/foundation/ui/store";
@@ -58,6 +58,36 @@ export function mountInEditor(view: EditorView, el: HTMLElement, node: ReactNode
 /** 飾りの要素に描いた部品を外す（WidgetType の destroy・小窓の destroy） */
 export function unmountFromEditor(el: HTMLElement): void {
   portalsByElement.get(el)?.unmount(el);
+}
+
+/**
+ * 中身を React の部品で描く飾りの土台（要素を作って描き、捨てられたら外す）。
+ * 要素を使い回して描き直す飾りは updateDOM で render を呼ぶ（使い回さない飾りは、作り直して部品の状態を持ち越さない）
+ */
+export abstract class PortalWidget extends WidgetType {
+  constructor(
+    private readonly tag: "div" | "span",
+    private readonly className: string,
+  ) {
+    super();
+  }
+  /** 描く部品 */
+  protected abstract content(view: EditorView): ReactNode;
+  /** 要素の形（字下げなど。描くたびに当て直す） */
+  protected shape(_el: HTMLElement): void {}
+  protected render(el: HTMLElement, view: EditorView) {
+    this.shape(el);
+    mountInEditor(view, el, this.content(view));
+  }
+  toDOM(view: EditorView) {
+    const el = document.createElement(this.tag);
+    el.className = this.className;
+    this.render(el, view);
+    return el;
+  }
+  destroy(el: HTMLElement) {
+    unmountFromEditor(el);
+  }
 }
 
 /** 飾りの中の部品を描く（編集の部品のすぐ隣に置く） */
