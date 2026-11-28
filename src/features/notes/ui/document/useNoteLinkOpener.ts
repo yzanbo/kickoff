@@ -1,4 +1,5 @@
 // 開いたノートのリンクの行き先の説明と開き方（Markdown のノートのリンクの小窓・⌘ ＋クリックと、HTML のノートのページのリンク）と、画像の読み先
+import { useCallback } from "react";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { alert } from "@/foundation/ui/kit/ask";
 import { openWebLink } from "@/foundation/ui/external/linkOpen";
@@ -38,11 +39,17 @@ export function useNoteLinkOpener({ projectId, path, dir, onOpenNote }: { projec
       else if (target.kind === "none") void alert("このリンクは開けません", target.reason);
     },
   };
-  /** 画像の src を画面で読める URL に（ノートのフォルダの中だけ。コアのファイルの口。HTML のノートのページと同じ） */
-  const imageUrl = (src: string) => {
-    const target = noteLinkTarget(src, path);
-    if (target.kind !== "note" && target.kind !== "file") return null;
-    return `${noteAssetBase(location.origin, projectId, "")}${target.path.split("/").map(encodeURIComponent).join("/")}`;
-  };
+  /**
+   * 画像の src を画面で読める URL に（ノートのフォルダの中だけ。コアのファイルの口。HTML のノートのページと同じ）。
+   * ノートが替わったときだけ作り直す（画像の描き方の値がこれに頼るので、毎回替わると中の画像の部品がすべて描き直る）
+   */
+  const imageUrl = useCallback(
+    (src: string) => {
+      const target = noteLinkTarget(src, path);
+      if (target.kind !== "note" && target.kind !== "file") return null;
+      return `${noteAssetBase(location.origin, projectId, "")}${target.path.split("/").map(encodeURIComponent).join("/")}`;
+    },
+    [projectId, path],
+  );
   return { opener, openInNotes, imageUrl };
 }
