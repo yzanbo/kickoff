@@ -2,6 +2,7 @@
 // Markdown の構文の木（@lezer/markdown・GFM）から、カーソルのない行の記号（# ・** ・` ・> ・リンクの URL など）を隠し、
 // 見出し・太字・コード・引用などの見た目を付ける印を返す（コードの塊の ``` もカーソルのない行では隠す）。ファイルの中身は変えない（見せ方だけ。書き換えはチェックボックスを押したときだけ）
 import type { SyntaxNodeRef, Tree } from "@lezer/common";
+import { lineStartOf } from "./blockWalk";
 import { footnotes } from "./footnotes";
 import { decodeEntity, inlineHtmlRanges } from "./inlineSyntax";
 import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
@@ -43,7 +44,7 @@ const SPAN_CLASS: Record<string, string> = {
  */
 export function previewMarks(tree: Tree, text: string, isActive: (pos: number) => boolean, from = 0, to = text.length): PreviewMark[] {
   const out: PreviewMark[] = [];
-  const lineStart = (pos: number) => text.lastIndexOf("\n", pos - 1) + 1;
+  const lineStart = (pos: number) => lineStartOf(text, pos);
   // 記号のあとの空白 1 つも隠す（「# 見出し」の空白・「> 引用」の空白）
   const withSpace = (pos: number) => (text[pos] === " " ? pos + 1 : pos);
   /** a〜b にかかる行それぞれの頭 */

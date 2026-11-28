@@ -3,6 +3,7 @@
 // 返答の表示（micromark）は定義のある参照だけをリンクにするので、同じ決まりで見分けて、定義のないものは文字のまま見せる
 import type { SyntaxNode, Tree } from "@lezer/common";
 import { isUrlStop } from "@/foundation/ui/markdown/syntax/urlStop";
+import { walkBlocks } from "./blockWalk";
 import { cacheByTree } from "./treeCache";
 
 /** 参照の名前を、定義と引き当てる形にそろえる（CommonMark と同じ: 空白をまとめ、前後を落とし、大文字・小文字を区別しない） */
@@ -13,27 +14,24 @@ export function normalizeLabel(label: string): string {
 /** 脚注の名前（[^1]）か（脚注は別の書き方。リンクの定義・参照として数えない） */
 const isFootnoteLabel = (label: string) => label.startsWith("^");
 
-/** 入れ子にリンクの定義が入りうる、まとまりの節（文の中は探さない） */
-const CONTAINERS = new Set(["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"]);
-
 /**
  * リンクの定義（[名前]: URL）の一覧（そろえた名前 → URL）。同じ名前は先に書いたものが勝つ（CommonMark と同じ）。
  * 文の中まではたどらない（定義はまとまりの直下にしか書けない）。同じ木と文には同じ結果を返す
  */
 export const linkDefinitions = cacheByTree((tree: Tree, text: string): Map<string, string> => {
   const defs = new Map<string, string>();
-  const walk = (node: SyntaxNode) => {
-    for (let child = node.firstChild; child; child = child.nextSibling) {
-      if (child.name === "LinkReference") {
-        const label = child.getChild("LinkLabel");
-        const url = child.getChild("URL");
-        const name = label ? text.slice(label.from + 1, label.to - 1) : "";
-        const key = normalizeLabel(name);
-        if (key && !isFootnoteLabel(name) && !defs.has(key)) defs.set(key, url ? text.slice(url.from, url.to) : "");
-      } else if (CONTAINERS.has(child.name)) walk(child);
-    }
-  };
-  walk(tree.topNode);
+  walkBlocks(
+    tree,
+    (node) => {
+      if (node.name !== "LinkReference") return;
+      const label = node.getChild("LinkLabel");
+      const url = node.getChild("URL");
+      const name = label ? text.slice(label.from + 1, label.to - 1) : "";
+      const key = normalizeLabel(name);
+      if (key && !isFootnoteLabel(name) && !defs.has(key)) defs.set(key, url ? text.slice(url.from, url.to) : "");
+    },
+    { quotes: true },
+  );
   return defs;
 });
 

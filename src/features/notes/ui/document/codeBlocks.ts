@@ -2,6 +2,7 @@
 // 中身は返答の表示と同じ（開きの印の字下げぶんを各行の頭から除く）。色付けは返答と同じ部品（foundation/ui/code/highlight）に頼む
 import type { SyntaxNode, Tree } from "@lezer/common";
 import type { CodeToken } from "@/foundation/ui/code/highlight";
+import { lineEndOf, lineStartOf, walkBlocks } from "./blockWalk";
 
 /** コードの塊 1 つ */
 export interface CodeBlockSource {
@@ -20,13 +21,9 @@ export interface CodeBlockSource {
   closed: boolean;
 }
 
-/** コードの塊が入りうるまとまり（文の中は探さない） */
-const CONTAINERS = new Set(["Document", "BulletList", "OrderedList", "ListItem"]);
-
 function blockOf(node: SyntaxNode, text: string): CodeBlockSource | null {
-  const headFrom = text.lastIndexOf("\n", node.from - 1) + 1;
-  const headEnd = text.indexOf("\n", headFrom);
-  const headTo = headEnd < 0 ? text.length : headEnd;
+  const headFrom = lineStartOf(text, node.from);
+  const headTo = lineEndOf(text, headFrom);
   const head = text.slice(headFrom, headTo);
   // 引用の中の塊は飾らない（行の頭の > を写せないため）
   if (/^\s*>/.test(head)) return null;
@@ -49,19 +46,17 @@ function blockOf(node: SyntaxNode, text: string): CodeBlockSource | null {
   return { headFrom, headTo, to: node.to, info: fence[2].trim(), lines, code: lines.map((l) => l.text).join("\n"), closed };
 }
 
-/** 文の中のコードの塊（書いた順） */
+/** 文の中のコードの塊（書いた順。from〜to にかかるものだけ。引用の中は行の頭の > を写せないので飾らない） */
 export function codeBlocks(tree: Tree, text: string, from = 0, to = text.length): CodeBlockSource[] {
   const out: CodeBlockSource[] = [];
-  const walk = (node: SyntaxNode) => {
-    for (let child = node.firstChild; child; child = child.nextSibling) {
-      if (child.to < from || child.from > to) continue;
-      if (child.name === "FencedCode") {
-        const block = blockOf(child, text);
-        if (block) out.push(block);
-      } else if (CONTAINERS.has(child.name)) walk(child);
-    }
-  };
-  walk(tree.topNode);
+  walkBlocks(
+    tree,
+    (node) => {
+      const block = node.name === "FencedCode" && blockOf(node, text);
+      if (block) out.push(block);
+    },
+    { from, to },
+  );
   return out;
 }
 

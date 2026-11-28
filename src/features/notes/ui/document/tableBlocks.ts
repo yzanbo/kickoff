@@ -1,5 +1,6 @@
 // ノートの中の表を見つけ、行ごとの場所と、表として描く Markdown を作る純粋な関数（置き換えて描く・セルで書くのに使う）
 import type { SyntaxNode, Tree } from "@lezer/common";
+import { lineEndOf, lineStartOf, walkBlocks } from "./blockWalk";
 import { cacheByTree } from "./treeCache";
 
 /** 表の 1 行の場所（文の中の位置） */
@@ -28,21 +29,13 @@ export interface TableBlock {
   prefix: string;
 }
 
-/** 表が入りうるまとまり（文の中は探さない） */
-const CONTAINERS = new Set(["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"]);
-
-function lineEnd(text: string, pos: number): number {
-  const end = text.indexOf("\n", pos);
-  return end < 0 ? text.length : end;
-}
-
 function blockOf(table: SyntaxNode, text: string): TableBlock {
   const rows: TableRowSource[] = [];
   for (let child = table.firstChild; child; child = child.nextSibling) {
     // 表の直下の TableDelimiter は区切りの行（セルの間の | は行の中にある）
     const delimiter = child.name === "TableDelimiter";
     if (child.name !== "TableHeader" && child.name !== "TableRow" && !delimiter) continue;
-    rows.push({ lineFrom: text.lastIndexOf("\n", child.from - 1) + 1, from: child.from, to: lineEnd(text, child.from), delimiter });
+    rows.push({ lineFrom: lineStartOf(text, child.from), from: child.from, to: lineEndOf(text, child.from), delimiter });
   }
   const first = rows[0];
   return {
@@ -54,16 +47,10 @@ function blockOf(table: SyntaxNode, text: string): TableBlock {
   };
 }
 
-/** 文の中の表（書いた順）。同じ木と文には同じ結果を返す */
+/** 文の中の表（書いた順。引用・リストの中も）。同じ木と文には同じ結果を返す */
 export const tableBlocks = cacheByTree((tree: Tree, text: string): TableBlock[] => {
   const blocks: TableBlock[] = [];
-  const walk = (node: SyntaxNode) => {
-    for (let child = node.firstChild; child; child = child.nextSibling) {
-      if (child.name === "Table") blocks.push(blockOf(child, text));
-      else if (CONTAINERS.has(child.name)) walk(child);
-    }
-  };
-  walk(tree.topNode);
+  walkBlocks(tree, (node) => void (node.name === "Table" && blocks.push(blockOf(node, text))), { quotes: true });
   return blocks;
 });
 

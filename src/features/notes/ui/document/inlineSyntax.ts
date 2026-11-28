@@ -3,6 +3,7 @@
 import type { Tree } from "@lezer/common";
 import { decodeNamedCharacterReference } from "decode-named-character-reference";
 import { HTML_TAGS, VOID_TAGS } from "@/foundation/ui/markdown/html/htmlAllowlist";
+import { lineStartOf } from "./blockWalk";
 
 /** 行の中の HTML 1 つ（開きから閉じまで。閉じの要らないタグはそれだけ） */
 export interface InlineHtmlRange {
@@ -27,7 +28,7 @@ export function inlineHtmlRanges(tree: Tree, text: string, from = 0, to = text.l
       if (n.name !== "HTMLTag") return;
       const m = TAG.exec(text.slice(n.from, n.to));
       if (!m || !HTML_TAGS.has(m[2])) return;
-      const line = text.lastIndexOf("\n", n.from - 1) + 1;
+      const line = lineStartOf(text, n.from);
       const tags = byLine.get(line) ?? [];
       tags.push({ from: n.from, to: n.to, name: m[2], close: m[1] === "/", single: m[3] === "/" || VOID_TAGS.has(m[2]) });
       byLine.set(line, tags);

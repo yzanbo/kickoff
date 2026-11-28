@@ -1,6 +1,7 @@
 // 表の行・列を足す・消す、列の寄せを変える、表を入れる・消す純粋な関数（書き換えは元の文の位置で返す）。
 // その表の書き方に合わせる: 頭と終わりの | の有無・行の頭の印（リストの字下げ・引用の >）は見出しの行に合わせ、
 // | で区切った行は | の所に足す・消すだけで、ほかのセルの書き方を変えない（そろえた表は、呼ぶ側があとでそろえ直す）
+import { lineEndOf, lineStartOf } from "./blockWalk";
 import { pipeIndexes, rowFraming, type ColumnAlign, type TableBlock, type TableRowSource } from "./tableBlocks";
 import { delimiterCell, type TextChange } from "./tableEdit";
 import { bodyRows, columnCount, delimiterRow, rowCells } from "./tableModel";
@@ -102,11 +103,11 @@ export const NEW_TABLE = "|  |  |  |\n|---|---|---|\n|  |  |  |";
  * 表を入れる書き換え（カーソルの行が空ならその行に、文があればその行の後ろに空行をはさんで）。入れた表の頭の位置も返す
  */
 export function insertTableAt(text: string, pos: number): { change: TextChange; tableFrom: number } {
-  const lineFrom = text.lastIndexOf("\n", pos - 1) + 1;
-  const lineEnd = text.indexOf("\n", pos) < 0 ? text.length : text.indexOf("\n", pos);
+  const lineFrom = lineStartOf(text, pos);
+  const lineEnd = lineEndOf(text, pos);
   if (text.slice(lineFrom, lineEnd).trim() === "") {
     // 前の行に文があれば空行をはさむ（段落の続きとして読まれないように）
-    const before = lineFrom > 0 && text.slice(text.lastIndexOf("\n", lineFrom - 2) + 1, lineFrom - 1).trim() !== "" ? "\n" : "";
+    const before = lineFrom > 0 && text.slice(lineStartOf(text, lineFrom - 1), lineFrom - 1).trim() !== "" ? "\n" : "";
     return { change: { from: lineFrom, to: lineEnd, insert: `${before}${NEW_TABLE}` }, tableFrom: lineFrom + before.length };
   }
   return { change: { from: lineEnd, to: lineEnd, insert: `\n\n${NEW_TABLE}` }, tableFrom: lineEnd + 2 };
