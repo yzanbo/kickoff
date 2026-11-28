@@ -3,6 +3,7 @@
 // 閉じるのは、選んだ範囲が表の外へ出た・ピントが編集の部品の外へ出たとき
 import { syntaxTree } from "@codemirror/language";
 import { Annotation, StateEffect, type EditorState, type Text, type Transaction } from "@codemirror/state";
+import { htmlBlocks, type HtmlBlockSource } from "./htmlBlocks";
 import { tableBlocks, type TableBlock } from "./tableBlocks";
 import { cellAt, cellRange, tableAt, type CellAddress } from "./tableModel";
 
@@ -36,6 +37,19 @@ export function docText(state: EditorState): string {
 
 /** 本体の文の中の表 */
 export const tablesOf = (state: EditorState): TableBlock[] => tableBlocks(syntaxTree(state), docText(state));
+
+const htmlByTree = new WeakMap<object, { text: string; blocks: HtmlBlockSource[] }>();
+
+/** 本体の文の中の HTML のまとまり（同じ木と文には同じ結果） */
+export function htmlBlocksOf(state: EditorState): HtmlBlockSource[] {
+  const tree = syntaxTree(state);
+  const text = docText(state);
+  const known = htmlByTree.get(tree);
+  if (known && known.text === text) return known.blocks;
+  const blocks = htmlBlocks(tree, text);
+  htmlByTree.set(tree, { text, blocks });
+  return blocks;
+}
 
 /** 開いているセルの表（もう表でなくなっていれば null） */
 export function openTable(state: EditorState, open: OpenCell): TableBlock | null {

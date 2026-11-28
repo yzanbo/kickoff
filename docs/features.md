@@ -524,6 +524,7 @@
 | NOTE-036 | 表の行・列を足す・消す・列の寄せ・表を入れる・消す（右クリック・表の端の「＋」・最後のセルの Tab と Enter） | notes | T:tableStructure |
 | NOTE-037 | ライブ表示のコードの塊に返答と同じ色と、言語名・コピーの帯（書けるまま。打っても色が消えない） | notes | T:codeBlocks |
 | NOTE-039 | ライブ表示で下線の見出し・\ の打ち消し・実体参照・行の中の HTML（返答と同じ一覧のタグ）を描く | notes | T:inlineSyntax,livePreview |
+| NOTE-040 | ライブ表示で HTML のまとまり（<details> など。開け閉めできる）とノートのフォルダの中の画像を描く（外の画像は札） | notes | T:htmlBlocks,livePreview |
 | NOTE-038 | ライブ表示のリンクを開く（押すと行き先・開く・コピーの小窓、⌘ ＋クリックですぐ。外のページ・ノート・フォルダ・見出し・URL のそのまま書き・参照の形） | notes | T:noteLinkTarget,markdownParity |
 
 ### ノートの AI

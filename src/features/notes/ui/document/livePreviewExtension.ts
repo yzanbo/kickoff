@@ -4,6 +4,7 @@ import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { InlineHtmlWidget } from "./InlineHtml";
+import { NoteImageWidget } from "./NoteImage";
 import { previewMarks, type PreviewMark } from "./livePreview";
 
 /** 箇条書きの記号の代わりの「•」 */
@@ -99,6 +100,8 @@ function decorationOf(mark: PreviewMark): Range<Decoration> {
       return Decoration.replace({ widget: new TextWidget(mark.text) }).range(mark.from, mark.to);
     case "html":
       return Decoration.replace({ widget: new InlineHtmlWidget(mark.source) }).range(mark.from, mark.to);
+    case "image":
+      return Decoration.replace({ widget: new NoteImageWidget(mark.src, mark.alt) }).range(mark.from, mark.to);
   }
 }
 

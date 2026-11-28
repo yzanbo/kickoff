@@ -10,14 +10,14 @@
 | `livePreview.ts`・`livePreviewExtension.ts`・`inlineSyntax.ts`・`InlineHtml.tsx` | 行の中の飾り（どこを飾るかは純粋な関数 `previewMarks`。行の中の HTML は返答と同じ処理で描く） |
 | `liveRich.ts`・`mermaidBlocks.ts` | 数式と Mermaid を置き換えて描く |
 | `codeHighlight.tsx`・`codeBlocks.ts` | コードの塊の色（返答と同じ部品）と開きの行の帯 |
-| `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`widgetPortals.tsx` | 表を置き換えて描く（返答と同じ処理と部品。React は NoteEditor の木から portal で） |
+| `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`HtmlBlock.tsx`・`htmlBlocks.ts`・`NoteImage.tsx`・`widgetPortals.tsx` | 表・HTML のまとまり・画像を置き換えて描く（返答と同じ処理と部品。React は portal で） |
 | `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー） |
 | `tableBlocks.ts`・`tableModel.ts`・`tableEdit.ts`・`tableSyntax.ts` | 表の場所とセル・書き戻し・段落の途中から始まる表を読む拡張 |
 | `tableStructure.ts`・`tableActions.ts` | 行・列・寄せ・表を足す・消す（右クリックの項目は `NoteEditorHandle.contextItems`） |
-| `noteMarkdown.ts`・`noteLinks.ts`・`cjkEmphasis.ts` | 読み取りの組・リンクの見分け・日本語向けの強調 |
+| `noteMarkdown.ts`・`noteLinks.ts`・`cjkEmphasis.ts` | 読み取りの組・リンク・日本語向けの強調 |
 | `linkTooltip.tsx`・`noteLinkTarget.ts`・`useNoteLinkOpener.ts` | リンクの小窓と ⌘ ＋クリック・行き先・開き方（NoteView が渡す） |
 | `HtmlNotePage.tsx`・`htmlPage.ts` | HTML のノートのページ（iframe） |
-| `NoteEditorBlocks.unlayered.css` | 表・セル・コードの帯・リンクの小窓の見た目 |
+| `NoteEditorBlocks.unlayered.css` | 置き換えて描く物の見た目 |
 
 ## 決まり
 

@@ -14,6 +14,11 @@ function marksOf(text: string, activeLine: number | null = null, reader = md) {
   return marks.map((m: PreviewMark) => (m.kind === "line" ? `line:${m.cls}@${lineOf(m.at)}` : `${m.kind}${"cls" in m ? `:${m.cls}` : ""}${"checked" in m ? `:${m.checked}` : ""}=${JSON.stringify(text.slice(m.from, m.to))}`));
 }
 
+/** 画像の印の src と説明 */
+function imagesOf(text: string) {
+  return previewMarks(md.parse(text), text, () => false).flatMap((m) => (m.kind === "image" ? [`${m.src}|${m.alt}`] : []));
+}
+
 test("livePreview: 見出しの # と空白を隠し、行に見出しの見た目を付ける。カーソルの行は記号を残す", () => {
   assert.deepEqual(marksOf("## 見出し\n本文"), ["line:md-h2@0", 'hide="## "']);
   assert.deepEqual(marksOf("## 見出し\n本文", 0), ["line:md-h2@0"]);
@@ -90,8 +95,9 @@ test("livePreview: 定義のない [文字] は角かっこごと文字のまま
   assert.deepEqual(marksOf("[名前] と [x]\n\n[名前]: https://x.y"), ['span:md-link="[名前]"', 'hide="["', 'hide="]"', "line:md-linkdef@2"]);
 });
 
-test("livePreview: 画像と定義の行の印は隠さない（定義の行は薄い小さな文字。脚注の定義は除く）", () => {
-  assert.deepEqual(marksOf("![[a.png]] ![説明](b.png)"), []);
+test("livePreview: 行き先を書いた画像は描く物に替え、![[名前]] は文字のまま。定義の行は薄い小さな文字（脚注の定義は除く）", () => {
+  assert.deepEqual(marksOf("![[a.png]] ![説明](b.png)"), ['image="![説明](b.png)"']);
+  assert.deepEqual(marksOf("![説明](b.png)", 0), []);
   assert.deepEqual(marksOf("[a]: https://x.y"), ["line:md-linkdef@0"]);
   assert.deepEqual(marksOf("[^1]: 注"), []);
 });
@@ -111,4 +117,8 @@ test("livePreview: \\ の打ち消しは \\ を隠し、実体参照は文字に
   assert.deepEqual(marksOf("A &amp; B"), ['text="&amp;"']);
   assert.deepEqual(marksOf("改行<br>と<kbd>**K**</kbd>"), ['html="<br>"', 'html="<kbd>**K**</kbd>"']);
   assert.deepEqual(marksOf("改行<br>と", 0), []);
+});
+
+test("livePreview: 画像の印は src と説明を持つ", () => {
+  assert.deepEqual(imagesOf("![赤い 四角](img/a.png)"), ["img/a.png|赤い 四角"]);
 });

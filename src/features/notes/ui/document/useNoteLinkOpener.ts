@@ -1,4 +1,4 @@
-// 開いたノートのリンクの行き先の説明と開き方（Markdown のノートのリンクの小窓・⌘ ＋クリックと、HTML のノートのページのリンク）
+// 開いたノートのリンクの行き先の説明と開き方（Markdown のノートのリンクの小窓・⌘ ＋クリックと、HTML のノートのページのリンク）と、画像の読み先
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { alert } from "@/foundation/ui/kit/ask";
 import { openWebLink } from "@/foundation/ui/external/linkOpen";
@@ -6,6 +6,7 @@ import { openExternal } from "@/foundation/ui/external/native";
 import { useNoteList } from "@/features/notes/ui/store";
 import type { NoteLinkOpener } from "./linkTooltip";
 import { noteLinkTarget } from "./noteLinkTarget";
+import { noteAssetBase } from "./htmlPage";
 
 const MISSING = "リンク先が見つかりません";
 
@@ -37,5 +38,11 @@ export function useNoteLinkOpener({ projectId, path, dir, onOpenNote }: { projec
       else if (target.kind === "none") void alert("このリンクは開けません", target.reason);
     },
   };
-  return { opener, openInNotes };
+  /** 画像の src を画面で読める URL に（ノートのフォルダの中だけ。コアのファイルの口。HTML のノートのページと同じ） */
+  const imageUrl = (src: string) => {
+    const target = noteLinkTarget(src, path);
+    if (target.kind !== "note" && target.kind !== "file") return null;
+    return `${noteAssetBase(location.origin, projectId, "")}${target.path.split("/").map(encodeURIComponent).join("/")}`;
+  };
+  return { opener, openInNotes, imageUrl };
 }

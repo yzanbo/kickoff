@@ -181,6 +181,7 @@ export function NoteView({
                 onContextMenu={editMenu.open}
                 onReady={revealSoon}
                 linkOpener={links.opener}
+                imageUrl={links.imageUrl}
               />
             </Suspense>
             {editMenu.element}

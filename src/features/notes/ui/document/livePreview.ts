@@ -22,7 +22,9 @@ export type PreviewMark =
   /** 文字に置き換える（実体参照 &amp; を & に） */
   | { kind: "text"; from: number; to: number; text: string }
   /** 行の中の HTML（返答の表示と同じ処理で描く） */
-  | { kind: "html"; from: number; to: number; source: string };
+  | { kind: "html"; from: number; to: number; source: string }
+  /** 画像（![説明](パス)。行き先のあるものだけ） */
+  | { kind: "image"; from: number; to: number; src: string; alt: string };
 
 /** 中身に見た目を付ける要素 */
 const SPAN_CLASS: Record<string, string> = {
@@ -102,6 +104,13 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
       if (name === "Link") {
         if (isLink(n)) out.push({ kind: "span", from: n.from, to: n.to, cls: "md-link" });
         return;
+      }
+      // 画像（行き先を書いたものだけ。![[名前]] は返答の表示でも文字のまま）
+      if (name === "Image") {
+        const url = n.node.getChild("URL");
+        const marks = n.node.getChildren("LinkMark");
+        if (url && marks.length >= 2 && !isActive(n.from)) out.push({ kind: "image", from: n.from, to: n.to, src: text.slice(url.from, url.to), alt: text.slice(marks[0].to, marks[1].from) });
+        return false;
       }
       // <URL> と URL のそのまま書き（そのまま書きは日本語の記号の手前まで。返答の表示と同じ）
       if (name === "Autolink") {

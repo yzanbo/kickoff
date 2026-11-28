@@ -1,7 +1,6 @@
 // ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
 // 数式の場所は `@shared/markdown/mathGuard` の mathRanges（チャットの返答と同じ決まり）を KaTeX で、Mermaid はチャットと同じ renderMermaid で描く。
 // カーソルがその中にあるときは、書いたとおりの記号を見せる（ライブプレビューの見出しなどと同じ）。行をまたいで置き換えるので、ViewPlugin ではなく StateField で飾る
-import { syntaxTree } from "@codemirror/language";
 import { Prec, StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from "@codemirror/view";
 import type KaTeX from "katex";
@@ -11,7 +10,7 @@ import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
 import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
-import { tableBlocks } from "./tableBlocks";
+import { htmlBlocksOf, tablesOf } from "./tableState";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
@@ -95,9 +94,9 @@ function build(state: EditorState, focused: boolean, theme: AppliedTheme): Decor
   const text = state.doc.toString();
   const touches = (from: number, to: number) => focused && state.selection.ranges.some((r) => r.from <= to && r.to >= from);
   const out: Range<Decoration>[] = [];
-  // 表の中は表の飾り（blockWidgets）が描くので、数式・図を重ねない
-  const tables = tableBlocks(syntaxTree(state), text);
-  const inTable = (from: number, to: number) => tables.some((t) => from < t.to && to > t.from);
+  // 表と HTML のまとまりの中は blockWidgets が描くので、数式・図を重ねない
+  const replaced = [...tablesOf(state), ...htmlBlocksOf(state)];
+  const inTable = (from: number, to: number) => replaced.some((t) => from < t.to && to > t.from);
   // Mermaid の塊（行をまるごと置き換える）。数式はこの外だけを探す
   const blocks = text.includes("mermaid") ? mermaidBlocks(text) : [];
   for (const b of blocks) {

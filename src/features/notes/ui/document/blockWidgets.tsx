@@ -11,7 +11,8 @@ import { cellAt, cellRange, markdownWithoutCell, type CellAddress } from "./tabl
 import { cellSync } from "./cellEditor";
 import { enterTableKeymap } from "./cellKeys";
 import { focusWatcher, openCellOf, tableCellField } from "./tableField";
-import { docText, tablesOf, type OpenCell } from "./tableState";
+import { HtmlBlock } from "./HtmlBlock";
+import { docText, htmlBlocksOf, tablesOf, type OpenCell } from "./tableState";
 import { widgetPortalsFacet, type WidgetPortals } from "./widgetPortals";
 
 /** 要素を描いた portals（destroy では view を受け取れないので、描いたときに覚える） */
@@ -72,6 +73,33 @@ class TableWidget extends WidgetType {
   }
 }
 
+/** HTML のまとまり 1 つを描く飾り（返答の表示と同じ Markdown の部品で。カーソルが入ると元の文字） */
+class HtmlBlockWidget extends WidgetType {
+  constructor(readonly source: string) {
+    super();
+  }
+  eq(other: HtmlBlockWidget) {
+    return other.source === this.source;
+  }
+  toDOM(view: EditorView) {
+    const el = document.createElement("div");
+    el.className = "cm-note-html";
+    const portals = view.state.facet(widgetPortalsFacet);
+    if (portals) {
+      portalsByElement.set(el, portals);
+      portals.mount(el, <HtmlBlock source={this.source} view={view} />);
+    }
+    return el;
+  }
+  destroy(el: HTMLElement) {
+    portalsByElement.get(el)?.unmount(el);
+  }
+  // 中のたたむ部分（details）の開け閉めは部品が受け、ほかを押すと本体がカーソルを置く（元の文字に戻る）
+  ignoreEvent(e: Event) {
+    return !!(e.target as HTMLElement).closest("summary, a, button");
+  }
+}
+
 /** ⌘F の当たりのある表のセル（置き換えて描いた所には当たりの色が出ないので、セルに印を付ける） */
 function searchMatches(state: EditorState, table: TableBlock): string {
   if (!searchPanelOpen(state)) return "";
@@ -90,7 +118,15 @@ function searchMatches(state: EditorState, table: TableBlock): string {
 function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
   const text = docText(state);
   const out: Range<Decoration>[] = [];
+  // HTML のまとまり（カーソルが中にあれば元の文字）。中の表は表として描かない
+  const focused = state.field(tableCellField, false)?.focused ?? false;
+  const html = htmlBlocksOf(state);
+  for (const h of html) {
+    if (focused && state.selection.ranges.some((r) => r.from <= h.to && r.to >= h.from)) continue;
+    out.push(Decoration.replace({ widget: new HtmlBlockWidget(h.source), block: true }).range(h.from, h.to));
+  }
   for (const t of tablesOf(state)) {
+    if (html.some((h) => t.from < h.to && t.to > h.from)) continue;
     const here = open && open.tableFrom === t.from ? { row: open.row, col: open.col } : null;
     const range = here && cellRange(text, t, here);
     const markdown = range ? markdownWithoutCell(text, t, range) : t.markdown;
@@ -107,7 +143,9 @@ const decorationsField = StateField.define<DecorationSet>({
     const grew = syntaxTree(tr.startState) !== syntaxTree(tr.state);
     // ⌘F の欄を開け閉めした・探す文が変わったときも、当たりのセルの印を付け直す
     const searched = searchPanelOpen(tr.startState) !== searchPanelOpen(tr.state) || !getSearchQuery(tr.startState).eq(getSearchQuery(tr.state));
-    if (!tr.docChanged && !grew && !searched && open === openCellOf(tr.startState)) return value;
+    // HTML のまとまりがあれば、カーソルの出入り・ピントでも組み直す（入ると元の文字）
+    const moved = (tr.selection || tr.effects.length > 0) && htmlBlocksOf(tr.state).length > 0;
+    if (!tr.docChanged && !grew && !searched && !moved && open === openCellOf(tr.startState)) return value;
     return decorate(tr.state, open);
   },
   provide: (field) => EditorView.decorations.from(field),
