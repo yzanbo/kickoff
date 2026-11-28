@@ -2,6 +2,7 @@
 // 開きから閉じまでを 1 つにまとめる（空行をはさんでも。中の Markdown も一緒に描く）。閉じないまま長く続くものはまとめない
 import type { SyntaxNode, Tree } from "@lezer/common";
 import { HTML_TAGS, VOID_TAGS } from "@/foundation/ui/markdown/html/htmlAllowlist";
+import { cacheByTree } from "./treeCache";
 
 /** HTML のまとまり 1 つ（行の頭から行の終わりまで） */
 export interface HtmlBlockSource {
@@ -33,8 +34,8 @@ function groupEnd(text: string, from: number, name: string): number | null {
   return null;
 }
 
-/** 文の中の HTML のまとまり（一覧（htmlAllowlist）の小文字のタグで始まるものだけ。HTML のコメントは除く） */
-export function htmlBlocks(tree: Tree, text: string): HtmlBlockSource[] {
+/** 文の中の HTML のまとまり（一覧（htmlAllowlist）の小文字のタグで始まるものだけ。HTML のコメントは除く。同じ木と文には同じ結果） */
+export const htmlBlocks = cacheByTree((tree: Tree, text: string): HtmlBlockSource[] => {
   const out: HtmlBlockSource[] = [];
   let after = -1;
   const walk = (node: SyntaxNode) => {
@@ -54,4 +55,4 @@ export function htmlBlocks(tree: Tree, text: string): HtmlBlockSource[] {
   };
   walk(tree.topNode);
   return out;
-}
+});

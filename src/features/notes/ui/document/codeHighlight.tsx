@@ -9,7 +9,7 @@ import { fenceLanguage } from "@/foundation/ui/code/languages";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { codeBlocks, tokenRanges } from "./codeBlocks";
-import { docText } from "./tableState";
+import { docText } from "./noteDoc";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 色が届いた・テーマが変わった（組み直しの合図） */

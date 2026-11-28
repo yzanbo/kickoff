@@ -12,7 +12,8 @@ import { cellSync } from "./cellEditor";
 import { enterTableKeymap } from "./cellKeys";
 import { focusWatcher, openCellOf, tableCellField } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
-import { docText, htmlBlocksOf, tablesOf, type OpenCell } from "./tableState";
+import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
+import { type OpenCell } from "./tableState";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** 表 1 つを描く飾り（中身は React の部品。widgetPortals で描く） */

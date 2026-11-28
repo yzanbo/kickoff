@@ -10,7 +10,7 @@ import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
 import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
-import { htmlBlocksOf, tablesOf } from "./tableState";
+import { htmlBlocksOf, tablesOf } from "./noteDoc";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;

@@ -10,7 +10,7 @@ import { footnoteAt, footnotes } from "./footnotes";
 import { linkAt, type NoteLinkAt } from "./noteLinks";
 import { headingSlug } from "./noteLinkTarget";
 import { tableCellField } from "./tableField";
-import { docText } from "./tableState";
+import { docText } from "./noteDoc";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
 /** リンクの行き先の説明と開き方（開いたノートの画面が渡す） */

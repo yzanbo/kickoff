@@ -1,10 +1,9 @@
 // 表のセルで書く状態（どの表のどのセルを開いているか）と、その決め方。
 // 開くのは、セルを押した・セルの間を動いた（openCellEffect）か、本体の選んだ範囲が表のセルに入った（元に戻す・検索・行へ移る）とき。
 // 閉じるのは、選んだ範囲が表の外へ出た・ピントが編集の部品の外へ出たとき
-import { syntaxTree } from "@codemirror/language";
-import { Annotation, StateEffect, type EditorState, type Text, type Transaction } from "@codemirror/state";
-import { htmlBlocks, type HtmlBlockSource } from "./htmlBlocks";
-import { tableBlocks, type TableBlock } from "./tableBlocks";
+import { Annotation, StateEffect, type EditorState, type Transaction } from "@codemirror/state";
+import { docText, tablesOf } from "./noteDoc";
+import type { TableBlock } from "./tableBlocks";
 import { cellAt, cellRange, tableAt, type CellAddress } from "./tableModel";
 
 /** 開いているセル（表は最初の行の頭の位置で指す。書き換えに合わせて動かす） */
@@ -22,34 +21,6 @@ export const fromCell = Annotation.define<boolean>();
 
 /** ピントが編集の部品（本体かセル）の中にあるか（変わったら知らせる） */
 export const editorFocusEffect = StateEffect.define<boolean>();
-
-const textByDoc = new WeakMap<Text, string>();
-
-/** 本体の文（同じ文は 1 回だけ作る。飾りの組み立てで何度も読むため） */
-export function docText(state: EditorState): string {
-  let text = textByDoc.get(state.doc);
-  if (text === undefined) {
-    text = state.doc.toString();
-    textByDoc.set(state.doc, text);
-  }
-  return text;
-}
-
-/** 本体の文の中の表 */
-export const tablesOf = (state: EditorState): TableBlock[] => tableBlocks(syntaxTree(state), docText(state));
-
-const htmlByTree = new WeakMap<object, { text: string; blocks: HtmlBlockSource[] }>();
-
-/** 本体の文の中の HTML のまとまり（同じ木と文には同じ結果） */
-export function htmlBlocksOf(state: EditorState): HtmlBlockSource[] {
-  const tree = syntaxTree(state);
-  const text = docText(state);
-  const known = htmlByTree.get(tree);
-  if (known && known.text === text) return known.blocks;
-  const blocks = htmlBlocks(tree, text);
-  htmlByTree.set(tree, { text, blocks });
-  return blocks;
-}
 
 /** 開いているセルの表（もう表でなくなっていれば null） */
 export function openTable(state: EditorState, open: OpenCell): TableBlock | null {

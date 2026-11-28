@@ -8,7 +8,8 @@ import { openCellOf, syncEditorFocus, takeFocusRequest } from "./tableField";
 import { cellKeymap } from "./cellKeys";
 import { alignTableChanges, escapeCellInput, fillMissingCell, isAlignedTable } from "./tableEdit";
 import { bodyRows, cellRange } from "./tableModel";
-import { docText, fromCell, openCellRange, openTable } from "./tableState";
+import { docText } from "./noteDoc";
+import { fromCell, openCellRange, openTable } from "./tableState";
 
 /** 本体から写した書き換え（本体へ送り返さない） */
 const fromMain = Annotation.define<boolean>();

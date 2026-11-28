@@ -1,5 +1,6 @@
 // ノートの中の表を見つけ、行ごとの場所と、表として描く Markdown を作る純粋な関数（置き換えて描く・セルで書くのに使う）
 import type { SyntaxNode, Tree } from "@lezer/common";
+import { cacheByTree } from "./treeCache";
 
 /** 表の 1 行の場所（文の中の位置） */
 export interface TableRowSource {
@@ -30,8 +31,6 @@ export interface TableBlock {
 /** 表が入りうるまとまり（文の中は探さない） */
 const CONTAINERS = new Set(["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"]);
 
-const blocksByTree = new WeakMap<Tree, { text: string; blocks: TableBlock[] }>();
-
 function lineEnd(text: string, pos: number): number {
   const end = text.indexOf("\n", pos);
   return end < 0 ? text.length : end;
@@ -55,10 +54,8 @@ function blockOf(table: SyntaxNode, text: string): TableBlock {
   };
 }
 
-/** 文の中の表（書いた順）。同じ木と文には同じ結果を返す（飾りの組み立てで何度も呼ぶため） */
-export function tableBlocks(tree: Tree, text: string): TableBlock[] {
-  const known = blocksByTree.get(tree);
-  if (known && known.text === text) return known.blocks;
+/** 文の中の表（書いた順）。同じ木と文には同じ結果を返す */
+export const tableBlocks = cacheByTree((tree: Tree, text: string): TableBlock[] => {
   const blocks: TableBlock[] = [];
   const walk = (node: SyntaxNode) => {
     for (let child = node.firstChild; child; child = child.nextSibling) {
@@ -67,9 +64,8 @@ export function tableBlocks(tree: Tree, text: string): TableBlock[] {
     }
   };
   walk(tree.topNode);
-  blocksByTree.set(tree, { text, blocks });
   return blocks;
-}
+});
 
 /** 区切りの行から読む列の寄せ（: の付き方。付いていなければ null） */
 export type ColumnAlign = "left" | "center" | "right" | null;

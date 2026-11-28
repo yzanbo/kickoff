@@ -5,7 +5,8 @@ import type { EditorView, KeyBinding } from "@codemirror/view";
 import { addRow } from "./tableActions";
 import { focusNextCell, openCellOf } from "./tableField";
 import { bodyRows, cellRange, columnCount, nextCell, previousCell, type CellAddress } from "./tableModel";
-import { docText, fromCell, openCellEffect, openTable, tablesOf } from "./tableState";
+import { docText, tablesOf } from "./noteDoc";
+import { fromCell, openCellEffect, openTable } from "./tableState";
 
 /** 開いているセルの表と場所 */
 function current(main: EditorView) {

@@ -2,6 +2,7 @@
 // 行の形で見つける。返答の表示と同じく、定義のある名前の印だけを脚注にし、番号は本文で初めて出てきた順
 import type { Tree } from "@lezer/common";
 import { normalizeLabel } from "./noteLinks";
+import { cacheByTree } from "./treeCache";
 
 /** 脚注の定義（行の頭の [^名前]: から、字下げした続きの行まで） */
 export interface FootnoteDef {
@@ -45,12 +46,8 @@ function inCode(tree: Tree, pos: number): boolean {
 const DEF = /^ {0,3}\[\^([^\]\s]+)\]:[ \t]?/gm;
 const REF = /\[\^([^\]\s]+)\]/g;
 
-const footnotesByTree = new WeakMap<Tree, { text: string; footnotes: Footnotes }>();
-
 /** 文の中の脚注（同じ木と文には同じ結果） */
-export function footnotes(tree: Tree, text: string): Footnotes {
-  const known = footnotesByTree.get(tree);
-  if (known && known.text === text) return known.footnotes;
+export const footnotes = cacheByTree((tree: Tree, text: string): Footnotes => {
   const defs = new Map<string, FootnoteDef>();
   for (const m of text.matchAll(DEF)) {
     const from = m.index;
@@ -78,10 +75,8 @@ export function footnotes(tree: Tree, text: string): Footnotes {
     if (def.number === null) def.number = ++count;
     refs.push({ from: m.index, to: m.index + m[0].length, label: normalizeLabel(m[1]), number: def.number });
   }
-  const result = { defs, refs };
-  footnotesByTree.set(tree, { text, footnotes: result });
-  return result;
-}
+  return { defs, refs };
+});
 
 /** pos にある脚注の印（なければ null） */
 export function footnoteAt(notes: Footnotes, pos: number): { ref: FootnoteRef; def: FootnoteDef } | null {

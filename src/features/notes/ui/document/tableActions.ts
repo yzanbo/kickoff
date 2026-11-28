@@ -6,7 +6,8 @@ import { tableAligns, type ColumnAlign } from "./tableBlocks";
 import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
 import { focusNextCell, type TableTarget } from "./tableField";
 import { bodyRows, cellRange, columnCount, type CellAddress } from "./tableModel";
-import { docText, fromCell, openCellEffect, openTable } from "./tableState";
+import { docText } from "./noteDoc";
+import { fromCell, openCellEffect, openTable } from "./tableState";
 import { deleteColumn, deleteRow, deleteTable, insertColumn, insertRow, insertTableAt, setColumnAlign } from "./tableStructure";
 
 
