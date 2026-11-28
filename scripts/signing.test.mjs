@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { adhocRequested, hasHardenedRuntime, isMachOHeader, leafCertOf, signatureProblem, signModeOf } from "./signing.mjs";
-import { vaultOf, VAULT } from "./vault.mjs";
-import { busyMessage } from "./kickoff-status.mjs";
+import { missingVaultMessage, vaultOf, VAULT } from "./vault.mjs";
+import { busyMessage, kickoffTerminalOf } from "./kickoff-status.mjs";
 
 const SHA = "F84FBC463E4889FC6FED2DEF2DC27A9310DB57FC";
 const requirement = `Executable=/x/Kickoff.app/Contents/MacOS/Kickoff\ndesignated => identifier "app.nexy.Kickoff" and certificate leaf = H"${SHA.toLowerCase()}"\n`;
@@ -56,4 +56,17 @@ test("vaultOf: 差し替えは KICKOFF_SIGN_KEYCHAIN と KICKOFF_SIGN_IDENTITY �
 test("busyMessage: 実行中・数えられない Kickoff があれば止める文を返す", () => {
   assert.equal(busyMessage([{ label: "製品版", running: 0 }, { label: "開発版", running: 0 }]), null);
   assert.match(busyMessage([{ label: "製品版", running: 2 }, { label: "開発版", running: null }]) ?? "", /製品版（2 件）・開発版（数えられません）/);
+});
+
+test("金庫の案内: publish では印鑑なしの道を出さない", () => {
+  assert.match(missingVaultMessage(VAULT, { adhocHint: true }), /ADHOC=1 npm run install-app/);
+  assert.doesNotMatch(missingVaultMessage(VAULT, { adhocHint: false }), /ADHOC/);
+});
+
+test("kickoffTerminalOf: どの Kickoff のターミナルから流したか（印のない古い版は unknown）", () => {
+  assert.equal(kickoffTerminalOf({}), null);
+  assert.equal(kickoffTerminalOf({ TERM_PROGRAM: "Apple_Terminal" }), null);
+  assert.equal(kickoffTerminalOf({ KICKOFF_TERMINAL_OF: "production" }), "production");
+  assert.equal(kickoffTerminalOf({ KICKOFF_TERMINAL_OF: "development", TERM_PROGRAM: "Kickoff" }), "development");
+  assert.equal(kickoffTerminalOf({ TERM_PROGRAM: "Kickoff" }), "unknown");
 });

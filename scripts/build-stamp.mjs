@@ -2,8 +2,8 @@
 // 作り方は環境変数 KICKOFF_BUILD_KIND（npm run publish が release、npm run install-app が local / adhoc を付ける）。付けなければ dev
 import { execFileSync } from "node:child_process";
 
-/** 埋め込める作り方（src/shared/updates/types.ts の BUILD_KINDS と同じ） */
-const KINDS = ["release", "local", "adhoc", "dev"];
+/** 埋め込める作り方（src/shared/updates/types.ts の BUILD_KINDS と同じ。build-stamp.test.mjs が突き合わせる） */
+export const KINDS = ["release", "local", "adhoc", "dev"];
 
 /** 環境変数の作り方を読む。知らない値は止める（配る版に別の印を付けたまま作らないため） */
 export function buildKindOf(value) {

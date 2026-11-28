@@ -6,7 +6,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { checkAgentUpdates } from "./check-agent-updates.mjs";
-import { assertNoRunningChats } from "./kickoff-status.mjs";
+import { assertNoRunningChats, kickoffTerminalOf, processRunning } from "./kickoff-status.mjs";
 import { bundleIdOf, cdhashOf, PRODUCTION_BUNDLE_ID, resetPrivacyPermissions } from "./mac-privacy.mjs";
 import { buildCode, builtApp, packageApp } from "./package-app.mjs";
 import { adhocRequested } from "./signing.mjs";
@@ -14,30 +14,15 @@ import { missingVaultMessage, vaultExists, vaultOf } from "./vault.mjs";
 
 const target = "/Applications/Kickoff.app";
 
-const isRunning = () => {
-  try {
-    execFileSync("pgrep", ["-f", `${target}/Contents/MacOS/Kickoff`], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-};
+const isRunning = () => processRunning(`${target}/Contents/MacOS/Kickoff`);
+/** 製品版のアプリの中のプロセス（本体のあとに終わる Helper（GPU・ネットワーク・画面）や crashpad も）が残っているか */
+const hasBundleProcesses = () => processRunning(`${target}/Contents/`);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** 製品版のアプリの中のプロセス（本体のあとに終わる Helper（GPU・ネットワーク・画面）や crashpad も）が残っているか */
-const hasBundleProcesses = () => {
-  try {
-    execFileSync("pgrep", ["-f", `${target}/Contents/`], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 // 製品版の Kickoff の中のターミナルから流すと、製品版を終了したときにこのスクリプトも止められ、入れ替えの途中で終わることがある。
-// 印のない古い版の Kickoff のターミナル（TERM_PROGRAM だけ）も、どちらか分からないので止める。開発版（Kickoff Dev）のターミナルからは流してよい
-const terminalOf = process.env.KICKOFF_TERMINAL_OF ?? (process.env.TERM_PROGRAM === "Kickoff" ? "unknown" : undefined);
+// 印のない古い版の Kickoff のターミナルも、どちらか分からないので止める。開発版（Kickoff Dev）のターミナルからは流してよい
+const terminalOf = kickoffTerminalOf();
 if (terminalOf === "production" || terminalOf === "unknown") {
   console.error("製品版の Kickoff の中のターミナルからは実行できません（製品版を終了するとき、このスクリプトも止まるため）。macOS のターミナル（Terminal.app など）で実行してください");
   process.exit(1);
@@ -48,7 +33,7 @@ const adhoc = adhocRequested(process.env.ADHOC);
 if (adhoc) {
   console.warn("ADHOC=1: 印鑑なし（仮の署名）の製品版を作ります。入れ替えるたびにアクセシビリティ・画面収録の許可を聞き直し、新しい版の知らせは出ません");
 } else if (!vaultExists(vaultOf())) {
-  console.error(missingVaultMessage(vaultOf()));
+  console.error(missingVaultMessage(vaultOf(), { adhocHint: true }));
   process.exit(1);
 }
 

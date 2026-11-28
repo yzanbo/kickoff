@@ -3,6 +3,7 @@ import { saveSettings } from "@/foundation/ui/settings/appSettings";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useCell } from "@/foundation/ui/store/cell";
 import { releaseNotesUrl, RELEASES_URL } from "@shared/updates/distribution";
+import { updateVersionOf } from "@shared/updates/state";
 import { BANNER_ACTION_LABELS, bannerOf, showsBadge, type BannerAction } from "./updateBannerModel";
 import { updatesNative } from "./native";
 import { updatesCell } from "./updatesStore";
@@ -26,7 +27,7 @@ export function UpdateBanner() {
   const snapshot = useCell(updatesCell);
   const banner = snapshot && bannerOf(snapshot.state, snapshot.build.version);
   if (!snapshot || !banner) return null;
-  const version = "version" in snapshot.state ? snapshot.state.version : null;
+  const version = updateVersionOf(snapshot.state);
   return (
     <div className="update-banner" data-tone={banner.tone} role="status">
       <span className="update-banner-text">{banner.text}</span>

@@ -1,4 +1,5 @@
 // 更新の様子の移り変わり（純粋な関数。出来事から次の様子を決める。electron-updater を動かすのは updater.ts）
+import { hasUpdateVersion } from "@shared/updates/state";
 import type { UpdateState } from "@shared/updates/types";
 
 /** 更新の出来事（manual は、メニューの「アップデートを確認…」・設定のボタンから手で確かめたか） */
@@ -19,18 +20,11 @@ export type UpdateEvent =
   | { type: "installFailed" }
   | { type: "skipped" };
 
-/** 新しい版を持っている様子（同じ版をもう一度ダウンロードしない） */
-type HasVersion = Extract<UpdateState, { version: string }>;
-const hasVersion = (s: UpdateState): s is HasVersion => "version" in s;
-
 /** 確かめる前の様子（手で確かめている間は previous に入れてある） */
 const settled = (s: UpdateState): UpdateState => (s.kind === "checking" ? s.previous : s);
 
 /** 帯に何も出していない（手で確かめた結果だけの）様子 */
 const isQuiet = (s: UpdateState) => s.kind === "idle" || s.kind === "latest" || s.kind === "unreachable";
-
-/** 確かめない様子（ダウンロード中・開き直すのを待っている・入れている間は、確かめ直さない） */
-export const blocksCheck = (s: UpdateState): boolean => s.kind === "downloading" || s.kind === "waiting" || s.kind === "installing";
 
 /** 出来事から次の様子を決める（当てはまらない出来事は、いまの様子のまま） */
 export function nextUpdateState(state: UpdateState, event: UpdateEvent): UpdateState {
@@ -41,7 +35,8 @@ export function nextUpdateState(state: UpdateState, event: UpdateEvent): UpdateS
     case "found":
       // 飛ばした版は、手で確かめたときだけ取りに行く（自動の確かめでは印を消す）
       if (event.skipped === event.version && !event.manual) return { kind: "idle" };
-      if (hasVersion(base) && base.version === event.version && base.kind !== "downloading") return base;
+      // 同じ版をもう一度ダウンロードしない
+      if (hasUpdateVersion(base) && base.version === event.version && base.kind !== "downloading") return base;
       return { kind: "downloading", version: event.version, percent: 0 };
     case "notFound":
       // 確かめ直したら新しい版がなかった（取り下げられた）: 印を消す
@@ -66,6 +61,6 @@ export function nextUpdateState(state: UpdateState, event: UpdateEvent): UpdateS
     case "installFailed":
       return state.kind === "installing" ? { kind: "failed", version: state.version } : state;
     case "skipped":
-      return hasVersion(base) ? { kind: "idle" } : state;
+      return hasUpdateVersion(base) ? { kind: "idle" } : state;
   }
 }

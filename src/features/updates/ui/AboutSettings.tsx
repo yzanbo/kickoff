@@ -5,6 +5,7 @@ import { Field } from "@/foundation/ui/kit/Field";
 import { SwitchField } from "@/foundation/ui/kit/ChoiceField";
 import { buildLabel } from "@shared/updates/buildLabel";
 import { RELEASES_URL } from "@shared/updates/distribution";
+import { checkDisabled } from "@shared/updates/state";
 import { updatesNative } from "./native";
 import { updatesCell } from "./updatesStore";
 
@@ -15,7 +16,7 @@ import { updatesCell } from "./updatesStore";
 export function AboutSettings() {
   const snapshot = useCell(updatesCell);
   const settings = useAppSettings().data;
-  const busy = snapshot !== null && ["checking", "downloading", "waiting", "installing"].includes(snapshot.state.kind);
+  const busy = snapshot !== null && checkDisabled(snapshot.state);
   return (
     <section className="section">
       <h2>Kickoff について</h2>

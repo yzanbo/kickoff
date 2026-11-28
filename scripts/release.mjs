@@ -32,20 +32,15 @@ export function rewriteLatestMac(text, { repo, tag }) {
   return stringify(info);
 }
 
-/** 製品版に入っていなければならない fuses（electron-builder.yml の electronFuses と同じ） */
-const EXPECTED_FUSES = {
-  RunAsNode: "Disabled",
-  EnableNodeOptionsEnvironmentVariable: "Disabled",
-  EnableNodeCliInspectArguments: "Disabled",
-  EnableEmbeddedAsarIntegrityValidation: "Enabled",
-  OnlyLoadAppFromAsar: "Enabled",
-  EnableCookieEncryption: "Disabled",
-};
-
-/** @electron/fuses read の出力が決まりどおりか（違えば理由の文。合っていれば null） */
-export function fusesProblem(output) {
+/**
+ * @electron/fuses read の出力が electron-builder.yml の electronFuses どおりか（違えば理由の文。合っていれば null）。
+ * yml の名前（runAsNode）は、出力の名前（RunAsNode）の頭を小文字にしたもの
+ */
+export function fusesProblem(output, electronFuses) {
   const actual = Object.fromEntries([...output.matchAll(/^\s*(\w+) is (Enabled|Disabled|Removed)/gm)].map((m) => [m[1], m[2]]));
-  const wrong = Object.entries(EXPECTED_FUSES).filter(([name, state]) => actual[name] !== state);
+  const expected = Object.entries(electronFuses ?? {}).map(([key, on]) => [key[0].toUpperCase() + key.slice(1), on ? "Enabled" : "Disabled"]);
+  if (expected.length === 0) return "electron-builder.yml に electronFuses がありません";
+  const wrong = expected.filter(([name, state]) => actual[name] !== state);
   return wrong.length === 0 ? null : `fuses が違います: ${wrong.map(([name, state]) => `${name}（${actual[name] ?? "なし"}。期待: ${state}）`).join("・")}`;
 }
 

@@ -1,5 +1,6 @@
-// 製品版・開発版の Kickoff で実行中のチャットの数（/api/status の agents.running。子チャットも入る）。
-// 金庫を開ける前と製品版を終了する前に、AI が動いていないことを確かめる（npm run install-app・npm run publish が使う）
+// 製品版・開発版の Kickoff の様子（npm run install-app・npm run publish が使う）: どの Kickoff のターミナルから流したか・プロセスが動いているか・
+// 実行中のチャットの数（/api/status の agents.running。子チャットも入る）。金庫を開ける前と製品版を終了する前に、AI が動いていないことを確かめる
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,6 +10,26 @@ export const KICKOFF_APPS = [
   { label: "製品版", dir: path.join(os.homedir(), "Library", "Application Support", "Kickoff"), port: 4317 },
   { label: "開発版", dir: path.join(os.homedir(), "Library", "Application Support", "Kickoff Dev"), port: 4318 },
 ];
+
+/**
+ * どの Kickoff の内蔵ターミナルから流したか（KICKOFF_TERMINAL_OF。印のない古い版の Kickoff は TERM_PROGRAM だけなので unknown）。
+ * Kickoff の外（macOS のターミナルなど）は null
+ */
+export function kickoffTerminalOf(env = process.env) {
+  if (env.KICKOFF_TERMINAL_OF === "production" || env.KICKOFF_TERMINAL_OF === "development") return env.KICKOFF_TERMINAL_OF;
+  if (env.KICKOFF_TERMINAL_OF || env.TERM_PROGRAM === "Kickoff") return "unknown";
+  return null;
+}
+
+/** コマンドラインがその文字を含むプロセスがあるか（pgrep -f） */
+export function processRunning(pattern) {
+  try {
+    execFileSync("pgrep", ["-f", pattern], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * その Kickoff で実行中のチャットの数。動いていない（つながらない・token がない）ときは 0。

@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { parse } from "yaml";
 import distribution from "../src/shared/updates/distribution.json" with { type: "json" };
-import { assertNoRunningChats } from "./kickoff-status.mjs";
+import { assertNoRunningChats, kickoffTerminalOf } from "./kickoff-status.mjs";
 import { buildCode, builtApp, packageApp, root } from "./package-app.mjs";
 import { dirtyProblem, fusesProblem, isPrerelease, releaseTagOf, rewriteLatestMac } from "./release.mjs";
 import { missingVaultMessage, vaultExists, vaultOf } from "./vault.mjs";
@@ -21,8 +21,8 @@ const fail = (message) => {
   process.exit(1);
 };
 
-// 製品版の Kickoff の中のターミナル・チャットから流さない（AI が動く場所で金庫を開けない）
-if (process.env.KICKOFF_TERMINAL_OF || process.env.TERM_PROGRAM === "Kickoff") fail("Kickoff の中のターミナルからは配れません。macOS のターミナル（Terminal.app など）で実行してください");
+// Kickoff の中のターミナルからは流さない（開発版も。AI が動く場所で金庫を開けない）
+if (kickoffTerminalOf() !== null) fail("Kickoff の中のターミナルからは配れません。macOS のターミナル（Terminal.app など）で実行してください");
 
 // 1. 確かめ
 const { version } = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
@@ -42,7 +42,7 @@ if (!remote) fail(`${repo} を指す remote がありません（git remote add 
 const notesFile = path.join(root, "release-notes", `${version}.md`);
 if (!existsSync(notesFile)) fail(`リリースの説明 ${path.relative(root, notesFile)} がありません（書いてコミットしてから配ってください）`);
 const vault = vaultOf();
-if (!vaultExists(vault)) fail(missingVaultMessage(vault).split("\n")[0]);
+if (!vaultExists(vault)) fail(missingVaultMessage(vault, { adhocHint: false }));
 await assertNoRunningChats();
 
 // 2. ビルド（金庫はまだ開けない）。前の版の dmg・zip を混ぜないよう dist を空にする
@@ -54,7 +54,7 @@ await assertNoRunningChats();
 await packageApp({ signing: "release", dir: false });
 
 // 4. 確かめ: fuses・入れ子も厳しく（packageApp で済ませた署名の確かめに足す）
-const fuses = fusesProblem(run("node", [path.join(root, "node_modules", "@electron", "fuses", "dist", "bin.js"), "read", "--app", builtApp]));
+const fuses = fusesProblem(run("node", [path.join(root, "node_modules", "@electron", "fuses", "dist", "bin.js"), "read", "--app", builtApp]), builderYml.electronFuses);
 if (fuses) fail(fuses);
 const files = readdirSync(dist).filter((f) => /\.(dmg|zip|blockmap)$/.test(f)).map((f) => path.join(dist, f));
 if (!files.some((f) => f.endsWith(".dmg")) || !files.some((f) => f.endsWith(".zip"))) fail("dmg と zip ができていません");

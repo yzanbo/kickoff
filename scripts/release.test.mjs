@@ -31,7 +31,8 @@ test("rewriteLatestMac: zip・dmg の場所を Releases の URL にし、指紋�
   assert.throws(() => releaseAssetUrl("a/b", "v1", "Kickoff 1.zip"), /空白/);
 });
 
-test("fusesProblem: 決まりの fuses がそろっていなければ止める", () => {
+test("fusesProblem: electron-builder.yml の electronFuses どおりでなければ止める", () => {
+  const fuses = { runAsNode: false, enableCookieEncryption: false, enableNodeOptionsEnvironmentVariable: false, enableNodeCliInspectArguments: false, enableEmbeddedAsarIntegrityValidation: true, onlyLoadAppFromAsar: true };
   const good = [
     "Fuse Version: v1",
     "  RunAsNode is Disabled",
@@ -41,9 +42,10 @@ test("fusesProblem: 決まりの fuses がそろっていなければ止める",
     "  EnableEmbeddedAsarIntegrityValidation is Enabled",
     "  OnlyLoadAppFromAsar is Enabled",
   ].join("\n");
-  assert.equal(fusesProblem(good), null);
-  assert.match(fusesProblem(good.replace("RunAsNode is Disabled", "RunAsNode is Enabled")) ?? "", /RunAsNode（Enabled/);
-  assert.match(fusesProblem("") ?? "", /なし/);
+  assert.equal(fusesProblem(good, fuses), null);
+  assert.match(fusesProblem(good.replace("RunAsNode is Disabled", "RunAsNode is Enabled"), fuses) ?? "", /RunAsNode（Enabled/);
+  assert.match(fusesProblem("", fuses) ?? "", /なし/);
+  assert.match(fusesProblem(good, undefined) ?? "", /electronFuses がありません/);
 });
 
 test("dirtyProblem: コミットしていない変更があれば止める", () => {

@@ -4,7 +4,7 @@
 
 ## 地図
 - 版の情報: `scripts/build-stamp.mjs` が作り、`electron.vite.config.ts` がメインに `__KICKOFF_BUILD__` として埋め込む。読むのは `desktop/buildInfo.ts` だけ（形は `@shared/updates/types`、文は `buildLabel`）。
-- メイン: `desktop/index.ts`（`updatesDesktop`。IPC・メニューの「アップデートを確認…」・版が変わったときの HTTP キャッシュ `cacheReset.ts`）・殻 `updater.ts`・移り変わり `updateModel.ts`。
+- メイン: `desktop/index.ts`（`updatesDesktop`。IPC・メニューの「アップデートを確認…」・版が変わったときの HTTP キャッシュ `cacheReset.ts`）・殻 `updater.ts`・移り変わり `updateModel.ts`。様子の読み方（確かめないか・版）はメインと画面で `@shared/updates/state` 1 つ。
 - 設定 `@shared/updates/settings`（自動で確かめる・飛ばした版）。メインはコアに RPC の `updates.settings` で聞く。配る場所は `@shared/updates/distribution.json` 1 か所（publish も読む）。
 - `ui/`: 帯と ⚙ の印 `UpdateBanner`（決まりは `updateBannerModel.ts`。settings の `SETTINGS_SLOTS` に入れる）・節 `AboutSettings`・様子の店と殻の hook `updatesStore.ts`。`window.kickoff` は `ui/native.ts` だけ。
 

@@ -3,7 +3,8 @@
 // ［更新して開き直す］で作業中のチャットがあれば、なくなるまで待ってから入れる（数え方は install-app と同じ /api/status の agents.running）
 import type { Clock, TimerHandle } from "@/foundation/core/clock";
 import type { UpdatePrefs, UpdateState } from "@shared/updates/types";
-import { blocksCheck, nextUpdateState, type UpdateEvent } from "./updateModel";
+import { blocksCheck, updateVersionOf } from "@shared/updates/state";
+import { nextUpdateState, type UpdateEvent } from "./updateModel";
 
 /** 起動してから最初に確かめるまで（起動の重さと重ねない） */
 export const FIRST_CHECK_MS = 30_000;
@@ -64,7 +65,7 @@ export function createUpdateController(deps: UpdateControllerDeps) {
   function install() {
     offRunning?.();
     offRunning = null;
-    deps.log(`新しい版 ${state.kind === "installing" ? state.version : ""} を入れて開き直します`);
+    deps.log(`新しい版 ${updateVersionOf(state)} を入れて開き直します`);
     deps.port.quitAndInstall();
   }
 

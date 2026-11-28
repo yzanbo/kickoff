@@ -28,12 +28,16 @@ export function vaultOf(env = process.env) {
 /** 金庫がこの Mac にあるか */
 export const vaultExists = (vault) => existsSync(vault.keychain);
 
-/** 金庫がないときの案内（ADHOC=1 なしで流したとき。黙って印鑑なしにしない） */
-export const missingVaultMessage = (vault) =>
+/** 金庫がないときの案内（黙って印鑑なしにしない）。adhocHint: 印鑑なしで作る道も案内するか（配る版は印鑑なしにできないので publish は false） */
+export const missingVaultMessage = (vault, { adhocHint }) =>
   [
     `配る版の印鑑の金庫が見つかりません（${vault.keychain}）。`,
-    "金庫のない Mac で、とりあえず製品版を作るときは、印鑑なしで作ってください: ADHOC=1 npm run install-app",
-    "（印鑑なしの版は、入れ替えるたびにマイク・画面収録などの許可を聞き直し、新しい版の知らせも出しません）",
+    ...(adhocHint
+      ? [
+          "金庫のない Mac で、とりあえず製品版を作るときは、印鑑なしで作ってください: ADHOC=1 npm run install-app",
+          "（印鑑なしの版は、入れ替えるたびにマイク・画面収録などの許可を聞き直し、新しい版の知らせも出しません）",
+        ]
+      : []),
   ].join("\n");
 
 /** 金庫を開けて fn を流し、終わったら（失敗しても）閉める。パスワードは security がこのターミナルで聞く */

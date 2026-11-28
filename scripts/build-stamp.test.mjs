@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { buildKindOf, parseBuildNumber, readBuildStamp } from "./build-stamp.mjs";
+import { buildKindOf, KINDS, parseBuildNumber, readBuildStamp } from "./build-stamp.mjs";
 import { BUILD_KINDS } from "../src/shared/updates/types";
 
 test("buildKindOf: 付けなければ dev、知らない値は止める", () => {
   assert.equal(buildKindOf(undefined), "dev");
   assert.equal(buildKindOf(""), "dev");
+  assert.deepEqual(KINDS, [...BUILD_KINDS]);
   for (const kind of BUILD_KINDS) assert.equal(buildKindOf(kind), kind);
   assert.throws(() => buildKindOf("signed"), /KICKOFF_BUILD_KIND/);
 });

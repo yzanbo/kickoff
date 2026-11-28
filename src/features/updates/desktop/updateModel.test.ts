@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { UpdateState } from "@shared/updates/types";
-import { blocksCheck, nextUpdateState, type UpdateEvent } from "./updateModel";
+import { nextUpdateState, type UpdateEvent } from "./updateModel";
 
 const run = (state: UpdateState, ...events: UpdateEvent[]) => events.reduce(nextUpdateState, state);
 const idle: UpdateState = { kind: "idle" };
@@ -64,12 +64,4 @@ test("入れられなかった: 入れている途中の失敗だけを failed �
   assert.deepEqual(run(ready, { type: "installFailed" }), ready);
   assert.deepEqual(run(failed, { type: "found", version: "0.1.0-beta.2", manual: false, skipped: null }), failed);
   assert.deepEqual(run(failed, { type: "skipped" }), idle);
-});
-
-test("blocksCheck: ダウンロード中・待っている・入れている間は確かめない", () => {
-  assert.equal(blocksCheck({ kind: "downloading", version: "1", percent: 0 }), true);
-  assert.equal(blocksCheck({ kind: "waiting", version: "1", running: 1 }), true);
-  assert.equal(blocksCheck({ kind: "installing", version: "1" }), true);
-  assert.equal(blocksCheck(ready), false);
-  assert.equal(blocksCheck({ kind: "failed", version: "1" }), false);
 });
