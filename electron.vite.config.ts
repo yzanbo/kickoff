@@ -7,6 +7,7 @@ import { APP_ENVS } from "./src/foundation/core/system/appEnv";
 import { speechHelper } from "./scripts/speech-helper";
 import { unhashedAssets } from "./src/foundation/core/http/rendererCache";
 import { reactCompilerReport } from "./scripts/react-compiler-report.mjs";
+import { readBuildStamp } from "./scripts/build-stamp.mjs";
 
 // コアの API サーバーのポート（開発時は Vite から /api をここへ転送する。開発用のポート: appEnv.ts）
 const corePort = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
@@ -37,6 +38,8 @@ const compilerReport = reactCompilerReport({ allowList: "src/app/renderer/react-
 export default defineConfig({
   main: {
     resolve: { alias },
+    // 版の情報（ビルド番号・短い SHA・作り方）をメインのコードに埋め込む（src/features/updates/desktop/buildInfo.ts が読む）
+    define: { __KICKOFF_BUILD__: JSON.stringify(readBuildStamp()) },
     // 音声入力の「macOS の音声認識」の補助コマンドも一緒に作る（out/native）
     plugins: [speechHelper()],
     build: {

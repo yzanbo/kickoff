@@ -15,6 +15,7 @@ import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundatio
 import { mainWindow, openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
 import { browserDesktop } from "@/features/browser/desktop";
 import { diagnosticsDesktop } from "@/features/diagnostics/desktop";
+import { updatesDesktop } from "@/features/updates/desktop";
 import { createPinstageBadges } from "@/features/notifications/desktop";
 import { watchMainStalls } from "@/foundation/desktop/app/stalls";
 import { markMain, startMetricsLog } from "@/foundation/desktop/app/bootRecorder";
@@ -40,7 +41,7 @@ enableHangStacks();
 // 2. 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
 timed("boot:seedDevData", seedDevDataOnce)();
 // 3. 機能の部品の起動の初めの分（埋め込みブラウザの安全設定・コンソールの見張りは、ウィンドウを作る前に登録しておく）
-const featureParts: DesktopPart[] = [browserDesktop, diagnosticsDesktop];
+const featureParts: DesktopPart[] = [browserDesktop, diagnosticsDesktop, updatesDesktop];
 for (const part of featureParts) part.start?.();
 
 let core: CoreProcess | undefined;

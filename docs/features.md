@@ -968,6 +968,11 @@
 | SET-024 | 記録の様子と保存先を出す | diagnostics | M |
 | SET-025 | 詰まりと起動の時刻を見る | diagnostics | M |
 
+### 版と更新
+| ID | 機能 | 持ち主 | 確かめ方 |
+|---|---|---|---|
+| SET-029 | 設定の「Kickoff について」とメニューの「Kickoff について」に、版・ビルド番号・短い SHA と手元ビルドかを出す | updates | T:buildLabel |
+
 ## BASE 土台（保存・守り・OS）
 
 ### 起動と終了

@@ -3,13 +3,14 @@ import { test } from "vitest";
 import { ipcEntries, type IpcKind } from "@shared/foundation/ipc";
 import { browserArgs } from "@/features/browser/desktop/ipcArgs";
 import { diagnosticsArgs } from "@/features/diagnostics/desktop/ipcArgs";
+import { updatesArgs } from "@/features/updates/desktop/ipcArgs";
 import { foundationArgs } from "@/foundation/desktop/ipc/args";
 import { fromApp, IpcRejected, registerIpcHandlers, sendEvent, type IpcArgSchemas, type IpcHandlers, type MainIpc } from "@/foundation/desktop/ipc/register";
 import { createNativeApi, type RendererIpc } from "@/foundation/desktop/preload/nativeApi";
 import { NATIVE_API } from "@/app/shared/ipc";
 
 // 全部のまとまりを並べた IPC の表（NATIVE_API）と、土台・機能の引数の形を合わせたものを、登録の土台（register.ts）と preload の作り方で確かめる
-const ALL_ARGS = { ...foundationArgs, ...browserArgs, ...diagnosticsArgs } satisfies IpcArgSchemas;
+const ALL_ARGS = { ...foundationArgs, ...browserArgs, ...diagnosticsArgs, ...updatesArgs } satisfies IpcArgSchemas;
 
 const APP_URL = "http://127.0.0.1:4318";
 const fromScreen = { senderFrame: { url: `${APP_URL}/#/projects/1` } };
