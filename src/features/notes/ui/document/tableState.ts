@@ -1,9 +1,10 @@
 // 表のセルで書く状態（どの表のどのセルを開いているか）と、その決め方。
 // 開くのは、セルを押した・セルの間を動いた（openCellEffect）か、本体の選んだ範囲が表のセルに入った（元に戻す・検索・行へ移る）とき。
 // 閉じるのは、選んだ範囲が表の外へ出た・ピントが編集の部品の外へ出たとき
-import { Annotation, StateEffect, type EditorState, type Transaction } from "@codemirror/state";
+import { Annotation, StateEffect, type ChangeSpec, type EditorState, type Transaction } from "@codemirror/state";
 import { docText, tablesOf } from "./noteDoc";
 import type { TableBlock } from "./tableBlocks";
+import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
 import { cellAt, cellRange, tableAt, type CellAddress } from "./tableModel";
 
 /** 開いているセル（表は最初の行の頭の位置で指す。書き換えに合わせて動かす） */
@@ -25,6 +26,20 @@ export const editorFocusEffect = StateEffect.define<boolean>();
 /** 最初の行の頭が tableFrom の表（もう表でなくなっていれば null） */
 export function openTable(state: EditorState, tableFrom: number): TableBlock | null {
   return tablesOf(state).find((t) => t.from === tableFrom) ?? null;
+}
+
+/**
+ * 表 tableFrom を書き換える形（本体へは changes に続けて later を送る。同じ 1 回の元に戻す）。そろえた表は、書き換えたあとにそろえ直す書き換えを later に入れる。
+ * tableFrom は書き換えに合わせて動かした表の頭、state は全部を当てたあとの状態（開くセルの範囲を読む）。表がもうなければ null
+ */
+export function editTable(state: EditorState, tableFrom: number, changes: ChangeSpec): { later: TextChange[]; tableFrom: number; state: EditorState } | null {
+  const table = openTable(state, tableFrom);
+  if (!table) return null;
+  const first = state.update({ changes });
+  const mapped = first.changes.mapPos(tableFrom);
+  const next = isAlignedTable(docText(state), table) ? openTable(first.state, mapped) : null;
+  const later = next ? alignTableChanges(docText(first.state), next) : [];
+  return { later, tableFrom: mapped, state: later.length ? first.state.update({ changes: later }).state : first.state };
 }
 
 /** 開いているセルの元の文字の範囲（足りないセルは null） */

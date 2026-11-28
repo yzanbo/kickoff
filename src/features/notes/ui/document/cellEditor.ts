@@ -6,10 +6,10 @@ import { Annotation, EditorState, Transaction, type ChangeSpec } from "@codemirr
 import { drawSelection, EditorView, keymap, runScopeHandlers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { openCellRangeOf, openCellTable, syncEditorFocus, takeFocusRequest } from "./tableField";
 import { cellKeymap } from "./cellKeys";
-import { alignTableChanges, escapeCellInput, fillMissingCell, isAlignedTable } from "./tableEdit";
+import { escapeCellInput, fillMissingCell } from "./tableEdit";
 import { bodyRows, cellRange } from "./tableModel";
 import { docText } from "./noteDoc";
-import { fromCell, openCellRange, openTable } from "./tableState";
+import { editTable, fromCell, openCellRange } from "./tableState";
 
 /** 本体から写した書き換え（本体へ送り返さない） */
 const fromMain = Annotation.define<boolean>();
@@ -43,23 +43,12 @@ function pushToMain(main: EditorView, update: ViewUpdate) {
   const userEvent = update.transactions.map((t) => t.annotation(Transaction.userEvent)).find(Boolean);
   const annotations = [fromCell.of(true), ...(userEvent ? [Transaction.userEvent.of(userEvent)] : [])];
   const sel = update.state.selection.main;
-  const first = main.state.update({ changes });
-  const later = isAlignedTable(text, table) ? alignAfter(first.state, open) : [];
+  const edit = editTable(main.state, open.tableFrom, changes);
+  if (!edit) return;
   // そろえたあとのセルの頭（同じ行の左のセルの幅が変わると動く）
-  const finalState = later.length ? first.state.update({ changes: later }).state : first.state;
-  const finalRange = openCellRange(finalState, open);
+  const finalRange = openCellRange(edit.state, { ...open, tableFrom: edit.tableFrom });
   const base = finalRange ? finalRange.from : cellFrom;
-  main.dispatch(
-    main.state.update(
-      { changes, annotations },
-      { changes: later, sequential: true, selection: { anchor: base + sel.anchor, head: base + sel.head }, scrollIntoView: false },
-    ),
-  );
-}
-
-function alignAfter(state: EditorState, open: { tableFrom: number; row: number; col: number }) {
-  const table = openTable(state, open.tableFrom);
-  return table ? alignTableChanges(docText(state), table) : [];
+  main.dispatch({ changes, annotations }, { changes: edit.later, sequential: true, selection: { anchor: base + sel.anchor, head: base + sel.head }, scrollIntoView: false });
 }
 
 /** セルの部品の選んだ範囲を、本体の選んだ範囲にも写す（選んだ行をチャットに追加・右クリックのメニューが本体を読むため） */

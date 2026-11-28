@@ -3,30 +3,22 @@
 import { Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { ColumnAlign, TableBlock } from "./tableBlocks";
-import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
+import type { TextChange } from "./tableEdit";
 import { dispatchOpeningCell } from "./tableField";
 import { bodyRows, cellRange, columnAligns, columnCount, type CellAddress } from "./tableModel";
 import { docText } from "./noteDoc";
-import { fromCell, openCellEffect, openTable, type OpenCell } from "./tableState";
+import { editTable, fromCell, openCellEffect, openTable, type OpenCell } from "./tableState";
 import { deleteColumn, deleteRow, deleteTable, insertColumn, insertRow, insertTableAt, setColumnAlign } from "./tableStructure";
-
 
 /** 書き換えを当て、after のセルを開く（null なら閉じて本体にピントを戻す。undefined なら開いたまま） */
 function apply(main: EditorView, target: OpenCell, changes: TextChange[], after: CellAddress | null | undefined) {
-  if (!changes.length) return;
-  const state = main.state;
-  const table = openTable(state, target.tableFrom);
-  if (!table) return;
-  const first = state.update({ changes });
-  const aligned = isAlignedTable(docText(state), table);
-  const mapped = first.changes.mapPos(target.tableFrom);
-  const next = openTable(first.state, mapped);
-  const later = aligned && next ? alignTableChanges(docText(first.state), next) : [];
-  const finalState = later.length ? first.state.update({ changes: later }).state : first.state;
-  const finalTable = openTable(finalState, mapped);
+  const edit = changes.length ? editTable(main.state, target.tableFrom, changes) : null;
+  if (!edit) return;
+  const { later, tableFrom, state: finalState } = edit;
+  const finalTable = openTable(finalState, tableFrom);
   const range = after && finalTable ? cellRange(docText(finalState), finalTable, after) : null;
-  const effects = after === undefined ? [] : [openCellEffect.of(after && finalTable ? { tableFrom: mapped, ...after } : null)];
-  const selection = range ? { anchor: range.to } : after === null ? { anchor: Math.min(mapped, finalState.doc.length) } : undefined;
+  const effects = after === undefined ? [] : [openCellEffect.of(after && finalTable ? { tableFrom, ...after } : null)];
+  const selection = range ? { anchor: range.to } : after === null ? { anchor: Math.min(tableFrom, finalState.doc.length) } : undefined;
   const specs = [
     { changes, annotations: [fromCell.of(true), Transaction.userEvent.of("input.table")] },
     { changes: later, sequential: true, effects, selection, scrollIntoView: true },
