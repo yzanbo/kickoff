@@ -1,6 +1,6 @@
 // 表のセルの場所を引く純粋な関数（セルで書くときに、何行目・何列目かと元の文字の範囲を行き来する）。
 // 行の番号は見出しの行が 0、区切りの行は数えない。列の番号は左から 0
-import { splitTableRow, type TableBlock, type TableCellSource, type TableRowSource } from "./tableBlocks";
+import { splitTableRow, tableAligns, type ColumnAlign, type TableBlock, type TableCellSource, type TableRowSource } from "./tableBlocks";
 
 /** セルの場所（何行目・何列目） */
 export interface CellAddress {
@@ -11,10 +11,18 @@ export interface CellAddress {
 /** 表の行（区切りの行を除く。見出しの行が先頭） */
 export const bodyRows = (table: TableBlock): TableRowSource[] => table.rows.filter((r) => !r.delimiter);
 
+/** 区切りの行（読み取りが表と見たものには必ずある） */
+export const delimiterRow = (table: TableBlock): TableRowSource | undefined => table.rows.find((r) => r.delimiter);
+
+/** 列ごとの寄せ（区切りの行の : から） */
+export function columnAligns(text: string, table: TableBlock): ColumnAlign[] {
+  const delimiter = delimiterRow(table);
+  return delimiter ? tableAligns(text.slice(delimiter.from, delimiter.to)) : [];
+}
+
 /** 列の数（見出しの行のセルの数。返答の表示もこの数で描く） */
 export function columnCount(text: string, table: TableBlock): number {
-  const head = bodyRows(table)[0];
-  return splitTableRow(text.slice(head.from, head.to), head.from).length;
+  return rowCells(text, bodyRows(table)[0]).length;
 }
 
 /** 行のセル（書いてあるものだけ。見出しより多い分も含む） */

@@ -2,10 +2,10 @@
 // そろえた表は、書き換えたあとにそろえ直す（同じ 1 回の元に戻す）。当てたあと、足したセルなどを開く
 import { Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { tableAligns, type ColumnAlign, type TableBlock } from "./tableBlocks";
+import type { ColumnAlign, TableBlock } from "./tableBlocks";
 import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
 import { dispatchOpeningCell, type TableTarget } from "./tableField";
-import { bodyRows, cellRange, columnCount, type CellAddress } from "./tableModel";
+import { bodyRows, cellRange, columnAligns, columnCount, type CellAddress } from "./tableModel";
 import { docText } from "./noteDoc";
 import { fromCell, openCellEffect, openTable } from "./tableState";
 import { deleteColumn, deleteRow, deleteTable, insertColumn, insertRow, insertTableAt, setColumnAlign } from "./tableStructure";
@@ -75,8 +75,7 @@ export function tableMenuItems(main: EditorView, target: TableTarget): TableMenu
   if (!table) return [];
   const text = docText(main.state);
   const columns = columnCount(text, table);
-  const delimiter = table.rows.find((r) => r.delimiter);
-  const current = delimiter ? (tableAligns(text.slice(delimiter.from, delimiter.to))[target.col] ?? null) : null;
+  const current = columnAligns(text, table)[target.col] ?? null;
   // 押したときの表で書き換えを作る（メニューを開いてから押すまでに表が消えていれば何もしない）
   const edit = (build: (text: string, table: TableBlock) => TextChange[], after: CellAddress | null) => () => {
     const now = openTable(main.state, target);

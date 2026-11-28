@@ -76,17 +76,30 @@ export interface TableCellSource {
   to: number;
 }
 
+/** text の from〜to の中の、\ で消していない | の位置（text の中の位置） */
+export function pipeIndexes(text: string, from = 0, to = text.length): number[] {
+  const out: number[] = [];
+  for (let i = from; i < to; i++) {
+    const c = text.charCodeAt(i);
+    if (c === 92) i++;
+    else if (c === 124) out.push(i);
+  }
+  return out;
+}
+
+/** 行の中身の頭と終わりに | があるか（終わりは \ で消していない | の後ろが空白だけ） */
+export function rowFraming(content: string): { lead: boolean; trail: boolean } {
+  const pipes = pipeIndexes(content);
+  const last = pipes[pipes.length - 1];
+  return { lead: content.trimStart().startsWith("|"), trail: last !== undefined && content.slice(last + 1).trim() === "" };
+}
+
 /**
  * 表の 1 行をセルに分ける（offset は行の中身の頭の、文の中の位置）。区切りは \ で消していない |。頭と終わりの | はセルにしない。
  * 空のセルの位置は、左の | のすぐ後ろ（空白が 1 つあればその後ろ）
  */
 export function splitTableRow(content: string, offset: number): TableCellSource[] {
-  const pipes: number[] = [];
-  for (let i = 0; i < content.length; i++) {
-    const c = content.charCodeAt(i);
-    if (c === 92) i++;
-    else if (c === 124) pipes.push(i);
-  }
+  const pipes = pipeIndexes(content);
   const bounds: [number, number][] = [];
   let start = 0;
   for (const p of pipes) {

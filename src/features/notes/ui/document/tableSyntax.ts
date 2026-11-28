@@ -2,19 +2,10 @@
 // 元の決まりは、| で始まる段落の 2 行目が区切りの行でなければ、その段落の中ではもう表を探さない。
 // 返答の表示（micromark）は、段落の途中でも「| を含む行の次が区切りの行（セルの数が同じ）」ならそこから表にするので、同じ所で段落を終える
 import type { MarkdownConfig } from "@lezer/markdown";
+import { pipeIndexes } from "./tableBlocks";
 
 /** 区切りの行（元の決まりと同じ形。行の頭の > と空白も許す） */
 const DELIMITER_LINE = /^[>\s]*\|?(\s*:?-+:?\s*\|)+(\s*:?-+:?\s*)?$/;
-
-/** \ で消していない | を含むか */
-function hasPipe(text: string, start: number): boolean {
-  for (let i = start; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    if (c === 124) return true;
-    if (c === 92) i++;
-  }
-  return false;
-}
 
 /** 行のセルの数（元の決まりの数え方と同じ: 頭と終わりの | は数えず、\ で消した | は区切りにしない） */
 export function countTableCells(text: string, start = 0): number {
@@ -52,7 +43,7 @@ export const tableAfterPipeLines: MarkdownConfig = {
       endLeaf(cx, line, leaf) {
         // 元の表の読み取りだけが rows を持つ（クラスは公開されていないので形で見分ける）
         const table = leaf.parsers.find((p): p is typeof p & TableLeafState => "rows" in p);
-        if (!table || Array.isArray(table.rows) || !hasPipe(line.text, line.basePos)) return false;
+        if (!table || Array.isArray(table.rows) || !pipeIndexes(line.text, line.basePos).length) return false;
         // 2 行目が区切りの行なら、1 行目を見出しにした表になる（元の決まりに任せる）
         if (table.rows === null && DELIMITER_LINE.test(line.text.slice(line.basePos))) return false;
         const next = cx.peekLine();

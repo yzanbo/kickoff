@@ -1,28 +1,15 @@
 // 表の行・列を足す・消す、列の寄せを変える、表を入れる・消す純粋な関数（書き換えは元の文の位置で返す）。
 // その表の書き方に合わせる: 頭と終わりの | の有無・行の頭の印（リストの字下げ・引用の >）は見出しの行に合わせ、
 // | で区切った行は | の所に足す・消すだけで、ほかのセルの書き方を変えない（そろえた表は、呼ぶ側があとでそろえ直す）
-import { splitTableRow, type ColumnAlign, type TableBlock, type TableRowSource } from "./tableBlocks";
-import type { TextChange } from "./tableEdit";
-import { bodyRows, columnCount } from "./tableModel";
+import { pipeIndexes, rowFraming, type ColumnAlign, type TableBlock, type TableRowSource } from "./tableBlocks";
+import { delimiterCell, type TextChange } from "./tableEdit";
+import { bodyRows, columnCount, delimiterRow, rowCells } from "./tableModel";
 
 /** 行の中の、\ で消していない | の位置（文の中の位置） */
-function rowPipes(text: string, row: TableRowSource): number[] {
-  const out: number[] = [];
-  for (let i = row.from; i < row.to; i++) {
-    const c = text.charCodeAt(i);
-    if (c === 92) i++;
-    else if (c === 124) out.push(i);
-  }
-  return out;
-}
+const rowPipes = (text: string, row: TableRowSource) => pipeIndexes(text, row.from, row.to);
 
 /** 行の頭と終わりが | か */
-function framed(text: string, row: TableRowSource): { lead: boolean; trail: boolean } {
-  const content = text.slice(row.from, row.to).trim();
-  const pipes = rowPipes(text, row);
-  const last = pipes[pipes.length - 1];
-  return { lead: content.startsWith("|"), trail: last !== undefined && text.slice(last + 1, row.to).trim() === "" };
-}
+const framed = (text: string, row: TableRowSource) => rowFraming(text.slice(row.from, row.to));
 
 /** 空の行（見出しの行と同じ印・同じ頭と終わりの |） */
 function emptyRow(text: string, table: TableBlock): string {
@@ -38,7 +25,7 @@ export function insertRow(text: string, table: TableBlock, row: number, where: "
   const line = emptyRow(text, table);
   if (where === "above" && row > 0) return { changes: [{ from: rows[row].lineFrom, to: rows[row].lineFrom, insert: `${line}\n` }], row };
   // 見出しの行の下に足すときは、区切りの行のすぐ下
-  const after = row === 0 ? table.rows.find((r) => r.delimiter)! : rows[row];
+  const after = (row === 0 && delimiterRow(table)) || rows[row];
   return { changes: [{ from: after.to, to: after.to, insert: `\n${line}` }], row: row + 1 };
 }
 
@@ -58,7 +45,7 @@ export function insertColumn(text: string, table: TableBlock, col: number, where
   for (const row of table.rows) {
     const pipes = rowPipes(text, row);
     const { lead, trail } = framed(text, row);
-    const cells = splitTableRow(text.slice(row.from, row.to), row.from).length;
+    const cells = rowCells(text, row).length;
     const cell = row.delimiter ? "---" : " ";
     // 足す所の左の |（行の頭の | から数える）。その右に「中身 |」を足す
     const leftPipe = lead ? pipes[Math.min(at, cells)] : at === 0 ? undefined : pipes[Math.min(at, cells) - 1];
@@ -82,7 +69,7 @@ export function deleteColumn(text: string, table: TableBlock, col: number): Text
   for (const row of table.rows) {
     const pipes = rowPipes(text, row);
     const { lead } = framed(text, row);
-    const cells = splitTableRow(text.slice(row.from, row.to), row.from);
+    const cells = rowCells(text, row);
     if (col >= cells.length) continue;
     // セルの左の |（頭に | がなければ行の頭）から、右の | の手前まで。最初のセルで頭に | がなければ右の | まで
     const left = lead ? pipes[col] : col === 0 ? row.from - 1 : pipes[col - 1];
@@ -97,12 +84,10 @@ export function deleteColumn(text: string, table: TableBlock, col: number): Text
 
 /** 列の寄せを変える（区切りの行のそのセルの : を付け替える。- の数はそのまま） */
 export function setColumnAlign(text: string, table: TableBlock, col: number, align: ColumnAlign): TextChange[] {
-  const delimiter = table.rows.find((r) => r.delimiter);
-  const cell = delimiter && splitTableRow(text.slice(delimiter.from, delimiter.to), delimiter.from)[col];
+  const delimiter = delimiterRow(table);
+  const cell = delimiter && rowCells(text, delimiter)[col];
   if (!cell) return [];
-  const dashes = Math.max(3, text.slice(cell.from, cell.to).replace(/:/g, "").length);
-  const insert = align === "center" ? `:${"-".repeat(Math.max(1, dashes - 2))}:` : align === "left" ? `:${"-".repeat(dashes - 1)}` : align === "right" ? `${"-".repeat(dashes - 1)}:` : "-".repeat(dashes);
-  return [{ from: cell.from, to: cell.to, insert }];
+  return [{ from: cell.from, to: cell.to, insert: delimiterCell(text.slice(cell.from, cell.to).replace(/:/g, "").length, align) }];
 }
 
 /** 表を消す（後ろの改行ごと） */

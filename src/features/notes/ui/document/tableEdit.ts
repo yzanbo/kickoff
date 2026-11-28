@@ -1,6 +1,7 @@
 // 表のセルに書いた結果を、ファイルの表の文字へ書き戻す純粋な関数。
 // ファイルの書き方を勝手に変えない: | の位置をそろえていない表（詰めた表）は書いた所だけを変え、そろえた表はそろえたまま書き戻す
-import { splitTableRow, tableAligns, type ColumnAlign, type TableBlock, type TableRowSource } from "./tableBlocks";
+import { pipeIndexes, rowFraming, type ColumnAlign, type TableBlock, type TableRowSource } from "./tableBlocks";
+import { bodyRows, columnAligns, delimiterRow, rowCells } from "./tableModel";
 
 /** 書き換え 1 つ（文の中の位置） */
 export interface TextChange {
@@ -16,20 +17,14 @@ export function escapeCellInput(insert: string): string {
   return insert.replace(/\r\n|\r|\n/g, "<br>").replace(/(\\*)\|/g, (all, slashes: string) => (slashes.length % 2 ? all : `${slashes}\\|`));
 }
 
-/** 行の中身の頭と終わりに | があるか */
-function pipesOf(content: string): { lead: boolean; trail: boolean } {
-  const trimmed = content.trim();
-  return { lead: trimmed.startsWith("|"), trail: /(^|[^\\])(\\\\)*\|$/.test(trimmed) };
-}
-
 /**
  * その行に書いていない（見出しより短い行の足りない）セルに書いたとき、足りない | を足して書く。
  * 返すのは行の終わりに足す文と、書いたセルの中身の頭（文の中の位置）
  */
 export function fillMissingCell(text: string, row: TableRowSource, col: number, typed: string): { change: TextChange; cellFrom: number } {
   const content = text.slice(row.from, row.to);
-  const have = splitTableRow(content, row.from).length;
-  const { trail } = pipesOf(content);
+  const have = rowCells(text, row).length;
+  const { trail } = rowFraming(content);
   const end = row.from + content.trimEnd().length;
   // 終わりに | がある行は「 |」を足して空のセルを作り、ない行は「 | 」で区切ってから書く
   const empties = " |".repeat(col - have);
@@ -39,43 +34,35 @@ export function fillMissingCell(text: string, row: TableRowSource, col: number, 
 }
 
 /** 等幅の字体で 2 桁ぶんの幅の文字（日本語・中国語・韓国語の文字・全角の記号・絵文字） */
-const WIDE = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]|[\u{1f300}-\u{1faff}\u{20000}-\u{3fffd}]/u;
+const WIDE = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]|[\u{1f300}-\u{1faff}\u{20000}-\u{3fffd}]/u;
 
 /** 見た目の幅（桁。そろえた表は等幅の字体で | の位置がそろうように書かれる） */
-export function displayWidth(value: string): number {
+function displayWidth(value: string): number {
   let width = 0;
   for (const ch of value) width += WIDE.test(ch) ? 2 : 1;
   return width;
 }
 
 /** \ で消していない | の、行の中身の中の見た目の位置（桁） */
-function pipePositions(content: string): number[] {
-  const out: number[] = [];
+function pipeColumns(content: string): number[] {
   let column = 0;
-  for (let i = 0; i < content.length; i++) {
-    const c = content.charCodeAt(i);
-    if (c === 92 && i + 1 < content.length) {
-      column += 1 + displayWidth(content[i + 1]);
-      i++;
-      continue;
-    }
-    if (c === 124) out.push(column);
-    // サロゲートの組は 2 つ目で数える
-    if (c >= 0xd800 && c <= 0xdbff) continue;
-    column += c >= 0xdc00 && c <= 0xdfff ? displayWidth(content.slice(i - 1, i + 1)) : displayWidth(content[i]);
-  }
-  return out;
+  let last = 0;
+  return pipeIndexes(content).map((i) => {
+    column += displayWidth(content.slice(last, i));
+    last = i;
+    return column;
+  });
 }
 
 /** | の位置をそろえた表か（どの行も | が同じ位置にあり、セルの間に 2 つ以上の |。1 行の表はそろえていない扱い） */
 export function isAlignedTable(text: string, table: TableBlock): boolean {
-  const rows = table.rows.map((r) => pipePositions(text.slice(r.from, r.to)).join(","));
+  const rows = table.rows.map((r) => pipeColumns(text.slice(r.from, r.to)).join(","));
   return rows.length > 1 && rows[0].split(",").length > 1 && rows.every((r) => r === rows[0]) && !alreadyCompact(text, table);
 }
 
 /** 詰めた書き方の区切りの行（|---|---|）なら、そろっていてもそろえない（列の中身がちょうど同じ長さの詰めた表） */
 function alreadyCompact(text: string, table: TableBlock): boolean {
-  const delimiter = table.rows.find((r) => r.delimiter);
+  const delimiter = delimiterRow(table);
   return !!delimiter && /^\|?(:?-{3}:?\|)+(:?-{3}:?)?$/.test(text.slice(delimiter.from, delimiter.to).trim());
 }
 
@@ -87,8 +74,8 @@ function pad(value: string, width: number, align: ColumnAlign): string {
   return value + " ".repeat(room);
 }
 
-/** 区切りの行のセル（幅 width・寄せの : 付き） */
-function delimiterCell(width: number, align: ColumnAlign): string {
+/** 区切りの行のセル（幅 width（3 以上）・寄せの : 付き） */
+export function delimiterCell(width: number, align: ColumnAlign): string {
   const w = Math.max(3, width);
   if (align === "center") return `:${"-".repeat(w - 2)}:`;
   if (align === "left") return `:${"-".repeat(w - 1)}`;
@@ -101,14 +88,15 @@ function delimiterCell(width: number, align: ColumnAlign): string {
  * 頭と終わりの | の有無は見出しの行に合わせる
  */
 export function alignTableChanges(text: string, table: TableBlock): TextChange[] {
-  const delimiter = table.rows.find((r) => r.delimiter);
-  const aligns = delimiter ? tableAligns(text.slice(delimiter.from, delimiter.to)) : [];
-  const cellsOf = (r: TableRowSource) => splitTableRow(text.slice(r.from, r.to), r.from).map((c) => text.slice(c.from, c.to));
-  const body = table.rows.filter((r) => !r.delimiter);
+  const aligns = columnAligns(text, table);
+  // 行ごとのセルの中身（1 回だけ読む）
+  const cells = new Map(table.rows.map((r) => [r, rowCells(text, r).map((c) => text.slice(c.from, c.to))]));
+  const cellsOf = (r: TableRowSource) => cells.get(r) ?? [];
+  const body = bodyRows(table);
   const columns = Math.max(...body.map((r) => cellsOf(r).length));
   const widths = Array.from({ length: columns }, (_, i) => Math.max(3, ...body.map((r) => displayWidth(cellsOf(r)[i] ?? ""))));
-  const { lead, trail } = pipesOf(text.slice(body[0].from, body[0].to));
-  const join = (cells: string[]) => `${lead ? "| " : ""}${cells.join(" | ")}${trail ? " |" : ""}`;
+  const { lead, trail } = rowFraming(text.slice(body[0].from, body[0].to));
+  const join = (row: string[]) => `${lead ? "| " : ""}${row.join(" | ")}${trail ? " |" : ""}`;
   const changes: TextChange[] = [];
   for (const r of table.rows) {
     const line = r.delimiter

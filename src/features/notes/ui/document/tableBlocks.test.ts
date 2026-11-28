@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { noteMarkdownParser } from "./noteMarkdown";
-import { splitTableRow, tableAligns, tableBlocks } from "./tableBlocks";
+import { pipeIndexes, rowFraming, splitTableRow, tableAligns, tableBlocks } from "./tableBlocks";
 
 const blocksOf = (text: string) => tableBlocks(noteMarkdownParser.parse(text), text);
 const cellsOf = (content: string) => splitTableRow(content, 0).map(({ from, to }) => content.slice(from, to));
@@ -35,6 +35,14 @@ test("splitTableRow: \\ で消した | は区切りにせず、空のセルは�
     { from: 17, to: 18 },
   ]);
   assert.deepEqual(splitTableRow("|  | b |", 0)[0], { from: 2, to: 2 });
+});
+
+test("pipeIndexes・rowFraming: \\ で消した | は数えず、頭と終わりの | を見分ける", () => {
+  assert.deepEqual(pipeIndexes("| a \\| b |"), [0, 9]);
+  assert.deepEqual(pipeIndexes("x| a | b |", 1, 5), [1]);
+  assert.deepEqual(rowFraming("  | a | b |  "), { lead: true, trail: true });
+  assert.deepEqual(rowFraming("a | b \\|"), { lead: false, trail: false });
+  assert.deepEqual(rowFraming("a |"), { lead: false, trail: true });
 });
 
 test("tableAligns: 区切りの行の : から列の寄せ", () => {
