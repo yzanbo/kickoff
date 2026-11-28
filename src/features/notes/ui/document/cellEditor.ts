@@ -15,6 +15,9 @@ const fromMain = Annotation.define<boolean>();
 
 const editorsByMain = new WeakMap<EditorView, EditorView>();
 
+/** 開いているセルの書く部品（なければ null） */
+export const cellEditorOf = (main: EditorView): EditorView | null => editorsByMain.get(main) ?? null;
+
 /** 本体のキーのうち、セルの中でも本体で動かすもの（保存・検索・元に戻す） */
 const FORWARDED_KEYS = new Set(["s", "f", "g", "z", "y"]);
 

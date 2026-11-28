@@ -14,6 +14,7 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 import { blockWidgets } from "./blockWidgets";
+import { cellEditorOf } from "./cellEditor";
 import { codeHighlight } from "./codeHighlight";
 import { noteLinkOpenerFacet, noteLinks, type NoteLinkOpener } from "./linkTooltip";
 import { noteImageUrlFacet } from "./NoteImage";
@@ -143,10 +144,13 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
           return { from: v.state.doc.lineAt(from).number, to: v.state.doc.lineAt(to - 1).number };
         },
         selectionRect: () => {
-          const { from, to } = v.state.selection.main;
-          if (from === to || !v.hasFocus) return null;
-          const start = v.coordsAtPos(from, 1);
-          const end = v.coordsAtPos(to, -1);
+          // 表のセルの中で選んでいるときは、セルの書く部品の選んだ範囲の位置（本体は表を置き換えているので位置を出せない）
+          const cell = cellEditorOf(v);
+          const target = cell?.hasFocus ? cell : v;
+          const { from, to } = target.state.selection.main;
+          if (from === to || !target.hasFocus) return null;
+          const start = target.coordsAtPos(from, 1);
+          const end = target.coordsAtPos(to, -1);
           if (!start) return null;
           // 1 行の中なら選んだ幅の真ん中、行をまたげば選び始めの上
           return { left: start.left, top: start.top, width: end && end.top === start.top ? end.left - start.left : 0 };
