@@ -11,7 +11,7 @@
 | `liveRich.ts`・`mermaidBlocks.ts` | 数式と Mermaid を置き換えて描く |
 | `codeHighlight.tsx`・`codeBlocks.ts` | コードの塊の色（返答と同じ部品）と開きの行の帯 |
 | `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`HtmlBlock.tsx`・`htmlBlocks.ts`・`NoteImage.tsx`・`widgetPortals.tsx` | 表・HTML のまとまり・画像を置き換えて描く（返答と同じ処理と部品。React は portal で。見た目は `NoteEditorBlocks.unlayered.css`） |
-| `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー） |
+| `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts`・`editorFocus.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー）・ピントの場所 |
 | `tableBlocks.ts`・`tableModel.ts`・`tableEdit.ts`・`tableSyntax.ts` | 表の場所とセル・書き戻し・段落の途中から始まる表を読む拡張 |
 | `tableStructure.ts`・`tableActions.ts` | 行・列・寄せ・表の足し消し（右クリックは `NoteEditorHandle.contextItems`） |
 | `noteMarkdown.ts`・`noteDoc.ts`・`treeCache.ts`・`noteLinks.ts`・`footnotes.ts`・`cjkEmphasis.ts` | 読み取りの組・文と表（木ごとに覚える）・リンク・脚注・日本語の強調 |
@@ -33,4 +33,3 @@
 - セルの部品は layout effect で作ってピントを移す（隙にピントが外へ出た扱いになると閉じる）。開いている間は列の幅を固定。表の枠は `contain: inline-size`（本文が横に広がらない）。
 - 表のセルの右クリックは本体と同じメニュー（`editorContextMenuFacet`・`takeTableMenuTarget`）。⌘F の色は置き換えた所に出ないので、当たりのセルに印を付ける。
 - コードの色は遅れて届くので、届くまで前の色を書き換えに合わせて動かして残す。
-- テスト: `livePreview`・`markdownParity`・`table*`・`codeBlocks`・`noteLinkTarget`・`mermaidBlocks`・`htmlPage` の `*.test.ts`。

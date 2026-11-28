@@ -6,10 +6,10 @@ import { Facet, StateField, type EditorState } from "@codemirror/state";
 import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import type { JSX } from "react";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
+import { editorFocus, editorFocusOf } from "./editorFocus";
 import { footnoteAt, footnotes } from "./footnotes";
 import { linkAt, type NoteLinkAt } from "./noteLinks";
 import { headingSlug } from "./noteLinkTarget";
-import { tableCellField } from "./tableField";
 import { docText } from "./noteDoc";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
@@ -101,7 +101,7 @@ function tooltipWith(pos: number, render: (view: EditorView) => JSX.Element | nu
 
 function tooltipOf(state: EditorState): Tooltip | null {
   const sel = state.selection.main;
-  if (!sel.empty || !state.field(tableCellField, false)?.focused) return null;
+  if (!sel.empty || !editorFocusOf(state).inside) return null;
   const tree = syntaxTree(state);
   const text = docText(state);
   const link = linkAt(tree, text, sel.head);
@@ -154,4 +154,4 @@ const metaClick = EditorView.domEventHandlers({
 });
 
 /** リンクの小窓と ⌘ ＋クリック（Markdown 表示のときだけ入れる） */
-export const linkTooltip = [linkTooltipField, metaClick];
+export const linkTooltip = [editorFocus, linkTooltipField, metaClick];

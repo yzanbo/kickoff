@@ -3,13 +3,14 @@ import { test } from "vitest";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
-import { openCellOf, tableCellField } from "./tableField";
-import { editorFocusEffect, editTable, fromCell, openCellEffect } from "./tableState";
+import { editorFocusEffect } from "./editorFocus";
+import { openCellOf, tableCells } from "./tableField";
+import { editTable, fromCell, openCellEffect } from "./tableState";
 
 const DOC = "前の行\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n後ろの行";
-const create = () => EditorState.create({ doc: DOC, extensions: [markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }), tableCellField] });
+const create = () => EditorState.create({ doc: DOC, extensions: [markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }), tableCells] });
 const tableFrom = DOC.indexOf("| a");
-const focus = (s: EditorState, focused: boolean) => s.update({ effects: editorFocusEffect.of(focused) }).state;
+const focus = (s: EditorState, focused: boolean) => s.update({ effects: editorFocusEffect.of({ inside: focused, text: focused }) }).state;
 
 test("tableField: セルを開く effect で開き、ピントが外へ出たら閉じる", () => {
   let s = create().update({ effects: openCellEffect.of({ tableFrom, row: 1, col: 1 }) }).state;

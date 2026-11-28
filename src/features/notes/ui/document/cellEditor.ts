@@ -4,7 +4,8 @@
 import { defaultKeymap } from "@codemirror/commands";
 import { Annotation, EditorState, Transaction, type ChangeSpec } from "@codemirror/state";
 import { drawSelection, EditorView, keymap, runScopeHandlers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { openCellRangeOf, openCellTable, syncEditorFocus, takeFocusRequest } from "./tableField";
+import { syncEditorFocus } from "./editorFocus";
+import { openCellRangeOf, openCellTable, takeFocusRequest } from "./tableField";
 import { cellKeymap } from "./cellKeys";
 import { escapeCellInput, fillMissingCell } from "./tableEdit";
 import { bodyRows, cellRange } from "./tableModel";

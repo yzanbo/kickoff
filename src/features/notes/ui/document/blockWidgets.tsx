@@ -10,7 +10,8 @@ import { getSearchQuery, searchPanelOpen } from "@codemirror/search";
 import { cellAt, cellRange, markdownWithoutCell, type CellAddress } from "./tableModel";
 import { cellSync } from "./cellEditor";
 import { enterTableKeymap } from "./cellKeys";
-import { focusWatcher, openCellOf, tableCellField } from "./tableField";
+import { editorFocusOf } from "./editorFocus";
+import { openCellOf, tableCells } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
 import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
 import { type OpenCell } from "./tableState";
@@ -97,7 +98,7 @@ function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
   const text = docText(state);
   const out: Range<Decoration>[] = [];
   // HTML のまとまり（カーソルが中にあれば元の文字）。中の表は表として描かない
-  const focused = state.field(tableCellField, false)?.focused ?? false;
+  const focused = editorFocusOf(state).inside;
   const html = htmlBlocksOf(state);
   for (const h of html) {
     if (focused && state.selection.ranges.some((r) => r.from <= h.to && r.to >= h.from)) continue;
@@ -130,4 +131,4 @@ const decorationsField = StateField.define<DecorationSet>({
 });
 
 /** 表などのまとまりを置き換えて描く飾り（Markdown 表示のときだけ入れる） */
-export const blockWidgets = [tableCellField, focusWatcher, decorationsField, cellSync, Prec.high(keymap.of(enterTableKeymap))];
+export const blockWidgets = [tableCells, decorationsField, cellSync, Prec.high(keymap.of(enterTableKeymap))];

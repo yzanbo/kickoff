@@ -2,6 +2,7 @@
 // 開くのは、セルを押した・セルの間を動いた（openCellEffect）か、本体の選んだ範囲が表のセルに入った（元に戻す・検索・行へ移る）とき。
 // 閉じるのは、選んだ範囲が表の外へ出た・ピントが編集の部品の外へ出たとき
 import { Annotation, StateEffect, type ChangeSpec, type EditorState, type Transaction } from "@codemirror/state";
+import { editorFocusEffect } from "./editorFocus";
 import { docText, tablesOf } from "./noteDoc";
 import type { TableBlock } from "./tableBlocks";
 import { alignTableChanges, isAlignedTable, type TextChange } from "./tableEdit";
@@ -19,9 +20,6 @@ export const openCellEffect = StateEffect.define<OpenCell | null>({
 
 /** セルの中の編集の部品から来た書き換え・選んだ範囲（開いているセルを選び直さない） */
 export const fromCell = Annotation.define<boolean>();
-
-/** ピントが編集の部品（本体かセル）の中にあるか（変わったら知らせる） */
-export const editorFocusEffect = StateEffect.define<boolean>();
 
 /** 最初の行の頭が tableFrom の表（もう表でなくなっていれば null） */
 export function openTable(state: EditorState, tableFrom: number): TableBlock | null {
@@ -71,5 +69,5 @@ export function nextOpenCell(prev: OpenCell | null, wasFocused: boolean, focused
 export function nextFocused(prev: boolean, tr: Transaction): boolean {
   const opened = tr.effects.some((e) => e.is(openCellEffect) && e.value !== null);
   const effect = tr.effects.find((e) => e.is(editorFocusEffect));
-  return opened || (effect ? effect.value : prev);
+  return opened || (effect ? effect.value.inside : prev);
 }
