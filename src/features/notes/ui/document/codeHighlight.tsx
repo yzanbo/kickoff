@@ -9,6 +9,7 @@ import { fenceLanguage } from "@/foundation/ui/code/languages";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { codeBlocks, tokenRanges } from "./codeBlocks";
+import { fenceInfoLanguage, isMermaidBlock } from "./mermaidBlocks";
 import { docText } from "./noteDoc";
 import { PortalWidget } from "./widgetPortals";
 
@@ -85,8 +86,9 @@ class CodeHighlighter {
     const colors: Range<Decoration>[] = [];
     const heads: Range<Decoration>[] = [];
     for (const block of blocks) {
-      const info = block.info.split(/\s/)[0] ?? "";
-      if (info === "mermaid" && block.closed) continue;
+      // Mermaid の塊は図にする（liveRich）
+      if (isMermaidBlock(block)) continue;
+      const info = fenceInfoLanguage(block.info);
       // 帯（カーソルが開きの行にあれば元の文字）
       if (block.headFrom !== active) {
         const indent = text.slice(block.headFrom, block.headTo).search(/\S/);

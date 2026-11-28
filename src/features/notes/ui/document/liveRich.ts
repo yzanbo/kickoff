@@ -1,6 +1,7 @@
-// ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
+// ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（mermaidBlocks）を図にする飾り。
 // 数式の場所は `@shared/markdown/mathGuard` の mathRanges（チャットの返答と同じ決まり）を KaTeX で、Mermaid はチャットと同じ renderMermaid で描く。
 // カーソルがその中にあるときは、書いたとおりの記号を見せる（ライブプレビューの見出しなどと同じ）。行をまたいで置き換えるので、ViewPlugin ではなく StateField で飾る
+import { syntaxTree } from "@codemirror/language";
 import { Prec, StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from "@codemirror/view";
 import type KaTeX from "katex";
@@ -98,7 +99,7 @@ function build(state: EditorState, focused: boolean, theme: AppliedTheme): Decor
   const replaced = [...tablesOf(state), ...htmlBlocksOf(state)];
   const inTable = (from: number, to: number) => replaced.some((t) => from < t.to && to > t.from);
   // Mermaid の塊（行をまるごと置き換える）。数式はこの外だけを探す
-  const blocks = text.includes("mermaid") ? mermaidBlocks(text) : [];
+  const blocks = mermaidBlocks(syntaxTree(state), text);
   for (const b of blocks) {
     if (touches(b.from, b.to) || !b.code.trim() || inTable(b.from, b.to)) continue;
     out.push(Decoration.replace({ widget: new MermaidWidget(b.code, theme), block: true }).range(b.from, b.to));
@@ -124,7 +125,8 @@ const richField = StateField.define<RichState>({
   },
   update(value, tr) {
     const effect = tr.effects.find((e) => e.is(refresh));
-    if (!effect && !tr.docChanged && !tr.selection) return value;
+    // 読み取りの木が育った（見えていない所まで読み進めた）ときも組み直す（文が変わらなくても図の塊が見つかる）
+    if (!effect && !tr.docChanged && !tr.selection && syntaxTree(tr.startState) === syntaxTree(tr.state)) return value;
     const { focused, theme } = effect ? effect.value : value;
     return { focused, theme, decorations: build(tr.state, focused, theme) };
   },
