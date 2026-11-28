@@ -15,6 +15,7 @@ import { openCellOf, tableCells } from "./tableField";
 import { HtmlBlock } from "./HtmlBlock";
 import type { HtmlBlockSource } from "./htmlBlocks";
 import { docText, htmlBlocksOf, tablesOf } from "./noteDoc";
+import { imageSources, sameSources } from "./noteLinks";
 import { type OpenCell } from "./tableState";
 import { PortalWidget } from "./widgetPortals";
 
@@ -28,6 +29,8 @@ class TableWidget extends PortalWidget {
     readonly open: CellAddress | null,
     /** ⌘F の当たりのあるセル（「行,列」を ; でつないだもの。なければ空） */
     readonly matches: string,
+    /** ノートの中の画像の行き先（画像のボタンを、ノート全体で同じホストの最初の 1 枚にだけ出す） */
+    readonly images: readonly string[],
   ) {
     super("div", "cm-note-table");
   }
@@ -37,7 +40,8 @@ class TableWidget extends PortalWidget {
       other.block.prefix === this.block.prefix &&
       other.open?.row === this.open?.row &&
       other.open?.col === this.open?.col &&
-      other.matches === this.matches
+      other.matches === this.matches &&
+      sameSources(other.images, this.images)
     );
   }
   // 描く前の高さの見込み（行の数ぶん。描いたら測り直す）
@@ -50,7 +54,7 @@ class TableWidget extends PortalWidget {
     el.style.paddingInlineStart = indent ? `${indent}ch` : "";
   }
   protected content(view: EditorView) {
-    return <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} />;
+    return <NoteTable markdown={this.markdown} view={view} open={this.open} matches={this.matches} images={this.images} />;
   }
   // 中身が変わっても要素は作り直さない（開いているセルの書く部品・横のスクロールを残す）
   updateDOM(el: HTMLElement, view: EditorView) {
@@ -108,6 +112,7 @@ function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
   const out: Range<Decoration>[] = [];
   // HTML のまとまり（カーソルが中にあれば元の文字）。中の表は表として描かない
   const raw = rawHtmlBlocks(state);
+  const images = imageSources(syntaxTree(state), text);
   const html = htmlBlocksOf(state);
   for (const h of html) {
     if (raw.includes(h)) continue;
@@ -118,7 +123,7 @@ function decorate(state: EditorState, open: OpenCell | null): DecorationSet {
     const here = open && open.tableFrom === t.from ? { row: open.row, col: open.col } : null;
     const range = here && cellRange(text, t, here);
     const markdown = range ? markdownWithoutCell(text, t, range) : t.markdown;
-    out.push(Decoration.replace({ widget: new TableWidget(t, markdown, here, searchMatches(state, t)), block: true }).range(t.from, t.to));
+    out.push(Decoration.replace({ widget: new TableWidget(t, markdown, here, searchMatches(state, t), images), block: true }).range(t.from, t.to));
   }
   return Decoration.set(out, true);
 }

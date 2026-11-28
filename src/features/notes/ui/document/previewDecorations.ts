@@ -7,6 +7,7 @@ import { InlineHtmlWidget } from "./InlineHtml";
 import { NoteImageWidget } from "./NoteImage";
 import { previewMarks, type PreviewMark } from "./previewMarks";
 import { docText } from "./noteDoc";
+import { imageSources } from "./noteLinks";
 
 /** 箇条書きの記号の代わりの「•」 */
 class BulletWidget extends WidgetType {
@@ -99,7 +100,8 @@ const BULLET = Decoration.replace({ widget: new BulletWidget() });
 const RULE = Decoration.replace({ widget: new RuleWidget() });
 const HIDE = Decoration.replace({});
 
-function decorationOf(mark: PreviewMark): Range<Decoration> {
+/** sources はノートの中の画像の行き先（画像のボタンを、同じホストの最初の 1 枚にだけ出す） */
+function decorationOf(mark: PreviewMark, sources: readonly string[]): Range<Decoration> {
   switch (mark.kind) {
     case "hide":
       return HIDE.range(mark.from, mark.to);
@@ -120,7 +122,7 @@ function decorationOf(mark: PreviewMark): Range<Decoration> {
     case "sup":
       return Decoration.replace({ widget: new SupWidget(mark.text) }).range(mark.from, mark.to);
     case "image":
-      return Decoration.replace({ widget: new NoteImageWidget(mark.src, mark.alt) }).range(mark.from, mark.to);
+      return Decoration.replace({ widget: new NoteImageWidget(mark.src, mark.alt, sources) }).range(mark.from, mark.to);
   }
 }
 
@@ -140,7 +142,8 @@ function build(view: EditorView): DecorationSet {
   const visible = view.visibleRanges;
   const from = visible[0]?.from ?? 0;
   const to = visible[visible.length - 1]?.to ?? state.doc.length;
-  const ranges: Range<Decoration>[] = previewMarks(tree, text, isActive, from, to).map(decorationOf);
+  const sources = imageSources(tree, text);
+  const ranges: Range<Decoration>[] = previewMarks(tree, text, isActive, from, to).map((m) => decorationOf(m, sources));
   return Decoration.set(ranges, true);
 }
 

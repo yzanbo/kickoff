@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import type { EditorView } from "@codemirror/view";
 import { convertTexDelimiters, mayContainMath } from "@shared/foundation/markdown/mathGuard";
+import { MarkdownImageSourcesContext } from "@/foundation/ui/markdown/markdownImages";
 import { markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
 import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
 import { Plus } from "lucide-react";
@@ -39,7 +40,7 @@ function markCells(tree: Root): void {
  * ノートの表を、返答の表示と同じ処理（読み方・中の HTML の一覧・リンク・数式・部品）で描く。
  * open はこの表で開いているセル（そのセルは書く部品に替える）、matches は ⌘F の当たりのあるセル（「行,列」を ; でつないだもの）。描き終えたら編集の部品に高さを測り直させる（置き換えた所の高さが変わるため）
  */
-export function NoteTable({ markdown, view, open, matches }: { markdown: string; view: EditorView; open: CellAddress | null; matches: string }) {
+export function NoteTable({ markdown, view, open, matches, images }: { markdown: string; view: EditorView; open: CellAddress | null; matches: string; images: readonly string[] }) {
   const hasMath = mayContainMath(markdown);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
@@ -79,14 +80,17 @@ export function NoteTable({ markdown, view, open, matches }: { markdown: string;
   const keep = (e: { preventDefault: () => void }) => e.preventDefault();
   return (
     <NoteTableContext.Provider value={{ view, open, matches }}>
-      {/* セルとボタンのほか（表の余白）を押しても、本体にピントを移さない */}
-      <div className="note-table-frame" onMouseDown={(e) => !(e.target as HTMLElement).closest("td, th, button, a") && e.preventDefault()}>
-        <div ref={box} className="markdown">
-          {element}
+      {/* 表の中の画像も、ノート全体の画像の数で許可のボタンを出す */}
+      <MarkdownImageSourcesContext.Provider value={images}>
+        {/* セルとボタンのほか（表の余白）を押しても、本体にピントを移さない */}
+        <div className="note-table-frame" onMouseDown={(e) => !(e.target as HTMLElement).closest("td, th, button, a") && e.preventDefault()}>
+          <div ref={box} className="markdown">
+            {element}
+          </div>
+          <IconButton icon={Plus} className="note-table-add-column" label="列を足す" size="xs" onMouseDown={keep} onClick={add(appendColumn)} />
+          <IconButton icon={Plus} className="note-table-add-row" label="行を足す" size="xs" onMouseDown={keep} onClick={add(appendRow)} />
         </div>
-        <IconButton icon={Plus} className="note-table-add-column" label="列を足す" size="xs" onMouseDown={keep} onClick={add(appendColumn)} />
-        <IconButton icon={Plus} className="note-table-add-row" label="行を足す" size="xs" onMouseDown={keep} onClick={add(appendRow)} />
-      </div>
+      </MarkdownImageSourcesContext.Provider>
     </NoteTableContext.Provider>
   );
 }

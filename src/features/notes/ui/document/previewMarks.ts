@@ -5,7 +5,7 @@ import type { SyntaxNodeRef, Tree } from "@lezer/common";
 import { lineStartOf } from "./blockWalk";
 import { footnotes } from "./footnotes";
 import { decodeEntity, inlineHtmlRanges } from "./inlineSyntax";
-import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
+import { bareUrlEnd, imageOf, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 
 /** 見せ方の印（エディタの飾りに直す。位置はファイルの文字の位置） */
 export type PreviewMark =
@@ -119,9 +119,8 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
       }
       // 画像（行き先を書いたものだけ。![[名前]] は返答の表示でも文字のまま）
       if (name === "Image") {
-        const url = n.node.getChild("URL");
-        const marks = n.node.getChildren("LinkMark");
-        if (url && marks.length >= 2 && !isActive(n.from)) out.push({ kind: "image", from: n.from, to: n.to, src: text.slice(url.from, url.to), alt: text.slice(marks[0].to, marks[1].from) });
+        const image = imageOf(n.node, text);
+        if (image && !isActive(n.from)) out.push({ kind: "image", from: n.from, to: n.to, ...image });
         return false;
       }
       // <URL> と URL のそのまま書き（そのまま書きは日本語の記号の手前まで。返答の表示と同じ）

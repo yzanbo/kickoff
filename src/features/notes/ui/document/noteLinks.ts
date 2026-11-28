@@ -106,3 +106,30 @@ export function linkAt(tree: Tree, text: string, pos: number): NoteLinkAt | null
   }
   return null;
 }
+
+/** 画像の節（![説明](パス)）の行き先と説明（行き先を書いていないもの（![[名前]] など）は null。返答の表示でも文字のまま） */
+export function imageOf(node: SyntaxNode, text: string): { src: string; alt: string } | null {
+  const url = node.getChild("URL");
+  const marks = node.getChildren("LinkMark");
+  return url && marks.length >= 2 ? { src: text.slice(url.from, url.to), alt: text.slice(marks[0].to, marks[1].from) } : null;
+}
+
+/**
+ * ノートの中の画像の行き先（書いた順。表・引用・リストの中も）。返答の表示と同じく「host から画像を n 件表示」の数と、ボタンを出す最初の 1 枚を
+ * ノート全体で決めるのに使う（HTML のまとまりの中の画像は、そのまとまりの分として数える）。同じ木と文には同じ結果
+ */
+export const imageSources = cacheByTree((tree: Tree, text: string): string[] => {
+  const out: string[] = [];
+  tree.iterate({
+    enter(n) {
+      if (n.name !== "Image") return;
+      const image = imageOf(n.node, text);
+      if (image) out.push(image.src);
+      return false;
+    },
+  });
+  return out;
+});
+
+/** 画像の一覧が同じか（飾りを描き直すか決める） */
+export const sameSources = (a: readonly string[], b: readonly string[]) => a === b || (a.length === b.length && a.every((s, i) => s === b[i]));
