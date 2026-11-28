@@ -84,3 +84,13 @@ test("livePreview: 英語の文・語の中の _・~ 1 つの木は、日本語�
     assert.equal(cjk.parse(text).toString(), md.parse(text).toString(), text);
   }
 });
+
+test("livePreview: 定義のない [文字] は角かっこごと文字のまま、定義のある参照はリンクにする", () => {
+  assert.deepEqual(marksOf("配列 [2, 3] とキー ⌘[ ⌘]"), []);
+  assert.deepEqual(marksOf("[名前] と [x]\n\n[名前]: https://x.y"), ['span:md-link="[名前]"', 'hide="["', 'hide="]"']);
+});
+
+test("livePreview: 画像と定義の行の印は隠さない（画像はまだ描かないので、書いたまま見せる）", () => {
+  assert.deepEqual(marksOf("![[a.png]] ![説明](b.png)"), []);
+  assert.deepEqual(marksOf("[a]: https://x.y"), []);
+});

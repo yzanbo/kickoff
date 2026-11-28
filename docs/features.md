@@ -512,7 +512,7 @@
 ### 書く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| NOTE-010 | ライブプレビューで書く | notes | T:livePreview |
+| NOTE-010 | ライブプレビューで書く（返答の表示と同じ所を同じ書き方として飾る） | notes | T:livePreview,markdownParity |
 | NOTE-011 | ⌘S で保存・書きかけを残す | notes | E:note-edit |
 | NOTE-012 | ほかで変わったノートを読み直す | notes | T:noteWatcher,notes/routes |
 | NOTE-013 | 題名を書き換えて名前を変える | notes | M |

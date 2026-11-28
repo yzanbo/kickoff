@@ -2,6 +2,7 @@
 // Markdown の構文の木（@lezer/markdown・GFM）から、カーソルのない行の記号（# ・** ・` ・> ・リンクの URL など）を隠し、
 // 見出し・太字・コード・引用などの見た目を付ける印を返す（コードの塊の ``` もカーソルのない行では隠す）。ファイルの中身は変えない（見せ方だけ。書き換えはチェックボックスを押したときだけ）
 import type { SyntaxNodeRef, Tree } from "@lezer/common";
+import { linkDefinitions, linkHref } from "./noteLinks";
 
 /** 見せ方の印（エディタの飾りに直す。位置はファイルの文字の位置） */
 export type PreviewMark =
@@ -24,7 +25,6 @@ const SPAN_CLASS: Record<string, string> = {
   Emphasis: "md-em",
   InlineCode: "md-code",
   Strikethrough: "md-strike",
-  Link: "md-link",
 };
 
 /**
@@ -51,6 +51,9 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
     if (!isActive(a) && b > a) out.push({ kind: "hide", from: a, to: b });
   };
   const parentName = (n: SyntaxNodeRef) => n.node.parent?.name ?? "";
+  // 行き先のあるリンクだけを飾る（定義のない [文字] は角かっこごと文字のまま。返答の表示と同じ）
+  const defs = linkDefinitions(tree, text);
+  const isLink = (n: SyntaxNodeRef | null | undefined) => !!n && n.name === "Link" && linkHref(n.node, text, defs) !== null;
 
   tree.iterate({
     from,
@@ -67,6 +70,10 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
         out.push({ kind: "span", from: n.from, to: n.to, cls: span });
         return;
       }
+      if (name === "Link") {
+        if (isLink(n)) out.push({ kind: "span", from: n.from, to: n.to, cls: "md-link" });
+        return;
+      }
       switch (name) {
         case "HeaderMark":
           // 見出しの頭の # だけ（行の終わりの # や、下線で書く見出しの ===・--- は残す）
@@ -74,8 +81,11 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
           return;
         case "EmphasisMark":
         case "StrikethroughMark":
-        case "LinkMark":
           hide(n.from, n.to);
+          return;
+        case "LinkMark":
+          // リンクの [ ] ( ) と <URL> の < >（画像・定義の行の印は、まだ見た目を付けないので残す）
+          if (isLink(n.node.parent) || parentName(n) === "Autolink") hide(n.from, n.to);
           return;
         case "CodeMark":
           // 行の中のコードの `・コードの塊の ```（カーソルのない行は、塊の地だけを見せる）
@@ -87,7 +97,7 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
           return;
         case "URL":
           // リンクの行き先（[文](URL) の URL）は隠し、文だけを見せる
-          if (parentName(n) === "Link") hide(n.from, n.to);
+          if (isLink(n.node.parent)) hide(n.from, n.to);
           return;
         case "Blockquote":
           for (const at of linesOf(n.from, n.to)) out.push({ kind: "line", at, cls: "md-quote" });
