@@ -9,7 +9,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { editorFocus, editorFocusOf } from "./editorFocus";
 import { footnoteAt, footnotes } from "./footnotes";
 import { linkAt, type NoteLinkAt } from "./noteLinks";
-import { headingPosition } from "./noteLinkTarget";
+import { headingPosition, noteLinkTarget } from "./noteLinkTarget";
 import { docText } from "./noteDoc";
 import { mountInEditor, unmountFromEditor } from "./widgetPortals";
 
@@ -34,7 +34,9 @@ function jumpToHeading(view: EditorView, id: string): boolean {
 
 /** リンクを開く（# はこのノートの見出し、ほかは開いたノートの画面に任せる） */
 export function openNoteLink(view: EditorView, href: string, text: string, invert: boolean) {
-  if (href.startsWith("#") && jumpToHeading(view, href.slice(1))) return;
+  // # の行き先は符号化を戻した見出しの名前で探す（このノートの中なので、ノートのパスは要らない）
+  const target = noteLinkTarget(href, "");
+  if (target.kind === "heading" && jumpToHeading(view, target.id)) return;
   view.state.facet(noteLinkOpenerFacet)?.open(href, text, invert);
 }
 
