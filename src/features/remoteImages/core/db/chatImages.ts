@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { ChatImageHost } from "@shared/chat/types";
+import type { ImageHost } from "@shared/remoteImages/types";
 
 /** 取ってきた画像の覚え書き（中身はファイル。core/remoteImages/service.ts） */
 export interface CachedImage {
@@ -18,8 +18,8 @@ export interface CachedImage {
 export function createChatImageStore(db: DatabaseSync) {
   return {
     /** そのチャットで表示を許可したホスト（許可した順） */
-    hosts(chatId: number): ChatImageHost[] {
-      return db.prepare("SELECT host, allowed_at FROM chat_image_hosts WHERE chat_id = ? ORDER BY allowed_at, host").all(chatId) as unknown as ChatImageHost[];
+    hosts(chatId: number): ImageHost[] {
+      return db.prepare("SELECT host, allowed_at FROM chat_image_hosts WHERE chat_id = ? ORDER BY allowed_at, host").all(chatId) as unknown as ImageHost[];
     },
     allowed(chatId: number, host: string): boolean {
       return db.prepare("SELECT 1 FROM chat_image_hosts WHERE chat_id = ? AND host = ?").get(chatId, host) !== undefined;

@@ -1,26 +1,23 @@
-// チャット欄の外の画像: 表示を許可したホスト（チャットごと）と、コアが取ってきた画像の覚え（ディスク）
-import { createHash } from "node:crypto";
+// チャット欄の外の画像: 表示を許可したホスト（チャットごと）と、コアが取ってきた画像の覚え（ディスク。imageCache.ts）
 import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import path from "node:path";
-import type { Chat, ChatImageHost } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
+import type { ImageHost } from "@shared/remoteImages/types";
 import { remoteImageOf } from "@shared/remoteImages/remoteImages";
 import type { createChatImageStore } from "./db/chatImages";
 import { Invalid } from "@/foundation/core/errors";
-import { fetchRemoteImage, type FetchedImage, type ImageFetcher } from "./fetchImage";
+import type { FetchedImage, ImageFetcher } from "./fetchImage";
+import { defaultImageFetcher, ScopedImageCache } from "./imageCache";
+import { normalizedHost } from "./hosts";
 
-/** 1 枚の上限 */
-const REMOTE_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 /** 覚えておく画像の合計の上限（超えたら古いものから消す。消えたものは次に出すときに取り直す） */
 const REMOTE_IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024;
-const FETCH_TIMEOUT_MS = 20_000;
-const MAX_REDIRECTS = 3;
 
 export interface RemoteImageServiceOptions {
   /** 自分の表の店（表示を許可したホストと、取ってきた画像の覚え） */
   store: { chatImages: ReturnType<typeof createChatImageStore> };
-  /** 覚えた画像の置き場（データのフォルダの image-cache） */
+  /** 覚えた画像の置き場（データのフォルダの image-cache。中はチャットごと） */
   dir: string;
   publish: (e: BusEvent) => void;
   /** 外の画像を取る口（省けば本物。テストで差し替える） */
@@ -29,45 +26,42 @@ export interface RemoteImageServiceOptions {
   maxCacheBytes?: number;
 }
 
-/** 覚えるときの名前（URL の SHA-256。URL には何が入っているか分からないので、そのままファイル名にしない） */
-export const keyOf = (url: string) => createHash("sha256").update(url).digest("hex");
-
-/** 外の画像を取る本物の口（1 枚の上限・時間・転送の回数を決めたもの。チャットとノートで同じ） */
-export const defaultImageFetcher: ImageFetcher = (url) => fetchRemoteImage(url, { maxBytes: REMOTE_IMAGE_MAX_BYTES, timeoutMs: FETCH_TIMEOUT_MS, maxRedirects: MAX_REDIRECTS });
-
 export class RemoteImageService {
-  readonly dir: string;
   private readonly store: RemoteImageServiceOptions["store"];
   private readonly publish: (e: BusEvent) => void;
-  private readonly fetcher: ImageFetcher;
-  private readonly maxCacheBytes: number;
-  /** 同じ画像を同時に頼まれたら 1 回だけ取る */
-  private readonly inflight = new Map<string, Promise<FetchedImage>>();
+  private readonly cache: ScopedImageCache;
 
   constructor(opts: RemoteImageServiceOptions) {
     this.store = opts.store;
-    this.dir = opts.dir;
     this.publish = opts.publish;
-    this.maxCacheBytes = opts.maxCacheBytes ?? REMOTE_IMAGE_CACHE_MAX_BYTES;
-    this.fetcher = opts.fetcher ?? defaultImageFetcher;
+    const rows = opts.store.chatImages;
+    this.cache = new ScopedImageCache({
+      dir: opts.dir,
+      fetcher: opts.fetcher ?? defaultImageFetcher,
+      maxBytes: opts.maxCacheBytes ?? REMOTE_IMAGE_CACHE_MAX_BYTES,
+      rows: {
+        cached: (chatId, key) => rows.cached(chatId, key),
+        remember: (r) => rows.remember({ chat_id: r.scope, key: r.key, host: r.host, content_type: r.content_type, size: r.size }),
+        forget: (chatId, key) => rows.forget(chatId, key),
+        totalSize: () => rows.totalSize(),
+        oldest: (limit) => rows.oldest(limit).map((r) => ({ scope: r.chat_id, key: r.key, size: r.size })),
+      },
+    });
   }
 
-  hosts(chatId: number): ChatImageHost[] {
+  hosts(chatId: number): ImageHost[] {
     return this.store.chatImages.hosts(chatId);
   }
 
   /** ホストの表示を許可する（押した「host から画像を n 件表示」） */
-  allow(chat: Chat, host: string): ChatImageHost[] {
-    const normalized = host.trim().toLowerCase();
-    if (!normalized || /[\s/@]/.test(normalized)) throw new Invalid("ホストの名前が正しくありません");
-    this.store.chatImages.allow(chat.id, normalized);
+  allow(chat: Chat, host: string): ImageHost[] {
+    this.store.chatImages.allow(chat.id, normalizedHost(host));
     return this.changed(chat);
   }
 
   /** 許可を外し、そのホストの覚えた画像も消す */
-  async revoke(chat: Chat, host: string): Promise<ChatImageHost[]> {
-    const keys = this.store.chatImages.revoke(chat.id, host.trim().toLowerCase());
-    await Promise.all(keys.map((k) => fs.rm(this.fileOf(chat.id, k), { force: true })));
+  async revoke(chat: Chat, host: string): Promise<ImageHost[]> {
+    await this.cache.removeKeys(chat.id, this.store.chatImages.revoke(chat.id, host.trim().toLowerCase()));
     return this.changed(chat);
   }
 
@@ -76,72 +70,27 @@ export class RemoteImageService {
     const remote = remoteImageOf(src);
     if (!remote) throw new Invalid("http・https の画像だけを読み込みます");
     if (!this.store.chatImages.allowed(chat.id, remote.host)) throw new Invalid(`このチャットでは ${remote.host} の画像の表示を許可していません`);
-    const key = keyOf(remote.url);
-    const cached = this.store.chatImages.cached(chat.id, key);
-    if (cached) {
-      const body = await fs.readFile(this.fileOf(chat.id, key)).catch(() => null);
-      if (body) return { contentType: cached.content_type, body };
-      this.store.chatImages.forget(chat.id, key);
-    }
-    const id = `${chat.id}:${key}`;
-    let pending = this.inflight.get(id);
-    if (!pending) {
-      pending = this.fetchAndRemember(chat.id, key, remote.host, remote.url).finally(() => this.inflight.delete(id));
-      this.inflight.set(id, pending);
-    }
-    return pending;
+    return this.cache.get(chat.id, remote);
   }
 
   /** 分岐: 許可と覚えた画像を新しいチャットに写す（ファイルは APFS なら複製で写す） */
   async copyChat(fromChatId: number, toChatId: number): Promise<void> {
     const rows = this.store.chatImages.copy(fromChatId, toChatId);
     if (rows.length === 0) return;
-    await fs.mkdir(path.join(this.dir, String(toChatId)), { recursive: true });
+    await fs.mkdir(this.cache.dirOf(toChatId), { recursive: true });
     await Promise.all(
       rows.map((r) =>
-        fs.copyFile(this.fileOf(fromChatId, r.key), this.fileOf(toChatId, r.key), fsConstants.COPYFILE_FICLONE).catch(() => this.store.chatImages.forget(toChatId, r.key)),
+        fs.copyFile(this.cache.fileOf(fromChatId, r.key), this.cache.fileOf(toChatId, r.key), fsConstants.COPYFILE_FICLONE).catch(() => this.store.chatImages.forget(toChatId, r.key)),
       ),
     );
   }
 
   /** 本当に消したチャットの覚えた画像のフォルダを消す（表の行はチャットと一緒に消える） */
   async forgetChats(chatIds: number[]): Promise<void> {
-    await Promise.all(chatIds.map((id) => fs.rm(path.join(this.dir, String(id)), { recursive: true, force: true })));
+    await this.cache.removeScopes(chatIds);
   }
 
-  private fileOf(chatId: number, key: string): string {
-    return path.join(this.dir, String(chatId), key);
-  }
-
-  private async fetchAndRemember(chatId: number, key: string, host: string, url: string): Promise<FetchedImage> {
-    const image = await this.fetcher(url);
-    try {
-      await fs.mkdir(path.join(this.dir, String(chatId)), { recursive: true });
-      await fs.writeFile(this.fileOf(chatId, key), image.body);
-      this.store.chatImages.remember({ chat_id: chatId, key, host, content_type: image.contentType, size: image.body.length });
-      await this.trim();
-    } catch {
-      // 覚えられなくても、取ってきた画像は返す（次は取り直す）
-    }
-    return image;
-  }
-
-  /** 合計が上限を超えていれば、古いものから消す */
-  private async trim(): Promise<void> {
-    let total = this.store.chatImages.totalSize();
-    while (total > this.maxCacheBytes) {
-      const oldest = this.store.chatImages.oldest(20);
-      if (oldest.length === 0) return;
-      for (const r of oldest) {
-        if (total <= this.maxCacheBytes) return;
-        this.store.chatImages.forget(r.chat_id, r.key);
-        await fs.rm(this.fileOf(r.chat_id, r.key), { force: true });
-        total -= r.size;
-      }
-    }
-  }
-
-  private changed(chat: Chat): ChatImageHost[] {
+  private changed(chat: Chat): ImageHost[] {
     const hosts = this.hosts(chat.id);
     this.publish({ type: "chat_image_hosts", project_id: chat.project_id, chat_id: chat.id, hosts });
     return hosts;

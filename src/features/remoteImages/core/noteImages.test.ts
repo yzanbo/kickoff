@@ -1,9 +1,14 @@
 // API のテスト: ノートの外の画像（表示を許可したホストはノートごと・許可したホストの画像だけ取る・ノートを動かすと付いていく・ゴミ箱に入れると忘れる）
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/foundation/contract";
 import { AUTH, setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
+import { tempDir } from "@/foundation/core/testing/tempDir";
+import { createNoteImageStore } from "./db/noteImages";
+import { NoteImageService } from "./noteImageService";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 4, 5, 6]);
 const FEATURES = ["remoteImages", "notes", "settings", "trash"] as const;
@@ -66,4 +71,24 @@ test("ノートを動かすと許可と覚えた画像が付いていき（フ�
 
   assert.equal((await api("DELETE /api/projects/:projectId/note", { params, query: { path: "moved/a.md" } })).status, 200);
   await until(async () => (await hostsOf("moved/a.md")) === 0);
+});
+
+test("ノートの範囲: 動かした先に古い範囲が残っていれば先に消し、ファイルだけ残った範囲は起動したときに片付ける", async () => {
+  const dir = tempDir();
+  const { store, project } = setup({ features: [...FEATURES] });
+  const notes = createNoteImageStore(store.db);
+  const service = new NoteImageService({ store: notes, dir, publish: () => {} });
+  const stale = notes.scope(project.id, "b.md", true)!;
+  const scope = notes.scope(project.id, "a.md", true)!;
+  notes.allow(scope, "x.example");
+  fs.mkdirSync(path.join(dir, String(stale)));
+  await service.moved(project.id, "a.md", project.id, "b.md");
+  assert.equal(notes.scope(project.id, "b.md"), scope);
+  assert.deepEqual(notes.hosts(scope).map((h) => h.host), ["x.example"]);
+  assert.equal(fs.existsSync(path.join(dir, String(stale))), false);
+  // 行のない範囲のフォルダ（プロジェクトを本当に消したあと）だけを消す
+  fs.mkdirSync(path.join(dir, String(scope)));
+  fs.mkdirSync(path.join(dir, "9999"));
+  await service.sweep();
+  assert.deepEqual(fs.readdirSync(dir), [String(scope)]);
 });

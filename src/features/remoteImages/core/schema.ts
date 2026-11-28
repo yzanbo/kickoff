@@ -25,27 +25,32 @@ CREATE INDEX idx_chat_image_cache_fetched ON chat_image_cache(fetched_at);
 `;
 
 /**
- * ノートの外の画像（v3）。note_image_hosts はノートで表示を許可したホスト（押したホストはそのノートの中だけ覚える。path はノートのフォルダからの相対のパス）、
- * note_image_cache はノートのためにコアが取ってきた画像の覚え書き（中身は image-cache/notes/<プロジェクト>/<パスの SHA-256>/<key>）。
- * プロジェクトを消したら一緒に消え、ノートを動かしたら付け替え、ゴミ箱に入れたら消す
+ * ノートの外の画像（v3）。note_image_scopes はノート 1 つ（プロジェクトとノートのフォルダからの相対のパス）で、許可と覚え書きはこの行にぶら下げる
+ * （ノートを動かしたら path を書き換えるだけで、許可も覚えた画像も付いていく。覚えた画像は image-cache/notes/<scope_id>/<key>）。
+ * note_image_hosts はそのノートで表示を許可したホスト、note_image_cache は取ってきた画像の覚え書き。
+ * プロジェクトを消したら一緒に消え、ノートをゴミ箱に入れたら行ごと消す（ファイルは呼ぶ側が消す）
  */
 export const REMOTE_IMAGES_SCHEMA_V3 = `
-CREATE TABLE note_image_hosts (
+CREATE TABLE note_image_scopes (
+  id INTEGER PRIMARY KEY,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   path TEXT NOT NULL CHECK (path <> ''),
+  UNIQUE (project_id, path)
+) STRICT;
+CREATE TABLE note_image_hosts (
+  scope_id INTEGER NOT NULL REFERENCES note_image_scopes(id) ON DELETE CASCADE,
   host TEXT NOT NULL CHECK (host <> ''),
   allowed_at TEXT NOT NULL DEFAULT (${NOW}),
-  PRIMARY KEY (project_id, path, host)
+  PRIMARY KEY (scope_id, host)
 ) STRICT;
 CREATE TABLE note_image_cache (
-  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  path TEXT NOT NULL CHECK (path <> ''),
+  scope_id INTEGER NOT NULL REFERENCES note_image_scopes(id) ON DELETE CASCADE,
   key TEXT NOT NULL CHECK (key <> ''),
   host TEXT NOT NULL CHECK (host <> ''),
   content_type TEXT NOT NULL CHECK (content_type <> ''),
   size INTEGER NOT NULL CHECK (size >= 0),
   fetched_at TEXT NOT NULL DEFAULT (${NOW}),
-  PRIMARY KEY (project_id, path, key)
+  PRIMARY KEY (scope_id, key)
 ) STRICT;
 CREATE INDEX idx_note_image_cache_fetched ON note_image_cache(fetched_at);
 `;

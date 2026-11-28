@@ -1,12 +1,12 @@
 // 外の画像の表示を許可したホスト（チャットごと・ノートごと。コアの DB に覚え、変わったら知らせ chat_image_hosts・note_image_hosts で入れ替える）
 import { useMemo } from "react";
-import type { ChatImageHost } from "@shared/chat/types";
+import type { ImageHost } from "@shared/remoteImages/types";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { deleteHost, fetchHosts, putHost, scopeKey, scopeOfKey, type ImageScope } from "./imageScope";
 import { forgetRemoteImages } from "./remoteImageCache";
 
-const imageHostsStore = createKeyedStore<string, ChatImageHost[]>({
+const imageHostsStore = createKeyedStore<string, ImageHost[]>({
   load: (key) => fetchHosts(scopeOfKey(key)),
   reduce: {
     chat_image_hosts: (data, event, key) => (key === `chat:${event.chat_id}` ? event.hosts : data),
@@ -15,7 +15,7 @@ const imageHostsStore = createKeyedStore<string, ChatImageHost[]>({
   dropOn: { chat_deleted: (event) => `chat:${event.id}` },
 });
 
-const NONE: ChatImageHost[] = [];
+const NONE: ImageHost[] = [];
 
 /** その範囲で表示を許可したホストの集まり（届くまでは空） */
 export function useAllowedHosts(scope: ImageScope): ReadonlySet<string> {

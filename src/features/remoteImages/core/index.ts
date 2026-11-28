@@ -46,5 +46,7 @@ export function createRemoteImages(
       noteTrashed: (projectId, notePath) => noteImages.trashed(projectId, notePath),
     },
     routes: [chatImageRoutes({ chatParam: deps.chat.chatParam, remoteImages }), noteImageRoutes({ projectParam: deps.projects.param, noteImages })],
+    // 本当に消したプロジェクトのノートの覚えた画像（行は一緒に消え、ファイルだけが残る）を片付ける
+    start: () => void noteImages.sweep(),
   };
 }

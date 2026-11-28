@@ -1,10 +1,10 @@
 // チャット欄とノートの外の画像の取り決め（受け口は src/features/remoteImages/core/routes/）。どれも端末には開かない
 import { blob, route, type Contract } from "@shared/foundation/contract";
-import type { ChatImageHost } from "@shared/chat/types";
+import type { ImageHost } from "@shared/remoteImages/types";
 
 /** 許可したホストの一覧（変えたあとも同じ形） */
 export interface ImageHostsReply {
-  hosts: ChatImageHost[];
+  hosts: ImageHost[];
 }
 
 export const remoteImagesContract = {

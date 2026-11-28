@@ -233,13 +233,3 @@ export interface CaptureAttachment extends AttachmentBase {
 
 /** チャットの添付（種類 kind で分ける） */
 export type Attachment = FileAttachment | NoteAttachment | CaptureAttachment;
-
-/**
- * チャットで外の画像の表示を許可したホスト。返答の外の画像は「ホストから画像を n 件表示」を押すまで読み込まず、
- * 押したホストはそのチャットの中だけ覚えて、以後は押さずに表示する（分岐では写し、子チャットには引き継がない）
- */
-export interface ChatImageHost {
-  /** ホスト名（小文字。ポートがあれば「:ポート」付き） */
-  host: string;
-  allowed_at: string;
-}
