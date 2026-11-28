@@ -78,6 +78,22 @@ class TextWidget extends WidgetType {
   }
 }
 
+/** 脚注の印の代わりの上付きの番号 */
+class SupWidget extends WidgetType {
+  constructor(readonly text: string) {
+    super();
+  }
+  toDOM() {
+    const sup = document.createElement("sup");
+    sup.className = "cm-md-footref";
+    sup.textContent = this.text;
+    return sup;
+  }
+  eq(other: SupWidget) {
+    return other.text === this.text;
+  }
+}
+
 const BULLET = Decoration.replace({ widget: new BulletWidget() });
 const RULE = Decoration.replace({ widget: new RuleWidget() });
 const HIDE = Decoration.replace({});
@@ -100,6 +116,8 @@ function decorationOf(mark: PreviewMark): Range<Decoration> {
       return Decoration.replace({ widget: new TextWidget(mark.text) }).range(mark.from, mark.to);
     case "html":
       return Decoration.replace({ widget: new InlineHtmlWidget(mark.source) }).range(mark.from, mark.to);
+    case "sup":
+      return Decoration.replace({ widget: new SupWidget(mark.text) }).range(mark.from, mark.to);
     case "image":
       return Decoration.replace({ widget: new NoteImageWidget(mark.src, mark.alt) }).range(mark.from, mark.to);
   }

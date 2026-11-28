@@ -195,3 +195,15 @@
   font-size: 0.9em;
   color: var(--muted);
 }
+
+/* 脚注（本文の印は上付きの番号、定義の行は小さな文字） */
+
+.md-editor .cm-md-footref {
+  font-size: 0.75em;
+  color: var(--accent-text);
+}
+
+.md-editor .cm-md-footdef {
+  font-size: 0.85em;
+  color: var(--muted);
+}

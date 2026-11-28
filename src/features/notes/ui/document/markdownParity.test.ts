@@ -7,13 +7,14 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
+import { footnotes } from "./footnotes";
 import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 import { noteMarkdownParser as noteParser } from "./noteMarkdown";
 import { splitTableRow, tableBlocks } from "./tableBlocks";
 
 const chatParser = unified().use(remarkParse).use(markdownRemarkPlugins());
 
-type Kind = "link" | "url" | "heading" | "code" | "table";
+type Kind = "link" | "url" | "heading" | "code" | "table" | "footnote";
 
 /** 返答の表示が描くもの（種類と、文の中の位置の範囲） */
 function chatSummary(text: string, kinds: readonly Kind[]): string[] {
@@ -24,6 +25,8 @@ function chatSummary(text: string, kinds: readonly Kind[]): string[] {
     if (kinds.includes("link") && (node.type === "link" || node.type === "linkReference") && text[node.position?.start.offset ?? 0] === "[") out.push(`link ${at}`);
     // URL のそのまま書きと <URL>（[ ] で書いていないリンク）
     if (kinds.includes("url") && node.type === "link" && text[node.position?.start.offset ?? 0] !== "[") out.push(`url ${at}`);
+    if (kinds.includes("footnote") && node.type === "footnoteReference") out.push(`ref ${at}`);
+    if (kinds.includes("footnote") && node.type === "footnoteDefinition") out.push(`def ${node.position?.start.line}-${node.position?.end.line}`);
     if (kinds.includes("heading") && node.type === "heading") out.push(`heading${node.depth} ${at}`);
     // 表は行で比べる（始まり・終わりの行と、行の数・見出しのセルの数）
     if (kinds.includes("table") && node.type === "table") out.push(`table ${node.position?.start.line}-${node.position?.end.line} ${node.children.length}x${node.children[0]?.children.length}`);
@@ -38,6 +41,11 @@ function noteSummary(text: string, kinds: readonly Kind[]): string[] {
   const defs = linkDefinitions(tree, text);
   const out: string[] = [];
   const lineOf = (pos: number) => text.slice(0, pos).split("\n").length;
+  if (kinds.includes("footnote")) {
+    const notes = footnotes(tree, text);
+    for (const r of notes.refs) out.push(`ref ${r.from}-${r.to}`);
+    for (const d of notes.defs.values()) out.push(`def ${lineOf(d.from)}-${lineOf(d.to)}`);
+  }
   if (kinds.includes("table")) {
     for (const t of tableBlocks(tree, text)) {
       const body = t.rows.filter((r) => !r.delimiter);
@@ -112,5 +120,15 @@ test("読み方の比べ: URL のそのまま書きと <URL> は同じ所まで�
     "www.example.com も",
   ]) {
     same(text, ["url"]);
+  }
+});
+
+test("読み方の比べ: 脚注は定義のある名前の印だけ、定義は字下げした続きの行まで", () => {
+  for (const text of [
+    "本文[^a]と[^b]と[^a]と[^ない]\n\n[^b]: 長い 注の文\n    続きの行\n[^a]: 注 A",
+    "コードの中 `[^a]` は印でない[^a]\n\n[^a]: 注",
+    "```\n[^a]: コードの中\n```",
+  ]) {
+    same(text, ["footnote"]);
   }
 });

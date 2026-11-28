@@ -14,7 +14,7 @@
 | `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー） |
 | `tableBlocks.ts`・`tableModel.ts`・`tableEdit.ts`・`tableSyntax.ts` | 表の場所とセル・書き戻し・段落の途中から始まる表を読む拡張 |
 | `tableStructure.ts`・`tableActions.ts` | 行・列・寄せ・表を足す・消す（右クリックの項目は `NoteEditorHandle.contextItems`） |
-| `noteMarkdown.ts`・`noteLinks.ts`・`cjkEmphasis.ts` | 読み取りの組・リンク・日本語向けの強調 |
+| `noteMarkdown.ts`・`noteLinks.ts`・`footnotes.ts`・`cjkEmphasis.ts` | 読み取りの組・リンク・脚注・日本語向けの強調 |
 | `linkTooltip.tsx`・`noteLinkTarget.ts`・`useNoteLinkOpener.ts` | リンクの小窓と ⌘ ＋クリック・行き先・開き方（NoteView が渡す） |
 | `HtmlNotePage.tsx`・`htmlPage.ts` | HTML のノートのページ（iframe） |
 | `NoteEditorBlocks.unlayered.css` | 置き換えて描く物の見た目 |

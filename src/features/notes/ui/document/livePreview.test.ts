@@ -122,3 +122,8 @@ test("livePreview: \\ の打ち消しは \\ を隠し、実体参照は文字に
 test("livePreview: 画像の印は src と説明を持つ", () => {
   assert.deepEqual(imagesOf("![赤い 四角](img/a.png)"), ["img/a.png|赤い 四角"]);
 });
+
+test("livePreview: 脚注の印は上付きの番号、定義の行は頭を番号にして小さな文字（定義のない印は文字のまま）", () => {
+  assert.deepEqual(marksOf("本文[^a]と[^ない]\n\n[^a]: 注"), ['sup="[^a]"', "line:md-footdef@2", 'text="[^a]: "']);
+  assert.deepEqual(marksOf("本文[^a]\n\n[^a]: 注", 2), ['sup="[^a]"', "line:md-footdef@2"]);
+});

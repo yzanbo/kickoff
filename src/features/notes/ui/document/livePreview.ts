@@ -2,6 +2,7 @@
 // Markdown の構文の木（@lezer/markdown・GFM）から、カーソルのない行の記号（# ・** ・` ・> ・リンクの URL など）を隠し、
 // 見出し・太字・コード・引用などの見た目を付ける印を返す（コードの塊の ``` もカーソルのない行では隠す）。ファイルの中身は変えない（見せ方だけ。書き換えはチェックボックスを押したときだけ）
 import type { SyntaxNodeRef, Tree } from "@lezer/common";
+import { footnotes } from "./footnotes";
 import { decodeEntity, inlineHtmlRanges } from "./inlineSyntax";
 import { bareUrlEnd, isBareUrl, linkDefinitions, linkHref } from "./noteLinks";
 
@@ -23,6 +24,8 @@ export type PreviewMark =
   | { kind: "text"; from: number; to: number; text: string }
   /** 行の中の HTML（返答の表示と同じ処理で描く） */
   | { kind: "html"; from: number; to: number; source: string }
+  /** 脚注の印の番号（上付きの小さな数字に置き換える） */
+  | { kind: "sup"; from: number; to: number; text: string }
   /** 画像（![説明](パス)。行き先のあるものだけ） */
   | { kind: "image"; from: number; to: number; src: string; alt: string };
 
@@ -67,6 +70,14 @@ export function previewMarks(tree: Tree, text: string, isActive: (pos: number) =
   const html = inlineHtmlRanges(tree, text, from, to).filter((r) => !isActive(r.from));
   for (const r of html) out.push({ kind: "html", from: r.from, to: r.to, source: text.slice(r.from, r.to) });
   const inHtml = (n: SyntaxNodeRef) => html.some((r) => n.from >= r.from && n.to <= r.to);
+  // 脚注: 本文の印は上付きの番号、定義の行は頭の [^名前]: を番号にして小さな文字（どちらもカーソルの行は元の文字）
+  const notes = footnotes(tree, text);
+  for (const r of notes.refs) if (r.to >= from && r.from <= to && !isActive(r.from)) out.push({ kind: "sup", from: r.from, to: r.to, text: String(r.number) });
+  for (const d of notes.defs.values()) {
+    if (d.number === null || d.to < from || d.from > to) continue;
+    for (const at of linesOf(d.from, d.to)) out.push({ kind: "line", at, cls: "md-footdef" });
+    if (!isActive(d.from)) out.push({ kind: "text", from: d.from, to: d.markTo, text: `${d.number}. ` });
+  }
 
   tree.iterate({
     from,

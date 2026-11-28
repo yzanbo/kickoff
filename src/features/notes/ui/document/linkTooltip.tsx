@@ -4,7 +4,9 @@
 import { syntaxTree } from "@codemirror/language";
 import { Facet, StateField, type EditorState } from "@codemirror/state";
 import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
+import type { JSX } from "react";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
+import { footnoteAt, footnotes } from "./footnotes";
 import { linkAt, type NoteLinkAt } from "./noteLinks";
 import { headingSlug } from "./noteLinkTarget";
 import { tableCellField } from "./tableField";
@@ -64,23 +66,54 @@ function LinkTooltip({ view, link, opener }: { view: EditorView; link: NoteLinkA
   );
 }
 
-function tooltipOf(state: EditorState): Tooltip | null {
-  const sel = state.selection.main;
-  if (!sel.empty || !state.field(tableCellField, false)?.focused) return null;
-  const link = linkAt(syntaxTree(state), docText(state), sel.head);
-  if (!link) return null;
+/** 脚注の小窓（注の文と「注へ移る」） */
+function FootnoteTooltip({ view, number, text, defFrom }: { view: EditorView; number: number; text: string; defFrom: number }) {
+  const jump = () => {
+    view.dispatch({ selection: { anchor: defFrom }, effects: EditorView.scrollIntoView(defFrom, { y: "center" }) });
+    view.focus();
+  };
+  return (
+    <div className="note-link-tip">
+      <span className="note-link-tip-target">
+        注 {number}: {text}
+      </span>
+      <button type="button" className="note-link-tip-open" onMouseDown={(e) => e.preventDefault()} onClick={jump}>
+        注へ移る
+      </button>
+    </div>
+  );
+}
+
+/** 小窓を、portals で描く部品から作る */
+function tooltipWith(pos: number, render: (view: EditorView) => JSX.Element | null): Tooltip {
   return {
-    pos: link.from,
+    pos,
     above: false,
     arrow: false,
     create(view) {
       const dom = document.createElement("div");
       const portals = view.state.facet(widgetPortalsFacet);
-      const opener = view.state.facet(noteLinkOpenerFacet);
-      if (portals && opener) portals.mount(dom, <LinkTooltip view={view} link={link} opener={opener} />);
+      const node = render(view);
+      if (portals && node) portals.mount(dom, node);
       return { dom, destroy: () => portals?.unmount(dom) };
     },
   };
+}
+
+function tooltipOf(state: EditorState): Tooltip | null {
+  const sel = state.selection.main;
+  if (!sel.empty || !state.field(tableCellField, false)?.focused) return null;
+  const tree = syntaxTree(state);
+  const text = docText(state);
+  const link = linkAt(tree, text, sel.head);
+  if (!link) {
+    const note = footnoteAt(footnotes(tree, text), sel.head);
+    return note && tooltipWith(note.ref.from, (view) => <FootnoteTooltip view={view} number={note.ref.number} text={note.def.text} defFrom={note.def.from} />);
+  }
+  return tooltipWith(link.from, (view) => {
+    const opener = view.state.facet(noteLinkOpenerFacet);
+    return opener && <LinkTooltip view={view} link={link} opener={opener} />;
+  });
 }
 
 const sameTip = (a: Tooltip | null, b: Tooltip | null) => a === b || (!!a && !!b && a.pos === b.pos);
