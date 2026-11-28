@@ -125,6 +125,8 @@ export const cellSync = ViewPlugin.fromClass(
     constructor(readonly view: EditorView) {}
     update(u: ViewUpdate) {
       const cell = editorsByMain.get(this.view);
+      // セルを開いている間に本体がピントを得たら（表の余白を押したなど）、セルへ戻す（本体の Tab が表の文字を字下げしないように）
+      if (cell && u.focusChanged && this.view.hasFocus) queueMicrotask(() => editorsByMain.get(this.view) === cell && cell.focus());
       if (!cell || u.transactions.every((t) => t.annotation(fromCell))) return;
       const open = openCellOf(u.state);
       const range = open && openCellRange(u.state, open);

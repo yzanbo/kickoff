@@ -13,6 +13,8 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 import { blockWidgets } from "./blockWidgets";
+import { insertTable, tableMenuItems } from "./tableActions";
+import { editorContextMenuFacet, setTableMenuTarget, takeTableMenuTarget } from "./tableField";
 import { liveRich } from "./liveRich";
 import type { NoteLines } from "./noteAttachment";
 import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
@@ -30,6 +32,16 @@ export interface NoteEditorHandle {
   insert: (text: string) => void;
   /** その行（1 から）を選んで真ん中に見せる（⌘K の「ノート内の文言」から開いたとき。行が足りなければ最後の行） */
   revealLine: (line: number) => void;
+  /** 右クリックした所の項目（表のセルなら表の操作、Markdown の本文なら「表を入れる」）。メニューを開くときに 1 回読む */
+  contextItems: () => EditorMenuGroup[];
+}
+
+/** 編集の部品が右クリックのメニューに足す項目の組 */
+export interface EditorMenuGroup {
+  /** top: メニューの先頭（右クリックした物の操作）/ bottom: クリップボードの組の後ろ */
+  place: "top" | "bottom";
+  label: string;
+  items: { label: string; run: () => void }[];
 }
 
 interface Props {
@@ -87,13 +99,17 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
       kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }),
       EditorView.lineWrapping,
       widgetPortalsFacet.of(portals),
+      // 表のセルの右クリックも、ノートの右クリックのメニューで開く
+      editorContextMenuFacet.of((at) => handlers.current.onContextMenu?.(at)),
       EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "ノート（HTML のソース）" : "ノート" }),
       // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
       EditorView.domEventHandlers({
-        contextmenu: (e) => {
+        contextmenu: (e, view) => {
           const open = handlers.current.onContextMenu;
           if (!open) return false;
           e.preventDefault();
+          // 本文の右クリック（表のセルでない）
+          setTableMenuTarget(view, null);
           open({ x: e.clientX, y: e.clientY });
           return true;
         },
@@ -124,6 +140,11 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
         insert: (text) => {
           v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });
           v.focus();
+        },
+        contextItems: () => {
+          const target = takeTableMenuTarget(v);
+          if (target) return [{ place: "top", label: "表", items: tableMenuItems(v, target) }];
+          return kind === "markdown" ? [{ place: "bottom", label: "表", items: [{ label: "表を入れる", run: () => insertTable(v) }] }] : [];
         },
         revealLine: (line) => {
           const target = v.state.doc.line(Math.min(Math.max(1, line), v.state.doc.lines));

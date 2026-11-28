@@ -2,6 +2,7 @@
 // 矢印はセルの端まで来たら隣のセル（表の端なら表の外の行）、Esc で表のすぐ後ろの行へ出る。⌘Z は本体の履歴で戻す
 import { redo, undo } from "@codemirror/commands";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { addRow } from "./tableActions";
 import { focusNextCell, openCellOf } from "./tableField";
 import { bodyRows, cellRange, columnCount, nextCell, previousCell, type CellAddress } from "./tableModel";
 import { docText, fromCell, openCellEffect, openTable, tablesOf } from "./tableState";
@@ -75,9 +76,10 @@ export function cellKeymap(main: EditorView): KeyBinding[] {
   const atStart = (cell: EditorView) => cell.state.selection.main.empty && cell.state.selection.main.head === 0;
   const atEnd = (cell: EditorView) => cell.state.selection.main.empty && cell.state.selection.main.head === cell.state.doc.length;
   return [
-    { key: "Tab", run: () => move(main, nextCell, "end") || true },
+    // 最後のセルの Tab・最後の行の Enter は、行を足して移る
+    { key: "Tab", run: () => move(main, nextCell, "end") || addRowFromCell(main, true) },
     { key: "Shift-Tab", run: () => move(main, (at, columns) => previousCell(at, columns), "end") || true },
-    { key: "Enter", run: () => move(main, (at, _c, rows) => (at.row + 1 < rows ? { row: at.row + 1, col: at.col } : null), "end") || true },
+    { key: "Enter", run: () => move(main, (at, _c, rows) => (at.row + 1 < rows ? { row: at.row + 1, col: at.col } : null), "end") || addRowFromCell(main, false) },
     {
       key: "Shift-Enter",
       run: (cell) => {
@@ -100,6 +102,13 @@ export function cellKeymap(main: EditorView): KeyBinding[] {
     { key: "Mod-Shift-z", run: () => afterHistory(main, redo(main)) },
     { key: "Mod-y", run: () => afterHistory(main, redo(main)) },
   ];
+}
+
+/** 開いているセルの下に行を足して移る（toFirst: 足した行の最初のセルへ。Tab のとき） */
+function addRowFromCell(main: EditorView, toFirst: boolean): boolean {
+  const open = openCellOf(main.state);
+  if (open) addRow(main, { ...open, col: toFirst ? 0 : open.col }, "below");
+  return true;
 }
 
 /** 元に戻したあと、カーソルが表の外へ出たら本体にピントを戻す */

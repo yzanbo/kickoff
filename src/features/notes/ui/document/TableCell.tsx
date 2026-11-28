@@ -4,6 +4,7 @@ import type { Components } from "react-markdown";
 import { COMPONENTS } from "@/foundation/ui/markdown/markdownComponents";
 import { createCellEditor, destroyCellEditor } from "./cellEditor";
 import { openCell } from "./cellKeys";
+import { editorContextMenuFacet, setTableMenuTarget } from "./tableField";
 import type { CellAddress } from "./tableModel";
 
 /** 描いている表の様子（編集の部品と、この表で開いているセル） */
@@ -41,9 +42,18 @@ function TableCell({ node, children, ...props }: CellProps) {
   const col = Number(node?.properties?.dataCol);
   if (!ctx) return <Tag {...props}>{children}</Tag>;
   const { view, open } = ctx;
+  // 右クリック: 表の項目を足したノートのメニュー（開いたセルの中でも同じ）
+  const menu = (e: MouseEvent<HTMLElement>) => {
+    const openMenu = view.state.facet(editorContextMenuFacet);
+    if (!openMenu) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setTableMenuTarget(view, { tableFrom: view.posAtDOM(e.currentTarget), row, col });
+    openMenu({ x: e.clientX, y: e.clientY });
+  };
   if (open && open.row === row && open.col === col) {
     return (
-      <Tag {...props} className="note-cell-open">
+      <Tag {...props} className="note-cell-open" onContextMenu={menu}>
         <CellEditorHost view={view} />
       </Tag>
     );
@@ -54,7 +64,7 @@ function TableCell({ node, children, ...props }: CellProps) {
     openCell(view, view.posAtDOM(e.currentTarget), { row, col }, "end");
   };
   return (
-    <Tag {...props} onMouseDown={press}>
+    <Tag {...props} onMouseDown={press} onContextMenu={menu}>
       {children}
     </Tag>
   );

@@ -1,8 +1,11 @@
 // 表のセルで書く状態を持つ StateField（どのセルを開いているか・ピントが編集の部品の中にあるか）と、ピントの見張り。
 // 置き換えて描く飾り（blockWidgets）とセルの書く部品（cellEditor・cellKeys）の両方が読む
-import { StateField, type EditorState } from "@codemirror/state";
+import { Facet, StateField, type EditorState } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { editorFocusEffect, nextFocused, nextOpenCell, type OpenCell } from "./tableState";
+
+/** 表とセル（右クリックしたセル） */
+export type TableTarget = OpenCell;
 
 interface TableCellState {
   focused: boolean;
@@ -52,3 +55,20 @@ export const focusNextCell = (main: EditorView) => void focusRequests.add(main);
 
 /** ピントを移す頼みを受け取る（あれば true。受け取ったら消す） */
 export const takeFocusRequest = (main: EditorView) => focusRequests.delete(main);
+
+/** 編集の部品の右クリックのメニューを開く口（表のセルの右クリックから呼ぶ。本体の右クリックは NoteEditor が受ける） */
+export const editorContextMenuFacet = Facet.define<(at: { x: number; y: number }) => void, ((at: { x: number; y: number }) => void) | null>({
+  combine: (values) => values[0] ?? null,
+});
+
+/** 右クリックした表のセル（メニューを開くときに 1 回だけ読む） */
+const menuTargets = new WeakMap<EditorView, TableTarget>();
+
+export const setTableMenuTarget = (main: EditorView, target: TableTarget | null) => void (target ? menuTargets.set(main, target) : menuTargets.delete(main));
+
+/** 右クリックした表のセルを受け取る（受け取ったら消す。表の外の右クリックなら null） */
+export function takeTableMenuTarget(main: EditorView): TableTarget | null {
+  const target = menuTargets.get(main) ?? null;
+  menuTargets.delete(main);
+  return target;
+}

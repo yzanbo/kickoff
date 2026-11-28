@@ -12,6 +12,7 @@
 | `blockWidgets.tsx`・`NoteTable.tsx`・`TableCell.tsx`・`widgetPortals.tsx` | 表を置き換えて描く（返答の表示と同じ処理と部品。React の部品は NoteEditor の木から portal で描く） |
 | `tableField.ts`・`tableState.ts`・`cellEditor.ts`・`cellKeys.ts` | セルで書く（開いているセル・セルの中の小さな CodeMirror・キー） |
 | `tableBlocks.ts`・`tableModel.ts`・`tableEdit.ts`・`tableSyntax.ts` | 表の場所とセル・書き戻し・段落の途中から始まる表を読む拡張 |
+| `tableStructure.ts`・`tableActions.ts` | 行・列・寄せ・表を足す・消す（純粋な関数と、本体へ当てる操作。右クリックの項目は `NoteEditorHandle.contextItems`） |
 | `noteMarkdown.ts`・`noteLinks.ts`・`cjkEmphasis.ts` | 読み取りの組・行き先のあるリンク・日本語向けの強調 |
 | `HtmlNotePage.tsx`・`htmlPage.ts` | HTML のノートのページ（iframe） |
 
@@ -28,4 +29,5 @@
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - 行をまたいで置き換える飾りは StateField で出す。描いたあとに高さを測り直させる（`requestMeasure`）。portal の key は要素ごとに変えない。
 - セルの部品は描いた直後（layout effect）に作ってピントを移す（前の部品が消えた隙にピントが外へ出た扱いになると閉じる）。開いている間は列の幅を固定する（大きな表を 1 文字ごとに測り直さない）。表の枠は `contain: inline-size`（セルの最小の幅で本文が横に広がらない）。
-- テスト: `livePreview`・`markdownParity`・`tableBlocks`・`tableEdit`・`tableState`・`mermaidBlocks`・`htmlPage` の `*.test.ts`。
+- 表のセルの右クリックは、本体の右クリックと同じノートのメニューで開く（`editorContextMenuFacet`。右クリックしたセルは `takeTableMenuTarget` で 1 回だけ読む）。
+- テスト: `livePreview`・`markdownParity`・`tableBlocks`・`tableEdit`・`tableStructure`・`tableState`・`mermaidBlocks`・`htmlPage` の `*.test.ts`。

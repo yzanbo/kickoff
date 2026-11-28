@@ -6,6 +6,9 @@ import type { EditorView } from "@codemirror/view";
 import { convertTexDelimiters, mayContainMath } from "@shared/foundation/markdown/mathGuard";
 import { markdownToHast, pipelineOf } from "@/foundation/ui/markdown/markdownProcessor";
 import { useMathPlugins } from "@/foundation/ui/markdown/math/useMathPlugins";
+import { Plus } from "lucide-react";
+import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { appendColumn, appendRow } from "./tableActions";
 import { NoteTableContext, TABLE_COMPONENTS } from "./TableCell";
 import type { CellAddress } from "./tableModel";
 
@@ -69,10 +72,20 @@ export function NoteTable({ markdown, view, open }: { markdown: string; view: Ed
   if (!tree) return <pre className="note-table-plain">{markdown}</pre>;
   markCells(tree);
   const element = toJsxRuntime(tree, { Fragment, components: TABLE_COMPONENTS, ignoreInvalidStyle: true, jsx, jsxs, passKeys: true, passNode: true });
+  // 表の端の「＋」（最後に行・列を足す。マウスを乗せると出る）。押してもカーソルは動かさない
+  const add = (append: typeof appendRow) => () => {
+    if (box.current) append(view, view.posAtDOM(box.current));
+  };
+  const keep = (e: { preventDefault: () => void }) => e.preventDefault();
   return (
     <NoteTableContext.Provider value={{ view, open }}>
-      <div ref={box} className="markdown">
-        {element}
+      {/* セルとボタンのほか（表の余白）を押しても、本体にピントを移さない */}
+      <div className="note-table-frame" onMouseDown={(e) => !(e.target as HTMLElement).closest("td, th, button, a") && e.preventDefault()}>
+        <div ref={box} className="markdown">
+          {element}
+        </div>
+        <IconButton icon={Plus} className="note-table-add-column" label="列を足す" size="xs" onMouseDown={keep} onClick={add(appendColumn)} />
+        <IconButton icon={Plus} className="note-table-add-row" label="行を足す" size="xs" onMouseDown={keep} onClick={add(appendRow)} />
       </div>
     </NoteTableContext.Provider>
   );

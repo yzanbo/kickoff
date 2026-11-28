@@ -228,3 +228,34 @@
 .md-editor .cm-note-table th {
   cursor: text;
 }
+
+/* 表の端の「＋」（最後に行・列を足す）。表にマウスを乗せたときだけ出す */
+
+.md-editor .cm-note-table .note-table-frame {
+  position: relative;
+  padding: 0 22px 18px 0;
+}
+
+.md-editor .cm-note-table .note-table-add-row,
+.md-editor .cm-note-table .note-table-add-column {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.md-editor .cm-note-table .note-table-add-row {
+  left: 0;
+  bottom: 0;
+}
+
+.md-editor .cm-note-table .note-table-add-column {
+  top: 0.55em;
+  right: 0;
+}
+
+.md-editor .cm-note-table .note-table-frame:hover .note-table-add-row,
+.md-editor .cm-note-table .note-table-frame:hover .note-table-add-column,
+.md-editor .cm-note-table .note-table-add-row:focus-visible,
+.md-editor .cm-note-table .note-table-add-column:focus-visible {
+  opacity: 1;
+}
