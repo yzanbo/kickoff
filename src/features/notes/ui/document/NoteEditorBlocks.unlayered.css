@@ -165,9 +165,10 @@
   text-decoration: none;
 }
 
-/* リンクの定義の行（[名前]: URL）は薄い小さな文字 */
+/* リンクの定義の行（[名前]: URL）と脚注の定義の行は薄い小さな文字 */
 
-.md-editor .cm-md-linkdef {
+.md-editor .cm-md-linkdef,
+.md-editor .cm-md-footdef {
   font-size: 0.85em;
   color: var(--muted);
 }
@@ -188,14 +189,9 @@
   color: var(--muted);
 }
 
-/* 脚注（本文の印は上付きの番号、定義の行は小さな文字） */
+/* 脚注の本文の印は上付きの番号 */
 
 .md-editor .cm-md-footref {
   font-size: 0.75em;
   color: var(--accent-fg);
-}
-
-.md-editor .cm-md-footdef {
-  font-size: 0.85em;
-  color: var(--muted);
 }
