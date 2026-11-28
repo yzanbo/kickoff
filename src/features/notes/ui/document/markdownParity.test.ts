@@ -2,21 +2,18 @@
 // 2 つの読み取りは別物なので、ずれた所はノートの側で返答の表示に合わせる（ずれを見つける網）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { markdownLanguage } from "@codemirror/lang-markdown";
-import type { MarkdownParser } from "@lezer/markdown";
 import type { Root } from "mdast";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { markdownRemarkPlugins } from "@/foundation/ui/markdown/syntax/markdownPlugins";
-import { cjkFriendlyEmphasis } from "./cjkEmphasis";
 import { linkDefinitions, linkHref } from "./noteLinks";
+import { noteMarkdownParser as noteParser } from "./noteMarkdown";
+import { splitTableRow, tableBlocks } from "./tableBlocks";
 
-/** ノートの編集の部品と同じ読み取り（NoteEditor の markdown() と同じ組） */
-const noteParser = (markdownLanguage.parser as MarkdownParser).configure([cjkFriendlyEmphasis]);
 const chatParser = unified().use(remarkParse).use(markdownRemarkPlugins());
 
-type Kind = "link" | "heading" | "code";
+type Kind = "link" | "heading" | "code" | "table";
 
 /** 返答の表示が描くもの（種類と、文の中の位置の範囲） */
 function chatSummary(text: string, kinds: readonly Kind[]): string[] {
@@ -26,6 +23,8 @@ function chatSummary(text: string, kinds: readonly Kind[]): string[] {
     // [ ] で書いたリンクだけ（URL のそのまま書き・<URL> は別に比べる）
     if (kinds.includes("link") && (node.type === "link" || node.type === "linkReference") && text[node.position?.start.offset ?? 0] === "[") out.push(`link ${at}`);
     if (kinds.includes("heading") && node.type === "heading") out.push(`heading${node.depth} ${at}`);
+    // 表は行で比べる（始まり・終わりの行と、行の数・見出しのセルの数）
+    if (kinds.includes("table") && node.type === "table") out.push(`table ${node.position?.start.line}-${node.position?.end.line} ${node.children.length}x${node.children[0]?.children.length}`);
     if (kinds.includes("code") && node.type === "code") out.push(`code ${node.position?.start.line}-${node.position?.end.line}`);
   });
   return out.sort();
@@ -37,6 +36,12 @@ function noteSummary(text: string, kinds: readonly Kind[]): string[] {
   const defs = linkDefinitions(tree, text);
   const out: string[] = [];
   const lineOf = (pos: number) => text.slice(0, pos).split("\n").length;
+  if (kinds.includes("table")) {
+    for (const t of tableBlocks(tree, text)) {
+      const body = t.rows.filter((r) => !r.delimiter);
+      out.push(`table ${lineOf(t.from)}-${lineOf(t.to)} ${body.length}x${splitTableRow(text.slice(body[0].from, body[0].to), 0).length}`);
+    }
+  }
   tree.iterate({
     enter(n) {
       const at = `${n.from}-${n.to}`;
@@ -76,4 +81,20 @@ test("読み方の比べ: 見出し（# と下線）とコードの塊は同じ�
 
 test("読み方の比べ: 画像の中の [ ] はリンクにしない（![[名前]] は返答の表示でも文字のまま）", () => {
   same("![[Pasted image 1.png]] と ![説明](a.png)", ["link"]);
+});
+
+test("読み方の比べ: 表は同じ行から同じ行までを、同じ行と列の数で読む", () => {
+  for (const text of [
+    "| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |",
+    "a | b\n--|--\n1 | 2",
+    "本文\n| a | b |\n|---|---|\n| 1 | 2 |",
+    // | で始まる段落の途中の行から始まる表（実際のノートにある形）
+    "| x | y | z |\n| p | q | r |\n| a | b | c |\n|---|---|---|\n| 1 | 2 | 3 |",
+    "| x | y |\n| a | b |\n|---|---|\n| 1 | 2 |\n\n| 後 | ろ |\n|---|---|",
+    "| セルの中の \\| と `コード` | b |\n|:--|--:|\n| 1 || 3 |\n| 短い |",
+    "- 項目\n\n  | a | b |\n  |---|---|\n  | 1 | 2 |",
+    "> | a | b |\n> |---|---|\n> | 1 | 2 |",
+  ]) {
+    same(text, ["table"]);
+  }
 });

@@ -1,6 +1,7 @@
 // ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
 // 数式の場所は `@shared/markdown/mathGuard` の mathRanges（チャットの返答と同じ決まり）を KaTeX で、Mermaid はチャットと同じ renderMermaid で描く。
 // カーソルがその中にあるときは、書いたとおりの記号を見せる（ライブプレビューの見出しなどと同じ）。行をまたいで置き換えるので、ViewPlugin ではなく StateField で飾る
+import { syntaxTree } from "@codemirror/language";
 import { Prec, StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from "@codemirror/view";
 import type KaTeX from "katex";
@@ -10,6 +11,7 @@ import { renderMermaid } from "@/foundation/ui/markdown/mermaid/renderMermaid";
 import { tidyRenderedMath } from "@shared/foundation/math/katexSettings";
 import { KATEX_OPTIONS } from "@/foundation/ui/markdown/math/katexOptions";
 import { mermaidBlocks } from "./mermaidBlocks";
+import { tableBlocks } from "./tableBlocks";
 
 // KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
@@ -93,15 +95,18 @@ function build(state: EditorState, focused: boolean, theme: AppliedTheme): Decor
   const text = state.doc.toString();
   const touches = (from: number, to: number) => focused && state.selection.ranges.some((r) => r.from <= to && r.to >= from);
   const out: Range<Decoration>[] = [];
+  // 表の中は表の飾り（blockWidgets）が描くので、数式・図を重ねない
+  const tables = tableBlocks(syntaxTree(state), text);
+  const inTable = (from: number, to: number) => tables.some((t) => from < t.to && to > t.from);
   // Mermaid の塊（行をまるごと置き換える）。数式はこの外だけを探す
   const blocks = text.includes("mermaid") ? mermaidBlocks(text) : [];
   for (const b of blocks) {
-    if (touches(b.from, b.to) || !b.code.trim()) continue;
+    if (touches(b.from, b.to) || !b.code.trim() || inTable(b.from, b.to)) continue;
     out.push(Decoration.replace({ widget: new MermaidWidget(b.code, theme), block: true }).range(b.from, b.to));
   }
   if (katex && mayContainMath(text)) {
     for (const m of mathRanges(text)) {
-      if (touches(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
+      if (touches(m.from, m.to) || inTable(m.from, m.to) || blocks.some((b) => m.from < b.to && m.to > b.from)) continue;
       const start = state.doc.lineAt(m.from);
       const end = state.doc.lineAt(m.to);
       // 行をまるごと占める段落の数式は、行ごと置き換える（行をまたいでよい）

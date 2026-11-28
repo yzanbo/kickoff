@@ -5,16 +5,18 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
-import type { MutableRefObject } from "react";
+import { useState, type MutableRefObject } from "react";
 import type { NoteKind } from "@shared/notes/kinds";
 import { useCodeMirror } from "@/foundation/ui/code/useCodeMirror";
 import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
-import { cjkFriendlyEmphasis } from "./cjkEmphasis";
 import { livePreview } from "./livePreviewExtension";
+import { blockWidgets } from "./blockWidgets";
 import { liveRich } from "./liveRich";
 import type { NoteLines } from "./noteAttachment";
+import { NOTE_MARKDOWN_EXTENSIONS } from "./noteMarkdown";
+import { createWidgetPortals, WidgetPortalOutlet, widgetPortalsFacet } from "./widgetPortals";
 
 /** 外から編集の部品を動かす口（右クリックのメニュー。選んだ文を読む・選んだ所に入れる） */
 export interface NoteEditorHandle {
@@ -71,17 +73,20 @@ const htmlHighlight = HighlightStyle.define([
 export default function NoteEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
   const handlers = useLatest({ onSave, onContextMenu });
+  // 表などを置き換えて描く飾りの中身（React の部品）を、この木から描く口
+  const [portals] = useState(createWidgetPortals);
 
   const { host } = useCodeMirror({
     initialValue,
     onChange,
     // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
-    dynamic: live && kind === "markdown" ? [liveRich, livePreview] : [],
+    dynamic: live && kind === "markdown" ? [blockWidgets, liveRich, livePreview] : [],
     dynamicDeps: [live, kind],
     extensions: () => [
       baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),
-      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: [cjkFriendlyEmphasis] }),
+      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage, extensions: NOTE_MARKDOWN_EXTENSIONS }),
       EditorView.lineWrapping,
+      widgetPortalsFacet.of(portals),
       EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "ノート（HTML のソース）" : "ノート" }),
       // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
       EditorView.domEventHandlers({
@@ -133,5 +138,10 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     },
   });
 
-  return <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />;
+  return (
+    <>
+      <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />
+      <WidgetPortalOutlet portals={portals} />
+    </>
+  );
 }

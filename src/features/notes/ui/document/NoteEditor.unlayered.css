@@ -179,3 +179,17 @@
   margin: 0;
 }
 
+
+/* 表（blockWidgets。返答の表示と同じ部品で描く）。行の高さは本文に合わせ、表の文字の大きさは返答と同じ */
+
+.md-editor .cm-note-table {
+  padding-block: 0.2em;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.md-editor .cm-note-table .note-table-plain {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+}
